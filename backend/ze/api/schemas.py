@@ -1,5 +1,5 @@
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import UUID as UUIDType
 
 from pydantic import BaseModel, Field
 
@@ -71,7 +71,7 @@ class CapabilityModeUpdate(BaseModel):
 # ── REST: memory ──────────────────────────────────────────────────────────────
 
 class FactReviewAction(BaseModel):
-    id: UUID
+    id: UUIDType
     action: Literal["confirm", "reject", "edit"]
     value: str | None = None
 
@@ -83,13 +83,13 @@ class FactReviewRequest(BaseModel):
 # ── REST: routing log ─────────────────────────────────────────────────────────
 
 class RoutingLogEntry(BaseModel):
-    id: int
+    id: UUIDType
     session_id: str
     prompt: str
     method: str
     primary_agent: str
-    confidence: float
-    score_gap: float
+    confidence: float | None
+    score_gap: float | None
     is_compound: bool
-    raw_scores: dict[str, float]
+    raw_scores: dict[str, float] | None
     created_at: str
