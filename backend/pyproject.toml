@@ -12,7 +12,8 @@ dependencies = [
     "asyncpg>=0.30",
     "psycopg[binary,pool]>=3.2",   # required by langgraph-checkpoint-postgres
     "pgvector>=0.3",
-    "sentence-transformers>=3.3",
+    "torch>=2.1,<2.6",                  # 2.6+ drops macOS 13 arm64 wheel support
+    "sentence-transformers>=3.0,<3.3",
     "pydantic>=2.10",
     "pydantic-settings>=2.6",
     "structlog>=24.4",
@@ -35,6 +36,10 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests that load the embedding model (deselect with -m 'not slow')",
+    "integration: marks tests that require a running database",
+]
 
 [tool.uv]
 package = true
