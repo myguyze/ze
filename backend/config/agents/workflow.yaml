@@ -1,0 +1,12 @@
+enabled: false            # Phase 4
+description: |
+  Executes workflow automations, file operations, API calls, and system integrations.
+  Use for triggering automations, running scripts, or interacting with connected services.
+model: anthropic/claude-sonnet-4-5
+tools:
+  - run_script
+  - call_api
+  - move_file
+  - send_notification
+timeout_seconds: 60
+intent_map: {}            # LLM-determined; too variable for a static map

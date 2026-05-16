@@ -1,0 +1,26 @@
+capabilities:
+  calendar:
+    enabled: false          # Phase 3
+    read:    autonomous
+    create:  confirm
+    update:  confirm
+    delete:  confirm
+
+  email:
+    enabled: false          # Phase 3
+    read:    autonomous
+    create:  draft_only
+    update:  draft_only
+    delete:  confirm
+
+  research:
+    enabled: true
+    read:    autonomous
+
+  workflow:
+    enabled: false          # Phase 4
+    execute: confirm
+
+  companion:
+    enabled: true
+    reason:  autonomous

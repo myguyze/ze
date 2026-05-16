@@ -1,0 +1,16 @@
+enabled: false            # Phase 3
+description: |
+  Manages Gmail messages. Use for reading, drafting, sending, or archiving emails,
+  searching your inbox, or composing replies.
+model: anthropic/claude-haiku-4-5
+tools:
+  - read_emails
+  - draft_email
+  - send_email
+  - archive_email
+timeout_seconds: 30
+intent_map:
+  read:   read_emails
+  create: draft_email
+  update: draft_email
+  delete: archive_email

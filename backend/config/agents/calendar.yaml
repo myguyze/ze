@@ -1,0 +1,16 @@
+enabled: false            # Phase 3
+description: |
+  Manages Google Calendar events. Use for creating, reading, updating, or deleting
+  calendar events, checking availability, finding free time, or setting reminders.
+model: anthropic/claude-haiku-4-5
+tools:
+  - read_events
+  - create_event
+  - update_event
+  - delete_event
+timeout_seconds: 30
+intent_map:
+  read:   read_events
+  create: create_event
+  update: update_event
+  delete: delete_event

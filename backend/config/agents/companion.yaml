@@ -1,0 +1,10 @@
+enabled: true
+description: |
+  Handles reasoning, thinking, brainstorming, analysis, and open-ended conversation.
+  Use for thinking through problems, getting a second opinion, exploring ideas,
+  writing assistance, or any task that does not require external tools or live data.
+model: anthropic/claude-sonnet-4-5
+tools: []
+timeout_seconds: 60
+intent_map:
+  reason: direct_completion

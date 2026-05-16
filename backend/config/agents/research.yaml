@@ -1,0 +1,13 @@
+enabled: true
+description: |
+  Handles web searches, fact-finding, summarisation, and research synthesis.
+  Use for questions about current events, factual lookups, topic deep-dives,
+  or anything requiring information retrieval from the web.
+model: anthropic/claude-sonnet-4-5
+tools:
+  - web_search
+  - summarize
+  - extract_facts
+timeout_seconds: 30
+intent_map:
+  read: web_search
