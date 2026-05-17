@@ -1,8 +1,8 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 from ze.agents.research.agent import ResearchAgent
-from ze.agents.research.tools import format_search_results, web_search
+from ze.agents.research.tools import format_search_results
 from ze.agents.types import AgentContext, AgentResult, ToolCall
 from ze.logging import configure_logging
 from ze.memory.types import MemoryContext, UserFact

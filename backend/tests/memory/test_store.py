@@ -1,15 +1,12 @@
-import asyncio
 import pathlib
-from contextlib import asynccontextmanager
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import numpy as np
-import pytest
 
 from ze.memory.store import MemoryStore, _tokens, _vec
-from ze.memory.types import Episode, MemoryContext, UserFact
+from ze.memory.types import MemoryContext, UserFact
 from ze.settings import Settings
 
 

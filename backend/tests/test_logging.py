@@ -1,5 +1,4 @@
 import json
-import structlog
 from ze.logging import configure_logging, get_logger, bind_context, unbind_context
 
 

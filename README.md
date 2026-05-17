@@ -154,10 +154,29 @@ make docker-down    # stop all services
 make docker-build   # rebuild images
 ```
 
+## CI/CD (GitHub Actions)
+
+On every push and pull request to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs:
+
+- **Backend** — `ruff check`, fast `pytest` (embedding-model tests excluded)
+- **Frontend** — `tsc`, `next lint`, `next build`
+
+Merges to `main` that touch `backend/` also trigger [`.github/workflows/deploy-backend.yml`](.github/workflows/deploy-backend.yml), which deploys the backend to Fly.io.
+
+### One-time setup
+
+1. **Fly deploy token** — create a repo secret `FLY_API_TOKEN`:
+   ```bash
+   fly tokens create deploy -x 999999h
+   ```
+2. **Fly secrets** — set runtime env on the app (not in GitHub): `fly secrets set OPENROUTER_API_KEY=...`
+
+Frontend is not deployed by these workflows (use Vercel or a separate Fly app).
+
 ## Deployment (Fly.io)
 
 ```bash
-fly deploy          # deploy backend
+fly deploy          # deploy backend (or rely on GitHub Actions on push to main)
 # frontend deployed separately (Vercel or second Fly app)
 ```
 

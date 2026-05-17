@@ -1,0 +1,35 @@
+name: Deploy backend
+
+# Deploys the FastAPI backend to Fly.io (see fly.toml).
+# Required repository secret: FLY_API_TOKEN
+#   fly tokens create deploy -x 999999h
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "fly.toml"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Fly.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

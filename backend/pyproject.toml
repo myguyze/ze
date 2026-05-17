@@ -32,6 +32,7 @@ dev = [
     "pytest-mock>=3.14",
     "anyio[trio]>=4.7",
     "psycopg2-binary>=2.9",        # sync driver for alembic migrations
+    "ruff>=0.8",
 ]
 
 [tool.pytest.ini_options]

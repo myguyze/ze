@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from ze.agents.types import AgentContext, AgentResult
 from ze.capability.gate import CapabilityGate
 from ze.capability.types import GateDecision
-from ze.errors import AgentTimeoutError, UnknownAgentError
+from ze.errors import AgentTimeoutError
 from ze.logging import configure_logging
 from ze.memory.store import MemoryStore
 from ze.memory.types import MemoryContext, UserFact

@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from ze.errors import InvalidPromptError, RoutingError
 from ze.logging import configure_logging

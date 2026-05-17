@@ -1,6 +1,6 @@
 import asyncio
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from fastapi import WebSocket, WebSocketDisconnect
 from sentence_transformers import SentenceTransformer

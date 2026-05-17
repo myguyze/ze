@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from ze.settings import Settings, get_settings
 
 
