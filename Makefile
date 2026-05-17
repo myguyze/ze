@@ -65,6 +65,10 @@ install-be:
 install-fe:
 	$(NPM) install
 
+.PHONY: sync-ze-api-key
+sync-ze-api-key:
+	python3 tools/sync_ze_api_key.py $(if $(ZE_API_TOKEN),--token $(ZE_API_TOKEN))
+
 # ── Database ──────────────────────────────────────────────────────────────────
 .PHONY: db-up db-down db-reset migrate migrate-down migrate-status migrate-history
 

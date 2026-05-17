@@ -1,11 +1,13 @@
 import asyncio
-import json
 import time
 from collections.abc import AsyncIterator
 
-import httpx
 import structlog
-
+from openrouter import OpenRouter
+from openrouter import errors as sdk_errors
+from openrouter.components.chatresult import ChatResult
+from openrouter.components.chatstreamchunk import ChatStreamChunk
+from openrouter.types import UNSET, UNSET_SENTINEL
 from ze.errors import OpenRouterError, RateLimitError
 from ze.openrouter.types import TokenUsage
 
@@ -18,17 +20,21 @@ class OpenRouterClient:
         self,
         api_key: str,
         base_url: str,
-        http_client: httpx.AsyncClient,
         logger: structlog.BoundLogger,
         http_referer: str = "https://github.com/ze",
         title: str = "Ze Personal Assistant",
     ) -> None:
-        self._api_key = api_key
-        self._base_url = base_url.rstrip("/")
-        self._http = http_client
         self._log = logger
-        self._http_referer = http_referer
-        self._title = title
+        self._sdk = OpenRouter(
+            api_key=api_key,
+            server_url=base_url.rstrip("/"),
+            http_referer=http_referer,
+            x_open_router_title=title,
+            retry_config=None,
+        )
+
+    async def aclose(self) -> None:
+        await self._sdk.__aexit__(None, None, None)
 
     # ── Public interface ──────────────────────────────────────────────────────
 
@@ -41,25 +47,62 @@ class OpenRouterClient:
         max_tokens: int = 1000,
     ) -> str:
         """Send a non-streaming completion. Returns the full response string."""
-        payload = self._payload(messages, model, system, temperature, max_tokens, stream=False)
+        full_messages = _build_messages(messages, system)
         start = time.monotonic()
+        last_exc: Exception | None = None
 
-        response = await self._post_with_retry(payload)
-        duration_ms = int((time.monotonic() - start) * 1000)
+        for attempt, backoff in enumerate(_BACKOFFS, start=1):
+            try:
+                response = await self._sdk.chat.send_async(
+                    messages=full_messages,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                )
+            except sdk_errors.OpenRouterError as exc:
+                ze_exc = _map_sdk_error(exc)
+                if not _is_retryable(ze_exc):
+                    raise ze_exc from exc
+                wait = max(backoff, _parse_retry_after(exc))
+                self._log.warning(
+                    "openrouter_retry",
+                    status=ze_exc.status_code,
+                    attempt=attempt,
+                    wait_seconds=wait,
+                )
+                last_exc = ze_exc
+                await asyncio.sleep(wait)
+                continue
+            except sdk_errors.NoResponseError as exc:
+                last_exc = OpenRouterError(f"Request failed: {exc}")
+                if attempt == len(_BACKOFFS):
+                    break
+                await asyncio.sleep(backoff)
+                continue
 
-        data = response.json()
-        usage = _extract_usage(data)
-        content: str = data["choices"][0]["message"]["content"]
+            if not isinstance(response, ChatResult):
+                raise OpenRouterError("Unexpected streaming response for non-streaming call")
 
-        self._log.info(
-            "openrouter_complete",
-            model=model,
-            duration_ms=duration_ms,
-            prompt_tokens=usage.prompt_tokens,
-            completion_tokens=usage.completion_tokens,
-            success=True,
-        )
-        return content
+            duration_ms = int((time.monotonic() - start) * 1000)
+            usage = _extract_usage(response)
+            content = response.choices[0].message.content
+            if content is None or content is UNSET or content is UNSET_SENTINEL:
+                content = ""
+            elif not isinstance(content, str):
+                content = str(content)
+
+            self._log.info(
+                "openrouter_complete",
+                model=model,
+                duration_ms=duration_ms,
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                success=True,
+            )
+            return content
+
+        raise last_exc or OpenRouterError("All retry attempts exhausted")
 
     async def stream(
         self,
@@ -70,142 +113,99 @@ class OpenRouterClient:
         max_tokens: int = 1000,
     ) -> AsyncIterator[str]:
         """Send a streaming completion. Yields decoded token chunks."""
-        payload = self._payload(messages, model, system, temperature, max_tokens, stream=True)
-        url = f"{self._base_url}/chat/completions"
+        full_messages = _build_messages(messages, system)
         start = time.monotonic()
         last_exc: Exception | None = None
 
         for attempt, backoff in enumerate(_BACKOFFS, start=1):
-            async with self._http.stream("POST", url, json=payload, headers=self._headers()) as response:
-                if response.status_code in _RETRYABLE_STATUS:
-                    await response.aread()
-                    wait = max(backoff, _parse_retry_after(response))
-                    self._log.warning(
-                        "openrouter_stream_retry",
-                        status=response.status_code,
-                        attempt=attempt,
-                        wait_seconds=wait,
-                    )
-                    last_exc = (
-                        RateLimitError("Rate limited", status_code=response.status_code)
-                        if response.status_code == 429
-                        else OpenRouterError(f"HTTP {response.status_code}", status_code=response.status_code)
-                    )
-                    await asyncio.sleep(wait)
-                    continue
-
-                if response.status_code >= 400:
-                    body = await response.aread()
-                    raise OpenRouterError(
-                        f"HTTP {response.status_code}: {body.decode()}",
-                        status_code=response.status_code,
-                    )
-
-                async for line in response.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        self._log.info(
-                            "openrouter_stream",
-                            model=model,
-                            duration_ms=int((time.monotonic() - start) * 1000),
-                            success=True,
-                        )
-                        return
-                    try:
-                        chunk = json.loads(data)
-                        content = chunk["choices"][0]["delta"].get("content")
-                        if content:
-                            yield content
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
-                return
-
-        raise last_exc or OpenRouterError("All retry attempts exhausted")
-
-    # ── Internal helpers ──────────────────────────────────────────────────────
-
-    def _headers(self) -> dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self._api_key}",
-            "HTTP-Referer": self._http_referer,
-            "X-Title": self._title,
-            "Content-Type": "application/json",
-        }
-
-    def _payload(
-        self,
-        messages: list[dict],
-        model: str,
-        system: str | None,
-        temperature: float,
-        max_tokens: int,
-        stream: bool,
-    ) -> dict:
-        full_messages = (
-            [{"role": "system", "content": system}] + messages if system else messages
-        )
-        return {
-            "model": model,
-            "messages": full_messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": stream,
-        }
-
-    async def _post_with_retry(self, payload: dict) -> httpx.Response:
-        url = f"{self._base_url}/chat/completions"
-        last_exc: Exception | None = None
-
-        for attempt, backoff in enumerate(_BACKOFFS, start=1):
             try:
-                response = await self._http.post(url, json=payload, headers=self._headers())
-            except httpx.RequestError as exc:
+                event_stream = await self._sdk.chat.send_async(
+                    messages=full_messages,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True,
+                )
+            except sdk_errors.OpenRouterError as exc:
+                ze_exc = _map_sdk_error(exc)
+                if not _is_retryable(ze_exc):
+                    raise ze_exc from exc
+                wait = max(backoff, _parse_retry_after(exc))
+                self._log.warning(
+                    "openrouter_stream_retry",
+                    status=ze_exc.status_code,
+                    attempt=attempt,
+                    wait_seconds=wait,
+                )
+                last_exc = ze_exc
+                await asyncio.sleep(wait)
+                continue
+            except sdk_errors.NoResponseError as exc:
                 last_exc = OpenRouterError(f"Request failed: {exc}")
                 if attempt == len(_BACKOFFS):
                     break
                 await asyncio.sleep(backoff)
                 continue
 
-            if response.status_code in _RETRYABLE_STATUS:
-                wait = max(backoff, _parse_retry_after(response))
-                self._log.warning(
-                    "openrouter_retry",
-                    status=response.status_code,
-                    attempt=attempt,
-                    wait_seconds=wait,
-                )
-                last_exc = (
-                    RateLimitError("Rate limited", status_code=response.status_code)
-                    if response.status_code == 429
-                    else OpenRouterError(f"HTTP {response.status_code}", status_code=response.status_code)
-                )
-                await asyncio.sleep(wait)
-                continue
+            if isinstance(event_stream, ChatResult):
+                raise OpenRouterError("Unexpected non-streaming response for streaming call")
 
-            if response.status_code >= 400:
-                raise OpenRouterError(
-                    f"HTTP {response.status_code}: {response.text}",
-                    status_code=response.status_code,
-                )
+            async with event_stream:
+                async for chunk in event_stream:
+                    content = _chunk_content(chunk)
+                    if content:
+                        yield content
 
-            return response
+            self._log.info(
+                "openrouter_stream",
+                model=model,
+                duration_ms=int((time.monotonic() - start) * 1000),
+                success=True,
+            )
+            return
 
         raise last_exc or OpenRouterError("All retry attempts exhausted")
 
 
-def _parse_retry_after(response: httpx.Response) -> float:
+def _build_messages(messages: list[dict], system: str | None) -> list[dict]:
+    if system:
+        return [{"role": "system", "content": system}, *messages]
+    return messages
+
+
+def _chunk_content(chunk: ChatStreamChunk) -> str | None:
+    if not chunk.choices:
+        return None
+    delta = chunk.choices[0].delta
+    content = delta.content
+    if content is UNSET or content is UNSET_SENTINEL or content is None:
+        return None
+    return content
+
+
+def _map_sdk_error(exc: sdk_errors.OpenRouterError) -> OpenRouterError:
+    if isinstance(exc, sdk_errors.TooManyRequestsResponseError):
+        return RateLimitError(exc.message, status_code=exc.status_code)
+    return OpenRouterError(exc.message, status_code=exc.status_code)
+
+
+def _is_retryable(exc: OpenRouterError) -> bool:
+    return exc.status_code in _RETRYABLE_STATUS
+
+
+def _parse_retry_after(exc: sdk_errors.OpenRouterError) -> float:
     try:
-        return float(response.headers.get("Retry-After", "0"))
+        return float(exc.headers.get("Retry-After", "0"))
     except ValueError:
         return 0.0
 
 
-def _extract_usage(data: dict) -> TokenUsage:
-    usage = data.get("usage", {})
+def _extract_usage(result: ChatResult) -> TokenUsage:
+    usage = result.usage
+    if usage is None:
+        return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     return TokenUsage(
-        prompt_tokens=usage.get("prompt_tokens", 0),
-        completion_tokens=usage.get("completion_tokens", 0),
-        total_tokens=usage.get("total_tokens", 0),
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
     )

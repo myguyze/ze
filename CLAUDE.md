@@ -114,11 +114,12 @@ make test-all        # all backend tests including slow ones
 
 ## Configuration files
 
-### `backend/.env` (create from `.env.example`, never commit)
+### `.env` (create from `.env.example`, never commit)
 ```
 OPENROUTER_API_KEY=sk-or-...
 TAVILY_API_KEY=tvly-...
 ZE_API_KEY=your-secret-key
+NEXT_PUBLIC_ZE_API_KEY=your-secret-key
 DATABASE_URL=postgresql://ze:ze@localhost:5432/ze
 DATABASE_URL_SYNC=postgresql+psycopg2://ze:ze@localhost:5432/ze
 CORS_ORIGINS=http://localhost:3000

@@ -34,8 +34,10 @@ git clone <repo-url> ze && cd ze
 make install
 
 # 3. Configure secrets
-cp backend/.env.example backend/.env
-# Edit backend/.env — fill in OPENROUTER_API_KEY, TAVILY_API_KEY, ZE_API_KEY
+cp .env.example .env
+# Edit `.env` — fill in OPENROUTER_API_KEY, TAVILY_API_KEY, ZE_API_KEY and any other optional vars.
+# Run `make sync-ze-api-key` (or `python tools/sync_ze_api_key.py`) to generate/sync the ZE token so the
+# backend and frontend share the same bearer token. Pass `ZE_API_TOKEN=...` to fix it to a specific value.
 
 # 4. Start Postgres and apply migrations
 make db-up
@@ -48,13 +50,17 @@ make dev-fe   # terminal 2 — http://localhost:3000
 
 ## Environment variables
 
-Copy `backend/.env.example` to `backend/.env` and fill in:
+Copy `.env.example` to `.env` and fill in:
 
 | Variable | Required | Description |
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key |
+| `OPENROUTER_BASE_URL` | No | OpenRouter API base URL (default: `https://openrouter.ai/api/v1`) |
+| `OPENROUTER_HTTP_REFERER` | No | App URL for OpenRouter attribution/rankings (default: `https://github.com/ze`) |
+| `OPENROUTER_TITLE` | No | App display name on OpenRouter (default: `Ze Personal Assistant`) |
 | `TAVILY_API_KEY` | Yes | Tavily search API key (research agent) |
 | `ZE_API_KEY` | Yes | Static bearer token for WebSocket auth |
+| `NEXT_PUBLIC_ZE_API_KEY` | Yes | Exposes the same token to the frontend so the WS client can send it (via `token` query param) |
 | `DATABASE_URL` | No | asyncpg-format Postgres URL (default: `postgresql://ze:ze@localhost:5432/ze`) |
 | `DATABASE_URL_SYNC` | No | psycopg2-format URL for Alembic CLI |
 | `CORS_ORIGINS` | No | Comma-separated allowed origins (default: `http://localhost:3000`) |

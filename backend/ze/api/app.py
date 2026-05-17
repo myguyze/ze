@@ -1,7 +1,6 @@
 import signal
 from contextlib import asynccontextmanager
 
-import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -27,7 +26,6 @@ async def lifespan(app: FastAPI):
     configure_logging(settings.log_level)
 
     pool = await create_pool(settings)
-    http_client = httpx.AsyncClient(http2=True)
     embedder = get_embedder()
 
     checkpointer = AsyncPostgresSaver(pool)
@@ -36,7 +34,6 @@ async def lifespan(app: FastAPI):
     openrouter_client = OpenRouterClient(
         api_key=settings.openrouter_api_key,
         base_url=settings.openrouter_base_url,
-        http_client=http_client,
         logger=get_logger("ze.openrouter"),
         http_referer=settings.openrouter_http_referer,
         title=settings.openrouter_title,
@@ -59,7 +56,6 @@ async def lifespan(app: FastAPI):
     graph = build_graph(checkpointer=checkpointer)
 
     app.state.pool = pool
-    app.state.http_client = http_client
     app.state.embedder = embedder
     app.state.graph = graph
     app.state.openrouter_client = openrouter_client
@@ -73,7 +69,7 @@ async def lifespan(app: FastAPI):
     yield
 
     log.info("ze_shutdown")
-    await http_client.aclose()
+    await openrouter_client.aclose()
     await pool.close()
 
 

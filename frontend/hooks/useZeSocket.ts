@@ -43,7 +43,12 @@ export function useZeSocket(sessionId: string): UseZeSocketReturn {
   const connect = useCallback(() => {
     if (!mountedRef.current) return
 
-    const ws = new WebSocket(`${env.NEXT_PUBLIC_ZE_WS_URL}/ws/${sessionId}`)
+    const params = new URLSearchParams({
+      token: env.NEXT_PUBLIC_ZE_API_KEY,
+    })
+    const ws = new WebSocket(
+      `${env.NEXT_PUBLIC_ZE_WS_URL}/ws/${sessionId}?${params.toString()}`
+    )
     wsRef.current = ws
 
     ws.onopen = () => {
