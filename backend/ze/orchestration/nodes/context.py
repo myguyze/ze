@@ -1,3 +1,5 @@
+from sentence_transformers import SentenceTransformer
+
 from ze.agents.types import AgentContext
 from ze.logging import get_logger
 from ze.memory.store import MemoryStore
@@ -7,13 +9,20 @@ log = get_logger(__name__)
 
 
 async def fetch_context(state: AgentState, config: dict) -> dict:
-    """Load memory context and build the AgentContext passed to the agent."""
+    """Encode the prompt, load memory context, and build the AgentContext."""
     store: MemoryStore = config["configurable"]["memory_store"]
+    embedder: SentenceTransformer = config["configurable"]["embedder"]
     envelope = state["envelope"]
+    agent = (
+        envelope.subtasks[0].agent
+        if envelope and envelope.subtasks
+        else "global"
+    )
 
+    prompt_embedding = embedder.encode(state["prompt"])
     memory_context = await store.get_context(
-        session_id=state["session_id"],
-        prompt=state["prompt"],
+        prompt_embedding=prompt_embedding,
+        agent=agent,
     )
 
     agent_context = AgentContext(

@@ -50,7 +50,12 @@ async def lifespan(app: FastAPI):
     )
 
     capability_gate = CapabilityGate(config_path=settings.capabilities_path)
-    memory_store = MemoryStore(pool=pool, settings=settings)
+    memory_store = MemoryStore(
+        pool=pool,
+        embedder=embedder,
+        openrouter_client=openrouter_client,
+        settings=settings,
+    )
     graph = build_graph(checkpointer=checkpointer)
 
     app.state.pool = pool

@@ -3,6 +3,7 @@ import json
 from dataclasses import asdict, dataclass
 
 from fastapi import WebSocket, WebSocketDisconnect
+from sentence_transformers import SentenceTransformer
 
 from ze.api.schemas import (
     ConfirmationExpiredMessage,
@@ -69,6 +70,7 @@ def _make_graph_config(
     capability_gate: CapabilityGate,
     memory_store: MemoryStore,
     openrouter_client: OpenRouterClient,
+    embedder: SentenceTransformer,
     settings: Settings,
 ) -> dict:
     return {
@@ -79,6 +81,7 @@ def _make_graph_config(
             "capability_gate": capability_gate,
             "memory_store": memory_store,
             "openrouter_client": openrouter_client,
+            "embedder": embedder,
             "settings": settings,
         }
     }
@@ -272,6 +275,7 @@ async def websocket_endpoint(
 ) -> None:
     from ze.api.dependencies import (
         get_capability_gate,
+        get_embedder,
         get_graph,
         get_memory_store,
         get_openrouter_client,
@@ -292,6 +296,7 @@ async def websocket_endpoint(
     capability_gate = get_capability_gate(websocket)
     memory_store = get_memory_store(websocket)
     openrouter_client = get_openrouter_client(websocket)
+    embedder = get_embedder(websocket)
     graph = get_graph(websocket)
 
     config = _make_graph_config(
@@ -301,6 +306,7 @@ async def websocket_endpoint(
         capability_gate=capability_gate,
         memory_store=memory_store,
         openrouter_client=openrouter_client,
+        embedder=embedder,
         settings=settings,
     )
 

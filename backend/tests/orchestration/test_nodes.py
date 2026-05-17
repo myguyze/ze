@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+import numpy as np
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from ze.agents.types import AgentContext, AgentResult
@@ -72,12 +73,19 @@ def base_state(**overrides) -> dict:
     return defaults
 
 
+def make_mock_embedder():
+    embedder = MagicMock()
+    embedder.encode = MagicMock(return_value=np.zeros(384))
+    return embedder
+
+
 def make_config(
     router=None,
     memory_store=None,
     capability_gate=None,
     settings=None,
     openrouter_client=None,
+    embedder=None,
 ) -> dict:
     return {"configurable": {
         "router": router or MagicMock(),
@@ -85,6 +93,7 @@ def make_config(
         "capability_gate": capability_gate or MagicMock(spec=CapabilityGate),
         "settings": settings or make_settings(),
         "openrouter_client": openrouter_client or AsyncMock(),
+        "embedder": embedder or make_mock_embedder(),
     }}
 
 

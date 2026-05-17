@@ -1,4 +1,5 @@
 from fastapi import Request
+from sentence_transformers import SentenceTransformer
 
 from ze.capability.gate import CapabilityGate
 from ze.memory.store import MemoryStore
@@ -29,6 +30,10 @@ def get_capability_gate(request: Request) -> CapabilityGate:
 
 def get_memory_store(request: Request) -> MemoryStore:
     return request.app.state.memory_store
+
+
+def get_embedder(request: Request) -> SentenceTransformer:
+    return request.app.state.embedder
 
 
 def get_graph(request: Request):

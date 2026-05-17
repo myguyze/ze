@@ -10,4 +10,4 @@ def get_embedder(model_name: str = "all-MiniLM-L6-v2") -> SentenceTransformer:
     Called once during FastAPI lifespan. The lru_cache ensures a single
     instance is shared across routing and memory modules.
     """
-    return SentenceTransformer(model_name, normalize_embeddings=True)
+    return SentenceTransformer(model_name)
