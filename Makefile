@@ -13,6 +13,7 @@ help:
 	@echo ""
 	@echo "  Setup"
 	@echo "    install        Install dependencies"
+	@echo "    google-auth    One-time Google OAuth2 flow (Calendar + Gmail)"
 	@echo ""
 	@echo "  Database"
 	@echo "    db-up          Start Postgres via docker-compose"
@@ -41,10 +42,13 @@ help:
 	@echo ""
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
-.PHONY: install
+.PHONY: install google-auth
 
 install:
 	uv sync
+
+google-auth:
+	uv run python scripts/google_auth.py
 
 .PHONY: sync-ze-api-key
 sync-ze-api-key:
