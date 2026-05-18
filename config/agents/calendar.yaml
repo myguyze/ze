@@ -1,4 +1,4 @@
-enabled: false            # Phase 3 — enable once Google credentials are configured
+enabled: true
 description: |
   Manages Google Calendar events. Use for creating, reading, updating, or deleting
   calendar events, checking availability, finding free time, or setting reminders.
