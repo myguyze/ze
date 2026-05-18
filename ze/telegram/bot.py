@@ -123,7 +123,7 @@ class ZeBot:
             )
             await self._send_confirmation(chat_id, draft, agent, action, config)
         else:
-            response = final_state.get("final_response") or ""
+            response = _extract_response(final_state)
             self._store.clear_active(chat_id)
             await self._send_response(chat_id, response)
             log.info("graph_complete", chat_id=chat_id)
@@ -165,7 +165,7 @@ class ZeBot:
             typing_task.cancel()
 
         self._store.clear_all(chat_id)
-        response = final_state.get("final_response") or ""
+        response = _extract_response(final_state)
         await self._send_response(chat_id, response)
         log.info("resume_complete", chat_id=chat_id)
 
@@ -253,6 +253,16 @@ class ZeBot:
             "final_response": None,
             "error": None,
         }
+
+
+def _extract_response(state: dict) -> str:
+    """Return the best available response text from a completed graph state."""
+    if state.get("final_response"):
+        return state["final_response"]
+    result = state.get("agent_result")
+    if result and result.response:
+        return result.response
+    return ""
 
 
 def _split(text: str, limit: int = _MAX_MESSAGE_LEN) -> list[str]:

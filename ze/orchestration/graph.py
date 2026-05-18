@@ -52,7 +52,7 @@ def build_graph(checkpointer: AsyncPostgresSaver):
         {"synthesize": "synthesize", "write_memory": "write_memory"},
     )
     builder.add_edge("draft_response", "await_confirmation")
-    builder.add_edge("await_confirmation", END)
+    builder.add_edge("await_confirmation", "execute_tool")  # resumes with EXECUTE after user confirms
     builder.add_edge("synthesize", "write_memory")
     builder.add_edge("write_memory", END)
 

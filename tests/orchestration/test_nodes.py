@@ -244,9 +244,11 @@ async def test_execute_tool_raises_timeout(monkeypatch):
 
 # ── confirmation.await_confirmation ──────────────────────────────────────────
 
-async def test_await_confirmation_sets_pending():
+async def test_await_confirmation_clears_pending_and_sets_execute():
+    from ze.capability.types import GateDecision
     result = await confirmation.await_confirmation(base_state(), make_config())
-    assert result["pending_confirmation"] is True
+    assert result["pending_confirmation"] is False
+    assert result["gate_decision"] == GateDecision.EXECUTE
 
 
 # ── memory.write_memory ───────────────────────────────────────────────────────
