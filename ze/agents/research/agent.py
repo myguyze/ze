@@ -7,9 +7,9 @@ from ze.agents.registry import register
 from ze.agents.research.prompt import SYSTEM_PROMPT
 from ze.agents.research.tools import format_search_results
 from ze.agents.types import AgentContext, AgentResult
-from ze.memory.types import UserFact
 from ze.openrouter.client import OpenRouterClient
 from ze.settings import Settings
+from ze.tools.facts import to_user_facts
 
 
 @register
@@ -47,7 +47,7 @@ class ResearchAgent(BaseAgent):
             model=self._model(),
         )
 
-        proposals = _to_facts(facts_tc.result or [])
+        proposals = to_user_facts(facts_tc.result or [])
 
         self._log.info(
             "research_agent_complete",
@@ -76,14 +76,3 @@ class ResearchAgent(BaseAgent):
             yield token
 
 
-def _to_facts(raw: list[dict]) -> list[UserFact]:
-    return [
-        UserFact(
-            key=f["key"],
-            value=f["value"],
-            agent="global",
-            confidence=float(f.get("confidence", 0.8)),
-        )
-        for f in raw
-        if isinstance(f, dict) and f.get("key") and f.get("value")
-    ]

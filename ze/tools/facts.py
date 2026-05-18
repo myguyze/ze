@@ -5,6 +5,7 @@ import structlog
 
 from ze.agents.tool import ToolAccess, tool
 from ze.agents.types import ToolCall
+from ze.memory.types import UserFact
 from ze.openrouter.client import OpenRouterClient
 
 log = structlog.get_logger(__name__)
@@ -79,3 +80,17 @@ def _parse(raw: str) -> list[dict]:
         ]
     except (json.JSONDecodeError, KeyError, ValueError):
         return []
+
+
+def to_user_facts(raw: list[dict], agent: str = "global") -> list[UserFact]:
+    """Convert raw extract_facts result dicts into UserFact domain objects."""
+    return [
+        UserFact(
+            key=f["key"],
+            value=f["value"],
+            agent=agent,
+            confidence=float(f.get("confidence", 0.8)),
+        )
+        for f in raw
+        if isinstance(f, dict) and f.get("key") and f.get("value")
+    ]
