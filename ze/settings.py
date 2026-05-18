@@ -51,6 +51,10 @@ class Settings(BaseSettings):
         return self.config_dir / "capabilities.yaml"
 
     @property
+    def capabilities_config(self) -> dict[str, Any]:
+        return _load_yaml(self.capabilities_path)
+
+    @property
     def models_config(self) -> dict[str, Any]:
         return _load_yaml(self.config_dir / "models.yaml")
 
