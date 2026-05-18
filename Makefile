@@ -24,7 +24,8 @@ help:
 	@echo "    migrate-history List all migrations"
 	@echo ""
 	@echo "  Development"
-	@echo "    dev            Start dev server (uvicorn --reload)"
+	@echo "    dev            Start dev server (uvicorn --reload, REST API only)"
+	@echo "    dev-poll       Start Telegram long-polling (interact via Telegram locally)"
 	@echo ""
 	@echo "  Testing"
 	@echo "    test           Run tests (excludes slow embedding tests)"
@@ -78,10 +79,13 @@ migrate-history:
 	$(ALEMBIC) history --verbose
 
 # ── Development ───────────────────────────────────────────────────────────────
-.PHONY: dev
+.PHONY: dev dev-poll
 
 dev:
 	uv run uvicorn ze.api.app:app --reload --host 0.0.0.0 --port 8000
+
+dev-poll:
+	uv run python -m ze.dev_poll
 
 # ── Testing ───────────────────────────────────────────────────────────────────
 .PHONY: test test-all

@@ -41,15 +41,38 @@ cp .env.example .env
 make db-up
 make migrate
 
-# 5. Start the backend
-make dev
+# 5. Start the bot in polling mode
+make dev-poll
 ```
 
-The backend registers the Telegram webhook automatically on startup. Messages sent
-to your bot will be routed to the running server.
+Open Telegram, send a message to your bot — it responds from your local machine.
 
-For local development, expose the backend with a tunnelling tool (e.g. `ngrok http 8000`)
-and set `PUBLIC_URL` in `.env` to the tunnel URL before starting.
+## Local development
+
+Ze uses **long-polling** for local development and **webhooks** for production.
+You don't need a public URL or ngrok to develop locally.
+
+```
+make dev-poll   ← interact with the bot via Telegram (primary dev mode)
+make dev        ← start uvicorn only, for testing REST endpoints
+```
+
+`make dev-poll` starts `ze/dev_poll.py`, which:
+
+1. Calls `bot.delete_webhook()` — this steals delivery from any running webhook
+   (including a deployed Fly.io instance), so messages come to your local process.
+2. Enters a `getUpdates` loop — Telegram pushes messages directly to the running script.
+3. Dispatches to the same `ZeBot` handlers used in production.
+4. On Ctrl-C, shuts down cleanly.
+
+**Polling vs webhook:** only one can receive updates at a time. While you are
+polling locally, your production deployment receives nothing. Stop polling
+(Ctrl-C) to hand delivery back to the webhook automatically — Telegram resumes
+sending to the registered webhook URL within seconds.
+
+**`PUBLIC_URL` in local `.env`:** leave it empty. `build_container` only calls
+`set_webhook` when `PUBLIC_URL` is set, so polling mode starts cleanly without
+registering anything.
 
 ## Environment variables
 
@@ -63,9 +86,9 @@ Copy `.env.example` to `.env` and fill in:
 | `DATABASE_URL` | No | asyncpg-format Postgres URL (default: `postgresql://ze:ze@localhost:5432/ze`) |
 | `DATABASE_URL_SYNC` | No | psycopg2-format URL for Alembic CLI |
 | `TELEGRAM_BOT_TOKEN` | Yes | Token from @BotFather |
-| `TELEGRAM_WEBHOOK_SECRET` | Yes | Arbitrary secret used to verify Telegram POSTs |
+| `TELEGRAM_WEBHOOK_SECRET` | Prod only | Arbitrary secret used to verify Telegram POSTs |
 | `TELEGRAM_ALLOWED_CHAT_ID` | Yes | Your personal Telegram chat ID |
-| `PUBLIC_URL` | Yes | Public HTTPS base URL (e.g. `https://ze.fly.dev` or ngrok tunnel) |
+| `PUBLIC_URL` | Prod only | Public HTTPS base URL (e.g. `https://ze.fly.dev`). Leave empty locally — polling mode needs no URL. |
 | `CONFIRM_TIMEOUT_SECONDS` | No | Confirmation timeout in seconds (default: `900`) |
 | `LOG_LEVEL` | No | `DEBUG` / `INFO` / `WARNING` (default: `INFO`) |
 

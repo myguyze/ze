@@ -48,7 +48,8 @@ ze/
 make help            # full target list
 make db-up           # start Postgres via Docker
 make migrate         # apply migrations (requires db-up first)
-make dev             # uvicorn --reload on :8000
+make dev-poll        # Telegram long-polling — interact via Telegram locally (primary dev mode)
+make dev             # uvicorn --reload on :8000 — REST API only, no Telegram
 make test            # tests, fast (skips embedding model load)
 make test-all        # all tests including slow ones
 ```
