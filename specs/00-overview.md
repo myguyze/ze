@@ -5,7 +5,7 @@
 Ze is a personal AI assistant that routes user prompts to specialised sub-agents,
 executes tasks with configurable permission levels, and maintains persistent memory
 of user facts and interaction history. It is strictly single-user, self-hosted on
-Fly.io, and accessed via a custom web interface.
+Fly.io, and accessed via Telegram.
 
 ## Core Design Principles
 
@@ -28,7 +28,7 @@ Fly.io, and accessed via a custom web interface.
 ## System Flow
 
 ```
-User prompt (WebSocket)
+User message (Telegram Bot API)
         │
         ▼
   [embed_route]  ──── cosine similarity ──── local sentence-transformer (ze/embeddings.py)
@@ -56,7 +56,8 @@ User prompt (WebSocket)
                                                                            │
                                                                [write_memory] (always runs)
                                                                            │
-                                                       Response streamed token-by-token via WebSocket
+                                                  Response sent via Telegram Bot API
+                                             (typing action while running → full message)
 ```
 
 ## Agent Roster
@@ -89,8 +90,8 @@ User prompt (WebSocket)
 | `04-agents.md`                | Sub-agent defs      | 1–4       |
 | `05-orchestration.md`         | LangGraph graph     | 1         |
 | `06-openrouter-client.md`     | OpenRouter client   | 1         |
-| `07-api.md`                   | FastAPI + WS        | 1         |
-| `08-frontend.md`              | Next.js UI          | 1         |
+| `07-api.md`                   | FastAPI + Telegram  | 1         |
+| `08-telegram.md`              | Telegram Bot        | 1         |
 
 ## Cross-Cutting Modules
 
@@ -121,7 +122,7 @@ These live at the root of `ze/` and are imported by all other modules.
 - **Google API auth.** Out of scope for Phase 1. Phase 3 uses local OAuth2 token
   store (stored in Fly.io secrets after first auth). Service accounts are not
   suitable for personal calendar/email access.
-- **Mobile interface.** Out of scope for all phases currently planned.
+- **Mobile interface.** Delivered natively through Telegram. No separate mobile app required.
 
 ## Open Questions
 

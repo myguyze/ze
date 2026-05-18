@@ -2,102 +2,82 @@
 
 ## Purpose
 
-FastAPI application that exposes a WebSocket endpoint for real-time chat, REST
+FastAPI application that exposes a Telegram webhook endpoint for chat, REST
 endpoints for configuration and memory management, and owns session lifecycle.
 It is the only entry point into Ze — all external communication goes through here.
 
 ## Responsibilities
 
-- Accept and maintain WebSocket connections from the frontend.
-- Authenticate requests via static API key (`ZE_API_KEY`).
-- Dispatch incoming WebSocket messages into the LangGraph orchestration graph.
-- Stream LangGraph token output back to the client token-by-token.
-- Resume paused graphs when the client sends a `confirm` message.
+- Accept Telegram webhook updates via `POST /telegram/webhook`.
+- Authenticate webhook requests via Telegram's `X-Telegram-Bot-Api-Secret-Token` header.
+- Authenticate REST requests via static API key (`ZE_API_KEY` bearer token).
+- Dispatch incoming Telegram messages into the LangGraph orchestration graph.
+- Send responses back via the Telegram Bot API (typing action while running, then full message).
+- Handle confirmation flow via Telegram inline keyboards; resume paused graphs on callback.
 - Expire paused graphs after `CONFIRM_TIMEOUT_SECONDS` (default 900).
 - Expose REST endpoints for capabilities, memory, and routing log.
 - Publish machine-readable OpenAPI documentation for all REST endpoints (see
   [OpenAPI documentation](#openapi-documentation)).
 - Wire all dependencies via FastAPI `Depends()` in `dependencies.py`.
-- Manage FastAPI lifespan: DB pool, embedding model, graph, checkpointer.
+- Manage FastAPI lifespan: DB pool, embedding model, graph, checkpointer, aiogram Bot.
 
 ## Out of Scope
 
 - Does not implement business logic — delegates to orchestration and domain modules.
-- Does not serve the frontend (Next.js is a separate process).
+- Does not serve a frontend (Telegram is the interface).
 - Does not handle Google OAuth2 flows (Phase 3).
+- WebSocket endpoint: not implemented. Reserved for a future Telegram Mini App phase.
+  When that phase begins, add `WS /ws/{session_id}` alongside the Telegram webhook.
 
 ## Endpoints
 
-### WebSocket
+### Telegram Webhook
 
 ```
-WS /ws/{session_id}
+POST /telegram/webhook
 ```
 
-Authentication: `Authorization: Bearer <ZE_API_KEY>` header on the upgrade request.
+Authentication: Telegram sends an `X-Telegram-Bot-Api-Secret-Token` header on every
+request. FastAPI verifies it against `TELEGRAM_WEBHOOK_SECRET` before processing.
+Requests with a missing or invalid token return HTTP 401.
 
-**Client → Server messages** (Pydantic models in `api/schemas.py`):
+The webhook is registered at startup via the Bot API (`setWebhook`) pointing at
+`https://<host>/telegram/webhook`. See `08-telegram.md` for the full bot spec.
 
-```python
-class UserMessage(BaseModel):
-    type: Literal["message"]
-    content: str
+**Inbound update types handled:**
 
-class ConfirmMessage(BaseModel):
-    type: Literal["confirm"]
-    decision: Literal["yes", "no", "edit"]
-    edit_content: str | None = None   # populated when decision == "edit"
+| Type | Action |
+|------|--------|
+| `message` (text) | Dispatch to orchestration graph; session keyed by `chat_id`. |
+| `callback_query` | Resume a paused confirmation graph; decision from the button payload. |
 
-WsClientMessage = Annotated[
-    UserMessage | ConfirmMessage,
-    Field(discriminator="type")
-]
-```
-
-**Server → Client messages**:
-
-```python
-class TokenMessage(BaseModel):
-    type: Literal["token"]
-    content: str
-
-class ConfirmationRequest(BaseModel):
-    type: Literal["confirmation_request"]
-    draft: str
-    agent: str
-    action: str                         # e.g. "send email to alice@example.com"
-
-class DoneMessage(BaseModel):
-    type: Literal["done"]
-    agent: str
-    routing_method: str                 # "embedding" | "haiku"
-    confidence: float | None
-
-class ErrorMessage(BaseModel):
-    type: Literal["error"]
-    message: str
-
-class ConfirmationExpiredMessage(BaseModel):
-    type: Literal["confirmation_expired"]
-
-WsServerMessage = (
-    TokenMessage | ConfirmationRequest | DoneMessage |
-    ErrorMessage | ConfirmationExpiredMessage
-)
-```
+All other update types are acknowledged (HTTP 200) and ignored.
 
 **Message flow:**
 
 ```
-Client sends UserMessage
-    → graph.ainvoke(state, config={thread_id: session_id})
-    → tokens streamed back as TokenMessage
-    → on interrupt: ConfirmationRequest sent
-    → client sends ConfirmMessage
-    → graph.ainvoke(None, config)  # resume
-    → DoneMessage sent on completion
-    → ErrorMessage sent on unhandled exception
+Telegram POSTs Update to /telegram/webhook
+    → verify secret_token header
+    → message.text  → graph.ainvoke(state, config={thread_id: str(chat_id)})
+                    → sendChatAction("typing") while running
+                    → send full response message on completion
+                    → on interrupt: send ConfirmationRequest message with inline keyboard
+    → callback_query → verify pending confirmation state
+                     → graph.ainvoke(None, config)  # resume
+                     → send full response on completion
 ```
+
+Confirmation inline keyboard payload:
+
+```python
+# Button payloads sent in callback_query.data
+"confirm:yes"
+"confirm:no"
+"confirm:edit"   # triggers ForceReply message asking for edited content
+```
+
+On `confirm:edit` the bot sends a ForceReply message. The user's reply to that
+message is treated as a `ConfirmMessage(decision="edit", edit_content=<text>)`.
 
 ---
 
@@ -181,16 +161,17 @@ async def get_graph(request: Request) -> CompiledGraph: ...  # from app.state
 
 ## Session Management
 
-- Each WebSocket connection maps to a `session_id` (URL path parameter).
-- The LangGraph `AsyncPostgresSaver` stores graph state keyed by `session_id`.
+- Each Telegram `chat_id` maps to a session. `str(chat_id)` is used as the
+  LangGraph `thread_id`.
+- The LangGraph `AsyncPostgresSaver` stores graph state keyed by `thread_id`.
   No in-memory session dict — state survives server restarts.
 - Pending confirmation timeout: a background `asyncio.Task` is created when a
   graph is interrupted. After `CONFIRM_TIMEOUT_SECONDS`, the task calls
   `graph.aupdate_state(config, {"error": "confirmation_expired"})` and sends
-  a `ConfirmationExpiredMessage` to the client if the WebSocket is still open.
-- One active graph invocation per session at a time. If a new `UserMessage`
-  arrives while a graph is running, return `ErrorMessage(type="error",
-  message="A task is already in progress.")`.
+  a "Confirmation expired" message to the Telegram chat.
+- One active graph invocation per session at a time. If a new message arrives
+  while the graph is running, reply "A task is already in progress." and discard
+  the update.
 
 ## FastAPI Lifespan
 
@@ -202,9 +183,9 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
 
     # Shared resources
-    pool       = await create_pool(settings.database_url)
-    embedder   = load_embedder(settings.embedding_model)   # ze/embeddings.py
-    http_client = httpx.AsyncClient(http2=True)
+    pool         = await create_pool(settings.database_url)
+    embedder     = load_embedder(settings.embedding_model)   # ze/embeddings.py
+    http_client  = httpx.AsyncClient(http2=True)
     checkpointer = AsyncPostgresSaver(pool)
     await checkpointer.setup()
 
@@ -216,65 +197,82 @@ async def lifespan(app: FastAPI):
         settings=settings,
     )
 
-    app.state.pool         = pool
-    app.state.embedder     = embedder
-    app.state.http_client  = http_client
-    app.state.graph        = graph
+    bot = Bot(token=settings.telegram_bot_token)
+    await bot.set_webhook(
+        url=f"{settings.public_url}/telegram/webhook",
+        secret_token=settings.telegram_webhook_secret,
+    )
+
+    app.state.pool        = pool
+    app.state.embedder    = embedder
+    app.state.http_client = http_client
+    app.state.graph       = graph
+    app.state.bot         = bot
 
     # SIGHUP → reload capability gate config
     signal.signal(signal.SIGHUP, lambda *_: capability_gate.reload())
 
     yield
 
+    await bot.session.close()
     await http_client.aclose()
     await pool.close()
 ```
 
 ## CORS
 
+Not required — there is no browser client. CORS middleware is omitted until a
+Telegram Mini App phase is introduced.
+
+When a Mini App is added, re-enable with:
+
 ```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,   # ["http://localhost:3000"] in dev
+    allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 ```
 
-`CORS_ORIGINS` in `.env` — comma-separated list.
-
 ## Configuration
 
 ```
-ZE_API_KEY=                        # static bearer token for all requests
+ZE_API_KEY=                        # static bearer token for REST endpoints
 DATABASE_URL=                      # asyncpg-compatible postgres URL
 CONFIRM_TIMEOUT_SECONDS=900        # 15 minutes
-CORS_ORIGINS=http://localhost:3000
+TELEGRAM_BOT_TOKEN=                # token from @BotFather
+TELEGRAM_WEBHOOK_SECRET=           # arbitrary secret used to verify Telegram POSTs
+PUBLIC_URL=                        # public HTTPS base URL (e.g. https://ze.fly.dev)
 ```
 
 ## Dependencies
 
 | Dependency | Purpose |
 |------------|---------|
-| `fastapi` | Web framework, WebSocket, Depends |
+| `fastapi` | Web framework, Depends |
 | `uvicorn` | ASGI server |
 | `httpx` | Shared AsyncClient passed to OpenRouterClient |
+| `aiogram` | Telegram Bot API client (webhook + sending) |
 | `ze.orchestration.graph` | `build_graph()` |
 | `ze.capability.gate` | `CapabilityGate` (SIGHUP reload) |
 | `ze.errors` | All Ze exceptions |
-| `ze.logging` | Request-scoped logger with session_id bound |
+| `ze.logging` | Request-scoped logger with chat_id bound |
 
 ## Implementation Notes
 
-- The WebSocket handler in `ws.py` binds `session_id` to the structlog context
-  at connection time. All log records for that session automatically carry it.
-- Token streaming from LangGraph: use `graph.astream_events()` with `version="v2"`.
-  Filter for `on_chat_model_stream` events to extract token chunks.
+- The Telegram handler in `ze/api/telegram.py` binds `chat_id` to the structlog
+  context at request time. All log records for that session automatically carry it.
+- Graph invocation: use `graph.ainvoke()` (not `astream_events`) since tokens are
+  not streamed to the client individually. The typing action is sent before invoking;
+  the full response is sent after completion.
 - Validation of `agent` and `intent` in `PUT /capabilities/{agent}/{intent}`:
   compare against the loaded agent registry (`list_agents()`) and the known intent
   set per agent. Return HTTP 422 if unknown.
 - The `routing_log` endpoint uses offset-based pagination (not cursor-based) for
   simplicity. With expected row counts in the thousands, this is fine.
+- `TELEGRAM_WEBHOOK_SECRET` must be between 1–256 characters, only `A-Z`, `a-z`,
+  `0-9`, `_`, and `-` (Telegram API constraint).
 
 ## Open Questions
 

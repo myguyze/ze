@@ -4,8 +4,8 @@
 
 Ze is a single-user personal AI assistant. A Python/FastAPI backend with a LangGraph
 orchestration layer routes user messages to specialised agents (research, companion,
-calendar, email, workflow). A Next.js 14 frontend communicates exclusively over
-WebSocket. All LLM calls go through OpenRouter.
+calendar, email, workflow). Users interact via a Telegram bot. All LLM calls go through
+OpenRouter.
 
 ## Repository layout
 
@@ -13,13 +13,14 @@ WebSocket. All LLM calls go through OpenRouter.
 ze/
 ├── backend/                  # Python package (uv)
 │   ├── ze/
-│   │   ├── api/              # FastAPI app, WebSocket handler, REST routes
+│   │   ├── api/              # FastAPI app, Telegram webhook handler, REST routes
 │   │   ├── agents/           # BaseAgent ABC, registry, research + companion agents
 │   │   ├── capability/       # CapabilityGate — permission enforcement
 │   │   ├── memory/           # MemoryStore (Phase 1 stub), UserFact, Episode types
 │   │   ├── openrouter/       # OpenRouterClient (complete() + stream())
 │   │   ├── orchestration/    # LangGraph state machine (nodes/, edges, graph, state)
 │   │   ├── routing/          # EmbeddingRouter + haiku_fallback
+│   │   ├── telegram/         # ZeBot, handlers, keyboards, session store
 │   │   ├── db.py             # asyncpg pool factory
 │   │   ├── embeddings.py     # SentenceTransformer singleton
 │   │   ├── errors.py         # Ze exception hierarchy
@@ -33,14 +34,8 @@ ze/
 │   │   ├── 001_initial_schema.py   # routing_log, user_facts, episodes
 │   │   └── 002_checkpointer.py     # LangGraph checkpoint tables
 │   └── tests/                # Mirrors ze/ structure
-├── frontend/
-│   ├── app/                  # Next.js 14 App Router (page.tsx = Server Component)
-│   ├── components/           # React components (ChatClient is the 'use client' root)
-│   ├── hooks/                # useZeSocket and other custom hooks
-│   ├── lib/                  # env.ts (Zod validation), utils
-│   └── types/                # Shared TypeScript types
-├── specs/                    # All 9 design specs (read before modifying a module)
-├── docker-compose.yml        # Postgres (pgvector/pgvector:pg16) + backend + frontend
+├── specs/                    # All 8 design specs (read before modifying a module)
+├── docker-compose.yml        # Postgres (pgvector/pgvector:pg16) + backend
 ├── fly.toml                  # Fly.io deployment config
 └── Makefile                  # All dev commands (see `make help`)
 ```
@@ -52,7 +47,6 @@ make help            # full target list
 make db-up           # start Postgres via Docker
 make migrate         # apply migrations (requires db-up first)
 make dev-be          # uvicorn --reload on :8000
-make dev-fe          # next dev on :3000
 make test            # backend tests, fast (skips embedding model load)
 make test-all        # all backend tests including slow ones
 ```
@@ -67,8 +61,7 @@ make test-all        # all backend tests including slow ones
 | DB driver | asyncpg (runtime), psycopg2 (Alembic CLI) | asyncpg has no sync mode |
 | Config | Pydantic BaseSettings + YAML files | Secrets in .env, structure in YAML |
 | Migrations | Alembic raw SQL, no ORM | Explicit schema control |
-| Frontend | Next.js 14 App Router | Server Components + 'use client' boundary |
-| Styling | Tailwind CSS | No component library |
+| Bot interface | aiogram 3.x (Telegram) | Async-native, no separate frontend to maintain |
 
 ## Coding conventions
 
@@ -84,7 +77,7 @@ make test-all        # all backend tests including slow ones
   `description`; request/query params use Pydantic or annotated `Query`. See
   `specs/07-api.md`.
 - **Logging**: Always use `get_logger(__name__)`. Never use `print()` or stdlib
-  `logging` directly. Bind `session_id` at WebSocket connect time via `bind_context()`.
+  `logging` directly. Bind `chat_id` at webhook request time via `bind_context()`.
 - **Errors**: Raise from `ze/errors.py`. Never raise bare `Exception` or `ValueError`
   in domain code — always use a typed subclass of `ZeError`.
 - **Async**: All I/O is async. Fire-and-forget tasks use `asyncio.create_task()`.
@@ -104,13 +97,16 @@ make test-all        # all backend tests including slow ones
 - Slow tests (embedding model): mark with `@pytest.mark.slow`, skipped by default via
   `make test`. Run with `make test-all`.
 
-### Frontend
+### Telegram bot
 
-- `app/page.tsx` is a **Server Component** — no hooks, no browser APIs.
-- `ChatClient.tsx` is the `'use client'` boundary — all interactivity lives here or below.
-- Env vars validated at build time via `lib/env.ts` (Zod). Never access
-  `process.env` directly in components.
-- WS message types live in `types/index.ts` — keep in sync with `ze/api/schemas.py`.
+- All bot logic lives in `ze/telegram/`. The FastAPI router (`ze/api/telegram.py`)
+  handles HTTP only; it delegates to `ZeBot` for all bot-level behaviour.
+- `ZeBot` is constructed in the lifespan and stored on `app.state.bot`. Never
+  instantiate it outside the lifespan.
+- Inline keyboard payloads use the `confirm:<decision>` format. Keep payloads
+  under 64 bytes (Telegram callback data limit).
+- ForceReply state is tracked in `ActiveSessionStore` alongside active graph
+  invocations. Clear it on any terminal state (done, expired, error).
 
 ## Configuration files
 
@@ -119,10 +115,12 @@ make test-all        # all backend tests including slow ones
 OPENROUTER_API_KEY=sk-or-...
 TAVILY_API_KEY=tvly-...
 ZE_API_KEY=your-secret-key
-NEXT_PUBLIC_ZE_API_KEY=your-secret-key
 DATABASE_URL=postgresql://ze:ze@localhost:5432/ze
 DATABASE_URL_SYNC=postgresql+psycopg2://ze:ze@localhost:5432/ze
-CORS_ORIGINS=http://localhost:3000
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_WEBHOOK_SECRET=your-webhook-secret
+TELEGRAM_ALLOWED_CHAT_ID=your-telegram-chat-id
+PUBLIC_URL=https://ze.fly.dev
 LOG_LEVEL=INFO
 CONFIRM_TIMEOUT_SECONDS=900
 ```
@@ -167,15 +165,15 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 
 - Graph state: `AgentState` in `ze/orchestration/state.py`.
 - Dependencies injected via `config["configurable"]` at invocation time (not build time).
-- Token streaming: `execute_tool` puts tokens into an `asyncio.Queue` passed through
-  `config["configurable"]["token_queue"]`. The WS handler consumes concurrently.
+- No token streaming to the client — the graph runs to completion, then the full
+  response is sent via the Telegram Bot API. `graph.ainvoke()` is used (not `astream_events`).
 - Confirmation resume: `graph.ainvoke(None, config)` with same `thread_id`.
 
 ## Phase status
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Routing, research + companion agents, orchestration, API, frontend | In progress |
+| 1 | Routing, research + companion agents, orchestration, API, Telegram bot | In progress |
 | 2 | Memory (full implementation), contradiction detection, episode embeddings | Not started |
 | 3 | Calendar + email agents, Google OAuth2 | Not started |
 | 4 | Workflow agent, multi-step planning | Not started |
