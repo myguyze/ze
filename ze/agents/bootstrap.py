@@ -10,6 +10,9 @@ from ze.errors import AgentConfigError
 from ze.google.auth import GoogleCredentials
 from ze.openrouter.client import OpenRouterClient
 from ze.settings import Settings
+from ze.workflow.planner import WorkflowPlanner
+from ze.workflow.scheduler import WorkflowScheduler
+from ze.workflow.store import WorkflowStore
 
 _dep_map: dict[type, Any] = {}
 
@@ -22,6 +25,9 @@ def bootstrap_agents(
     settings: Settings,
     tavily_client: AsyncTavilyClient | None = None,
     google_credentials: GoogleCredentials | None = None,
+    workflow_store: WorkflowStore | None = None,
+    workflow_planner: WorkflowPlanner | None = None,
+    workflow_scheduler: WorkflowScheduler | None = None,
 ) -> None:
     """Instantiate and register all enabled agents. Called once at app startup."""
     if tavily_client is None:
@@ -35,6 +41,13 @@ def bootstrap_agents(
     _dep_map[Settings]           = settings
     _dep_map[AsyncTavilyClient]  = tavily_client
     _dep_map[GoogleCredentials]  = google_credentials
+
+    if workflow_store is not None:
+        _dep_map[WorkflowStore] = workflow_store
+    if workflow_planner is not None:
+        _dep_map[WorkflowPlanner] = workflow_planner
+    if workflow_scheduler is not None:
+        _dep_map[WorkflowScheduler] = workflow_scheduler
 
     _import_agent_modules()
 

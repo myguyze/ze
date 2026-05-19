@@ -14,10 +14,14 @@ from ze.logging import get_logger
 from ze.memory.store import MemoryStore
 from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
+from ze.orchestration.workflow_graph import build_workflow_graph
 from ze.routing.router import EmbeddingRouter
 from ze.settings import Settings
 from ze.telegram.bot import ZeBot
 from ze.telegram.session import ActiveSessionStore
+from ze.workflow.planner import WorkflowPlanner
+from ze.workflow.scheduler import WorkflowScheduler
+from ze.workflow.store import WorkflowStore
 
 log = get_logger(__name__)
 
@@ -34,11 +38,14 @@ class Container:
     router: EmbeddingRouter
     capability_gate: CapabilityGate
     memory_store: MemoryStore
+    workflow_store: WorkflowStore
+    workflow_scheduler: WorkflowScheduler
     graph: object
     bot: Bot
     ze_bot: ZeBot
 
     async def close(self) -> None:
+        await self.workflow_scheduler.stop()
         await self.bot.session.close()
         await self.openrouter_client.aclose()
         await dispose_checkpointer_pool(self.checkpointer_pool)
@@ -90,8 +97,41 @@ async def build_container(settings: Settings) -> Container:
         settings=settings,
     )
 
-    bootstrap_agents(openrouter_client=openrouter_client, settings=settings)
+    # ── Workflow ──────────────────────────────────────────────────────────────
+    workflow_store = WorkflowStore(db_pool=pool)
+    workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client, settings=settings)
+    workflow_graph = build_workflow_graph(checkpointer=checkpointer)
+
+    # The graph_config mirrors _make_config in ZeBot — passed to the scheduler
+    # so scheduled workflow runs have access to all required services.
+    workflow_graph_config = {
+        "configurable": {
+            "router": router,
+            "capability_gate": capability_gate,
+            "memory_store": memory_store,
+            "openrouter_client": openrouter_client,
+            "embedder": embedder,
+            "settings": settings,
+        }
+    }
+
+    workflow_scheduler = WorkflowScheduler(
+        workflow_store=workflow_store,
+        workflow_graph=workflow_graph,
+        graph_config=workflow_graph_config,
+        settings=settings,
+    )
+
+    bootstrap_agents(
+        openrouter_client=openrouter_client,
+        settings=settings,
+        workflow_store=workflow_store,
+        workflow_planner=workflow_planner,
+        workflow_scheduler=workflow_scheduler,
+    )
     graph = build_graph(checkpointer=checkpointer)
+
+    await workflow_scheduler.start()
 
     bot = Bot(token=settings.telegram_bot_token)
     if settings.telegram_bot_token and settings.public_url:
@@ -123,6 +163,8 @@ async def build_container(settings: Settings) -> Container:
         router=router,
         capability_gate=capability_gate,
         memory_store=memory_store,
+        workflow_store=workflow_store,
+        workflow_scheduler=workflow_scheduler,
         graph=graph,
         bot=bot,
         ze_bot=ze_bot,

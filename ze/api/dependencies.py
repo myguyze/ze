@@ -38,3 +38,7 @@ def get_embedder(request: Request) -> SentenceTransformer:
 
 def get_graph(request: Request):
     return request.app.state.graph
+
+
+def get_workflow_store(request: Request):
+    return request.app.state.workflow_store

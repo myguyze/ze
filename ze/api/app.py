@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from ze.api.openapi import OPENAPI_TAGS
-from ze.api.routes import capabilities, memory, routing
+from ze.api.routes import capabilities, memory, routing, workflows
 from ze.api.telegram import router as telegram_router
 from ze.container import build_container
 from ze.logging import configure_logging, get_logger
@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     app.state.capability_gate = container.capability_gate
     app.state.memory_store = container.memory_store
     app.state.ze_bot = container.ze_bot
+    app.state.workflow_store = container.workflow_store
 
     signal.signal(signal.SIGHUP, lambda *_: container.capability_gate.reload())
 
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(capabilities.router, prefix="/capabilities")
     app.include_router(memory.router, prefix="/memory")
     app.include_router(routing.router, prefix="/routing")
+    app.include_router(workflows.router, prefix="/workflows")
     app.include_router(telegram_router)
 
     return app
