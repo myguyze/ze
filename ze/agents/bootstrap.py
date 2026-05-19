@@ -70,12 +70,12 @@ def validate_registry(settings: Settings) -> None:
     from ze.agents.tool import registered_tools
 
     tool_reg = registered_tools()
-    capabilities = settings.capabilities_config.get("capabilities", {})
 
     for name, cls in _registry.items():
         declared_tools: list[str] = getattr(cls, "tools", [])
-        agent_cap: dict = capabilities.get(name, {})
-        intent_map: dict = settings.agent_configs.get(name, {}).get("intent_map", {})
+        agent_cfg = settings.agent_configs.get(name, {})
+        agent_cap: dict = agent_cfg.get("capabilities", {})
+        intent_map: dict = agent_cfg.get("intent_map", {})
 
         for tool_name in declared_tools:
             if tool_name not in tool_reg:
@@ -88,7 +88,7 @@ def validate_registry(settings: Settings) -> None:
             if intent not in agent_cap:
                 raise AgentConfigError(
                     f"Agent {name!r} declares intent {intent!r} in its YAML "
-                    f"intent_map but {intent!r} is missing from capabilities.yaml."
+                    f"intent_map but {intent!r} is missing from config.yaml capabilities."
                 )
 
 

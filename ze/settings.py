@@ -60,15 +60,11 @@ class Settings(BaseSettings):
 
     @property
     def capabilities_path(self) -> Path:
-        return self.config_dir / "capabilities.yaml"
-
-    @property
-    def capabilities_config(self) -> dict[str, Any]:
-        return _load_yaml(self.capabilities_path)
+        return self.config_dir / "config.yaml"
 
     @property
     def models_config(self) -> dict[str, Any]:
-        return _load_yaml(self.config_dir / "models.yaml")
+        return _load_yaml(self.config_dir / "config.yaml")
 
     @property
     def routing_config(self) -> dict[str, Any]:
@@ -76,15 +72,12 @@ class Settings(BaseSettings):
 
     @property
     def agent_configs(self) -> dict[str, dict[str, Any]]:
-        agents_dir = self.config_dir / "agents"
-        return {p.stem: _load_yaml(p) for p in sorted(agents_dir.glob("*.yaml"))}
+        return _load_yaml(self.config_dir / "config.yaml").get("agents", {})
 
     @property
     def persona_config(self) -> dict[str, Any]:
-        path = self.config_dir / "persona.yaml"
-        if path.exists():
-            return _load_yaml(path)
-        return {"traits": ["direct", "warm", "concise"], "verbosity": "concise", "custom_instructions": ""}
+        cfg = _load_yaml(self.config_dir / "config.yaml")
+        return cfg.get("persona", {"traits": ["direct", "warm", "concise"], "verbosity": "concise", "custom_instructions": ""})
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:

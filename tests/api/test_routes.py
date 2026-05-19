@@ -32,12 +32,12 @@ def make_settings():
 @pytest.fixture
 def capabilities_yaml(tmp_path):
     cfg = {
-        "capabilities": {
-            "research": {"enabled": True, "read": "autonomous"},
-            "companion": {"enabled": True, "reason": "autonomous"},
+        "agents": {
+            "research": {"enabled": True, "capabilities": {"read": "autonomous"}},
+            "companion": {"enabled": True, "capabilities": {"reason": "autonomous"}},
         }
     }
-    path = tmp_path / "capabilities.yaml"
+    path = tmp_path / "config.yaml"
     path.write_text(yaml.dump(cfg))
     return path
 

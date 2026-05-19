@@ -1,0 +1,123 @@
+routing:
+  threshold: 0.55
+  gap_threshold: 0.10
+  embedding_model: all-MiniLM-L6-v2
+  fallback_model: anthropic/claude-haiku-4-5
+
+models:
+  router:    anthropic/claude-haiku-4-5
+  calendar:  anthropic/claude-haiku-4-5
+  email:     anthropic/claude-haiku-4-5
+  research:  anthropic/claude-sonnet-4-5
+  workflow:  anthropic/claude-sonnet-4-5
+  companion: anthropic/claude-sonnet-4-5
+  synthesis: anthropic/claude-haiku-4-5
+
+persona:
+  traits:
+    - direct
+    - warm
+    - concise
+  # concise | balanced | detailed
+  verbosity: concise
+  # Free-form addition appended after traits, before memory context.
+  # Example: "Always respond in European Portuguese." / "Use my name João."
+  custom_instructions: ""
+
+agents:
+  research:
+    enabled: true
+    description: |
+      Handles web searches, fact-finding, summarisation, and research synthesis.
+      Use for questions about current events, factual lookups, topic deep-dives,
+      or anything requiring information retrieval from the web.
+    model: anthropic/claude-sonnet-4-5
+    tools:
+      - web_search
+      - summarize
+      - extract_facts
+    timeout_seconds: 30
+    intent_map:
+      read: web_search
+    capabilities:
+      read: autonomous
+      execute: confirm
+
+  companion:
+    enabled: true
+    description: |
+      Handles reasoning, thinking, brainstorming, analysis, and open-ended conversation.
+      Use for thinking through problems, getting a second opinion, exploring ideas,
+      writing assistance, or any task that does not require external tools or live data.
+    model: anthropic/claude-sonnet-4-5
+    tools: []
+    timeout_seconds: 60
+    intent_map:
+      reason: direct_completion
+    capabilities:
+      reason: autonomous
+
+  calendar:
+    enabled: false
+    description: |
+      Manages Google Calendar events. Use for creating, reading, updating, or deleting
+      calendar events, checking availability, finding free time, or setting reminders.
+    model: anthropic/claude-haiku-4-5
+    tools:
+      - list_events
+      - create_event
+      - update_event
+      - delete_event
+      - extract_facts
+    timeout_seconds: 30
+    intent_map:
+      read: "Search and retrieve calendar events."
+      create: "Create a new calendar event."
+      update: "Update an existing calendar event."
+      delete: "Delete a calendar event."
+    capabilities:
+      read: autonomous
+      create: confirm
+      update: confirm
+      delete: confirm
+
+  email:
+    enabled: false
+    description: |
+      Manages Gmail messages. Use for reading, drafting, sending, or archiving emails,
+      searching your inbox, or composing replies.
+    model: anthropic/claude-haiku-4-5
+    tools:
+      - list_emails
+      - get_email
+      - draft_email
+      - send_email
+      - archive_email
+      - extract_facts
+    timeout_seconds: 30
+    intent_map:
+      read: "Search and retrieve emails from Gmail."
+      create: "Draft or send an email."
+      update: "Draft a reply or forward."
+      delete: "Archive or delete an email."
+    capabilities:
+      read: autonomous
+      create: draft_only
+      update: draft_only
+      delete: confirm
+
+  workflow:
+    enabled: true
+    description: |
+      Manages stored workflows and recurring scheduled tasks. Use when the user wants
+      to create, list, enable, disable, delete, or manually run a named workflow or
+      recurring automated task.
+    model: anthropic/claude-sonnet-4-5
+    tools: []
+    timeout_seconds: 60
+    intent_map:
+      read: ""
+      manage: ""
+    capabilities:
+      read: autonomous
+      manage: confirm

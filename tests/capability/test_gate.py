@@ -14,27 +14,33 @@ def setup_logging():
 
 @pytest.fixture
 def config_file(tmp_path):
-    """Write a standard capabilities.yaml and return a factory for the gate."""
+    """Write a standard config.yaml and return the path for the gate."""
     cfg = {
-        "capabilities": {
+        "agents": {
             "research": {
                 "enabled": True,
-                "read": "autonomous",
-                "reason": "confirm",
+                "capabilities": {
+                    "read": "autonomous",
+                    "reason": "confirm",
+                },
             },
             "companion": {
                 "enabled": True,
-                "reason": "autonomous",
-                "create": "draft_only",
+                "capabilities": {
+                    "reason": "autonomous",
+                    "create": "draft_only",
+                },
             },
             "calendar": {
                 "enabled": False,
-                "read": "autonomous",
-                "create": "confirm",
+                "capabilities": {
+                    "read": "autonomous",
+                    "create": "confirm",
+                },
             },
         }
     }
-    path = tmp_path / "capabilities.yaml"
+    path = tmp_path / "config.yaml"
     path.write_text(yaml.dump(cfg))
     return path
 
@@ -140,7 +146,7 @@ def test_update_permanent_writes_file(config_file):
     gate = make_gate(config_file)
     gate.update_permanent("companion", "reason", "confirm")
     reloaded = yaml.safe_load(config_file.read_text())
-    assert reloaded["capabilities"]["companion"]["reason"] == "confirm"
+    assert reloaded["agents"]["companion"]["capabilities"]["reason"] == "confirm"
 
 
 def test_update_permanent_atomic_write(config_file):
@@ -156,7 +162,7 @@ def test_update_permanent_atomic_write(config_file):
 def test_reload_picks_up_changes(config_file):
     gate = make_gate(config_file)
     cfg = yaml.safe_load(config_file.read_text())
-    cfg["capabilities"]["research"]["read"] = "confirm"
+    cfg["agents"]["research"]["capabilities"]["read"] = "confirm"
     config_file.write_text(yaml.dump(cfg))
     gate.reload()
     assert gate.evaluate("research", "read", {}) == GateDecision.AWAIT_CONFIRMATION

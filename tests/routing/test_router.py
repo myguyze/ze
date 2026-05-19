@@ -280,19 +280,15 @@ def _make_settings(tmp_path, disable: set[str]):
 
     real_config = pathlib.Path(__file__).parent.parent.parent / "config"
     config_dir = tmp_path / "config"
-    agents_dir = config_dir / "agents"
-    agents_dir.mkdir(parents=True)
+    config_dir.mkdir(parents=True)
 
-    shutil.copy(real_config / "capabilities.yaml", config_dir)
-    shutil.copy(real_config / "models.yaml", config_dir)
-
-    for src in (real_config / "agents").glob("*.yaml"):
-        with open(src) as f:
-            cfg = yaml.safe_load(f)
-        if src.stem in disable:
-            cfg["enabled"] = False
-        with open(agents_dir / src.name, "w") as f:
-            yaml.dump(cfg, f)
+    with open(real_config / "config.yaml") as f:
+        cfg = yaml.safe_load(f)
+    for name in disable:
+        if name in cfg.get("agents", {}):
+            cfg["agents"][name]["enabled"] = False
+    with open(config_dir / "config.yaml", "w") as f:
+        yaml.dump(cfg, f)
 
     return Settings(
         openrouter_api_key="test-key",

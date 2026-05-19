@@ -304,18 +304,25 @@ def test_validate_registry_fails_on_unknown_tool(settings):
 def test_validate_registry_fails_on_missing_capability_intent(settings, tmp_path):
     from ze.agents.bootstrap import validate_registry
     from ze.agents.registry import _registry
-    import shutil, yaml
+    import yaml
 
-    # Copy real config to tmp_path and add a bad agent entry with an intent
-    # that has no matching capabilities.yaml entry
-    shutil.copytree(str(pathlib.Path(__file__).parent.parent.parent / "config"), str(tmp_path / "config"))
-    caps_path = tmp_path / "config" / "capabilities.yaml"
-    agents_dir = tmp_path / "config" / "agents"
-
-    # Write a minimal agent config with an intent not in capabilities
-    (agents_dir / "_bad_intent_agent.yaml").write_text(
-        "enabled: true\ndescription: test\nmodel: x\ntimeout: 10\nintent_map:\n  destroy: obliterate\n"
-    )
+    # Copy real config to tmp_path and inject a bad agent with an intent
+    # that has no matching capabilities entry
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True)
+    config_path = config_dir / "config.yaml"
+    real_config_path = pathlib.Path(__file__).parent.parent.parent / "config" / "config.yaml"
+    with open(real_config_path) as f:
+        cfg = yaml.safe_load(f)
+    cfg["agents"]["_bad_intent_agent"] = {
+        "enabled": True,
+        "description": "test",
+        "model": "x",
+        "timeout": 10,
+        "intent_map": {"destroy": "obliterate"},
+        "capabilities": {},
+    }
+    config_path.write_text(yaml.dump(cfg))
 
     from ze.settings import get_settings
     get_settings.cache_clear()

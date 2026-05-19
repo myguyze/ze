@@ -21,10 +21,13 @@ router = APIRouter(tags=["capabilities"])
     description="Return the full capabilities configuration as loaded from `capabilities.yaml`.",
 )
 def list_capabilities(gate: CapabilityGate = Depends(get_capability_gate)) -> CapabilitiesResponse:
-    raw = gate._config.get("capabilities", {})
-    return CapabilitiesResponse(
-        {agent: AgentCapabilityConfig.model_validate(cfg) for agent, cfg in raw.items()}
-    )
+    agents = gate._config.get("agents", {})
+    return CapabilitiesResponse({
+        agent: AgentCapabilityConfig.model_validate(
+            {"enabled": cfg.get("enabled", True), **cfg.get("capabilities", {})}
+        )
+        for agent, cfg in agents.items()
+    })
 
 
 @router.put(
@@ -50,12 +53,12 @@ def update_capability(
 
     agent_cfg = settings.agent_configs.get(agent, {})
     known_intents = set(agent_cfg.get("intent_map", {}).keys())
-    cap_cfg = gate._config.get("capabilities", {}).get(agent, {})
-    known_intents |= {k for k in cap_cfg if k not in ("enabled",)}
+    known_intents |= set(agent_cfg.get("capabilities", {}).keys())
 
     if intent not in known_intents:
         raise HTTPException(status_code=422, detail=f"Unknown intent {intent!r} for agent {agent!r}")
 
     gate.update_permanent(agent, intent, body.mode)
-    updated = gate._config.get("capabilities", {}).get(agent, {})
-    return UpdateCapabilityResponse({agent: AgentCapabilityConfig.model_validate(updated)})
+    updated_agent = gate._config.get("agents", {}).get(agent, {})
+    updated_caps = {"enabled": updated_agent.get("enabled", True), **updated_agent.get("capabilities", {})}
+    return UpdateCapabilityResponse({agent: AgentCapabilityConfig.model_validate(updated_caps)})

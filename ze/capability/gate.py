@@ -47,8 +47,8 @@ class CapabilityGate:
         intent: str,
         session_overrides: dict[str, str],
     ) -> GateDecision:
-        capabilities = self._config.get("capabilities", {})
-        agent_cfg = capabilities.get(agent, {})
+        agents = self._config.get("agents", {})
+        agent_cfg = agents.get(agent, {})
 
         if not agent_cfg.get("enabled", True):
             self._log.info(
@@ -59,7 +59,8 @@ class CapabilityGate:
             )
             return GateDecision.BLOCKED
 
-        config_mode: str | None = agent_cfg.get(intent)
+        capabilities = agent_cfg.get("capabilities", {})
+        config_mode: str | None = capabilities.get(intent)
         if config_mode is None:
             self._log.warning(
                 "capability_unknown_intent",
@@ -97,13 +98,15 @@ class CapabilityGate:
         return decision
 
     def update_permanent(self, agent: str, intent: str, mode: str) -> None:
-        """Atomically write a new mode for agent.intent back to capabilities.yaml."""
+        """Atomically write a new mode for agent.intent back to config.yaml."""
         config = dict(self._config)
-        capabilities = dict(config.get("capabilities", {}))
-        agent_cfg = dict(capabilities.get(agent, {}))
-        agent_cfg[intent] = mode
-        capabilities[agent] = agent_cfg
-        config["capabilities"] = capabilities
+        agents = dict(config.get("agents", {}))
+        agent_entry = dict(agents.get(agent, {}))
+        capabilities = dict(agent_entry.get("capabilities", {}))
+        capabilities[intent] = mode
+        agent_entry["capabilities"] = capabilities
+        agents[agent] = agent_entry
+        config["agents"] = agents
 
         tmp = self._config_path.with_suffix(".yaml.tmp")
         tmp.write_text(yaml.dump(config, default_flow_style=False))
@@ -133,7 +136,7 @@ class CapabilityGate:
         with open(self._config_path) as f:
             data = yaml.safe_load(f)
         if not isinstance(data, dict):
-            raise CapabilityConfigError("capabilities.yaml must be a YAML mapping")
+            raise CapabilityConfigError("config.yaml must be a YAML mapping")
         return data
 
     @staticmethod

@@ -22,9 +22,7 @@ def make_settings(**overrides) -> Settings:
 
 def test_capabilities_path_points_to_config_dir(tmp_path):
     s = make_settings()
-    s.model_config  # ensure model_config is not overriding config_dir
-    # capabilities_path should be config_dir / capabilities.yaml
-    assert s.capabilities_path.name == "capabilities.yaml"
+    assert s.capabilities_path.name == "config.yaml"
     assert s.capabilities_path.parent == s.config_dir
 
 
