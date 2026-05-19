@@ -37,12 +37,20 @@ def settings(tmp_path):
 
 
 def test_bootstrap_registers_companion_and_research(settings):
+    from unittest.mock import MagicMock as MM
+    from ze.workflow.store import WorkflowStore
+    from ze.workflow.planner import WorkflowPlanner
+    from ze.workflow.scheduler import WorkflowScheduler
+
     client = AsyncMock()
     tavily = MagicMock()
     bootstrap_agents(
         openrouter_client=client,
         settings=settings,
         tavily_client=tavily,
+        workflow_store=MM(spec=WorkflowStore),
+        workflow_planner=MM(spec=WorkflowPlanner),
+        workflow_scheduler=MM(spec=WorkflowScheduler),
     )
 
     assert isinstance(get_agent("companion"), CompanionAgent)

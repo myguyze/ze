@@ -264,7 +264,7 @@ async def test_write_memory_schedules_tasks_without_blocking():
     state = base_state(agent_context=ctx, agent_result=result_obj)
 
     result = await memory.write_memory(state, cfg)
-    assert result == {}
+    assert "messages" in result
     # Let background tasks run
     await asyncio.sleep(0)
 

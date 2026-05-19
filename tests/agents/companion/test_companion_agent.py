@@ -40,6 +40,7 @@ def make_ctx(prompt: str = "how are you?", memory: MemoryContext | None = None) 
         prompt=prompt,
         intent="reason",
         memory=memory or MemoryContext(),
+        messages=[{"role": "user", "content": prompt}],
     )
 
 
