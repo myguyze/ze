@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # ── API ───────────────────────────────────────────────────────────────────
     ze_api_key: str = "change-me"
     confirm_timeout_seconds: int = 900
+    session_inactivity_minutes: int = 30
 
     # ── Telegram ──────────────────────────────────────────────────────────────
     telegram_bot_token: str = ""

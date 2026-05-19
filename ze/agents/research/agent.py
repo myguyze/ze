@@ -41,8 +41,9 @@ class ResearchAgent(BaseAgent):
         )
 
         augmented = f"{ctx.prompt}\n\nSearch results:\n{format_search_results(search_tc)}"
+        messages = ctx.messages[:-1] + [{"role": "user", "content": augmented}]
         response = await self._client.complete(
-            messages=[{"role": "user", "content": augmented}],
+            messages=messages,
             model=self._model(),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         )
@@ -76,8 +77,9 @@ class ResearchAgent(BaseAgent):
             "web_search", ctx, query=ctx.prompt, client=self._tavily
         )
         augmented = f"{ctx.prompt}\n\nSearch results:\n{format_search_results(search_tc)}"
+        messages = ctx.messages[:-1] + [{"role": "user", "content": augmented}]
         async for token in self._client.stream(
-            messages=[{"role": "user", "content": augmented}],
+            messages=messages,
             model=self._model(),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         ):

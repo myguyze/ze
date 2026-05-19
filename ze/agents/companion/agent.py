@@ -32,7 +32,7 @@ class CompanionAgent(BaseAgent):
 
     async def run(self, ctx: AgentContext) -> AgentResult:
         response = await self._client.complete(
-            messages=[{"role": "user", "content": ctx.prompt}],
+            messages=ctx.messages,
             model=self._model(),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         )
@@ -62,7 +62,7 @@ class CompanionAgent(BaseAgent):
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
         async for token in self._client.stream(
-            messages=[{"role": "user", "content": ctx.prompt}],
+            messages=ctx.messages,
             model=self._model(),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         ):

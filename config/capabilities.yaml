@@ -16,6 +16,7 @@ capabilities:
   research:
     enabled: true
     read:    autonomous
+    execute: confirm
 
   workflow:
     enabled: false          # Phase 4

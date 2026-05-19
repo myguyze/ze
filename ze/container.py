@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from aiogram import Bot
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from ze.agents.bootstrap import bootstrap_agents
 from ze.capability.gate import CapabilityGate
@@ -50,7 +51,20 @@ async def build_container(settings: Settings) -> Container:
     checkpointer_pool = await create_checkpointer_pool(settings)
     embedder = get_embedder()
 
-    checkpointer = AsyncPostgresSaver(checkpointer_pool)
+    serde = JsonPlusSerializer(
+        allowed_msgpack_modules=[
+            ("ze.routing.types", "SubTask"),
+            ("ze.routing.types", "RoutingEnvelope"),
+            ("ze.agents.types", "ToolCall"),
+            ("ze.agents.types", "AgentResult"),
+            ("ze.agents.types", "AgentContext"),
+            ("ze.capability.types", "GateDecision"),
+            ("ze.memory.types", "MemoryContext"),
+            ("ze.memory.types", "UserFact"),
+            ("asyncpg.pgproto.pgproto", "UUID"),
+        ]
+    )
+    checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
     await checkpointer.setup()
 
     openrouter_client = OpenRouterClient(

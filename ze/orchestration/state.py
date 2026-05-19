@@ -29,6 +29,10 @@ class AgentState(TypedDict):
     subtask_results: Annotated[list[AgentResult], operator.add]
     pending_confirmation: bool
 
+    # ── Conversation history ───────────────────────────────────────────────
+    messages: list[dict]         # rolling window of completed turns (user+assistant pairs)
+    last_active_at: float | None  # unix timestamp of last processed message
+
     # ── Output ─────────────────────────────────────────────────────────────
     final_response: str | None
     error: str | None

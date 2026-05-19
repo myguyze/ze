@@ -24,6 +24,7 @@ class AgentContext:
     gate_decision: GateDecision = GateDecision.EXECUTE
     memory: MemoryContext = field(default_factory=MemoryContext)
     tool_calls: list[ToolCall] = field(default_factory=list)
+    messages: list[dict] = field(default_factory=list)  # history + current user message
 
 
 @dataclass

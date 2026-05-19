@@ -6,7 +6,9 @@ _VERBOSITY_CLAUSES = {
 _IDENTITY_TEMPLATE = """\
 You are Ze, a personal AI assistant. You are {traits}.{verbosity_clause}
 {custom_block}
-What you know about this user:
+## Known facts about this user
+Use these facts to personalise responses and to answer questions about the user directly. \
+Do not say you lack information if it appears below.
 {memory_context}\
 """
 

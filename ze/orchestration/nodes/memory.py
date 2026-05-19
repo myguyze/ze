@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer
 from ze.agents.types import AgentResult
 from ze.logging import get_logger
 from ze.memory.store import MemoryStore
+from ze.orchestration.nodes.context import _SESSION_HISTORY_LIMIT
 from ze.orchestration.state import AgentState
 from ze.settings import Settings
 
@@ -60,14 +61,21 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
     )
 
     if result.memory_proposals:
-        asyncio.create_task(store.propose_facts(result.memory_proposals))
+        await store.propose_facts(result.memory_proposals)
 
     log.debug(
         "orchestration_memory_write_scheduled",
         session_id=state["session_id"],
         proposals=len(result.memory_proposals),
     )
-    return {}
+
+    # Append the completed turn and apply the rolling window.
+    current = list(state.get("messages") or [])
+    updated = current + [
+        {"role": "user", "content": ctx.prompt},
+        {"role": "assistant", "content": result.response},
+    ]
+    return {"messages": updated[-_SESSION_HISTORY_LIMIT:]}
 
 
 async def synthesize(state: AgentState, config: RunnableConfig) -> dict:

@@ -40,7 +40,7 @@ class ZeBot:
     async def handle_message(self, message: Message) -> None:
         chat_id = message.chat.id
         text = message.text or ""
-        bind_context(chat_id=chat_id)
+        bind_context(str(chat_id))
 
         try:
             if self._store.is_awaiting_edit(chat_id):
@@ -49,6 +49,11 @@ class ZeBot:
 
             if self._store.is_active(chat_id):
                 await self._bot.send_message(chat_id, "A task is already in progress.")
+                return
+
+            if text == "/new":
+                await self._reset_session(chat_id)
+                await self._bot.send_message(chat_id, "Session reset. Starting fresh — I still remember what I know about you.")
                 return
 
             self._store.mark_active(chat_id)
@@ -60,7 +65,7 @@ class ZeBot:
     async def handle_callback(self, query: CallbackQuery) -> None:
         chat_id = query.message.chat.id
         data = query.data or ""
-        bind_context(chat_id=chat_id)
+        bind_context(str(chat_id))
 
         try:
             if not data.startswith("confirm:"):
@@ -87,6 +92,12 @@ class ZeBot:
             unbind_context()
 
     # ── Internal helpers ──────────────────────────────────────────────────────
+
+    async def _reset_session(self, chat_id: int) -> None:
+        config = self._make_config(chat_id)
+        await self._graph.aupdate_state(config, {"messages": [], "last_active_at": None})
+        self._store.clear_all(chat_id)
+        log.info("session_reset", chat_id=chat_id)
 
     async def _handle_edit_reply(self, chat_id: int, text: str) -> None:
         self._store.clear_awaiting_edit(chat_id)
@@ -252,6 +263,8 @@ class ZeBot:
             "pending_confirmation": False,
             "final_response": None,
             "error": None,
+            "messages": [],
+            "last_active_at": None,
         }
 
 
