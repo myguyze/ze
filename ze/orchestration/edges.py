@@ -28,3 +28,23 @@ def after_execute_tool(state: AgentState) -> str:
     if state.get("subtask_results"):
         return "synthesize"
     return "write_memory"
+
+
+# ── Workflow graph edges ───────────────────────────────────────────────────────
+
+def after_capability_check_workflow(state: AgentState) -> str:
+    """In workflow mode all steps execute directly — the workflow creation was the gate."""
+    decision = state.get("gate_decision")
+    if decision == GateDecision.BLOCKED:
+        return "workflow_failed"
+    return "execute_tool"
+
+
+def after_verify_step(state: AgentState) -> str:
+    step_results = state.get("workflow_step_results") or []
+    if step_results and not step_results[-1].success:
+        return "workflow_failed"
+    steps = state.get("workflow_steps") or []
+    if state.get("current_step_index", 0) >= len(steps):
+        return "workflow_synthesize"
+    return "load_workflow_step"

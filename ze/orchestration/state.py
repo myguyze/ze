@@ -1,5 +1,6 @@
 import operator
 from typing import Annotated, TypedDict
+from uuid import UUID
 
 from ze.agents.types import AgentContext, AgentResult
 from ze.capability.types import GateDecision
@@ -32,6 +33,13 @@ class AgentState(TypedDict):
     # ── Conversation history ───────────────────────────────────────────────
     messages: list[dict]         # rolling window of completed turns (user+assistant pairs)
     last_active_at: float | None  # unix timestamp of last processed message
+
+    # ── Workflow execution ─────────────────────────────────────────────────
+    workflow_id: UUID | None
+    workflow_execution_id: UUID | None
+    workflow_steps: list | None          # list[WorkflowStep] — untyped to avoid circular import
+    current_step_index: int
+    workflow_step_results: list          # list[StepResult]
 
     # ── Output ─────────────────────────────────────────────────────────────
     final_response: str | None
