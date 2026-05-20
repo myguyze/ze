@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     app.state.router = container.router
     app.state.capability_gate = container.capability_gate
     app.state.memory_store = container.memory_store
+    app.state.memory_consolidator = container.memory_consolidator
     app.state.ze_bot = container.ze_bot
     app.state.workflow_store = container.workflow_store
 

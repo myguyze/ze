@@ -2,6 +2,7 @@ from fastapi import Request
 from sentence_transformers import SentenceTransformer
 
 from ze.capability.gate import CapabilityGate
+from ze.memory.consolidator import MemoryConsolidator
 from ze.memory.store import MemoryStore
 from ze.openrouter.client import OpenRouterClient
 from ze.routing.router import EmbeddingRouter
@@ -42,3 +43,7 @@ def get_graph(request: Request):
 
 def get_workflow_store(request: Request):
     return request.app.state.workflow_store
+
+
+def get_memory_consolidator(request: Request) -> MemoryConsolidator:
+    return request.app.state.memory_consolidator

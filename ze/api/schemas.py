@@ -57,10 +57,28 @@ class EpisodeDigestItem(BaseModel):
     created_at: datetime
 
 
+class ExpiringFactDigestItem(BaseModel):
+    id: UUIDType
+    key: str
+    value: str
+    agent: str
+    expires_at: datetime
+
+
 class MemoryDigestResponse(BaseModel):
     unreviewed_facts: list[FactDigestItem]
     contradicted_facts: list[FactDigestItem]
     recent_episodes: list[EpisodeDigestItem]
+    expiring_facts: list[ExpiringFactDigestItem]
+
+
+class ConsolidationReportResponse(BaseModel):
+    facts_merged: int
+    facts_soft_expired: int
+    facts_hard_deleted: int
+    episodes_archived: int
+    episodes_deleted: int
+    duration_ms: int
 
 
 class FactReviewAction(BaseModel):

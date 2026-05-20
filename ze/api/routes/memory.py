@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze.api.dependencies import get_pool
+from ze.api.dependencies import get_memory_consolidator, get_pool
 from ze.api.openapi import OPENAPI_RESPONSES_422
 from ze.api.schemas import (
+    ConsolidationReportResponse,
     FactReviewRequest,
     MemoryDigestResponse,
     UserFactResponse,
@@ -48,7 +49,7 @@ async def review_facts(
                 )
             elif action.action == "confirm":
                 row = await conn.fetchrow(
-                    "UPDATE user_facts SET reviewed = true WHERE id = $1 RETURNING *",
+                    "UPDATE user_facts SET reviewed = true, expires_at = NULL WHERE id = $1 RETURNING *",
                     action.id,
                 )
                 if row:
@@ -86,8 +87,36 @@ async def memory_digest(pool=Depends(get_pool)) -> MemoryDigestResponse:
         episodes = await conn.fetch(
             "SELECT id, agent, summary, created_at FROM episodes ORDER BY created_at DESC LIMIT 10"
         )
+        expiring = await conn.fetch(
+            "SELECT id, key, value, agent, expires_at FROM user_facts "
+            "WHERE expires_at IS NOT NULL AND expires_at > NOW() ORDER BY expires_at ASC"
+        )
     return MemoryDigestResponse(
         unreviewed_facts=[dict(r) for r in unreviewed],
         contradicted_facts=[dict(r) for r in contradicted],
         recent_episodes=[dict(r) for r in episodes],
+        expiring_facts=[dict(r) for r in expiring],
+    )
+
+
+@router.post(
+    "/consolidate",
+    response_model=ConsolidationReportResponse,
+    summary="Trigger memory consolidation",
+    description=(
+        "Run dedup, expiry, and episode archival immediately. "
+        "Returns a report of all changes made."
+    ),
+)
+async def run_consolidation(
+    consolidator=Depends(get_memory_consolidator),
+) -> ConsolidationReportResponse:
+    report = await consolidator.run()
+    return ConsolidationReportResponse(
+        facts_merged=report.facts_merged,
+        facts_soft_expired=report.facts_soft_expired,
+        facts_hard_deleted=report.facts_hard_deleted,
+        episodes_archived=report.episodes_archived,
+        episodes_deleted=report.episodes_deleted,
+        duration_ms=report.duration_ms,
     )
