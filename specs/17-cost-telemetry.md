@@ -33,7 +33,8 @@ class CostRecord:
     total_tokens: int
     duration_ms: int
     session_id: str | None
-    cost_usd: float | None   # None when model not in pricing table
+    cost_usd: float | None       # always None at write time; backfilled by CostReconciler
+    generation_id: str | None    # OpenRouter generation ID for reconciliation
 ```
 
 ### `ze/telemetry/context.py`
@@ -68,73 +69,36 @@ def get_cost_context() -> CostContext:
 
 ### `ze/telemetry/tracker.py`
 
+Records each call inline (fire-and-forget). `cost_usd` is always written as `NULL`
+here — the reconciler fills it in asynchronously.
+
 ```python
-import asyncio
-import decimal
-from ze.telemetry.context import get_cost_context
-from ze.telemetry.types import CostRecord
-from ze.logging import get_logger
-
-log = get_logger(__name__)
-
 class CostTracker:
-    def __init__(self, pool, settings) -> None:
-        self._pool = pool
-        self._settings = settings
+    def __init__(self, pool) -> None: ...
 
-    def record(
-        self,
-        model: str,
-        prompt_tokens: int,
-        completion_tokens: int,
-        total_tokens: int,
-        duration_ms: int,
-    ) -> None:
-        """Fire-and-forget: schedules a DB write without blocking the caller."""
-        ctx = get_cost_context()
-        cost_usd = _compute_cost(model, prompt_tokens, completion_tokens, self._settings)
-        rec = CostRecord(
-            agent=ctx.agent,
-            flow_type=ctx.flow_type,
-            session_id=ctx.session_id,
-            model=model,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            duration_ms=duration_ms,
-            cost_usd=cost_usd,
-        )
-        asyncio.create_task(_write(self._pool, rec))
-
-async def _write(pool, rec: CostRecord) -> None:
-    try:
-        async with pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO llm_cost_log
-                    (session_id, agent, flow_type, model,
-                     prompt_tokens, completion_tokens, total_tokens,
-                     cost_usd, duration_ms)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-                """,
-                rec.session_id, rec.agent, rec.flow_type, rec.model,
-                rec.prompt_tokens, rec.completion_tokens, rec.total_tokens,
-                rec.cost_usd, rec.duration_ms,
-            )
-    except Exception as exc:
-        log.warning("cost_write_failed", error=str(exc))
-
-def _compute_cost(model: str, prompt: int, completion: int, settings) -> float | None:
-    pricing = settings.model_pricing.get(model)
-    if not pricing:
-        return None
-    return (
-        prompt    / 1_000_000 * pricing["prompt_per_1m"]
-        + completion / 1_000_000 * pricing["completion_per_1m"]
-    )
+    def record(self, model, prompt_tokens, completion_tokens,
+               total_tokens, duration_ms, generation_id=None) -> None:
+        """Schedules a DB write without blocking the caller. cost_usd left NULL."""
 ```
 
-## DB Table: `llm_cost_log` (Migration 003)
+### `ze/telemetry/reconciler.py`
+
+Periodic job that backfills `cost_usd` by calling OpenRouter's generation stats
+endpoint for rows that have a `generation_id` but no `cost_usd` yet. Waits 2
+minutes after creation before fetching (OpenRouter may lag). Processes up to 50
+rows per run.
+
+```python
+class CostReconciler:
+    def __init__(self, pool, sdk) -> None: ...  # sdk = OpenRouterClient._sdk
+
+    async def run(self) -> None:
+        """Fetches actual cost from GET /api/v1/generation?id=<id> and updates rows."""
+```
+
+Scheduled every 15 minutes via `WorkflowScheduler` (job_id: `cost_reconciliation`).
+
+## DB Table: `llm_cost_log` (Migration 008)
 
 ```sql
 CREATE TABLE llm_cost_log (
@@ -146,8 +110,9 @@ CREATE TABLE llm_cost_log (
     prompt_tokens     INT         NOT NULL,
     completion_tokens INT         NOT NULL,
     total_tokens      INT         NOT NULL,
-    cost_usd          NUMERIC(12,8),
+    cost_usd          NUMERIC(12,8),   -- NULL until CostReconciler backfills it
     duration_ms       INT         NOT NULL,
+    generation_id     TEXT,            -- OpenRouter ID used by CostReconciler
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX llm_cost_log_created_idx  ON llm_cost_log (created_at DESC);
@@ -166,59 +131,38 @@ CREATE INDEX llm_cost_log_session_idx  ON llm_cost_log (session_id) WHERE sessio
   `"stream_options": {"include_usage": true}` to streaming requests. Accumulate
   tokens across chunks; call `tracker.record()` after the stream closes.
 
-## BaseAgent Changes
+## Attribution Instrumentation
 
-Add to the top of `run()`:
+Agent context is set in `ze/orchestration/nodes/execution.py:_run_with_timeout()`
+before every agent runs — all existing and future agents are covered automatically.
+Orchestration-layer LLM calls (synthesis, workflow verify, etc.) set their own
+agent label at the call site.
 
-```python
-from ze.telemetry.context import set_agent_context
-...
-async def run(self, ctx: AgentContext) -> AgentResult:
-    set_agent_context(self.name)
-    ...
-```
-
-All existing and future agents inherit this automatically.
-
-## Flow Entry Points
-
-| Module | Call to add |
+| Module | What is set |
 |--------|-------------|
 | `ze/telegram/bot.py` — message handler | `set_flow_context("user_message", str(chat_id))` |
-| `ze/proactive/briefing.py` — `run()` | `set_flow_context("morning_briefing")` |
-| `ze/proactive/insights.py` — `run()` | `set_flow_context("insight_generation")` |
-| `ze/proactive/reminders.py` — `sync()` | `set_flow_context("calendar_sync")` |
-| `ze/memory/consolidator.py` — `run()` | `set_flow_context("memory_consolidation")` |
-| `ze/routing/router.py` — `_haiku_fallback()` | `set_agent_context("router")` |
+| `ze/workflow/scheduler.py` — `_run_workflow()` | `set_flow_context("workflow_execution", session_id)` |
+| `ze/proactive/insights.py` — `run()` | `set_flow_context("insight_generation")` + `set_agent_context("insights")` |
+| `ze/proactive/reminders.py` — `sync()` | `set_flow_context("calendar_sync")` + `set_agent_context("reminders")` |
+| `ze/memory/consolidator.py` — `run()` | `set_flow_context("memory_consolidation")` + `set_agent_context("memory_consolidation")` |
+| `ze/orchestration/nodes/execution.py` — `_run_with_timeout()` | `set_agent_context(agent_name)` |
+| `ze/orchestration/nodes/memory.py` — `synthesize()` | `set_agent_context("synthesis")` |
+| `ze/orchestration/nodes/routing.py` — `plan_sequential()` | `set_agent_context("workflow_planner")` |
+| `ze/orchestration/nodes/workflow.py` — `verify_step()` | `set_agent_context("workflow_verify")` |
+| `ze/orchestration/nodes/workflow.py` — `workflow_synthesize()` | `set_agent_context("workflow_synthesize")` |
+| `ze/orchestration/nodes/context.py` — `fetch_context()` | `set_agent_context("memory_store")` |
+| `ze/routing/router.py` — haiku fallback | `set_agent_context("router")` |
 
-## Pricing Config
+## Cost Source
 
-Add to `config/models.yaml`:
+`cost_usd` is sourced exclusively from `GET /api/v1/generation?id=<generation_id>`
+(OpenRouter's generation stats endpoint, `GetGenerationData.total_cost`). No local
+pricing table is maintained. `CostReconciler` runs every 15 minutes and backfills
+all rows older than 2 minutes that have a `generation_id` but no `cost_usd`.
 
-```yaml
-pricing:
-  anthropic/claude-haiku-4-5:
-    prompt_per_1m: 0.80
-    completion_per_1m: 4.00
-  anthropic/claude-sonnet-4-5:
-    prompt_per_1m: 3.00
-    completion_per_1m: 15.00
-  anthropic/claude-opus-4-5:
-    prompt_per_1m: 15.00
-    completion_per_1m: 75.00
-```
+## REST Endpoint: `GET /costs/summary`
 
-These mirror OpenRouter's pass-through pricing for Anthropic models. Update
-manually when prices change.
-
-## Settings Change
-
-Add `model_pricing: dict[str, dict]` to `Settings`, loaded from the `pricing`
-key in `config/models.yaml`.
-
-## REST Endpoint: `GET /admin/costs`
-
-Route in `ze/api/admin.py` (new file, mounted at `/admin`).
+Route in `ze/api/routes/costs.py`, mounted at `/costs`.
 
 ### Query params
 
@@ -227,67 +171,29 @@ Route in `ze/api/admin.py` (new file, mounted at `/admin`).
 | `days` | 30 | Lookback window |
 | `group_by` | `flow_type` | `flow_type` \| `agent` \| `model` \| `session_id` |
 
-### Response schema
-
-```python
-@dataclass
-class CostBucket:
-    group: str
-    calls: int
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
-    cost_usd: float | None   # None if any call had no pricing
-
-@dataclass
-class CostSummaryResponse:
-    period_days: int
-    group_by: str
-    total_cost_usd: float | None
-    total_calls: int
-    buckets: list[CostBucket]
-```
-
-### SQL pattern
-
-```sql
-SELECT
-    <group_by_col>           AS group_key,
-    COUNT(*)                 AS calls,
-    SUM(prompt_tokens)       AS prompt_tokens,
-    SUM(completion_tokens)   AS completion_tokens,
-    SUM(total_tokens)        AS total_tokens,
-    SUM(cost_usd)            AS cost_usd
-FROM llm_cost_log
-WHERE created_at >= NOW() - INTERVAL '<days> days'
-GROUP BY group_key
-ORDER BY total_tokens DESC
-```
-
-### Auth
-
-Protected by the existing `ZE_API_KEY` header check (same as other admin-style
-routes).
+Returns a JSON object with `total_calls`, `total_tokens`, `total_cost_usd`, and
+a `buckets` list grouped by the chosen dimension, ordered by `total_tokens` DESC.
+`cost_usd` is `null` for rows not yet reconciled (typically the last ~15 minutes).
 
 ## Container Changes
 
-`CostTracker` is constructed in `build_container()` and injected into
-`OpenRouterClient`. No other components need a reference to it.
+`CostTracker(pool)` and `CostReconciler(pool, sdk=openrouter_client._sdk)` are
+both constructed in `build_container()`. `CostTracker` is injected into
+`OpenRouterClient`. `CostReconciler.run` is scheduled every 15 minutes via
+`WorkflowScheduler` (job_id: `cost_reconciliation`).
 
 ## Testing
 
 - `CostTracker.record()`: mock `asyncio.create_task`; assert `_write` is
   scheduled with the correct `CostRecord` fields.
-- `_compute_cost()`: unit test with known pricing values.
 - Context propagation: verify that `set_flow_context` + `set_agent_context` are
   visible inside a spawned coroutine.
 - `OpenRouterClient.complete()` with a mock tracker: assert `tracker.record()`
-  is called with the right token counts.
-- `GET /admin/costs`: mock DB, assert grouping logic.
+  is called with the right token counts and `generation_id`.
+- `GET /costs/summary`: mock DB, assert grouping logic.
 
 ## Out of Scope
 
 - Real-time cost alerting / budget enforcement.
 - Per-user or per-conversation cost attribution (single-user system).
 - Retroactive backfill of historical calls (start tracking from deploy date).
-- Automatic pricing refresh from OpenRouter's `/models` endpoint.
