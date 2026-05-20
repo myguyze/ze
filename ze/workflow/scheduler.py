@@ -10,6 +10,7 @@ from apscheduler.triggers.date import DateTrigger
 
 from ze.logging import get_logger
 from ze.settings import Settings
+from ze.telemetry.context import set_flow_context
 from ze.workflow.store import WorkflowStore
 from ze.workflow.types import Workflow
 
@@ -105,6 +106,7 @@ class WorkflowScheduler:
         if workflow is None or not workflow.enabled:
             return
 
+        set_flow_context("workflow_execution", session_id=f"workflow:{workflow_id}")
         execution_id = await self._store.start_execution(workflow_id)
         log.info("workflow_execution_start", workflow=workflow.name, execution_id=str(execution_id))
 

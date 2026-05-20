@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, ForceReply, Message
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.telegram.keyboards import confirmation_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
+from ze.telemetry.context import set_flow_context
 
 log = get_logger(__name__)
 
@@ -63,6 +64,7 @@ class ZeBot:
                 return
 
             self._store.mark_active(chat_id)
+            set_flow_context("user_message", str(chat_id))
             log.info("message_received", chat_id=chat_id)
             await self._run_graph(chat_id, text)
         finally:

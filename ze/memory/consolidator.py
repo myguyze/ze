@@ -13,6 +13,7 @@ from ze.logging import get_logger
 from ze.memory.types import ConsolidationReport
 from ze.openrouter.client import OpenRouterClient
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context, set_flow_context
 
 _MERGE_PROMPT = """\
 You are merging two user facts that are semantically similar.
@@ -69,6 +70,8 @@ class MemoryConsolidator:
     # ── Public ────────────────────────────────────────────────────────────────
 
     async def run(self) -> ConsolidationReport:
+        set_flow_context("memory_consolidation")
+        set_agent_context("memory_consolidation")
         start = time.monotonic()
         self._log.info("consolidation_start")
 

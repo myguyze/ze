@@ -12,6 +12,7 @@ from ze.openrouter.client import OpenRouterClient
 from ze.routing import haiku_fallback
 from ze.routing.types import RoutingEnvelope, SubTask
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context
 
 
 class EmbeddingRouter:
@@ -103,6 +104,7 @@ class EmbeddingRouter:
                 score_gap=round(score_gap, 3),
                 reason="below_threshold" if top_score < threshold else "low_gap",
             )
+            set_agent_context("router")
             return await haiku_fallback.decompose(
                 prompt=prompt,
                 raw_scores=raw_scores,

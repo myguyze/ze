@@ -11,6 +11,7 @@ from ze.errors import AgentTimeoutError
 from ze.logging import get_logger
 from ze.orchestration.state import AgentState
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context
 
 log = get_logger(__name__)
 
@@ -117,6 +118,7 @@ async def _run_with_timeout(
     settings: Settings,
     token_queue: asyncio.Queue | None = None,
 ) -> AgentResult:
+    set_agent_context(agent_name)
     agent: BaseAgent = get_agent(agent_name)
     timeout = float(settings.agent_configs.get(agent_name, {}).get("timeout", 30))
 

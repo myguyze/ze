@@ -8,6 +8,7 @@ from ze.logging import get_logger
 from ze.openrouter.client import OpenRouterClient
 from ze.proactive.notifier import ProactiveNotifier
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context, set_flow_context
 
 _VALID_CATEGORIES = {"pattern", "trend", "goal", "tension"}
 
@@ -43,6 +44,8 @@ class InsightEngine:
 
     async def run(self) -> None:
         """Weekly job: generate insights from recent evidence and push any novel ones."""
+        set_flow_context("insight_generation")
+        set_agent_context("insights")
         insight_mem_cfg = self._settings.memory_insights_config
         lookback_days = int(insight_mem_cfg.get("lookback_days", 7))
         min_evidence = int(insight_mem_cfg.get("min_evidence", 3))

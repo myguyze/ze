@@ -6,6 +6,7 @@ from ze.errors import WorkflowPlanError
 from ze.logging import get_logger
 from ze.orchestration.state import AgentState
 from ze.routing.router import EmbeddingRouter
+from ze.telemetry.context import set_agent_context
 from ze.workflow.planner import WorkflowPlanner
 
 log = get_logger(__name__)
@@ -48,6 +49,7 @@ async def plan_sequential(state: AgentState, config: RunnableConfig) -> dict:
     gate: CapabilityGate = config["configurable"]["capability_gate"]
     session_overrides: dict = state.get("session_overrides") or {}
 
+    set_agent_context("workflow_planner")
     try:
         steps = await planner.plan(state["prompt"])
     except WorkflowPlanError as exc:

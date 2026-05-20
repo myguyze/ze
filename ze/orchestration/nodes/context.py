@@ -8,6 +8,7 @@ from ze.logging import get_logger
 from ze.memory.store import MemoryStore
 from ze.orchestration.state import AgentState
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context
 
 log = get_logger(__name__)
 
@@ -16,6 +17,7 @@ _SESSION_HISTORY_LIMIT = 10
 
 async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     """Encode the prompt, load memory context, and build the AgentContext."""
+    set_agent_context("memory_store")
     store: MemoryStore = config["configurable"]["memory_store"]
     embedder: SentenceTransformer = config["configurable"]["embedder"]
     settings: Settings = config["configurable"]["settings"]

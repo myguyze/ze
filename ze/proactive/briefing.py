@@ -3,6 +3,7 @@ import asyncpg
 from ze.logging import get_logger
 from ze.proactive.notifier import ProactiveNotifier
 from ze.settings import Settings
+from ze.telemetry.context import set_flow_context
 
 
 class MorningBriefing:
@@ -18,6 +19,7 @@ class MorningBriefing:
         self._log = get_logger(__name__)
 
     async def run(self) -> None:
+        set_flow_context("morning_briefing")
         async with self._pool.acquire() as conn:
             existing = await conn.fetchrow(
                 "SELECT 1 FROM push_log WHERE event_type = 'morning_brief' "

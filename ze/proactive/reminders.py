@@ -11,6 +11,7 @@ from ze.logging import get_logger
 from ze.openrouter.client import OpenRouterClient
 from ze.proactive.notifier import ProactiveNotifier
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context, set_flow_context
 
 _ASSESS_SYSTEM = """\
 You are Ze's calendar assistant. Given a calendar event, return a JSON object
@@ -117,6 +118,8 @@ class CalendarReminderScheduler:
         self._log.info("reminders_replayed", count=len(rows))
 
     async def sync(self) -> None:
+        set_flow_context("calendar_sync")
+        set_agent_context("reminders")
         if self._credentials is None:
             self._log.info("reminder_sync_skipped_no_credentials")
             return

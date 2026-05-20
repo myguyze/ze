@@ -5,6 +5,7 @@ from langchain_core.runnables import RunnableConfig
 
 from ze.logging import get_logger
 from ze.orchestration.state import AgentState
+from ze.telemetry.context import set_agent_context
 from ze.workflow.store import WorkflowStore
 from ze.workflow.types import StepResult, WorkflowStep
 
@@ -63,6 +64,7 @@ async def verify_step(state: AgentState, config: RunnableConfig) -> dict:
 
     # 3. Criteria check
     if step.verify:
+        set_agent_context("workflow_verify")
         try:
             raw = await client.complete(
                 messages=[{
@@ -120,6 +122,7 @@ async def workflow_synthesize(state: AgentState, config: RunnableConfig) -> dict
     )
 
     if parts:
+        set_agent_context("workflow_synthesize")
         response = await client.complete(
             messages=[{
                 "role": "user",

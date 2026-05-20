@@ -9,6 +9,7 @@ from ze.memory.store import MemoryStore
 from ze.orchestration.nodes.context import _SESSION_HISTORY_LIMIT
 from ze.orchestration.state import AgentState
 from ze.settings import Settings
+from ze.telemetry.context import set_agent_context
 
 log = get_logger(__name__)
 
@@ -82,6 +83,7 @@ async def synthesize(state: AgentState, config: RunnableConfig) -> dict:
     """Merge multiple subtask results into a single coherent response via Haiku."""
     from ze.openrouter.client import OpenRouterClient
 
+    set_agent_context("synthesis")
     client: OpenRouterClient = config["configurable"]["openrouter_client"]
     settings: Settings = config["configurable"]["settings"]
 
