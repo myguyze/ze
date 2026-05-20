@@ -10,12 +10,16 @@ from ze.agents.bootstrap import bootstrap_agents
 from ze.capability.gate import CapabilityGate
 from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
 from ze.embeddings import get_embedder
+from ze.google.auth import GoogleCredentials
 from ze.logging import get_logger
 from ze.memory.consolidator import MemoryConsolidator
 from ze.memory.store import MemoryStore
 from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
 from ze.orchestration.workflow_graph import build_workflow_graph
+from ze.proactive.briefing import MorningBriefing
+from ze.proactive.notifier import ProactiveNotifier
+from ze.proactive.reminders import CalendarReminderScheduler
 from ze.routing.router import EmbeddingRouter
 from ze.settings import Settings
 from ze.telegram.bot import ZeBot
@@ -45,6 +49,9 @@ class Container:
     graph: object
     bot: Bot
     ze_bot: ZeBot
+    notifier: ProactiveNotifier
+    morning_briefing: MorningBriefing
+    calendar_reminders: CalendarReminderScheduler
 
     async def close(self) -> None:
         await self.workflow_scheduler.stop()
@@ -126,11 +133,20 @@ async def build_container(settings: Settings) -> Container:
         }
     }
 
+    bot = Bot(token=settings.telegram_bot_token)
+    notifier = ProactiveNotifier(
+        bot=bot,
+        chat_id=int(settings.telegram_allowed_chat_id) if settings.telegram_allowed_chat_id else 0,
+    )
+
+    proactive_cfg = settings.proactive_config
     workflow_scheduler = WorkflowScheduler(
         workflow_store=workflow_store,
         workflow_graph=workflow_graph,
         graph_config=workflow_graph_config,
         settings=settings,
+        pool=pool,
+        notifier=notifier if proactive_cfg.get("workflow_failure_alerts", True) else None,
     )
 
     bootstrap_agents(
@@ -153,7 +169,34 @@ async def build_container(settings: Settings) -> Container:
         )
         log.info("consolidation_scheduled", cron=nightly_cron)
 
-    bot = Bot(token=settings.telegram_bot_token)
+    # ── Proactive push ────────────────────────────────────────────────────────
+    morning_briefing = MorningBriefing(notifier=notifier, pool=pool, settings=settings)
+    if proactive_cfg.get("briefing_enabled", True):
+        workflow_scheduler.schedule_job(
+            fn=morning_briefing.run,
+            cron=proactive_cfg.get("briefing_cron", "0 8 * * *"),
+            job_id="morning_briefing",
+        )
+        log.info("briefing_scheduled", cron=proactive_cfg.get("briefing_cron", "0 8 * * *"))
+
+    google_credentials = GoogleCredentials.from_settings(settings)
+    calendar_reminders = CalendarReminderScheduler(
+        notifier=notifier,
+        pool=pool,
+        openrouter_client=openrouter_client,
+        workflow_scheduler=workflow_scheduler,
+        google_credentials=google_credentials,
+        settings=settings,
+    )
+    if proactive_cfg.get("calendar_sync_enabled", True):
+        await calendar_reminders.start()
+        workflow_scheduler.schedule_job(
+            fn=calendar_reminders.sync,
+            cron=proactive_cfg.get("calendar_sync_cron", "45 7 * * *"),
+            job_id="calendar_reminder_sync",
+        )
+        log.info("calendar_reminders_scheduled")
+
     if settings.telegram_bot_token and settings.public_url:
         await bot.set_webhook(
             url=f"{settings.public_url}/telegram/webhook",
@@ -192,4 +235,7 @@ async def build_container(settings: Settings) -> Container:
         graph=graph,
         bot=bot,
         ze_bot=ze_bot,
+        notifier=notifier,
+        morning_briefing=morning_briefing,
+        calendar_reminders=calendar_reminders,
     )

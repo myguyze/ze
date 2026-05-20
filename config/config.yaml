@@ -41,6 +41,18 @@ memory:
     profile_episode_limit: 50       # max episodes fed into synthesis prompt
     profile_model: anthropic/claude-haiku-4-5  # model for profile synthesis
 
+proactive:
+  enabled: true
+  briefing_enabled: true
+  briefing_cron: "0 8 * * *"           # 8 AM UTC daily
+  unreviewed_nudge_threshold: 5         # include nudge if unreviewed >= this
+  workflow_failure_alerts: true
+  workflow_failure_cooldown_hours: 1    # min hours between repeated alerts per workflow
+  calendar_sync_enabled: true
+  calendar_sync_cron: "45 7 * * *"     # 7:45 AM UTC — before briefing
+  calendar_sync_days_ahead: 7
+  calendar_reminder_model: anthropic/claude-haiku-4-5
+
 agents:
   research:
     enabled: true

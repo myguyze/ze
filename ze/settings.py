@@ -78,6 +78,10 @@ class Settings(BaseSettings):
         return self.models_config.get("memory", {}).get("consolidation", {})
 
     @property
+    def proactive_config(self) -> dict[str, Any]:
+        return self.models_config.get("proactive", {})
+
+    @property
     def agent_configs(self) -> dict[str, dict[str, Any]]:
         return _load_yaml(self.config_dir / "config.yaml").get("agents", {})
 
