@@ -4,12 +4,12 @@
 
 | Feature | Status |
 |---------|--------|
-| MemoryConsolidator — dedup, expiry, archive | ❌ Not started |
-| Migration 004 — expires_at + is_archive columns | ❌ Not started |
-| ConsolidationScheduler — nightly APScheduler job | ❌ Not started |
-| REST API — POST /memory/consolidate | ❌ Not started |
-| Digest extension — expiring_facts list | ❌ Not started |
-| Config — consolidation thresholds in config.yaml | ❌ Not started |
+| MemoryConsolidator — dedup, expiry, archive | ✅ Done |
+| Migration 004 — expires_at + is_archive columns | ✅ Done |
+| ConsolidationScheduler — nightly APScheduler job | ✅ Done |
+| REST API — POST /memory/consolidate | ✅ Done |
+| Digest extension — expiring_facts list | ✅ Done |
+| Config — consolidation thresholds in config.yaml | ✅ Done |
 
 ---
 

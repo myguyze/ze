@@ -180,4 +180,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 2 | Memory — contradiction detection, episode summarisation, semantic retrieval | Done |
 | 3 | Calendar + email agents, Google OAuth2 | Done |
 | 4 | Workflow agent, multi-step planning, Postgres-persisted scheduler | Done |
-| 5 | Memory consolidation — dedup facts, expire stale, summarise episodes | Not started |
+| 5 | Memory consolidation — dedup facts, expire stale, summarise episodes | Done |
