@@ -94,7 +94,9 @@ class BaseAgent(ABC):
 
     # ── Config helpers ────────────────────────────────────────────────────────
 
-    def _model(self) -> str:
+    def _model(self, ctx: AgentContext | None = None) -> str:
+        if ctx is not None and ctx.model is not None:
+            return ctx.model
         return self._settings.agent_configs.get(self.name, {}).get(
             "model", "anthropic/claude-sonnet-4-5"
         )

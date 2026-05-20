@@ -45,7 +45,7 @@ class EmailAgent(BaseAgent):
 
         response = await self._client.complete(
             messages=[{"role": "user", "content": augmented}],
-            model=self._model(),
+            model=self._model(ctx),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         )
 
@@ -54,7 +54,7 @@ class EmailAgent(BaseAgent):
             prompt=ctx.prompt,
             response=response,
             client=self._client,
-            model=self._model(),
+            model=self._model(ctx),
         )
 
         proposals = to_user_facts(facts_tc.result or [])
@@ -83,7 +83,7 @@ class EmailAgent(BaseAgent):
 
         async for token in self._client.stream(
             messages=[{"role": "user", "content": augmented}],
-            model=self._model(),
+            model=self._model(ctx),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         ):
             yield token

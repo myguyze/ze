@@ -6,6 +6,7 @@ class SubTask:
     agent: str
     intent: str    # "read" | "create" | "update" | "delete" | "execute" | "reason"
     prompt: str    # isolated prompt for this subtask only
+    model: str = ""  # resolved by EmbeddingRouter; passed through to AgentContext
 
 
 @dataclass
@@ -19,3 +20,4 @@ class RoutingEnvelope:
     requires_synthesis: bool     # True when len(subtasks) > 1
     raw_scores: dict[str, float] = field(default_factory=dict)
     is_sequential: bool = False  # True when step N's output feeds step N+1
+    complexity: str = "complex"  # "simple" | "complex" — set for primary subtask

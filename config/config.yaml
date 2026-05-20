@@ -74,6 +74,7 @@ agents:
       Use for questions about current events, factual lookups, topic deep-dives,
       or anything requiring information retrieval from the web.
     model: anthropic/claude-sonnet-4-5
+    model_simple: anthropic/claude-haiku-4-5
     tools:
       - web_search
       - summarize
@@ -92,6 +93,7 @@ agents:
       Use for thinking through problems, getting a second opinion, exploring ideas,
       writing assistance, or any task that does not require external tools or live data.
     model: anthropic/claude-sonnet-4-5
+    model_simple: anthropic/claude-haiku-4-5
     tools: []
     timeout_seconds: 60
     intent_map:

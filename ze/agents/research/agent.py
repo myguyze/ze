@@ -44,7 +44,7 @@ class ResearchAgent(BaseAgent):
         messages = ctx.messages[:-1] + [{"role": "user", "content": augmented}]
         response = await self._client.complete(
             messages=messages,
-            model=self._model(),
+            model=self._model(ctx),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         )
 
@@ -53,7 +53,7 @@ class ResearchAgent(BaseAgent):
             prompt=ctx.prompt,
             response=response,
             client=self._client,
-            model=self._model(),
+            model=self._model(ctx),
         )
 
         proposals = to_user_facts(facts_tc.result or [])
@@ -80,7 +80,7 @@ class ResearchAgent(BaseAgent):
         messages = ctx.messages[:-1] + [{"role": "user", "content": augmented}]
         async for token in self._client.stream(
             messages=messages,
-            model=self._model(),
+            model=self._model(ctx),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         ):
             yield token

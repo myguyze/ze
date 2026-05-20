@@ -67,6 +67,7 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
         intent=subtask.intent,
         gate_decision=GateDecision.DRAFT,
         memory=base_ctx.memory,
+        model=subtask.model if subtask.model else None,
     )
     result = await _run_with_timeout(subtask.agent, ctx, settings)
     return {"agent_result": result, "pending_confirmation": True}
@@ -87,6 +88,7 @@ async def _execute_single(
         intent=subtask.intent,
         gate_decision=gate_decision,
         memory=base_ctx.memory,
+        model=subtask.model if subtask.model else None,
     )
     result = await _run_with_timeout(subtask.agent, ctx, settings, token_queue)
     return {"agent_result": result, "subtask_results": []}
@@ -106,6 +108,7 @@ async def _execute_compound(
             intent=subtask.intent,
             gate_decision=gate_decision,
             memory=base_ctx.memory,
+            model=subtask.model if subtask.model else None,
         )
         result = await _run_with_timeout(subtask.agent, ctx, settings)
         results.append(result)

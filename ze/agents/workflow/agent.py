@@ -55,7 +55,7 @@ class WorkflowManagerAgent(BaseAgent):
     async def run(self, ctx: AgentContext) -> AgentResult:
         raw = await self._client.complete(
             messages=[{"role": "user", "content": ctx.prompt}],
-            model=self._model(),
+            model=self._model(ctx),
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         )
 

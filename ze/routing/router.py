@@ -10,6 +10,7 @@ from ze.errors import InvalidPromptError, RoutingError
 from ze.logging import get_logger
 from ze.openrouter.client import OpenRouterClient
 from ze.routing import haiku_fallback
+from ze.routing.complexity import ComplexityEstimator
 from ze.routing.types import RoutingEnvelope, SubTask
 from ze.settings import Settings
 from ze.telemetry.context import set_agent_context
@@ -22,12 +23,14 @@ class EmbeddingRouter:
         openrouter_client: OpenRouterClient,
         db_pool: asyncpg.Pool,
         settings: Settings,
+        estimator: ComplexityEstimator | None = None,
         logger: structlog.BoundLogger | None = None,
     ) -> None:
         self._embedder = embedder
         self._client = openrouter_client
         self._pool = db_pool
         self._settings = settings
+        self._estimator = estimator or ComplexityEstimator()
         self._log = logger or get_logger(__name__)
 
         self._agent_names: list[str] = []
@@ -68,17 +71,27 @@ class EmbeddingRouter:
             if cfg.get("enabled", True)
         }
 
+    def _resolve_model(self, agent: str, complexity: str) -> str:
+        cfg = self._settings.agent_configs.get(agent, {})
+        if complexity == "simple" and "model_simple" in cfg:
+            return cfg["model_simple"]
+        return cfg.get("model", "anthropic/claude-sonnet-4-5")
+
     def _single_agent_envelope(self, prompt: str) -> RoutingEnvelope:
         agent = self._agent_names[0]
+        intent = self._primary_intent(agent)
+        complexity = self._estimator.classify(prompt, intent, 1.0)
+        model = self._resolve_model(agent, complexity)
         return RoutingEnvelope(
             primary_agent=agent,
             confidence=1.0,
             score_gap=0.0,
             routing_method="embedding",
             is_compound=False,
-            subtasks=[SubTask(agent=agent, intent=self._primary_intent(agent), prompt=prompt)],
+            subtasks=[SubTask(agent=agent, intent=intent, prompt=prompt, model=model)],
             requires_synthesis=False,
             raw_scores={agent: 1.0},
+            complexity=complexity,
         )
 
     async def _score_and_route(self, prompt: str) -> RoutingEnvelope:
@@ -105,23 +118,33 @@ class EmbeddingRouter:
                 reason="below_threshold" if top_score < threshold else "low_gap",
             )
             set_agent_context("router")
-            return await haiku_fallback.decompose(
+            envelope = await haiku_fallback.decompose(
                 prompt=prompt,
                 raw_scores=raw_scores,
                 client=self._client,
                 settings=self._settings,
                 logger=self._log,
             )
+            primary_intent = envelope.subtasks[0].intent if envelope.subtasks else "read"
+            complexity = self._estimator.classify(prompt, primary_intent, envelope.confidence)
+            for subtask in envelope.subtasks:
+                subtask.model = self._resolve_model(subtask.agent, complexity)
+            envelope.complexity = complexity
+            return envelope
 
+        intent = self._primary_intent(top_agent)
+        complexity = self._estimator.classify(prompt, intent, top_score)
+        model = self._resolve_model(top_agent, complexity)
         return RoutingEnvelope(
             primary_agent=top_agent,
             confidence=top_score,
             score_gap=score_gap,
             routing_method="embedding",
             is_compound=False,
-            subtasks=[SubTask(agent=top_agent, intent=self._primary_intent(top_agent), prompt=prompt)],
+            subtasks=[SubTask(agent=top_agent, intent=intent, prompt=prompt, model=model)],
             requires_synthesis=False,
             raw_scores=raw_scores,
+            complexity=complexity,
         )
 
     def _primary_intent(self, agent: str) -> str:
@@ -137,8 +160,9 @@ class EmbeddingRouter:
                     """
                     INSERT INTO routing_log
                         (session_id, prompt, method, primary_agent,
-                         confidence, score_gap, is_compound, raw_scores)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+                         confidence, score_gap, is_compound, raw_scores,
+                         complexity, model_selected)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10)
                     """,
                     session_id,
                     prompt,
@@ -148,6 +172,8 @@ class EmbeddingRouter:
                     envelope.score_gap,
                     envelope.is_compound,
                     json.dumps(envelope.raw_scores),
+                    envelope.complexity,
+                    envelope.subtasks[0].model if envelope.subtasks else None,
                 )
         except Exception as exc:
             self._log.warning("routing_log_write_failed", error=str(exc))

@@ -21,6 +21,7 @@ from ze.proactive.briefing import MorningBriefing
 from ze.proactive.insights import InsightEngine
 from ze.proactive.notifier import ProactiveNotifier
 from ze.proactive.reminders import CalendarReminderScheduler
+from ze.routing.complexity import ComplexityEstimator
 from ze.routing.router import EmbeddingRouter
 from ze.settings import Settings
 from ze.telegram.bot import ZeBot
@@ -98,11 +99,13 @@ async def build_container(settings: Settings) -> Container:
         cost_tracker=cost_tracker,
     )
 
+    estimator = ComplexityEstimator()
     router = EmbeddingRouter(
         embedder=embedder,
         openrouter_client=openrouter_client,
         db_pool=pool,
         settings=settings,
+        estimator=estimator,
     )
 
     capability_gate = CapabilityGate(config_path=settings.capabilities_path)
