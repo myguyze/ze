@@ -25,6 +25,8 @@ from ze.routing.router import EmbeddingRouter
 from ze.settings import Settings
 from ze.telegram.bot import ZeBot
 from ze.telegram.session import ActiveSessionStore
+from ze.telemetry.reconciler import CostReconciler
+from ze.telemetry.tracker import CostTracker
 from ze.workflow.planner import WorkflowPlanner
 from ze.workflow.scheduler import WorkflowScheduler
 from ze.workflow.store import WorkflowStore
@@ -85,12 +87,15 @@ async def build_container(settings: Settings) -> Container:
     checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
     await checkpointer.setup()
 
+    cost_tracker = CostTracker(pool=pool)
+
     openrouter_client = OpenRouterClient(
         api_key=settings.openrouter_api_key,
         base_url=settings.openrouter_base_url,
         logger=get_logger("ze.openrouter"),
         http_referer=settings.openrouter_http_referer,
         title=settings.openrouter_title,
+        cost_tracker=cost_tracker,
     )
 
     router = EmbeddingRouter(
@@ -159,6 +164,14 @@ async def build_container(settings: Settings) -> Container:
         workflow_scheduler=workflow_scheduler,
     )
     graph = build_graph(checkpointer=checkpointer)
+
+    cost_reconciler = CostReconciler(pool=pool, sdk=openrouter_client._sdk)
+    workflow_scheduler.schedule_job(
+        fn=cost_reconciler.run,
+        cron="*/15 * * * *",
+        job_id="cost_reconciliation",
+    )
+    log.info("cost_reconciliation_scheduled")
 
     await workflow_scheduler.start()
 

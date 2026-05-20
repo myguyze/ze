@@ -11,6 +11,7 @@ models:
   reminders: anthropic/claude-haiku-4-5   # calendar reminder interval assessment
   insights:  anthropic/claude-haiku-4-5   # weekly insight generation
 
+
 persona:
   traits:
     - direct

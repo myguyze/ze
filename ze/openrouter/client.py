@@ -24,8 +24,10 @@ class OpenRouterClient:
         logger: structlog.BoundLogger,
         http_referer: str = "https://github.com/ze",
         title: str = "Ze Personal Assistant",
+        cost_tracker=None,
     ) -> None:
         self._log = logger
+        self._cost_tracker = cost_tracker
         self._sdk = OpenRouter(
             api_key=api_key,
             server_url=base_url.rstrip("/"),
@@ -105,6 +107,15 @@ class OpenRouterClient:
                 completion_tokens=usage.completion_tokens,
                 success=True,
             )
+            if self._cost_tracker is not None:
+                self._cost_tracker.record(
+                    model=model,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    total_tokens=usage.total_tokens,
+                    duration_ms=duration_ms,
+                    generation_id=response.id or None,
+                )
             return content
 
         raise last_exc or OpenRouterError("All retry attempts exhausted")
@@ -155,18 +166,32 @@ class OpenRouterClient:
             if isinstance(event_stream, ChatResult):
                 raise OpenRouterError("Unexpected non-streaming response for streaming call")
 
+            stream_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
             async with event_stream:
                 async for chunk in event_stream:
+                    if chunk.usage is not None:
+                        stream_usage = _extract_stream_usage(chunk)
                     content = _chunk_content(chunk)
                     if content:
                         yield content
 
+            duration_ms = int((time.monotonic() - start) * 1000)
             self._log.info(
                 "openrouter_stream",
                 model=model,
-                duration_ms=int((time.monotonic() - start) * 1000),
+                duration_ms=duration_ms,
+                prompt_tokens=stream_usage.prompt_tokens,
+                completion_tokens=stream_usage.completion_tokens,
                 success=True,
             )
+            if self._cost_tracker is not None and stream_usage.total_tokens > 0:
+                self._cost_tracker.record(
+                    model=model,
+                    prompt_tokens=stream_usage.prompt_tokens,
+                    completion_tokens=stream_usage.completion_tokens,
+                    total_tokens=stream_usage.total_tokens,
+                    duration_ms=duration_ms,
+                )
             return
 
         raise last_exc or OpenRouterError("All retry attempts exhausted")
@@ -241,4 +266,15 @@ def _extract_usage(result: ChatResult) -> TokenUsage:
         prompt_tokens=usage.prompt_tokens,
         completion_tokens=usage.completion_tokens,
         total_tokens=usage.total_tokens,
+    )
+
+
+def _extract_stream_usage(chunk: ChatStreamChunk) -> TokenUsage:
+    usage = chunk.usage
+    if usage is None:
+        return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+    return TokenUsage(
+        prompt_tokens=usage.prompt_tokens or 0,
+        completion_tokens=usage.completion_tokens or 0,
+        total_tokens=usage.total_tokens or 0,
     )
