@@ -4,14 +4,14 @@
 
 | Feature | Status |
 |---------|--------|
-| `UserProfile` type + `MemoryContext.profile` field | ❌ Not started |
-| Migration 005 — user_profile table | ❌ Not started |
-| `MemoryStore.get_profile()` | ❌ Not started |
-| `MemoryStore.get_context()` — attach profile | ❌ Not started |
-| `MemoryConsolidator.synthesise_profile()` | ❌ Not started |
-| `MemoryConsolidator.run()` — call synthesis, report flag | ❌ Not started |
-| `identity.py` — profile section in system prompt | ❌ Not started |
-| REST API — GET /memory/profile | ❌ Not started |
+| `UserProfile` type + `MemoryContext.profile` field | ✅ Done |
+| Migration 005 — user_profile table | ✅ Done |
+| `MemoryStore.get_profile()` | ✅ Done |
+| `MemoryStore.get_context()` — attach profile | ✅ Done |
+| `MemoryConsolidator.synthesise_profile()` | ✅ Done |
+| `MemoryConsolidator.run()` — call synthesis, report flag | ✅ Done |
+| `identity.py` — profile section in system prompt | ✅ Done |
+| REST API — GET /memory/profile | ✅ Done |
 
 ---
 

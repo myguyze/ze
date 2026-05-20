@@ -181,4 +181,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 3 | Calendar + email agents, Google OAuth2 | Done |
 | 4 | Workflow agent, multi-step planning, Postgres-persisted scheduler | Done |
 | 5 | Memory consolidation — dedup facts, expire stale, summarise episodes | Done |
-| 6 | User profile — synthesise facts + episodes into a structured portrait | Not started |
+| 6 | User profile — synthesise facts + episodes into a structured portrait | Done |
