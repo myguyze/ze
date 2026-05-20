@@ -12,34 +12,23 @@ All LLM calls go through OpenRouter. No direct Anthropic or OpenAI API calls are
 
 ## System Flow
 
-```
-User message (Telegram Bot API)
-        │
-        ▼
-[embed_route]  ──── cosine similarity ──── all-MiniLM-L6-v2 (local, no API call)
-        │
-        ├─ confident + single agent ──────────────────────────────────────────┐
-        │                                                                      │
-        └─ ambiguous / compound ──── [decompose] (claude-haiku via OpenRouter) ┤
-                                                                               │
-                                                                  [fetch_context]
-                                                               (pgvector search)
-                                                                               │
-                                                               [capability_check]
-                                                                               │
-                                          ┌────────────────────────────┬──────┴──────────────┐
-                                          │                            │                      │
-                                       EXECUTE                      DRAFT            AWAIT_CONFIRMATION
-                                          │                            │               (graph paused,
-                                   [execute_tool]             [draft_response]    AsyncPostgresSaver)
-                                          │                                           Resume on callback
-                                          └────────────────────────────┴──────────────────────┘
-                                                                               │
-                                                                   [synthesize] (compound tasks)
-                                                                               │
-                                                                   [write_memory] (always)
-                                                                               │
-                                                      Response sent via Telegram Bot API
+```mermaid
+flowchart TD
+    A([User message\nTelegram Bot API]) --> B[embed_route\nall-MiniLM-L6-v2]
+    B -->|confident + single agent| C[fetch_context\npgvector search]
+    B -->|ambiguous / compound| D[decompose\nclaude-haiku]
+    D --> C
+    C --> E[capability_check]
+    E -->|EXECUTE| F[execute_tool]
+    E -->|DRAFT| G[draft_response]
+    E -->|CONFIRM| H[await_confirmation\ngraph paused]
+    H -->|user replies| F
+    F --> I{compound?}
+    G --> I
+    I -->|yes| J[synthesize]
+    I -->|no| K[write_memory]
+    J --> K
+    K --> L([Response via\nTelegram Bot API])
 ```
 
 ---
@@ -117,6 +106,8 @@ All agents subclass `BaseAgent` and register via `@register`. Each agent owns:
 Agents cannot call each other directly. Compound coordination is handled by the
 orchestration graph.
 
+See [docs/adding-an-agent.md](adding-an-agent.md) for a full authoring guide.
+
 ### Agent roster
 
 | Agent | Key tools | Default model tier |
@@ -142,10 +133,65 @@ Two memory layers, both backed by Postgres + pgvector:
 
 At each graph invocation, `fetch_context` performs a pgvector semantic search over
 both layers and injects the top-k results into `AgentContext` as `memory_context`.
+The synthesised user profile (see below) is also injected into every system prompt.
 
-**Memory consolidation** (`ze/memory/consolidation.py`) runs on a schedule:
-deduplicates overlapping facts, marks stale facts as expired, and summarises
-old episodes.
+Memory accumulates into progressively richer representations through a nightly
+pipeline:
+
+```mermaid
+flowchart LR
+    A[Facts + Episodes] --> B[Nightly consolidation\ndedup · expire · archive]
+    B --> C[Profile synthesis\nstructured portrait]
+    C --> D[Weekly insights\npatterns + tensions]
+```
+
+See [docs/scheduled-jobs.md](scheduled-jobs.md) for the full lifecycle, schedule,
+and configuration of every background job.
+
+---
+
+## System prompt structure
+
+Every agent's system prompt is assembled from two sections by `BaseAgent._build_system_prompt()`:
+
+```mermaid
+flowchart TD
+    subgraph prompt["System Prompt (assembled per request)"]
+        direction TB
+        subgraph id["Identity Block"]
+            i1["Ze's name and role"]
+            i2["Personality traits · verbosity"]
+            i3["Custom instructions"]
+            i4["User profile (synthesised facts)"]
+            i5["Memory context (top-k facts + episodes)"]
+        end
+        subgraph ag["Agent Instructions"]
+            a1["Task-specific behavioural rules"]
+            a2["Tool usage guidelines"]
+            a3["Operational constraints"]
+        end
+        id --> ag
+    end
+```
+
+The identity block ensures Ze sounds like the same assistant regardless of which
+agent handles the request. Agents only define `_AGENT_INSTRUCTIONS` — they never
+set the identity or inject memory themselves.
+
+**Configurable identity fields** (in `config/config.yaml` under `persona:`):
+
+| Field | Description |
+|---|---|
+| `traits` | List of personality adjectives rendered as a natural-language list |
+| `verbosity` | `concise` / `balanced` / `detailed` — controls response length guidance |
+| `custom_instructions` | Free-form text appended after traits, before memory context |
+
+Changes to persona config hot-reload on `SIGHUP`.
+
+**Memory injection** — `fetch_context` runs a pgvector semantic search before every
+agent execution and injects the top-k relevant facts and episodes as text into the
+identity block. The full user profile (synthesised nightly) is also included. Agents
+always have contextual awareness of the user without needing to query memory themselves.
 
 ---
 
@@ -171,15 +217,19 @@ The config file hot-reloads on `SIGHUP` without restarting the process.
 
 **Module:** `ze/proactive/`
 
-Three push behaviours, all delivered over Telegram without the user sending a message:
+Ze pushes messages to Telegram on a schedule, without the user prompting anything:
 
-1. **Morning briefing** — daily digest: unreviewed facts, upcoming workflows, recent failures.
-2. **Workflow failure alerts** — immediate push when a scheduled workflow step fails.
-3. **Calendar reminders** — configurable minutes-before alerts for upcoming events.
+| Job | When | Description |
+|---|---|---|
+| Weekly insights | Sunday 7 AM UTC | 1–3 observations from the past week's facts + episodes |
+| Calendar sync | 7:45 AM UTC daily | Pull upcoming events, schedule reminder jobs |
+| Morning briefing | 8 AM UTC daily | Digest: unreviewed facts, upcoming workflows, recent failures |
+| Nightly consolidation | 2 AM UTC | Dedup facts, expire stale, archive episodes, re-synthesise profile |
+| Workflow failure alerts | Immediate | Push when a scheduled step fails |
+| Calendar reminders | When they fire | Event-specific reminders, interval assessed by Haiku |
 
-`CalendarReminderScheduler` syncs with Google Calendar daily and schedules one-shot
-APScheduler jobs. Push delivery uses `ProactiveNotifier`, which calls the same
-`ZeBot.send_message()` used for regular responses.
+All scheduled jobs use APScheduler with Postgres as the job store (survives restarts).
+See [docs/scheduled-jobs.md](scheduled-jobs.md) for the full lifecycle and config.
 
 ---
 

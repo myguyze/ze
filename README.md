@@ -158,15 +158,15 @@ Incoming messages are embedded locally (no API call) and scored by cosine simila
 against each agent's description. A confident, unambiguous match routes directly.
 Otherwise Haiku decomposes the request into subtasks — one per agent.
 
-```
-Telegram message
-  → EmbeddingRouter (all-MiniLM-L6-v2, local)
-      confident  → agent directly
-      ambiguous  → Haiku decompose → one or more agents
-  → CapabilityGate (autonomous / confirm / draft_only / blocked)
-  → Agent.run() with asyncio.wait_for timeout
-  → memory written (fire and forget)
-  → response sent via Telegram Bot API
+```mermaid
+flowchart LR
+    A([Telegram message]) --> B[EmbeddingRouter\nall-MiniLM-L6-v2]
+    B -->|confident| C[CapabilityGate]
+    B -->|ambiguous| D[Haiku decompose]
+    D --> C
+    C --> E[Agent.run\nwith timeout]
+    E --> F[write_memory\nfire-and-forget]
+    F --> G([Response via\nTelegram Bot API])
 ```
 
 ## Capability gate
@@ -230,6 +230,9 @@ Merges to `main` that change application code trigger deployment to Fly.io.
 ## Further reading
 
 - [docs/architecture.md](docs/architecture.md) — system design, graph flow, module map
+- [docs/scheduled-jobs.md](docs/scheduled-jobs.md) — daily/weekly jobs, memory lifecycle, proactive messages
+- [docs/workflows.md](docs/workflows.md) — workflow modes, execution loop, scheduling
 - [docs/configuration.md](docs/configuration.md) — full config reference
 - [docs/deployment.md](docs/deployment.md) — Fly.io setup and operations
+- [docs/adding-an-agent.md](docs/adding-an-agent.md) — guide for authoring a new agent
 - [specs/](specs/) — design specs for every module (source of truth for implementation decisions)
