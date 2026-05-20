@@ -52,6 +52,13 @@ proactive:
   calendar_sync_cron: "45 7 * * *"     # 7:45 AM UTC — before briefing
   calendar_sync_days_ahead: 7
   calendar_reminder_model: anthropic/claude-haiku-4-5
+  insights_enabled: true
+  insights_cron: "0 7 * * 0"           # Sunday 7 AM UTC — before the 8 AM briefing
+  insights_model: anthropic/claude-haiku-4-5
+  insights_lookback_days: 7
+  insights_min_evidence: 3
+  insights_max_per_run: 3
+  insights_category_cooldown_days: 7
 
 agents:
   research:

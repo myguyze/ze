@@ -18,6 +18,7 @@ from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
 from ze.orchestration.workflow_graph import build_workflow_graph
 from ze.proactive.briefing import MorningBriefing
+from ze.proactive.insights import InsightEngine
 from ze.proactive.notifier import ProactiveNotifier
 from ze.proactive.reminders import CalendarReminderScheduler
 from ze.routing.router import EmbeddingRouter
@@ -52,6 +53,7 @@ class Container:
     notifier: ProactiveNotifier
     morning_briefing: MorningBriefing
     calendar_reminders: CalendarReminderScheduler
+    insight_engine: InsightEngine
 
     async def close(self) -> None:
         await self.workflow_scheduler.stop()
@@ -197,6 +199,20 @@ async def build_container(settings: Settings) -> Container:
         )
         log.info("calendar_reminders_scheduled")
 
+    insight_engine = InsightEngine(
+        notifier=notifier,
+        pool=pool,
+        openrouter_client=openrouter_client,
+        settings=settings,
+    )
+    if proactive_cfg.get("insights_enabled", True):
+        workflow_scheduler.schedule_job(
+            fn=insight_engine.run,
+            cron=proactive_cfg.get("insights_cron", "0 7 * * 0"),
+            job_id="insight_generation",
+        )
+        log.info("insights_scheduled")
+
     if settings.telegram_bot_token and settings.public_url:
         await bot.set_webhook(
             url=f"{settings.public_url}/telegram/webhook",
@@ -238,4 +254,5 @@ async def build_container(settings: Settings) -> Container:
         notifier=notifier,
         morning_briefing=morning_briefing,
         calendar_reminders=calendar_reminders,
+        insight_engine=insight_engine,
     )
