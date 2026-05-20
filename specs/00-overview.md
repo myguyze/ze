@@ -72,26 +72,32 @@ User message (Telegram Bot API)
 
 ## Implementation Phases
 
-| Phase | Scope                                                                 |
-|-------|-----------------------------------------------------------------------|
-| 1     | `research` + `companion` only. Full stack vertical slice.             |
-| 2     | Memory (pgvector), capability gate, confirmation + draft UI.          |
-| 3     | `calendar` + `email`, Google OAuth2, compound task decomposition.     |
-| 4     | `workflow`, memory digest, routing log UI, capability config UI.      |
+| Phase | Scope                                                                 | Status      |
+|-------|-----------------------------------------------------------------------|-------------|
+| 1     | `research` + `companion` only. Full stack vertical slice.             | ✅ Done     |
+| 2     | Memory (pgvector), capability gate, confirmation + draft UI.          | ✅ Done     |
+| 3     | `calendar` + `email`, Google OAuth2, compound task decomposition.     | ✅ Done     |
+| 4     | `workflow`, memory digest, routing log UI, capability config UI.      | ✅ Done     |
+| 5     | Memory consolidation — dedup facts, expire stale, summarise episodes. | 🔲 Planned  |
 
 ## Module Map
 
-| Spec                          | Module              | New Phase |
-|-------------------------------|---------------------|-----------|
-| `00-overview.md`              | This document       | —         |
-| `01-routing.md`               | Embedding router    | 1         |
-| `02-capability-gate.md`       | Capability gate     | 2         |
-| `03-memory.md`                | Memory system       | 2         |
-| `04-agents.md`                | Sub-agent defs      | 1–4       |
-| `05-orchestration.md`         | LangGraph graph     | 1         |
-| `06-openrouter-client.md`     | OpenRouter client   | 1         |
-| `07-api.md`                   | FastAPI + Telegram  | 1         |
-| `08-telegram.md`              | Telegram Bot        | 1         |
+| Spec                          | Module                        | New Phase |
+|-------------------------------|-------------------------------|-----------|
+| `00-overview.md`              | This document                 | —         |
+| `01-routing.md`               | Embedding router              | 1         |
+| `02-capability-gate.md`       | Capability gate               | 2         |
+| `03-memory.md`                | Memory system                 | 2         |
+| `04-agents.md`                | Sub-agent defs                | 1–4       |
+| `05-orchestration.md`         | LangGraph graph               | 1         |
+| `06-openrouter-client.md`     | OpenRouter client             | 1         |
+| `07-api.md`                   | FastAPI + Telegram            | 1         |
+| `08-telegram.md`              | Telegram Bot                  | 1         |
+| `09-agent-tool-api.md`        | Agent tool protocol           | 4         |
+| `10-phase3-google.md`         | Calendar + Gmail agents       | 3         |
+| `11-persona.md`               | Companion persona             | 1–2       |
+| `12-workflow.md`              | Workflow agent + scheduler    | 4         |
+| `13-phase5-memory.md`         | Memory consolidation          | 5         |
 
 ## Cross-Cutting Modules
 
@@ -130,4 +136,4 @@ These live at the root of `ze/` and are imported by all other modules.
   Refresh token stored as `GOOGLE_REFRESH_TOKEN` Fly.io secret. Access token
   exchanged at startup and on every 401. One OAuth2 flow run once locally via
   a temporary CLI script; refresh token never touches the DB.
-- [ ] Phase 4: define which integrations are in scope for the workflow agent.
+- [x] Phase 4: workflow agent scoped to APScheduler-based multi-step plan execution with Postgres persistence. File operations and external API triggers are capabilities exposed via agent tools, not a separate integration layer.

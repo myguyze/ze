@@ -176,7 +176,7 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Routing, research + companion agents, orchestration, API, Telegram bot | In progress |
+| 1 | Routing, research + companion agents, orchestration, API, Telegram bot | Done |
 | 2 | Memory — contradiction detection, episode summarisation, semantic retrieval | Done |
 | 3 | Calendar + email agents, Google OAuth2 | Done |
 | 4 | Workflow agent, multi-step planning, Postgres-persisted scheduler | Done |

@@ -12,9 +12,9 @@
 | Fact retrieval by recency + agent-scoping | ✅ Done |
 | Memory digest API (`GET /memory/digest`) | ✅ Done |
 | Fact review API (`POST /memory/facts/review`) | ✅ Done |
-| **Semantic fact retrieval (embedding on `user_facts`)** | ❌ Remaining |
+| **Semantic fact retrieval (embedding on `user_facts`)** | ✅ Done |
 
-Background consolidation (dedup, expiry, re-embedding) is **Phase 4** — not in scope here. Memory writes fire as `asyncio.create_task()` at the end of each graph run; no background worker.
+Background consolidation (dedup, expiry, re-embedding) is **Phase 5** — not in scope here. Memory writes fire as `asyncio.create_task()` at the end of each graph run; no background worker.
 
 ## Purpose
 
