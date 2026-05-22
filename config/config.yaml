@@ -76,8 +76,9 @@ agents:
     vision_capable: true
     description: |
       Handles web searches, fact-finding, summarisation, and research synthesis.
-      Use for questions about current events, factual lookups, topic deep-dives,
-      or anything requiring information retrieval from the web.
+      Use when the user explicitly says "research", "look up", "find out", "search for",
+      or asks about current events, factual lookups, topic deep-dives, company or
+      organisation history, news, or anything requiring information retrieval from the web.
     model: anthropic/claude-sonnet-4-5
     model_simple: anthropic/claude-haiku-4-5
     tools:
@@ -90,6 +91,10 @@ agents:
     capabilities:
       read: autonomous
       execute: confirm
+      create: autonomous
+      update: autonomous
+      delete: autonomous
+      reason: autonomous
 
   companion:
     enabled: true
@@ -98,6 +103,7 @@ agents:
       Handles reasoning, thinking, brainstorming, analysis, and open-ended conversation.
       Use for thinking through problems, getting a second opinion, exploring ideas,
       writing assistance, or any task that does not require external tools or live data.
+      Do NOT use for queries that involve researching, searching, or looking things up.
     model: anthropic/claude-sonnet-4-5
     model_simple: anthropic/claude-haiku-4-5
     tools: []
@@ -106,6 +112,11 @@ agents:
       reason: direct_completion
     capabilities:
       reason: autonomous
+      read: autonomous
+      create: autonomous
+      update: autonomous
+      delete: autonomous
+      execute: autonomous
 
   calendar:
     enabled: false

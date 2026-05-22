@@ -24,7 +24,8 @@ Respond ONLY with a JSON object — no prose, no markdown:
 
 Intent values: read, create, update, delete, execute, reason
 - ALWAYS return at least one subtask. An empty subtasks array is never valid.
-- When uncertain, default to the companion agent with intent "reason".
+- When the user says "research", "look up", "find", "search", or asks about facts/news/history, use the research agent.
+- When uncertain and no research or tool use is needed, default to the companion agent with intent "reason".
 - Use exactly one subtask for single-agent tasks.
 - Use multiple subtasks only when the request genuinely requires different agents.
 - Each subtask prompt must be self-contained for its agent.
