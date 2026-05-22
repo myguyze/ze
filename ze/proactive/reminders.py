@@ -111,9 +111,10 @@ class CalendarReminderScheduler:
         for row in rows:
             rid = row["id"]
             self._scheduler.schedule_at(
-                fn=lambda r=rid: self.fire_reminder(r),
+                fn=self.fire_reminder,
                 dt=row["fire_at"],
                 job_id=f"reminder:{rid}",
+                args=(rid,),
             )
         self._log.info("reminders_replayed", count=len(rows))
 
@@ -242,9 +243,10 @@ class CalendarReminderScheduler:
                 )
                 rid = row["id"]
                 self._scheduler.schedule_at(
-                    fn=lambda r=rid: self.fire_reminder(r),
+                    fn=self.fire_reminder,
                     dt=fire_at,
                     job_id=f"reminder:{rid}",
+                    args=(rid,),
                 )
                 confirmation_lines.append(
                     f"  • {_human_offset(offset)} before — {fire_at.strftime('%a %d %b %H:%M UTC')}"

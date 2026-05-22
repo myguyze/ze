@@ -1,5 +1,4 @@
-import operator
-from typing import Annotated, TypedDict
+from typing import TypedDict
 from uuid import UUID
 
 from ze.agents.types import AgentContext, AgentResult
@@ -32,8 +31,7 @@ class AgentState(TypedDict):
 
     # ── Execution ──────────────────────────────────────────────────────────
     agent_result: AgentResult | None
-    # Annotated with operator.add so compound subtask branches can accumulate results
-    subtask_results: Annotated[list[AgentResult], operator.add]
+    subtask_results: list[AgentResult]
     pending_confirmation: bool
 
     # ── Conversation history ───────────────────────────────────────────────

@@ -77,11 +77,12 @@ class WorkflowScheduler:
             coalesce=True,
         )
 
-    def schedule_at(self, fn, dt: datetime, job_id: str) -> None:
+    def schedule_at(self, fn, dt: datetime, job_id: str, args: tuple = ()) -> None:
         self._scheduler.add_job(
             fn,
             trigger=DateTrigger(run_date=dt),
             id=job_id,
+            args=list(args),
             replace_existing=True,
             max_instances=1,
         )

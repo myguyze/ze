@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from typing import AsyncIterator
-from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ze.agents.base import BaseAgent
 from ze.agents.registry import register
@@ -11,6 +11,7 @@ from ze.agents.types import AgentContext, AgentResult
 from ze.openrouter.client import OpenRouterClient
 from ze.proactive.notifier import ProactiveNotifier
 from ze.reminders.store import ReminderStore, fire_reminder
+from ze.routing.haiku_fallback import _extract_json_object
 from ze.settings import Settings
 from ze.workflow.scheduler import WorkflowScheduler
 
@@ -20,18 +21,15 @@ You extract reminder details from user requests.
 Current UTC time: {now}
 User timezone: {timezone}
 
-Return a JSON object with exactly these keys:
-{{
-  "action": "set" | "list" | "cancel",
-  "label": "<what to remind about — concise imperative, e.g. 'Take medication'>",
-  "fire_at": "<ISO 8601 UTC datetime string, or null for list/cancel>",
-  "cancel_hint": "<keywords from the reminder to cancel, or null>"
-}}
+Return a JSON object with these fields:
+- "action": one of "set", "list", or "cancel"
+- "label": concise imperative phrase for what to be reminded about (e.g. "Call João"). Use "Reminder" if unspecified.
+- "fire_at": ISO 8601 UTC datetime string for "set" actions; null for "list" or "cancel"
+- "cancel_hint": keywords from the reminder label to cancel; null for "set" or "list"
 
 For relative times ("in 2 hours", "tomorrow at 9am"), compute the absolute UTC datetime
 using the current time and user timezone above.
-If no label is specified for a set action, use "Reminder".
-Return ONLY the JSON object — no explanation.\
+Return ONLY the JSON — no explanation, no markdown.\
 """
 
 
@@ -66,10 +64,11 @@ class RemindersAgent(BaseAgent):
                 timezone=self._settings.timezone,
             ),
             max_tokens=200,
+            response_format={"type": "json_object"},
         )
 
         try:
-            parsed = json.loads(raw)
+            parsed = json.loads(_extract_json_object(raw))
         except json.JSONDecodeError:
             return AgentResult(
                 agent=self.name,
@@ -113,22 +112,24 @@ class RemindersAgent(BaseAgent):
 
         rid = await self._store.create(label=label, fire_at=fire_at)
         self._scheduler.schedule_at(
-            fn=lambda r=rid: fire_reminder(self._store, self._notifier, r),
+            fn=fire_reminder,
             dt=fire_at,
             job_id=f"user_reminder:{rid}",
+            args=(self._store, self._notifier, rid),
         )
 
         human = _human_delta(fire_at - now)
-        time_str = fire_at.strftime("%a %d %b at %H:%M UTC")
+        time_str = _format_local(fire_at, self._settings.timezone)
         return f"⏰ Reminder set: {label}\nI'll remind you {human} ({time_str})"
 
     async def _handle_list(self) -> str:
         pending = await self._store.list_pending()
         if not pending:
             return "You have no pending reminders."
+        tz = self._settings.timezone
         lines = [f"⏰ Pending reminders ({len(pending)}):"]
         for i, r in enumerate(pending, 1):
-            lines.append(f"  {i}. {r.label} — {r.fire_at.strftime('%a %d %b at %H:%M UTC')}")
+            lines.append(f"  {i}. {r.label} — {_format_local(r.fire_at, tz)}")
         return "\n".join(lines)
 
     async def _handle_cancel(self, parsed: dict) -> str:
@@ -153,6 +154,16 @@ class RemindersAgent(BaseAgent):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _format_local(dt: datetime, tz_name: str) -> str:
+    """Format a UTC datetime in the user's local timezone."""
+    try:
+        local = dt.astimezone(ZoneInfo(tz_name))
+        abbr = local.strftime("%Z")
+        return local.strftime(f"%a %d %b at %H:%M {abbr}")
+    except ZoneInfoNotFoundError:
+        return dt.strftime("%a %d %b at %H:%M UTC")
+
 
 def _human_delta(delta: timedelta) -> str:
     total = int(delta.total_seconds())

@@ -180,8 +180,10 @@ agents:
     vision_capable: false
     description: |
       Sets, lists, and cancels one-off time-based reminders. Use when the user asks
-      to be reminded about something at a specific future time or after a delay
-      (e.g. "remind me in 2 hours", "remind me tomorrow at 9am to call João").
+      to be reminded about something at a specific future time or after a delay,
+      or wants to see, check, or cancel their reminders
+      (e.g. "remind me in 2 hours", "remind me tomorrow at 9am to call João",
+      "what reminders do I have", "show my reminders", "cancel my reminder").
       Do NOT use for recurring tasks — use the workflow agent for those.
     model: anthropic/claude-haiku-4-5
     tools: []
@@ -190,3 +192,9 @@ agents:
       manage: ""
     capabilities:
       manage: autonomous
+      create: autonomous
+      read: autonomous
+      update: autonomous
+      delete: autonomous
+      execute: autonomous
+      reason: autonomous
