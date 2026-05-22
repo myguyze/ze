@@ -46,13 +46,16 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
 
     gate_decision: GateDecision = state.get("gate_decision") or GateDecision.EXECUTE
 
+    reporter = config["configurable"].get("reporter")
+
     if envelope.is_compound:
         return await _execute_compound(
             envelope.subtasks, base_ctx, gate_decision, settings, state,
             is_sequential=envelope.is_sequential,
+            reporter=reporter,
         )
     else:
-        return await _execute_single(envelope.subtasks[0], base_ctx, gate_decision, settings, token_queue, state)
+        return await _execute_single(envelope.subtasks[0], base_ctx, gate_decision, settings, token_queue, state, reporter=reporter)
 
 
 async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
@@ -114,6 +117,7 @@ async def _execute_single(
     settings: Settings,
     token_queue: asyncio.Queue | None = None,
     state: dict | None = None,
+    reporter=None,
 ) -> dict:
     messages: list[dict] = []
     if state is not None and state.get("image_data"):
@@ -127,7 +131,7 @@ async def _execute_single(
         memory=base_ctx.memory,
         model=subtask.model if subtask.model else None,
         messages=messages,
-        reporter=base_ctx.reporter,
+        reporter=reporter,
     )
     result = await _run_with_timeout(subtask.agent, ctx, settings, token_queue)
     return {"agent_result": result, "subtask_results": []}
@@ -140,6 +144,7 @@ async def _execute_compound(
     settings: Settings,
     state: dict | None = None,
     is_sequential: bool = False,
+    reporter=None,
 ) -> dict:
     def _make_ctx(subtask) -> AgentContext:
         messages: list[dict] = []
@@ -154,7 +159,7 @@ async def _execute_compound(
             memory=base_ctx.memory,
             model=subtask.model if subtask.model else None,
             messages=messages,
-            reporter=base_ctx.reporter,
+            reporter=reporter,
         )
 
     if is_sequential:

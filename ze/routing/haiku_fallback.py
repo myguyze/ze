@@ -23,6 +23,8 @@ Respond ONLY with a JSON object — no prose, no markdown:
 }}
 
 Intent values: read, create, update, delete, execute, reason
+- ALWAYS return at least one subtask. An empty subtasks array is never valid.
+- When uncertain, default to the companion agent with intent "reason".
 - Use exactly one subtask for single-agent tasks.
 - Use multiple subtasks only when the request genuinely requires different agents.
 - Each subtask prompt must be self-contained for its agent.
@@ -30,16 +32,26 @@ Intent values: read, create, update, delete, execute, reason
 """
 
 
-def _strip_json_fences(raw: str) -> str:
+def _extract_json_object(raw: str) -> str:
+    """Extract the first top-level JSON object from raw text.
+
+    Handles markdown code fences, leading prose, and any trailing text or
+    second JSON blocks that cause json.loads to raise 'Extra data'.
+    """
     text = raw.strip()
-    if not text.startswith("```"):
-        return text
-    lines = text.splitlines()
-    if lines[0].startswith("```"):
-        lines = lines[1:]
-    if lines and lines[-1].strip() == "```":
-        lines = lines[:-1]
-    return "\n".join(lines).strip()
+    # Strip markdown fences if present
+    if text.startswith("```"):
+        lines = text.splitlines()
+        lines = lines[1:]  # drop opening fence line (```json or ```)
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    # Slice from the first { to the last } to drop any surrounding prose
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start != -1 and end > start:
+        return text[start:end]
+    return text
 
 
 async def decompose(
@@ -83,7 +95,7 @@ async def decompose(
                 response_format={"type": "json_object"},
                 reasoning={"enabled": False},
             )
-            data = json.loads(_strip_json_fences(raw))
+            data = json.loads(_extract_json_object(raw))
             subtasks = [
                 SubTask(
                     agent=st["agent"],
@@ -102,6 +114,7 @@ async def decompose(
             raise RoutingError(f"Haiku returned unknown agent(s): {unknown}")
 
         if not subtasks:
+            log.warning("haiku_fallback_zero_subtasks", attempt=attempt + 1)
             last_exc = RoutingError("Haiku returned zero subtasks")
             continue
 
@@ -121,4 +134,22 @@ async def decompose(
             is_sequential=is_sequential,
         )
 
-    raise last_exc or RoutingError("Haiku decomposition failed after 2 attempts")
+    # Both attempts failed — fall back to companion rather than surfacing a routing
+    # error to the user. Log the original failure so it's still observable.
+    log.error(
+        "haiku_fallback_exhausted",
+        error=str(last_exc),
+        fallback_agent="companion",
+    )
+    fallback = SubTask(agent="companion", intent="reason", prompt=prompt)
+    return RoutingEnvelope(
+        primary_agent="companion",
+        confidence=0.0,
+        score_gap=0.0,
+        routing_method="haiku_fallback",
+        is_compound=False,
+        subtasks=[fallback],
+        requires_synthesis=False,
+        raw_scores=raw_scores,
+        is_sequential=False,
+    )

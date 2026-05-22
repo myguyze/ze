@@ -85,6 +85,8 @@ async def build_container(settings: Settings) -> Container:
             ("ze.capability.types", "GateDecision"),
             ("ze.memory.types", "MemoryContext"),
             ("ze.memory.types", "UserFact"),
+            ("ze.memory.types", "Episode"),
+            ("ze.memory.types", "UserProfile"),
             ("asyncpg.pgproto.pgproto", "UUID"),
         ]
     )

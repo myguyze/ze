@@ -76,12 +76,12 @@ class ZeBot:
 
             if text == "/costs":
                 summary = await costs_summary(self._pool)
-                await self._bot.send_message(chat_id, summary, parse_mode="Markdown")
+                await self._bot.send_message(chat_id, summary, parse_mode="HTML")
                 return
 
             if text == "/memory":
                 summary = await memory_summary(self._pool)
-                await self._bot.send_message(chat_id, summary, parse_mode="Markdown")
+                await self._bot.send_message(chat_id, summary, parse_mode="HTML")
                 return
 
             self._store.mark_active(chat_id)

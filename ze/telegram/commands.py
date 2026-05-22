@@ -1,4 +1,5 @@
-from datetime import date, timezone
+import html
+from datetime import timezone
 from datetime import datetime as dt
 
 _NAMED_AGENTS = {"companion", "research", "calendar", "email", "whisper", "routing", "memory"}
@@ -46,7 +47,7 @@ async def costs_summary(pool) -> str:
     total_tokens = sum(int(r["tokens"]) for r in month_rows)
 
     label = dt.now(tz=timezone.utc).strftime("%B %Y")
-    lines = [f"\U0001f4b0 *Costs — {label}*", ""]
+    lines = [f"\U0001f4b0 <b>Costs — {html.escape(label)}</b>", ""]
     lines.append(f"Today        {_fmt_usd(today_cost)}")
     lines.append(f"This month   {_fmt_usd(month_total)}")
     lines.append("")
@@ -63,7 +64,7 @@ async def costs_summary(pool) -> str:
             other_cost += cost
 
     for agent, cost in sorted(named.items(), key=lambda x: -x[1]):
-        lines.append(f"  {agent:<12} {_fmt_usd(cost)}")
+        lines.append(f"  {html.escape(agent):<12} {_fmt_usd(cost)}")
     if other_cost > 0:
         lines.append(f"  {'other':<12} {_fmt_usd(other_cost)}")
 
@@ -86,13 +87,13 @@ async def memory_summary(pool) -> str:
             "SELECT preferences, habits, topics, relationships, goals FROM user_profile LIMIT 1"
         )
 
-    sections: list[str] = ["\U0001f9e0 *What Ze knows about you*"]
+    sections: list[str] = ["\U0001f9e0 <b>What Ze knows about you</b>"]
 
     if facts:
         sections.append("")
-        sections.append(f"*Facts* ({len(facts)})")
+        sections.append(f"<b>Facts</b> ({len(facts)})")
         for row in facts:
-            sections.append(f"• {row['key']}: {row['value']}")
+            sections.append(f"• {html.escape(row['key'])}: {html.escape(row['value'])}")
     else:
         sections.append("")
         sections.append("No facts recorded yet.")
@@ -109,10 +110,10 @@ async def memory_summary(pool) -> str:
         for field, label in _PROFILE_LABELS:
             val = (profile[field] or "").strip()
             if val:
-                profile_lines.append(f"_{label}:_ {val}")
+                profile_lines.append(f"<i>{html.escape(label)}:</i> {html.escape(val)}")
         if profile_lines:
             sections.append("")
-            sections.append("*Profile*")
+            sections.append("<b>Profile</b>")
             sections.extend(profile_lines)
 
     return "\n".join(sections)
