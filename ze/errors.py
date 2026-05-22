@@ -84,3 +84,13 @@ class WorkflowPlanError(WorkflowError):
 
 class WorkflowExecutionError(WorkflowError):
     """Step execution failed unrecoverably."""
+
+
+# ── Multimodal ─────────────────────────────────────────────────────────────────
+
+class TranscriptionError(ZeError):
+    """Audio file could not be transcribed by the Whisper model."""
+
+
+class ImageDownloadError(ZeError):
+    """Failed to download image bytes from Telegram's file server."""

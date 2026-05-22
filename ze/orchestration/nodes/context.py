@@ -28,7 +28,8 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         else "global"
     )
 
-    prompt_embedding = embedder.encode(state["prompt"])
+    embed_text = state.get("image_caption") or state["prompt"]
+    prompt_embedding = embedder.encode(embed_text)
     memory_context = await store.get_context(
         prompt_embedding=prompt_embedding,
         agent=agent,
@@ -44,11 +45,16 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     else:
         history = list(state.get("messages") or [])
 
-    messages = history + [{"role": "user", "content": state["prompt"]}]
+    if state.get("input_modality") == "image":
+        user_text = state.get("image_caption") or state.get("prompt") or "(image)"
+    else:
+        user_text = state["prompt"]
+    messages = history + [{"role": "user", "content": user_text}]
 
+    prompt_for_ctx = state.get("image_caption") or state["prompt"]
     agent_context = AgentContext(
         session_id=state["session_id"],
-        prompt=state["prompt"],
+        prompt=prompt_for_ctx,
         intent=envelope.subtasks[0].intent if envelope and envelope.subtasks else "read",
         memory=memory_context,
         messages=messages,

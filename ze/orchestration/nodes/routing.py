@@ -1,22 +1,68 @@
+import base64
+
 from langchain_core.runnables import RunnableConfig
 
 from ze.capability.gate import CapabilityGate
 from ze.capability.types import GateDecision
 from ze.errors import WorkflowPlanError
 from ze.logging import get_logger
+from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.state import AgentState
 from ze.routing.router import EmbeddingRouter
+from ze.settings import Settings
 from ze.telemetry.context import set_agent_context
 from ze.workflow.planner import WorkflowPlanner
 
 log = get_logger(__name__)
 
 
+async def _vision_caption(
+    image_data: bytes,
+    image_mime: str,
+    client: OpenRouterClient,
+    model: str,
+) -> str:
+    """Call a cheap vision model for a one-sentence routing description."""
+    message = {
+        "role": "user",
+        "content": [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{image_mime};base64,{base64.b64encode(image_data).decode()}",
+                    "detail": "low",
+                },
+            },
+            {"type": "text", "text": "Describe this image in one sentence for intent classification."},
+        ],
+    }
+    return await client.complete(messages=[message], model=model, max_tokens=80)
+
+
 async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
     """Score the prompt against agent embeddings and produce a RoutingEnvelope."""
     router: EmbeddingRouter = config["configurable"]["router"]
+    updates: dict = {}
+
+    routing_text = state["prompt"]
+
+    if state.get("input_modality") == "image":
+        if not state.get("prompt"):
+            client: OpenRouterClient = config["configurable"]["openrouter_client"]
+            settings: Settings = config["configurable"]["settings"]
+            caption_model = settings.config.get("models", {}).get(
+                "vision_caption", "google/gemini-flash-1.5"
+            )
+            caption = await _vision_caption(
+                state["image_data"], state["image_mime"], client, caption_model
+            )
+            routing_text = caption
+            updates["image_caption"] = caption
+        else:
+            updates["image_caption"] = state["prompt"]
+
     envelope = await router.route(
-        prompt=state["prompt"],
+        prompt=routing_text,
         session_id=state["session_id"],
     )
     log.info(
@@ -27,7 +73,8 @@ async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
         is_compound=envelope.is_compound,
         is_sequential=envelope.is_sequential,
     )
-    return {"envelope": envelope}
+    updates["envelope"] = envelope
+    return updates
 
 
 async def decompose(state: AgentState, config: RunnableConfig) -> dict:

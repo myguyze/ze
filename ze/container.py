@@ -28,6 +28,7 @@ from ze.telegram.bot import ZeBot
 from ze.telegram.session import ActiveSessionStore
 from ze.telemetry.reconciler import CostReconciler
 from ze.telemetry.tracker import CostTracker
+from ze.transcription.client import TranscriptionClient
 from ze.workflow.planner import WorkflowPlanner
 from ze.workflow.scheduler import WorkflowScheduler
 from ze.workflow.store import WorkflowStore
@@ -241,6 +242,13 @@ async def build_container(settings: Settings) -> Container:
         )
         log.info("telegram_webhook_registered", url=settings.public_url)
 
+    whisper_model = settings.config.get("models", {}).get("whisper", "openai/whisper-1")
+    transcription_client = TranscriptionClient(
+        openrouter_client=openrouter_client,
+        model=whisper_model,
+        logger=get_logger("ze.transcription"),
+    )
+
     ze_bot = ZeBot(
         bot=bot,
         graph=graph,
@@ -254,6 +262,7 @@ async def build_container(settings: Settings) -> Container:
         openrouter_client=openrouter_client,
         embedder=embedder,
         settings=settings,
+        transcription_client=transcription_client,
     )
 
     return Container(

@@ -1,8 +1,10 @@
 import asyncio
+from io import BytesIO
 
 from aiogram import Bot
 from aiogram.types import CallbackQuery, ForceReply, Message
 
+from ze.errors import ImageDownloadError, TranscriptionError
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.telegram.keyboards import confirmation_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
@@ -28,6 +30,7 @@ class ZeBot:
         openrouter_client,
         embedder,
         settings,
+        transcription_client=None,
     ) -> None:
         self._bot = bot
         self._graph = graph
@@ -41,6 +44,7 @@ class ZeBot:
         self._openrouter_client = openrouter_client
         self._embedder = embedder
         self._settings = settings
+        self._transcription_client = transcription_client
 
     # ── Public handlers ───────────────────────────────────────────────────────
 
@@ -66,7 +70,81 @@ class ZeBot:
             self._store.mark_active(chat_id)
             set_flow_context("user_message", str(chat_id))
             log.info("message_received", chat_id=chat_id)
-            await self._run_graph(chat_id, text)
+            await self._run_graph(chat_id, self._make_initial_state(text, chat_id))
+        finally:
+            unbind_context()
+
+    async def handle_voice(self, message: Message) -> None:
+        chat_id = message.chat.id
+        bind_context(str(chat_id))
+
+        try:
+            if self._store.is_active(chat_id):
+                await self._bot.send_message(chat_id, "A task is already in progress.")
+                return
+
+            voice = message.voice or message.audio
+            if not voice:
+                return
+
+            file = await self._bot.get_file(voice.file_id)
+            buffer = BytesIO()
+            await self._bot.download_file(file.file_path, buffer)
+            audio_bytes = buffer.getvalue()
+
+            try:
+                result = await self._transcription_client.transcribe(audio_bytes, "ogg")
+            except Exception as exc:
+                log.warning("transcription_failed", chat_id=chat_id, error=str(exc))
+                await self._bot.send_message(chat_id, "Sorry, I couldn't transcribe that voice note.")
+                return
+
+            self._store.mark_active(chat_id)
+            set_flow_context("user_message", str(chat_id))
+            log.info("voice_received", chat_id=chat_id, text_len=len(result.text))
+
+            state = self._make_initial_state(result.text, chat_id)
+            state["input_modality"] = "voice"
+            await self._run_graph(chat_id, state)
+        finally:
+            unbind_context()
+
+    async def handle_photo(self, message: Message) -> None:
+        chat_id = message.chat.id
+        bind_context(str(chat_id))
+
+        try:
+            if self._store.is_active(chat_id):
+                await self._bot.send_message(chat_id, "A task is already in progress.")
+                return
+
+            if not message.photo:
+                return
+
+            photo = message.photo[-1]
+            if photo.file_size and photo.file_size > 8_388_608:
+                await self._bot.send_message(chat_id, "Image is too large to process (max 8 MB).")
+                return
+
+            try:
+                file = await self._bot.get_file(photo.file_id)
+                buffer = BytesIO()
+                await self._bot.download_file(file.file_path, buffer)
+                image_bytes = buffer.getvalue()
+            except Exception as exc:
+                log.warning("image_download_failed", chat_id=chat_id, error=str(exc))
+                raise ImageDownloadError(str(exc)) from exc
+
+            self._store.mark_active(chat_id)
+            set_flow_context("user_message", str(chat_id))
+            log.info("photo_received", chat_id=chat_id, file_size=photo.file_size)
+
+            caption = message.caption or ""
+            state = self._make_initial_state(caption, chat_id)
+            state["input_modality"] = "image"
+            state["image_data"] = image_bytes
+            state["image_mime"] = "image/jpeg"
+            await self._run_graph(chat_id, state)
         finally:
             unbind_context()
 
@@ -117,9 +195,8 @@ class ZeBot:
         log.info("edit_reply_received", chat_id=chat_id)
         await self._resume_graph(chat_id, "edit", edit_content=text)
 
-    async def _run_graph(self, chat_id: int, prompt: str) -> None:
+    async def _run_graph(self, chat_id: int, state: dict) -> None:
         config = self._make_config(chat_id)
-        state = self._make_initial_state(prompt, chat_id)
 
         typing_task = asyncio.create_task(self._keep_typing(chat_id))
         try:
@@ -303,6 +380,10 @@ class ZeBot:
             "prompt": "",
             "session_id": str(chat_id),
             "session_overrides": {},
+            "input_modality": "text",
+            "image_data": None,
+            "image_mime": None,
+            "image_caption": None,
             "envelope": None,
             "memory_context": None,
             "agent_context": None,
@@ -392,6 +473,10 @@ class ZeBot:
             "prompt": prompt,
             "session_id": str(chat_id),
             "session_overrides": {},
+            "input_modality": "text",
+            "image_data": None,
+            "image_mime": None,
+            "image_caption": None,
             "envelope": None,
             "memory_context": None,
             "agent_context": None,

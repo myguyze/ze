@@ -32,8 +32,13 @@ async def telegram_webhook(
 
     ze_bot = request.app.state.ze_bot
 
-    if update.message and update.message.text:
-        await ze_bot.handle_message(update.message)
+    if update.message:
+        if update.message.text:
+            await ze_bot.handle_message(update.message)
+        elif update.message.voice or update.message.audio:
+            await ze_bot.handle_voice(update.message)
+        elif update.message.photo:
+            await ze_bot.handle_photo(update.message)
     elif update.callback_query:
         await ze_bot.handle_callback(update.callback_query)
 

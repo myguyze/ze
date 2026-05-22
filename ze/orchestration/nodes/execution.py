@@ -1,4 +1,5 @@
 import asyncio
+import base64
 
 from langchain_core.runnables import RunnableConfig
 
@@ -46,9 +47,9 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     gate_decision: GateDecision = state.get("gate_decision") or GateDecision.EXECUTE
 
     if envelope.is_compound:
-        return await _execute_compound(envelope.subtasks, base_ctx, gate_decision, settings)
+        return await _execute_compound(envelope.subtasks, base_ctx, gate_decision, settings, state)
     else:
-        return await _execute_single(envelope.subtasks[0], base_ctx, gate_decision, settings, token_queue)
+        return await _execute_single(envelope.subtasks[0], base_ctx, gate_decision, settings, token_queue, state)
 
 
 async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
@@ -61,6 +62,10 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
         return {"error": "Missing routing envelope or agent context"}
 
     subtask = envelope.subtasks[0]
+    messages: list[dict] = []
+    if state.get("image_data"):
+        agent_cfg = settings.agent_configs.get(subtask.agent, {})
+        messages = [_build_user_message(state, agent_cfg)]
     ctx = AgentContext(
         session_id=base_ctx.session_id,
         prompt=subtask.prompt,
@@ -68,6 +73,7 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
         gate_decision=GateDecision.DRAFT,
         memory=base_ctx.memory,
         model=subtask.model if subtask.model else None,
+        messages=messages,
     )
     result = await _run_with_timeout(subtask.agent, ctx, settings)
     return {"agent_result": result, "pending_confirmation": True}
@@ -75,13 +81,41 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def _build_user_message(state: dict, agent_config: dict) -> dict:
+    """Build the user message dict, including image content block for vision-capable agents."""
+    prompt = state.get("prompt") or state.get("image_caption") or ""
+    vision_capable = agent_config.get("vision_capable", True)
+
+    if state.get("image_data") and vision_capable:
+        mime = state.get("image_mime", "image/jpeg")
+        content: list = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{mime};base64,{base64.b64encode(state['image_data']).decode()}",
+                    "detail": "auto",
+                },
+            },
+        ]
+        if prompt:
+            content.append({"type": "text", "text": prompt})
+        return {"role": "user", "content": content}
+
+    return {"role": "user", "content": prompt}
+
+
 async def _execute_single(
     subtask,
     base_ctx: AgentContext,
     gate_decision: GateDecision,
     settings: Settings,
     token_queue: asyncio.Queue | None = None,
+    state: dict | None = None,
 ) -> dict:
+    messages: list[dict] = []
+    if state is not None and state.get("image_data"):
+        agent_cfg = settings.agent_configs.get(subtask.agent, {})
+        messages = [_build_user_message(state, agent_cfg)]
     ctx = AgentContext(
         session_id=base_ctx.session_id,
         prompt=subtask.prompt,
@@ -89,6 +123,7 @@ async def _execute_single(
         gate_decision=gate_decision,
         memory=base_ctx.memory,
         model=subtask.model if subtask.model else None,
+        messages=messages,
     )
     result = await _run_with_timeout(subtask.agent, ctx, settings, token_queue)
     return {"agent_result": result, "subtask_results": []}
@@ -99,9 +134,14 @@ async def _execute_compound(
     base_ctx: AgentContext,
     gate_decision: GateDecision,
     settings: Settings,
+    state: dict | None = None,
 ) -> dict:
     results: list[AgentResult] = []
     for subtask in subtasks:
+        messages: list[dict] = []
+        if state is not None and state.get("image_data"):
+            agent_cfg = settings.agent_configs.get(subtask.agent, {})
+            messages = [_build_user_message(state, agent_cfg)]
         ctx = AgentContext(
             session_id=base_ctx.session_id,
             prompt=subtask.prompt,
@@ -109,6 +149,7 @@ async def _execute_compound(
             gate_decision=gate_decision,
             memory=base_ctx.memory,
             model=subtask.model if subtask.model else None,
+            messages=messages,
         )
         result = await _run_with_timeout(subtask.agent, ctx, settings)
         results.append(result)

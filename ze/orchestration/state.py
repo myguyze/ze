@@ -14,6 +14,12 @@ class AgentState(TypedDict):
     session_id: str
     session_overrides: dict[str, str]  # "agent.intent" → mode string
 
+    # ── Multimodal ─────────────────────────────────────────────────────────
+    input_modality: str        # "text" | "voice" | "image" — default "text"
+    image_data: bytes | None   # raw image bytes; None for text/voice turns
+    image_mime: str | None     # "image/jpeg" | "image/png" | None
+    image_caption: str | None  # routing caption generated at embed_route; None until set
+
     # ── Routing ────────────────────────────────────────────────────────────
     envelope: RoutingEnvelope | None
 

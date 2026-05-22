@@ -5,11 +5,13 @@ routing:
   fallback_model: anthropic/claude-haiku-4-5
 
 models:
-  router:    anthropic/claude-haiku-4-5   # routing fallback + fact dedup merges
-  synthesis: anthropic/claude-haiku-4-5   # multi-agent response synthesis + episode summaries
-  profile:   anthropic/claude-haiku-4-5   # user profile synthesis
-  reminders: anthropic/claude-haiku-4-5   # calendar reminder interval assessment
-  insights:  anthropic/claude-haiku-4-5   # weekly insight generation
+  router:         anthropic/claude-haiku-4-5   # routing fallback + fact dedup merges
+  synthesis:      anthropic/claude-haiku-4-5   # multi-agent response synthesis + episode summaries
+  profile:        anthropic/claude-haiku-4-5   # user profile synthesis
+  reminders:      anthropic/claude-haiku-4-5   # calendar reminder interval assessment
+  insights:       anthropic/claude-haiku-4-5   # weekly insight generation
+  whisper:        openai/whisper-1             # voice transcription
+  vision_caption: google/gemini-flash-1.5      # cheap routing caption for images
 
 
 persona:
@@ -69,6 +71,7 @@ proactive:
 agents:
   research:
     enabled: true
+    vision_capable: true
     description: |
       Handles web searches, fact-finding, summarisation, and research synthesis.
       Use for questions about current events, factual lookups, topic deep-dives,
@@ -88,6 +91,7 @@ agents:
 
   companion:
     enabled: true
+    vision_capable: true
     description: |
       Handles reasoning, thinking, brainstorming, analysis, and open-ended conversation.
       Use for thinking through problems, getting a second opinion, exploring ideas,
@@ -103,6 +107,7 @@ agents:
 
   calendar:
     enabled: false
+    vision_capable: true
     description: |
       Manages Google Calendar events. Use for creating, reading, updating, or deleting
       calendar events, checking availability, finding free time, or setting reminders.
@@ -127,6 +132,7 @@ agents:
 
   email:
     enabled: false
+    vision_capable: true
     description: |
       Manages Gmail messages. Use for reading, drafting, sending, or archiving emails,
       searching your inbox, or composing replies.
@@ -152,6 +158,7 @@ agents:
 
   workflow:
     enabled: true
+    vision_capable: true
     description: |
       Manages stored workflows and recurring scheduled tasks. Use when the user wants
       to create, list, enable, disable, delete, or manually run a named workflow or

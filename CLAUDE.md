@@ -186,4 +186,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 7 | Proactive Ze — morning briefing, workflow failure alerts, calendar reminders | Done |
 | 8 | Insight engine — weekly synthesis of facts + episodes into actionable insights | Done |
 | 9 | Cost telemetry — per-flow/agent token tracking, automatic cost reconciliation | Done |
-| 10 | Multimodal input — voice transcription + image/vision support | Planned |
+| 10 | Multimodal input — voice transcription + image/vision support | Done |

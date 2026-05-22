@@ -71,9 +71,14 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
     )
 
     # Append the completed turn and apply the rolling window.
+    # Image turns are stored as "[Image] <caption>" to avoid persisting base64 bytes.
+    if state.get("input_modality") == "image":
+        user_content = f"[Image] {state.get('image_caption') or ''}"
+    else:
+        user_content = ctx.prompt
     current = list(state.get("messages") or [])
     updated = current + [
-        {"role": "user", "content": ctx.prompt},
+        {"role": "user", "content": user_content},
         {"role": "assistant", "content": result.response},
     ]
     return {"messages": updated[-_SESSION_HISTORY_LIMIT:]}
