@@ -35,7 +35,7 @@ async def capability_check(state: AgentState, config: RunnableConfig) -> dict:
 
 
 async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
-    """Run the primary agent and collect results. Handles compound tasks sequentially."""
+    """Run the primary agent and collect results. Compound tasks run in parallel unless sequential."""
     settings: Settings = config["configurable"]["settings"]
     token_queue: asyncio.Queue | None = config["configurable"].get("token_queue")
     envelope = state["envelope"]
@@ -47,7 +47,10 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     gate_decision: GateDecision = state.get("gate_decision") or GateDecision.EXECUTE
 
     if envelope.is_compound:
-        return await _execute_compound(envelope.subtasks, base_ctx, gate_decision, settings, state)
+        return await _execute_compound(
+            envelope.subtasks, base_ctx, gate_decision, settings, state,
+            is_sequential=envelope.is_sequential,
+        )
     else:
         return await _execute_single(envelope.subtasks[0], base_ctx, gate_decision, settings, token_queue, state)
 
@@ -136,14 +139,14 @@ async def _execute_compound(
     gate_decision: GateDecision,
     settings: Settings,
     state: dict | None = None,
+    is_sequential: bool = False,
 ) -> dict:
-    results: list[AgentResult] = []
-    for subtask in subtasks:
+    def _make_ctx(subtask) -> AgentContext:
         messages: list[dict] = []
         if state is not None and state.get("image_data"):
             agent_cfg = settings.agent_configs.get(subtask.agent, {})
             messages = [_build_user_message(state, agent_cfg)]
-        ctx = AgentContext(
+        return AgentContext(
             session_id=base_ctx.session_id,
             prompt=subtask.prompt,
             intent=subtask.intent,
@@ -153,8 +156,19 @@ async def _execute_compound(
             messages=messages,
             reporter=base_ctx.reporter,
         )
-        result = await _run_with_timeout(subtask.agent, ctx, settings)
-        results.append(result)
+
+    if is_sequential:
+        results: list[AgentResult] = []
+        for subtask in subtasks:
+            result = await _run_with_timeout(subtask.agent, _make_ctx(subtask), settings)
+            results.append(result)
+    else:
+        results = list(
+            await asyncio.gather(
+                *[_run_with_timeout(subtask.agent, _make_ctx(subtask), settings) for subtask in subtasks]
+            )
+        )
+
     return {"agent_result": None, "subtask_results": results}
 
 
