@@ -8,6 +8,7 @@ from ze.errors import ImageDownloadError, TranscriptionError
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.progress.reporter import ProgressReporter
 from ze.progress.translations import ProgressTranslations
+from ze.telegram.commands import costs_summary, memory_summary
 from ze.telegram.keyboards import confirmation_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
 from ze.telemetry.context import set_flow_context
@@ -34,6 +35,7 @@ class ZeBot:
         settings,
         transcription_client=None,
         translations: ProgressTranslations | None = None,
+        pool=None,
     ) -> None:
         self._bot = bot
         self._graph = graph
@@ -49,6 +51,7 @@ class ZeBot:
         self._settings = settings
         self._transcription_client = transcription_client
         self._translations = translations
+        self._pool = pool
 
     # ── Public handlers ───────────────────────────────────────────────────────
 
@@ -69,6 +72,16 @@ class ZeBot:
             if text == "/new":
                 await self._reset_session(chat_id)
                 await self._bot.send_message(chat_id, "Session reset. Starting fresh — I still remember what I know about you.")
+                return
+
+            if text == "/costs":
+                summary = await costs_summary(self._pool)
+                await self._bot.send_message(chat_id, summary, parse_mode="Markdown")
+                return
+
+            if text == "/memory":
+                summary = await memory_summary(self._pool)
+                await self._bot.send_message(chat_id, summary, parse_mode="Markdown")
                 return
 
             self._store.mark_active(chat_id)

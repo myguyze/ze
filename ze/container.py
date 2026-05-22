@@ -268,6 +268,7 @@ async def build_container(settings: Settings) -> Container:
         settings=settings,
         transcription_client=transcription_client,
         translations=translations,
+        pool=pool,
     )
 
     return Container(
