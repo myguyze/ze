@@ -92,8 +92,9 @@ class ZeBot:
             await self._bot.download_file(file.file_path, buffer)
             audio_bytes = buffer.getvalue()
 
+            duration = float(voice.duration) if voice.duration else None
             try:
-                result = await self._transcription_client.transcribe(audio_bytes, "ogg")
+                result = await self._transcription_client.transcribe(audio_bytes, "ogg", duration_seconds=duration)
             except Exception as exc:
                 log.warning("transcription_failed", chat_id=chat_id, error=str(exc))
                 await self._bot.send_message(chat_id, "Sorry, I couldn't transcribe that voice note.")

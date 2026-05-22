@@ -22,6 +22,7 @@ class TranscriptionClient:
         self,
         audio_bytes: bytes,
         audio_format: str,
+        duration_seconds: float | None = None,
     ) -> TranscriptionResult:
         set_flow_context("transcription")
         set_agent_context("whisper")
@@ -40,11 +41,13 @@ class TranscriptionClient:
         text = await self._client.complete(
             messages=[message],
             model=self._model,
+            audio_seconds=duration_seconds,
         )
         self._log.info(
             "transcription_complete",
             model=self._model,
             audio_bytes=len(audio_bytes),
             audio_format=audio_format,
+            duration_seconds=duration_seconds,
         )
         return TranscriptionResult(text=text.strip())

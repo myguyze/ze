@@ -19,6 +19,7 @@ class CostTracker:
         total_tokens: int,
         duration_ms: int,
         generation_id: str | None = None,
+        audio_seconds: float | None = None,
     ) -> None:
         """Schedule a fire-and-forget DB write without blocking the caller."""
         ctx = get_cost_context()
@@ -33,6 +34,7 @@ class CostTracker:
             duration_ms=duration_ms,
             cost_usd=None,
             generation_id=generation_id,
+            audio_seconds=audio_seconds,
         )
         asyncio.create_task(_write(self._pool, rec))
 
@@ -45,8 +47,8 @@ async def _write(pool, rec: CostRecord) -> None:
                 INSERT INTO llm_cost_log
                     (session_id, agent, flow_type, model,
                      prompt_tokens, completion_tokens, total_tokens,
-                     cost_usd, duration_ms, generation_id)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                     cost_usd, duration_ms, generation_id, audio_seconds)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                 """,
                 rec.session_id,
                 rec.agent,
@@ -58,6 +60,7 @@ async def _write(pool, rec: CostRecord) -> None:
                 rec.cost_usd,
                 rec.duration_ms,
                 rec.generation_id,
+                rec.audio_seconds,
             )
     except Exception as exc:
         _log.warning("cost_write_failed", error=str(exc))

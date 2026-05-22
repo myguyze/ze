@@ -101,3 +101,41 @@ async def test_transcribe_uses_configured_model():
     await client.transcribe(b"audio", "ogg")
 
     assert captured_models[0] == "openai/whisper-large-v3"
+
+
+async def test_transcribe_passes_duration_as_audio_seconds():
+    captured: list[dict] = []
+
+    openrouter = AsyncMock()
+    async def _complete(messages, **kwargs):
+        captured.append(kwargs)
+        return "ok"
+    openrouter.complete = _complete
+
+    client = TranscriptionClient(
+        openrouter_client=openrouter,
+        model="openai/whisper-1",
+        logger=MagicMock(),
+    )
+    await client.transcribe(b"audio", "ogg", duration_seconds=12.5)
+
+    assert captured[0]["audio_seconds"] == 12.5
+
+
+async def test_transcribe_passes_none_when_no_duration():
+    captured: list[dict] = []
+
+    openrouter = AsyncMock()
+    async def _complete(messages, **kwargs):
+        captured.append(kwargs)
+        return "ok"
+    openrouter.complete = _complete
+
+    client = TranscriptionClient(
+        openrouter_client=openrouter,
+        model="openai/whisper-1",
+        logger=MagicMock(),
+    )
+    await client.transcribe(b"audio", "ogg")
+
+    assert captured[0].get("audio_seconds") is None

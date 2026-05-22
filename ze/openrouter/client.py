@@ -51,6 +51,7 @@ class OpenRouterClient:
         *,
         response_format: dict | None = None,
         reasoning: dict | None = None,
+        audio_seconds: float | None = None,
     ) -> str:
         """Send a non-streaming completion. Returns the full response string."""
         full_messages = _build_messages(messages, system)
@@ -115,6 +116,7 @@ class OpenRouterClient:
                     total_tokens=usage.total_tokens,
                     duration_ms=duration_ms,
                     generation_id=response.id or None,
+                    audio_seconds=audio_seconds,
                 )
             return content
 
