@@ -1,4 +1,5 @@
 import asyncio
+import html as _html
 from io import BytesIO
 
 from aiogram import Bot
@@ -9,13 +10,12 @@ from ze.logging import bind_context, get_logger, unbind_context
 from ze.progress.reporter import ProgressReporter
 from ze.progress.translations import ProgressTranslations
 from ze.telegram.commands import costs_summary, memory_summary
+from ze.telegram.formatting import md_to_html, split_html
 from ze.telegram.keyboards import confirmation_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
 from ze.telemetry.context import set_flow_context
 
 log = get_logger(__name__)
-
-_MAX_MESSAGE_LEN = 4096
 
 
 class ZeBot:
@@ -336,15 +336,15 @@ class ZeBot:
         config: dict,
     ) -> None:
         text = (
-            f"⚠️ *Confirmation required*\n\n"
-            f"*Agent:* {agent}\n"
-            f"*Action:* {action}\n"
-            f"*Draft:*\n```\n{draft}\n```"
+            f"⚠️ <b>Confirmation required</b>\n\n"
+            f"<b>Agent:</b> {_html.escape(agent)}\n"
+            f"<b>Action:</b> {_html.escape(action)}\n\n"
+            f"<b>Draft:</b>\n{md_to_html(draft)}"
         )
         await self._bot.send_message(
             chat_id,
             text,
-            parse_mode="Markdown",
+            parse_mode="HTML",
             reply_markup=confirmation_keyboard(),
         )
 
@@ -485,8 +485,9 @@ class ZeBot:
     async def _send_response(self, chat_id: int, text: str) -> None:
         if not text:
             return
-        for chunk in _split(text):
-            await self._bot.send_message(chat_id, chunk)
+        html = md_to_html(text)
+        for chunk in split_html(html):
+            await self._bot.send_message(chat_id, chunk, parse_mode="HTML")
 
     async def invoke(self, prompt: str, session_id: str) -> dict:
         """Invoke the graph directly for eval/testing. Returns raw final state."""
@@ -574,17 +575,3 @@ def _extract_response(state: dict) -> str:
     return ""
 
 
-def _split(text: str, limit: int = _MAX_MESSAGE_LEN) -> list[str]:
-    if len(text) <= limit:
-        return [text]
-    chunks: list[str] = []
-    while text:
-        if len(text) <= limit:
-            chunks.append(text)
-            break
-        cut = text.rfind("\n", 0, limit)
-        if cut == -1:
-            cut = limit
-        chunks.append(text[:cut])
-        text = text[cut:].lstrip("\n")
-    return chunks
