@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze.telegram.commands import _fmt_tokens, _fmt_usd, costs_summary, memory_summary
+from ze.telegram.commands import _fmt_tokens, _fmt_usd, costs_summary, memory_summary, parse_persona_command, persona_summary
+from ze.persona.types import PersonaState
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
@@ -163,3 +164,76 @@ async def test_memory_summary_empty_profile_fields_omitted():
     pool = _make_pool(month_rows=None, facts=facts, profile=profile)
     result = await memory_summary(pool)
     assert "Profile" not in result
+
+
+# ── parse_persona_command ─────────────────────────────────────────────────────
+
+def test_parse_persona_no_args():
+    assert parse_persona_command("/persona") == ("show", [])
+
+def test_parse_persona_reset():
+    assert parse_persona_command("/persona reset") == ("reset", [])
+
+def test_parse_persona_profile_name():
+    assert parse_persona_command("/persona stoic") == ("profile", ["stoic"])
+
+def test_parse_persona_dial():
+    assert parse_persona_command("/persona humor 0.8") == ("dial", ["humor", "0.8"])
+
+def test_parse_persona_dial_invalid_value():
+    cmd, args = parse_persona_command("/persona humor abc")
+    assert cmd == "error"
+    assert "abc" in args[0]
+
+def test_parse_persona_too_many_args():
+    cmd, _ = parse_persona_command("/persona a b c")
+    assert cmd == "error"
+
+
+# ── persona_summary ───────────────────────────────────────────────────────────
+
+def _make_persona_store(profile="default", dials=None, available=None):
+    store = AsyncMock()
+    store.get_state = AsyncMock(return_value=PersonaState(
+        profile=profile,
+        dials=dials or {},
+    ))
+    store.get_active = AsyncMock(return_value={
+        "traits": ["direct", "warm"],
+        "verbosity": "concise",
+        "dials": {"humor": 0.3, "directness": 0.9, "formality": 0.2, "depth": 0.5},
+    })
+    store.available_profiles = MagicMock(return_value=available or ["default", "stoic", "playful"])
+    return store
+
+
+async def test_persona_summary_shows_active_profile():
+    store = _make_persona_store(profile="stoic")
+    result = await persona_summary(store)
+    assert "stoic" in result
+
+
+async def test_persona_summary_shows_all_dials():
+    store = _make_persona_store()
+    result = await persona_summary(store)
+    for dial in ("humor", "directness", "formality", "depth"):
+        assert dial in result
+
+
+async def test_persona_summary_marks_dial_override():
+    store = _make_persona_store(dials={"humor": 0.9})
+    result = await persona_summary(store)
+    assert "override" in result
+
+
+async def test_persona_summary_shows_profiles_list():
+    store = _make_persona_store()
+    result = await persona_summary(store)
+    assert "stoic" in result
+    assert "playful" in result
+
+
+async def test_persona_summary_shows_commands():
+    store = _make_persona_store()
+    result = await persona_summary(store)
+    assert "/persona reset" in result

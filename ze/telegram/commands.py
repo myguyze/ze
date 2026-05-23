@@ -1,6 +1,10 @@
 import html
 from datetime import timezone
 from datetime import datetime as dt
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ze.persona.store import PersonaStore
 
 _NAMED_AGENTS = {"companion", "research", "calendar", "email", "whisper", "routing", "memory"}
 
@@ -117,3 +121,68 @@ async def memory_summary(pool) -> str:
             sections.extend(profile_lines)
 
     return "\n".join(sections)
+
+
+def _dial_bar(value: float, width: int = 10) -> str:
+    filled = round(value * width)
+    return "▓" * filled + "░" * (width - filled)
+
+
+async def persona_summary(persona_store: "PersonaStore") -> str:
+    state = await persona_store.get_state()
+    active = await persona_store.get_active()
+    profiles = persona_store.available_profiles()
+
+    dials = active.get("dials") or {}
+    dial_names = ["humor", "directness", "formality", "depth"]
+
+    lines = [f"🎭 <b>Ze persona</b> — active: <b>{html.escape(state.profile)}</b>", ""]
+    for name in dial_names:
+        value = dials.get(name, 0.5)
+        bar = _dial_bar(value)
+        override = " <i>(override)</i>" if name in state.dials else ""
+        lines.append(f"{html.escape(name):<12} {bar}  {value:.1f}{override}")
+
+    if len(profiles) > 1:
+        lines.append("")
+        lines.append(f"Profiles: {' · '.join(html.escape(p) for p in profiles)}")
+
+    lines.append("")
+    lines.append("<i>Switch:  /persona &lt;profile&gt;</i>")
+    lines.append("<i>Tune:    /persona &lt;dial&gt; &lt;0.0–1.0&gt;</i>")
+    lines.append("<i>Reset:   /persona reset</i>")
+
+    return "\n".join(lines)
+
+
+def parse_persona_command(text: str) -> tuple[str, list[str]]:
+    """Parse '/persona [args...]' → (subcommand, rest).
+
+    Returns one of:
+      ("show", [])
+      ("profile", [name])
+      ("dial", [name, value_str])
+      ("reset", [])
+      ("error", [message])
+    """
+    parts = text.strip().split()
+    # drop the leading /persona token
+    args = parts[1:] if parts and parts[0].startswith("/") else parts
+
+    if not args:
+        return ("show", [])
+
+    if args[0] == "reset":
+        return ("reset", [])
+
+    if len(args) == 1:
+        return ("profile", [args[0]])
+
+    if len(args) == 2:
+        try:
+            float(args[1])
+        except ValueError:
+            return ("error", [f"Invalid dial value <code>{html.escape(args[1])}</code> — must be a number between 0.0 and 1.0."])
+        return ("dial", [args[0], args[1]])
+
+    return ("error", ["Usage: /persona · /persona &lt;profile&gt; · /persona &lt;dial&gt; &lt;0.0–1.0&gt; · /persona reset"])

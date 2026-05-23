@@ -9,9 +9,9 @@ from ze.errors import ImageDownloadError
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.progress.reporter import ProgressReporter
 from ze.progress.translations import ProgressTranslations
-from ze.telegram.commands import costs_summary, memory_summary
+from ze.telegram.commands import costs_summary, memory_summary, parse_persona_command, persona_summary
 from ze.telegram.formatting import md_to_html, split_html
-from ze.telegram.keyboards import confirmation_keyboard, plan_confirmation_keyboard
+from ze.telegram.keyboards import confirmation_keyboard, persona_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
 from ze.telemetry.context import set_flow_context
 
@@ -84,6 +84,10 @@ class ZeBot:
             if text == "/memory":
                 summary = await memory_summary(self._pool)
                 await self._bot.send_message(chat_id, summary, parse_mode="HTML")
+                return
+
+            if text == "/persona" or text.startswith("/persona "):
+                await self._handle_persona_command(chat_id, text)
                 return
 
             self._store.mark_active(chat_id)
@@ -176,6 +180,10 @@ class ZeBot:
         try:
             if data.startswith("plan:"):
                 await self._handle_plan_callback(chat_id, query)
+                return
+
+            if data.startswith("persona:"):
+                await self._handle_persona_callback(chat_id, query)
                 return
 
             if not data.startswith("confirm:"):
@@ -400,6 +408,62 @@ class ZeBot:
         self._store.clear_active(chat_id)
         self._store.set_pending_plan(chat_id, steps, timeout_task)
         log.info("awaiting_plan_approval", chat_id=chat_id, steps=len(steps), high_risk=high_risk)
+
+    async def _handle_persona_command(self, chat_id: int, text: str) -> None:
+        subcommand, args = parse_persona_command(text)
+
+        if subcommand == "error":
+            await self._bot.send_message(chat_id, args[0], parse_mode="HTML")
+            return
+
+        if subcommand == "profile":
+            name = args[0]
+            try:
+                await self._persona_store.set_profile(name)
+            except ValueError:
+                profiles = self._persona_store.available_profiles()
+                await self._bot.send_message(
+                    chat_id,
+                    f"Unknown profile <code>{_html.escape(name)}</code>. Available: {', '.join(profiles)}",
+                    parse_mode="HTML",
+                )
+                return
+
+        elif subcommand == "dial":
+            dial_name, value_str = args
+            try:
+                await self._persona_store.set_dial(dial_name, float(value_str))
+            except ValueError as exc:
+                await self._bot.send_message(chat_id, _html.escape(str(exc)), parse_mode="HTML")
+                return
+
+        elif subcommand == "reset":
+            await self._persona_store.reset_dials()
+
+        summary = await persona_summary(self._persona_store)
+        state = await self._persona_store.get_state()
+        profiles = self._persona_store.available_profiles()
+        keyboard = persona_keyboard(profiles, active=state.profile)
+        await self._bot.send_message(chat_id, summary, parse_mode="HTML", reply_markup=keyboard)
+
+    async def _handle_persona_callback(self, chat_id: int, query: CallbackQuery) -> None:
+        data = query.data or ""
+        # data format: "persona:profile:<name>"
+        parts = data.split(":", 2)
+        await query.answer()
+
+        if len(parts) == 3 and parts[1] == "profile":
+            name = parts[2]
+            try:
+                await self._persona_store.set_profile(name)
+            except ValueError:
+                return
+
+        summary = await persona_summary(self._persona_store)
+        state = await self._persona_store.get_state()
+        profiles = self._persona_store.available_profiles()
+        keyboard = persona_keyboard(profiles, active=state.profile)
+        await query.message.edit_text(summary, parse_mode="HTML", reply_markup=keyboard)
 
     async def _handle_plan_callback(self, chat_id: int, query: CallbackQuery) -> None:
         decision = (query.data or "").split(":", 1)[1]
