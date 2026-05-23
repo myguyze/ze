@@ -19,7 +19,7 @@ def make_profile(**overrides):
 
 
 def make_persona(**overrides):
-    defaults = {"traits": ["direct", "warm"], "verbosity": "balanced"}
+    defaults = {"traits": ["direct", "warm"], "verbosity": "balanced", "dials": {}}
     defaults.update(overrides)
     return defaults
 
@@ -56,3 +56,72 @@ def test_identity_block_default_profile_is_none():
     # No profile kwarg — should produce no profile section
     block = build_identity_block(make_persona(), "(none)")
     assert "## Who this user is" not in block
+
+
+# ── Dial rendering ────────────────────────────────────────────────────────────
+
+def test_low_humor_dial_emits_no_humor_clause():
+    block = build_identity_block(make_persona(dials={"humor": 0.05}), "(none)")
+    assert "no humor" in block
+
+
+def test_high_humor_dial_emits_witty_clause():
+    block = build_identity_block(make_persona(dials={"humor": 0.9}), "(none)")
+    assert "openly funny" in block
+
+
+def test_high_directness_dial_emits_conclusions_first_clause():
+    block = build_identity_block(make_persona(dials={"directness": 1.0}), "(none)")
+    assert "No preamble, no hedging" in block
+
+
+def test_low_directness_dial_emits_socratic_clause():
+    block = build_identity_block(make_persona(dials={"directness": 0.1}), "(none)")
+    assert "Socratically" in block
+
+
+def test_low_formality_dial_emits_casual_clause():
+    block = build_identity_block(make_persona(dials={"formality": 0.0}), "(none)")
+    assert "casual language" in block
+
+
+def test_high_formality_dial_emits_formal_clause():
+    block = build_identity_block(make_persona(dials={"formality": 0.95}), "(none)")
+    assert "Formal and precise" in block
+
+
+def test_high_depth_dial_emits_deep_clause():
+    block = build_identity_block(make_persona(dials={"depth": 0.8}), "(none)")
+    assert "Go deep" in block
+
+
+def test_neutral_dial_emits_no_clause():
+    # Values in [0.2, 0.8) are silent
+    block = build_identity_block(make_persona(dials={"humor": 0.5, "directness": 0.5}), "(none)")
+    assert "no humor" not in block
+    assert "openly funny" not in block
+    assert "Socratically" not in block
+    assert "No preamble" not in block
+
+
+def test_empty_dials_emits_nothing():
+    block = build_identity_block(make_persona(dials={}), "(none)")
+    # None of the extreme clauses should appear
+    assert "no humor" not in block
+    assert "Go deep" not in block
+
+
+def test_multiple_extreme_dials_all_appear():
+    block = build_identity_block(
+        make_persona(dials={"humor": 0.05, "depth": 0.9, "formality": 0.9}),
+        "(none)",
+    )
+    assert "no humor" in block
+    assert "Go deep" in block
+    assert "Formal and precise" in block
+
+
+def test_persona_without_dials_key_works():
+    # Legacy persona dict with no dials entry
+    block = build_identity_block({"traits": ["direct"], "verbosity": "concise"}, "(none)")
+    assert "Ze" in block

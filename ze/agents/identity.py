@@ -10,8 +10,29 @@ _VERBOSITY_CLAUSES = {
     "detailed": " Be thorough — elaborate fully and include examples where helpful.",
 }
 
+# Each dial maps band boundaries to a prose clause. Only the extremes ([0, 0.2) and
+# [0.8, 1.0]) emit a clause; the neutral middle is silent to keep the prompt compact.
+_DIAL_CLAUSES: dict[str, list[tuple[float, float, str]]] = {
+    "humor": [
+        (0.0, 0.2, "Keep responses strictly professional — no humor."),
+        (0.8, 1.0, "Wit is central to how you communicate — be openly funny."),
+    ],
+    "directness": [
+        (0.0, 0.2, "Explore topics Socratically — show reasoning, ask questions before concluding."),
+        (0.8, 1.0, "State your conclusion first, always. No preamble, no hedging."),
+    ],
+    "formality": [
+        (0.0, 0.2, "Use casual language — first names, contractions, conversational tone."),
+        (0.8, 1.0, "Formal and precise throughout — avoid contractions and colloquialisms."),
+    ],
+    "depth": [
+        (0.0, 0.2, "Keep answers at the surface level — one to two sentences unless asked."),
+        (0.8, 1.0, "Go deep — full elaboration with edge cases, examples, and alternatives."),
+    ],
+}
+
 _IDENTITY_TEMPLATE = """\
-You are Ze, a personal AI assistant. You are {traits}.{verbosity_clause}
+You are Ze, a personal AI assistant. You are {traits}.{verbosity_clause}{dial_block}
 Respond directly to the user's message. Never open with an introduction, a self-description, \
 or an offer of help — the user already knows you. Never say "I'm Ze" or "I'm your assistant".
 
@@ -33,6 +54,19 @@ _PROFILE_LABELS = {
     "relationships": "Relationships",
     "goals": "Goals",
 }
+
+
+def _render_dial_clauses(dials: dict[str, float]) -> str:
+    clauses = []
+    for name, bands in _DIAL_CLAUSES.items():
+        value = dials.get(name)
+        if value is None:
+            continue
+        for lo, hi, clause in bands:
+            if lo <= value < hi or (hi == 1.0 and value == 1.0):
+                clauses.append(clause)
+                break
+    return (" " + " ".join(clauses)) if clauses else ""
 
 
 def _render_profile_block(profile: UserProfile) -> str:
@@ -62,6 +96,9 @@ def build_identity_block(
     verbosity = persona.get("verbosity", "balanced")
     verbosity_clause = _VERBOSITY_CLAUSES.get(verbosity, "")
 
+    dials = persona.get("dials") or {}
+    dial_block = _render_dial_clauses(dials)
+
     custom = (persona.get("custom_instructions") or "").strip()
     custom_block = f"\n{custom}\n" if custom else ""
 
@@ -70,6 +107,7 @@ def build_identity_block(
     return _IDENTITY_TEMPLATE.format(
         traits=traits_str,
         verbosity_clause=verbosity_clause,
+        dial_block=dial_block,
         custom_block=custom_block,
         profile_block=profile_block,
         memory_context=memory_context,
