@@ -66,3 +66,12 @@ class PersonCandidate:
 class PersonContext:
     people: list[Person] = field(default_factory=list)
     token_estimate: int = 0
+
+
+@dataclass
+class ContactsConsolidationReport:
+    episodes_scanned: int = 0
+    candidates_extracted: int = 0
+    contacts_created: int = 0
+    contacts_updated: int = 0
+    duration_ms: int = 0

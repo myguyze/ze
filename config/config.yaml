@@ -62,6 +62,12 @@ persona:
         formality:   0.1
         depth:       0.6
 
+contacts:
+  consolidation:
+    episode_batch_size: 10       # episodes per LLM extraction call
+    max_episodes_per_run: 50     # cap on episodes processed per nightly run
+    nightly_cron: "0 3 * * *"   # 3 AM UTC — after memory consolidation at 2 AM
+
 memory:
   contradiction_threshold: 0.85
 

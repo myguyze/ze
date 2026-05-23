@@ -12,6 +12,7 @@ from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_po
 from ze.embeddings import get_embedder
 from ze.google.auth import GoogleCredentials
 from ze.logging import get_logger
+from ze.contacts.consolidator import ContactsConsolidator
 from ze.contacts.store import PersonStore
 from ze.memory.consolidator import MemoryConsolidator
 from ze.memory.store import MemoryStore
@@ -54,6 +55,7 @@ class Container:
     memory_store: MemoryStore
     person_store: PersonStore
     memory_consolidator: MemoryConsolidator
+    contacts_consolidator: ContactsConsolidator
     workflow_store: WorkflowStore
     workflow_scheduler: WorkflowScheduler
     graph: object
@@ -126,6 +128,12 @@ async def build_container(settings: Settings) -> Container:
 
     persona_store = PersonaStore(pool=pool, settings=settings)
     person_store = PersonStore(pool=pool)
+    contacts_consolidator = ContactsConsolidator(
+        pool=pool,
+        person_store=person_store,
+        openrouter_client=openrouter_client,
+        settings=settings,
+    )
 
     # ── Memory consolidation ──────────────────────────────────────────────────
     memory_consolidator = MemoryConsolidator(
@@ -213,6 +221,16 @@ async def build_container(settings: Settings) -> Container:
             job_id="memory_consolidation",
         )
         log.info("consolidation_scheduled", cron=nightly_cron)
+
+        contacts_cron = settings.contacts_config.get(
+            "consolidation", {}
+        ).get("nightly_cron", "0 3 * * *")
+        workflow_scheduler.schedule_job(
+            fn=contacts_consolidator.run,
+            cron=contacts_cron,
+            job_id="contacts_consolidation",
+        )
+        log.info("contacts_consolidation_scheduled", cron=contacts_cron)
 
     # ── Proactive push ────────────────────────────────────────────────────────
     morning_briefing = MorningBriefing(notifier=notifier, pool=pool, settings=settings)
@@ -308,6 +326,7 @@ async def build_container(settings: Settings) -> Container:
         memory_store=memory_store,
         person_store=person_store,
         memory_consolidator=memory_consolidator,
+        contacts_consolidator=contacts_consolidator,
         workflow_store=workflow_store,
         workflow_scheduler=workflow_scheduler,
         graph=graph,

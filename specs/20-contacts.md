@@ -9,11 +9,10 @@
 | `contact_relationships` DB table | 🔲 Pending |
 | `Person`, `PersonSource`, `PersonRelationship` types | 🔲 Pending |
 | `PersonStore` — CRUD + search + confirm | 🔲 Pending |
-| `PersonExtractor` — extract people from text | 🔲 Pending |
-| Orchestration: `extract_people` node | 🔲 Pending |
+| `ContactsConsolidator` — nightly episode mining | 🔲 Pending |
+| Agent proposal path — explicit mentions confirmed immediately | 🔲 Pending |
 | Email agent: extract senders/recipients as candidates | 🔲 Pending |
 | Calendar agent: extract attendees as candidates | 🔲 Pending |
-| Research agent: tag found people as research-weight | 🔲 Pending |
 | Confirmation flow via Telegram inline keyboard | 🔲 Pending |
 | Proactive follow-up reminders | 🔲 Pending |
 | `/contacts` Telegram command | 🔲 Pending |
@@ -221,40 +220,61 @@ CREATE INDEX contact_relationships_a_idx ON contact_relationships(person_a_id);
 CREATE INDEX contact_relationships_b_idx ON contact_relationships(person_b_id);
 ```
 
-## Orchestration Integration
+## Extraction Architecture
 
-### New node: `extract_people`
+Person extraction uses three paths with different triggers and weights. There is no
+per-message LLM extraction — conversations accumulate as episodes, and the consolidator
+mines them nightly. This keeps real-time cost near zero.
 
-Runs as an `asyncio.create_task()` after every graph run (fire-and-forget, same pattern as
-memory writes). Passes the conversation turn to `PersonExtractor`. Any extracted candidates
-with `source_type="conversation"` are confirmed immediately. Others are held as candidates.
+### Path 1 — Agent proposal (explicit, immediate)
+
+When the user clearly introduces a person, the companion agent includes them in
+`AgentResult.memory_proposals` as a `UserFact` *and* emits a contact proposal.
+This is the only real-time path. It fires only on strong signals:
+
+> "I'm meeting Maria Andrade tomorrow — she's the CCO at Binter Canarias"
+> "Remember João Silva, charter operator, CEO of AirLisboa"
+
+Proposed contacts from this path are confirmed immediately (weight 1.0, `confirmed=True`).
+Implementation: companion agent system prompt instructs it to emit a structured
+`CONTACT:` block in its response when it detects an explicit introduction.
+
+### Path 2 — ContactsConsolidator (nightly batch, scheduled 3 AM UTC)
+
+Mines the `episodes` table for unprocessed conversations. Each episode row has a
+`contacts_extracted` flag (added in migration 013); the consolidator processes
+only rows where this is `false`.
 
 ```
-[graph run completes]
-    └─ asyncio.create_task(extract_people(turn, person_store))
+Nightly at 3 AM UTC (after memory consolidation at 2 AM):
+  → Load up to 50 unprocessed episodes (contacts_extracted = false)
+  → Batch into groups of 10
+  → For each batch: LLM extracts named individuals as JSON
+  → For each candidate:
+      get_by_name() → found → add_source() (update last_mentioned + confidence)
+                    → not found → upsert() as unconfirmed + add_source()
+  → Mark all processed episodes as contacts_extracted = true
 ```
+
+Contacts produced this way start unconfirmed. Ze surfaces them when contextually
+relevant and asks the user to confirm.
+
+### Path 3 — Email / Calendar agents (triggered at processing time)
+
+When Ze processes email or calendar data it is already reading that content, so
+person extraction adds no extra LLM call — just header parsing:
+
+- **Email agent**: extract `From:`, `To:`, `Cc:` → `source_type="email"`, `weight=0.7`
+- **Calendar agent**: extract attendees → `source_type="calendar"`, `weight=0.6`
+
+Both create unconfirmed candidates. Ze surfaces them when the person appears
+in conversation or when the user asks about contacts.
 
 ### Agent context injection
 
 Before agent execution, `PersonContext` is fetched from `PersonStore.get_context(query)`
-and injected into the agent system prompt alongside `MemoryContext`. Only confirmed contacts
-are included. Budget: ~300 tokens.
-
-### Email agent
-
-When processing an email thread, extract `From:`, `To:`, and `Cc:` addresses. For each:
-- If already in contacts: update `last_mentioned`.
-- If not: create candidate with `source_type="email"`, `weight=0.7`.
-
-### Calendar agent
-
-When reading calendar events, extract attendees. For each:
-- Same upsert logic as email agent, `source_type="calendar"`, `weight=0.6`.
-
-### Research agent
-
-When the research agent returns results mentioning specific named individuals, pass the
-result text to `PersonExtractor` with `source_type="research"`, `weight=0.2`.
+and injected into the agent system prompt alongside `MemoryContext`. Only confirmed
+contacts are included. Budget: ~300 tokens.
 
 ## Telegram Commands
 

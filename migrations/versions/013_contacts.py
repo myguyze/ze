@@ -15,6 +15,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Track which episodes have been scanned for contact extraction
+    op.execute("""
+        ALTER TABLE episodes
+        ADD COLUMN IF NOT EXISTS contacts_extracted BOOLEAN NOT NULL DEFAULT FALSE
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS episodes_contacts_extracted_idx
+            ON episodes(contacts_extracted, created_at)
+    """)
+
     op.execute("""
         CREATE TABLE IF NOT EXISTS contacts (
             id                        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
