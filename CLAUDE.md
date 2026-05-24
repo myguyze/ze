@@ -194,3 +194,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 14 | Progress messages — per-agent Telegram status messages, locale keys, atomic delete | Done |
 | 15 | Telegram commands — `/costs`, `/memory`, `/contacts` introspection commands | Done |
 | 16 | Agentic tool loop — LLM-driven ReAct loop in `BaseAgent`, calendar + email migrated | Done |
+| 17 | Prospecting agent — autonomous target research, browser sidecar, outreach drafting | Pending |
