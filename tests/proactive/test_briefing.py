@@ -29,6 +29,7 @@ def make_conn(
     unreviewed=0,
     workflow_rows=None,
     failure_rows=None,
+    stale_contact_rows=None,
 ):
     conn = AsyncMock()
     # fetchrow calls: dedup check, then unreviewed count
@@ -42,6 +43,7 @@ def make_conn(
         side_effect=[
             workflow_rows or [],
             failure_rows or [],
+            stale_contact_rows or [],
         ]
     )
     conn.execute = AsyncMock()
@@ -131,3 +133,40 @@ async def test_briefing_writes_push_log():
     sql = conn.execute.call_args[0][0]
     assert "INSERT INTO push_log" in sql
     assert "morning_brief" in sql
+
+
+# ── follow-up nudges ──────────────────────────────────────────────────────────
+
+async def test_briefing_includes_stale_contact_nudge():
+    stale = [{"name": "João Silva", "days_ago": 14}]
+    conn = make_conn(stale_contact_rows=stale)
+    notifier = make_notifier()
+    b = MorningBriefing(notifier=notifier, pool=make_pool(conn), settings=make_settings())
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "Follow-up nudges" in text
+    assert "João Silva" in text
+    assert "14 days ago" in text
+
+
+async def test_briefing_no_nudge_when_no_stale_contacts():
+    conn = make_conn(stale_contact_rows=[])
+    notifier = make_notifier()
+    b = MorningBriefing(notifier=notifier, pool=make_pool(conn), settings=make_settings())
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "Follow-up nudges" not in text
+
+
+async def test_briefing_singular_day_in_nudge():
+    stale = [{"name": "Ana Costa", "days_ago": 1}]
+    conn = make_conn(stale_contact_rows=stale)
+    notifier = make_notifier()
+    b = MorningBriefing(notifier=notifier, pool=make_pool(conn), settings=make_settings())
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "1 day ago" in text
+    assert "1 days ago" not in text

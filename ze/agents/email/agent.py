@@ -3,6 +3,7 @@ from typing import AsyncIterator
 from ze.agents.base import BaseAgent
 from ze.agents.registry import register
 from ze.agents.types import AgentContext, AgentResult
+from ze.contacts.extractors import extract_email_contacts
 from ze.google.auth import GoogleCredentials
 from ze.openrouter.client import OpenRouterClient
 from ze.settings import Settings
@@ -63,12 +64,14 @@ class EmailAgent(BaseAgent):
         )
 
         proposals = to_user_facts(facts_tc.result or [])
+        contact_proposals = extract_email_contacts(loop_tool_calls)
 
         self._log.info(
             "email_agent_complete",
             session_id=ctx.session_id,
             tool_calls=len(loop_tool_calls),
             proposals=len(proposals),
+            contact_proposals=len(contact_proposals),
         )
 
         return AgentResult(
@@ -76,6 +79,7 @@ class EmailAgent(BaseAgent):
             response=response,
             tool_calls=loop_tool_calls + [facts_tc],
             memory_proposals=proposals,
+            contact_proposals=contact_proposals,
         )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:

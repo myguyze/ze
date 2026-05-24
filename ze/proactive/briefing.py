@@ -17,6 +17,9 @@ class MorningBriefing:
         self._pool = pool
         self._settings = settings
         self._log = get_logger(__name__)
+        follow_up_cfg = settings.contacts_config.get("follow_up", {})
+        self._stale_days = int(follow_up_cfg.get("stale_days", 7))
+        self._max_nudges = int(follow_up_cfg.get("max_nudges", 3))
 
     async def run(self) -> None:
         set_flow_context("morning_briefing")
@@ -40,6 +43,21 @@ class MorningBriefing:
                 "WHERE event_type LIKE 'workflow_failure:%' "
                 "AND sent_at > NOW() - INTERVAL '24 hours' "
                 "ORDER BY sent_at DESC"
+            )
+            stale_contact_rows = await conn.fetch(
+                """
+                SELECT name,
+                       EXTRACT(DAY FROM NOW() - last_mentioned)::int AS days_ago
+                FROM contacts
+                WHERE confirmed = true
+                  AND dismissed = false
+                  AND last_mentioned IS NOT NULL
+                  AND last_mentioned < NOW() - ($1 || ' days')::interval
+                ORDER BY last_mentioned ASC
+                LIMIT $2
+                """,
+                str(self._stale_days),
+                self._max_nudges,
             )
 
         unreviewed = unreviewed_row["n"]
@@ -66,6 +84,13 @@ class MorningBriefing:
         if unreviewed >= threshold:
             lines.append("")
             lines.append(f"💡 You have {unreviewed} facts waiting for review.")
+
+        if stale_contact_rows:
+            lines.append("")
+            lines.append("📌 Follow-up nudges:")
+            for row in stale_contact_rows:
+                days = row["days_ago"]
+                lines.append(f"  • {row['name']} — last mentioned {days} day{'s' if days != 1 else ''} ago")
 
         await self._notifier.push("\n".join(lines))
         self._log.info("briefing_sent", unreviewed=unreviewed)

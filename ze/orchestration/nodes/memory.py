@@ -146,10 +146,11 @@ async def _write_contact_proposals(
             continue
         try:
             existing = await person_store.get_by_name(name)
+            source_type = proposal.get("source_type", "conversation")
             source = PersonSource(
                 person_id=None,  # type: ignore[arg-type]  — replaced below
-                source_type="conversation",
-                weight=SOURCE_WEIGHTS["conversation"],
+                source_type=source_type,
+                weight=proposal.get("confidence", SOURCE_WEIGHTS["conversation"]),
                 raw_context=prompt[:300],
             )
             if existing:
@@ -163,9 +164,9 @@ async def _write_contact_proposals(
                     classification_confidence=float(proposal.get("confidence", 0.8)),
                     relationship_to_user=proposal.get("relationship", ""),
                     contact_info=proposal.get("contact_info") or {},
-                    confirmed=True,
+                    confirmed=proposal.get("confirmed", True),
                     dismissed=False,
-                    confidence=SOURCE_WEIGHTS["conversation"],
+                    confidence=proposal.get("confidence", SOURCE_WEIGHTS["conversation"]),
                 )
                 stored = await person_store.upsert(person)
                 source.person_id = stored.id

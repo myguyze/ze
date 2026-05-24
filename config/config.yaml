@@ -68,6 +68,9 @@ contacts:
     max_episodes_per_run: 50     # cap on episodes processed per nightly run
     nightly_cron: "0 3 * * *"   # 3 AM UTC — after memory consolidation at 2 AM
     review_cron: "30 8 * * *"   # 8:30 AM UTC — surface pending contacts for confirmation
+  follow_up:
+    stale_days: 7                # nudge if a contact hasn't been mentioned in N days
+    max_nudges: 3                # max nudges to show in the morning briefing
 
 memory:
   contradiction_threshold: 0.85
