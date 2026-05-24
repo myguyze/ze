@@ -249,19 +249,27 @@ async def test_write_log_failure_does_not_raise(two_agent_settings):
 @pytest.fixture
 def two_agent_settings(tmp_path):
     """Settings with only research + companion enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "reminders"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "reminders", "prospecting"})
 
 
 @pytest.fixture
 def single_agent_settings(tmp_path):
     """Settings with only research enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "prospecting"})
 
 
 @pytest.fixture
 def settings_factory(tmp_path):
     def _factory(disable_all: bool = False):
-        disable = {"calendar", "email", "workflow", "companion", "research", "reminders"} if disable_all else set()
+        if disable_all:
+            import pathlib
+            import yaml
+            real_config = pathlib.Path(__file__).parent.parent.parent / "config"
+            with open(real_config / "config.yaml") as f:
+                cfg = yaml.safe_load(f)
+            disable = set(cfg.get("agents", {}).keys())
+        else:
+            disable = set()
         return _make_settings(tmp_path, disable=disable)
     return _factory
 

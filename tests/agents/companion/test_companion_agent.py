@@ -1,5 +1,6 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock
 
 from ze.agents.companion.agent import CompanionAgent
 from ze.agents.types import AgentContext, AgentResult
@@ -44,10 +45,30 @@ def make_ctx(prompt: str = "how are you?", memory: MemoryContext | None = None) 
     )
 
 
+def make_pool():
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(return_value=None)
+    conn.execute = AsyncMock()
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=None)
+    pool.acquire = MagicMock(return_value=cm)
+    return pool
+
+
+def make_person_store():
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=[])
+    return store
+
+
 def make_agent(client=None) -> CompanionAgent:
     return CompanionAgent(
         openrouter_client=client or make_client(),
         settings=make_settings(),
+        person_store=make_person_store(),
+        pool=make_pool(),
     )
 
 
@@ -82,10 +103,11 @@ async def test_run_returns_response_string():
 async def test_run_includes_extract_facts_tool_call():
     agent = make_agent()
     result = await agent.run(make_ctx())
-    assert len(result.tool_calls) == 2
+    assert len(result.tool_calls) == 3
     names = {tc.tool_name for tc in result.tool_calls}
     assert "extract_facts" in names
     assert "extract_contacts" in names
+    assert "log_outreach_event" in names
 
 
 async def test_run_sends_prompt_as_user_message():

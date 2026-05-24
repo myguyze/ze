@@ -38,6 +38,8 @@ def settings(tmp_path):
 
 def test_bootstrap_registers_companion_and_research(settings):
     from unittest.mock import MagicMock as MM
+    from ze.browser.client import BrowserClient
+    from ze.contacts.store import PersonStore
     from ze.proactive.notifier import ProactiveNotifier
     from ze.reminders.store import ReminderStore
     from ze.workflow.store import WorkflowStore
@@ -55,6 +57,9 @@ def test_bootstrap_registers_companion_and_research(settings):
         workflow_scheduler=MM(spec=WorkflowScheduler),
         reminder_store=MM(spec=ReminderStore),
         notifier=MM(spec=ProactiveNotifier),
+        person_store=MM(spec=PersonStore),
+        browser_client=MM(spec=BrowserClient),
+        pool=MagicMock(),
     )
 
     assert isinstance(get_agent("companion"), CompanionAgent)
