@@ -1,5 +1,17 @@
 # Agentic Tool Loop — Spec
 
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `ToolSpec.llm_schema()` — OpenAI-format function schema | ✅ Done |
+| `BaseAgent.agentic_loop()` — ReAct loop with tool dispatch | ✅ Done |
+| Ze-internal dep injection via `_merge_deps` | ✅ Done |
+| Gate enforcement inside loop (draft / blocked) | ✅ Done |
+| Max-iterations fallback to plain completion | ✅ Done |
+| Calendar agent migrated to agentic loop | ✅ Done |
+| Email agent migrated to agentic loop | ✅ Done |
+
 ## Purpose
 
 Allow agents to expose tools to the LLM and let the model decide which tools to

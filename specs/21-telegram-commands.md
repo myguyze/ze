@@ -1,5 +1,15 @@
 # Spec 21 — Telegram Commands: /costs and /memory
 
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `/costs` command — monthly spend by agent | ✅ Done |
+| `/memory` command — facts + profile snapshot | ✅ Done |
+| `costs_summary()` in `ze/telegram/commands.py` | ✅ Done |
+| `memory_summary()` in `ze/telegram/commands.py` | ✅ Done |
+| Bot routing in `ZeBot._handle_message()` | ✅ Done |
+
 ## Problem
 
 Ze has no introspection commands. The user cannot see what Ze has spent or what Ze knows

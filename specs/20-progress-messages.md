@@ -1,5 +1,16 @@
 # Progress Messages — Spec
 
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `ProgressReporter` — emit + delete | ✅ Done |
+| `ProgressTranslations` — key → locale string | ✅ Done |
+| Locale config (`persona.locale` in config.yaml) | ✅ Done |
+| `BaseAgent.emit()` — agent-facing helper | ✅ Done |
+| All agents wired (companion, research, calendar, email, workflow, reminders) | ✅ Done |
+| `execution.py` injects reporter from config | ✅ Done |
+
 ## Purpose
 
 Give agents a first-class channel to push ephemeral status messages to the user

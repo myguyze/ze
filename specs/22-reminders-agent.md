@@ -1,5 +1,18 @@
 # Spec 22 — Reminders Agent
 
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `user_reminders` DB table + migration | ✅ Done |
+| `ReminderStore` — CRUD + fire | ✅ Done |
+| `RemindersAgent` — set / list / cancel via NL | ✅ Done |
+| APScheduler wiring — fire at scheduled time | ✅ Done |
+| Startup replay of unfired reminders | ✅ Done |
+| Progress message (`reminders.thinking`) | ✅ Done |
+| Container wiring + config | ✅ Done |
+| Tests | ✅ Done |
+
 ## Problem
 
 Ze can set calendar events and proactive workflow alerts, but has no way to handle

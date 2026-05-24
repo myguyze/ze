@@ -4,18 +4,19 @@
 
 | Feature | Status |
 |---------|--------|
-| `contacts` DB table + migrations | 🔲 Pending |
-| `contact_sources` DB table | 🔲 Pending |
-| `contact_relationships` DB table | 🔲 Pending |
-| `Person`, `PersonSource`, `PersonRelationship` types | 🔲 Pending |
-| `PersonStore` — CRUD + search + confirm | 🔲 Pending |
-| `ContactsConsolidator` — nightly episode mining | 🔲 Pending |
-| Agent proposal path — explicit mentions confirmed immediately | 🔲 Pending |
-| Email agent: extract senders/recipients as candidates | 🔲 Pending |
-| Calendar agent: extract attendees as candidates | 🔲 Pending |
-| Confirmation flow via Telegram inline keyboard | 🔲 Pending |
+| `contacts` DB table + migrations | ✅ Done |
+| `contact_sources` DB table | ✅ Done |
+| `contact_relationships` DB table | ✅ Done |
+| `Person`, `PersonSource`, `PersonRelationship` types | ✅ Done |
+| `PersonStore` — CRUD + search + confirm | ✅ Done |
+| `ContactsConsolidator` — nightly episode mining | ✅ Done |
+| Agent proposal path — explicit mentions confirmed immediately | ✅ Done |
+| Email agent: extract senders/recipients as candidates | ✅ Done |
+| Calendar agent: extract attendees as candidates | ✅ Done |
+| Confirmation flow via Telegram inline keyboard | ✅ Done |
+| `PersonContext` injection into agent prompts | ✅ Done |
+| `/contacts` Telegram command | ✅ Done |
 | Proactive follow-up reminders | 🔲 Pending |
-| `/contacts` Telegram command | 🔲 Pending |
 
 ## Purpose
 
