@@ -10,6 +10,7 @@ class _SessionEntry:
     confirm_task: asyncio.Task | None = None
     pending_plan: list | None = None       # list[WorkflowStep] for dynamic plan approval
     plan_task: asyncio.Task | None = None  # approval timeout task
+    awaiting_goal_redirect: str | None = None  # gate_id string when waiting for redirect text
 
 
 class ActiveSessionStore:
@@ -86,9 +87,19 @@ class ActiveSessionStore:
             entry.plan_task = None
         entry.pending_plan = None
 
+    def set_awaiting_goal_redirect(self, chat_id: int, gate_id: str) -> None:
+        self._get(chat_id).awaiting_goal_redirect = gate_id
+
+    def get_awaiting_goal_redirect(self, chat_id: int) -> str | None:
+        return self._get(chat_id).awaiting_goal_redirect
+
+    def clear_awaiting_goal_redirect(self, chat_id: int) -> None:
+        self._get(chat_id).awaiting_goal_redirect = None
+
     def clear_all(self, chat_id: int) -> None:
         self.cancel_confirm_task(chat_id)
         self.cancel_plan_task(chat_id)
         entry = self._get(chat_id)
         entry.active = False
         entry.awaiting_edit_reply = False
+        entry.awaiting_goal_redirect = None

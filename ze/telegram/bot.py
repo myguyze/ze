@@ -40,6 +40,8 @@ class ZeBot:
         translations: ProgressTranslations | None = None,
         pool=None,
         contact_channel_store=None,
+        goal_store=None,
+        goal_executor=None,
     ) -> None:
         self._bot = bot
         self._graph = graph
@@ -59,6 +61,8 @@ class ZeBot:
         self._translations = translations
         self._pool = pool
         self._contact_channel_store = contact_channel_store
+        self._goal_store = goal_store
+        self._goal_executor = goal_executor
 
     # ── Public handlers ───────────────────────────────────────────────────────
 
@@ -70,6 +74,11 @@ class ZeBot:
         try:
             if self._store.is_awaiting_edit(chat_id):
                 await self._handle_edit_reply(chat_id, text)
+                return
+
+            gate_id = self._store.get_awaiting_goal_redirect(chat_id)
+            if gate_id is not None and text:
+                await self._handle_goal_redirect_reply(chat_id, gate_id, text)
                 return
 
             if self._store.is_active(chat_id):
@@ -197,6 +206,10 @@ class ZeBot:
 
             if data.startswith("contact:"):
                 await self._handle_contact_callback(chat_id, query)
+                return
+
+            if data.startswith("goal:"):
+                await self._handle_goal_callback(chat_id, query)
                 return
 
             if not data.startswith("confirm:"):
@@ -514,6 +527,42 @@ class ZeBot:
                 await self._bot.send_message(chat_id, "Contact not found.")
         elif action == "dismiss":
             await self._person_store.dismiss(person_id)
+
+    async def _handle_goal_callback(self, chat_id: int, query: CallbackQuery) -> None:
+        data = query.data or ""
+        # data: "goal:approve:<gate_id>" | "goal:stop:<gate_id>" | "goal:redirect:<gate_id>"
+        parts = data.split(":", 2)
+        await query.answer()
+        await query.message.edit_reply_markup(reply_markup=None)
+
+        if len(parts) != 3 or not self._goal_executor:
+            return
+
+        action, gate_id_str = parts[1], parts[2]
+
+        if action == "approve":
+            from uuid import UUID
+            asyncio.create_task(self._goal_executor.handle_gate_approved(UUID(gate_id_str)))
+
+        elif action == "stop":
+            from uuid import UUID
+            asyncio.create_task(self._goal_executor.handle_gate_stopped(UUID(gate_id_str)))
+
+        elif action == "redirect":
+            self._store.set_awaiting_goal_redirect(chat_id, gate_id_str)
+            await self._bot.send_message(
+                chat_id,
+                "Send your new instructions for this goal:",
+                reply_markup=ForceReply(selective=True),
+            )
+
+    async def _handle_goal_redirect_reply(self, chat_id: int, gate_id_str: str, text: str) -> None:
+        self._store.clear_awaiting_goal_redirect(chat_id)
+        if not self._goal_executor:
+            return
+        from uuid import UUID
+        asyncio.create_task(self._goal_executor.handle_gate_redirected(UUID(gate_id_str), text))
+        await self._bot.send_message(chat_id, "Got it — replanning and continuing.")
 
     async def _handle_plan_callback(self, chat_id: int, query: CallbackQuery) -> None:
         decision = (query.data or "").split(":", 1)[1]

@@ -13,7 +13,7 @@ async def test_notifier_push_sends_message():
     bot = make_bot()
     n = ProactiveNotifier(bot=bot, chat_id=123)
     await n.push("Hello!")
-    bot.send_message.assert_awaited_once_with(123, "Hello!")
+    bot.send_message.assert_awaited_once_with(123, "Hello!", parse_mode=None)
 
 
 async def test_notifier_push_uses_correct_chat_id():

@@ -11,18 +11,18 @@ class ProactiveNotifier:
         self._chat_id = chat_id
         self._log = get_logger(__name__)
 
-    async def push(self, text: str) -> None:
+    async def push(self, text: str, parse_mode: str | None = None) -> None:
         """Send text to the user. Swallows and logs errors — never raises."""
         try:
             for chunk in _split(text):
-                await self._bot.send_message(self._chat_id, chunk)
+                await self._bot.send_message(self._chat_id, chunk, parse_mode=parse_mode)
         except Exception as exc:
             self._log.warning("proactive_push_failed", chat_id=self._chat_id, error=str(exc))
 
-    async def push_with_keyboard(self, text: str, reply_markup) -> None:
+    async def push_with_keyboard(self, text: str, reply_markup, parse_mode: str | None = None) -> None:
         """Send a single message with an inline keyboard. Swallows and logs errors."""
         try:
-            await self._bot.send_message(self._chat_id, text, reply_markup=reply_markup)
+            await self._bot.send_message(self._chat_id, text, reply_markup=reply_markup, parse_mode=parse_mode)
         except Exception as exc:
             self._log.warning("proactive_push_failed", chat_id=self._chat_id, error=str(exc))
 
