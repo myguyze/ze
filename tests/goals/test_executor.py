@@ -131,7 +131,7 @@ async def test_advance_marks_completed_when_no_pending_milestones():
 
 async def test_advance_fires_gate_when_due():
     goal = make_goal()
-    m1 = make_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m1 = make_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id, output="done")
     m2 = make_milestone(2, MilestoneStatus.PENDING, goal_id=goal.id)
     gate = make_gate(1, GateStatus.PENDING, goal_id=goal.id)
 
@@ -237,6 +237,36 @@ async def test_advance_skips_milestone_on_failure():
 
 # ── gate: approve / stop / redirect ───────────────────────────────────────────
 
+async def test_advance_does_not_fire_gate_before_prior_milestone_done():
+    goal = make_goal()
+    m1 = make_milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    gate = make_gate(1, GateStatus.PENDING, goal_id=goal.id)
+
+    store = MagicMock()
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1])
+    store.get_pending_gate = AsyncMock(return_value=gate)
+    store.update_milestone = AsyncMock()
+    store.add_learning = AsyncMock()
+    store.append_learnings = AsyncMock()
+
+    mock_agent = MagicMock()
+    mock_agent.run = AsyncMock(return_value=MagicMock(response="Done."))
+    executor = make_executor(goal_store=store)
+
+    with patch("ze.goals.executor.get_agent", return_value=mock_agent):
+        advance_calls = []
+        orig = executor.advance
+        async def once(gid):
+            advance_calls.append(gid)
+            if len(advance_calls) == 1:
+                await orig(gid)
+        executor.advance = once
+        await executor.advance(goal.id)
+
+    store.fire_gate.assert_not_called()
+
+
 async def test_handle_gate_approved_sets_active_and_advances():
     goal_id = uuid4()
     gate = make_gate(1, GateStatus.AWAITING_APPROVAL, goal_id=goal_id)
@@ -254,6 +284,17 @@ async def test_handle_gate_approved_sets_active_and_advances():
 
     store.resolve_gate.assert_awaited_once_with(gate.id, GateStatus.APPROVED)
     store.update_status.assert_awaited_once_with(goal_id, GoalStatus.ACTIVE)
+
+
+async def test_handle_gate_approved_ignores_already_resolved_gate():
+    gate = make_gate(1, GateStatus.APPROVED, goal_id=uuid4())
+    store = MagicMock()
+    store.get_gate = AsyncMock(return_value=gate)
+    store.resolve_gate = AsyncMock()
+    store.update_status = AsyncMock()
+    executor = make_executor(goal_store=store)
+    await executor.handle_gate_approved(gate.id)
+    store.resolve_gate.assert_not_called()
 
 
 async def test_handle_gate_stopped_abandons_goal():

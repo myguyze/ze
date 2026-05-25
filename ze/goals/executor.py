@@ -25,6 +25,8 @@ from ze.proactive.notifier import ProactiveNotifier
 
 log = get_logger(__name__)
 
+_DONE_MILESTONE_STATUSES = frozenset({MilestoneStatus.COMPLETED, MilestoneStatus.SKIPPED})
+
 
 class GoalExecutor:
     def __init__(
@@ -60,11 +62,10 @@ class GoalExecutor:
 
         # Check if there is a gate that fires before this milestone
         gate = await self._store.get_pending_gate(goal_id)
-        if gate is not None and gate.status == GateStatus.PENDING:
-            completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
-            if gate.after_sequence >= (next_milestone.sequence - 1):
-                await self._fire_gate(goal, gate, completed, pending)
-                return
+        if gate is not None and self._gate_should_fire(gate, next_milestone, milestones):
+            completed = [m for m in milestones if m.status in _DONE_MILESTONE_STATUSES]
+            await self._fire_gate(goal, gate, completed, pending)
+            return
 
         # Execute the milestone
         await self._store.update_milestone(next_milestone.id, MilestoneStatus.IN_PROGRESS)
@@ -118,7 +119,7 @@ class GoalExecutor:
 
     async def handle_gate_approved(self, gate_id: UUID) -> None:
         gate = await self._store.get_gate(gate_id)
-        if gate is None:
+        if gate is None or gate.status != GateStatus.AWAITING_APPROVAL:
             return
         await self._store.resolve_gate(gate_id, GateStatus.APPROVED)
         await self._store.update_status(gate.goal_id, GoalStatus.ACTIVE)
@@ -127,7 +128,7 @@ class GoalExecutor:
 
     async def handle_gate_stopped(self, gate_id: UUID) -> None:
         gate = await self._store.get_gate(gate_id)
-        if gate is None:
+        if gate is None or gate.status != GateStatus.AWAITING_APPROVAL:
             return
         await self._store.resolve_gate(gate_id, GateStatus.STOPPED)
         await self._store.update_status(gate.goal_id, GoalStatus.ABANDONED)
@@ -141,7 +142,7 @@ class GoalExecutor:
 
     async def handle_gate_redirected(self, gate_id: UUID, feedback: str) -> None:
         gate = await self._store.get_gate(gate_id)
-        if gate is None:
+        if gate is None or gate.status != GateStatus.AWAITING_APPROVAL:
             return
 
         goal = await self._store.get_goal(gate.goal_id)
@@ -191,6 +192,22 @@ class GoalExecutor:
         asyncio.create_task(self.advance(gate.goal_id))
 
     # ── Private ────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _gate_should_fire(
+        gate,
+        next_milestone: Milestone,
+        milestones: list[Milestone],
+    ) -> bool:
+        """True when the prior milestone is done and this gate blocks the next step."""
+        if gate.status != GateStatus.PENDING:
+            return False
+        if gate.after_sequence != next_milestone.sequence - 1:
+            return False
+        prior = [m for m in milestones if m.sequence == gate.after_sequence]
+        if not prior:
+            return False
+        return prior[0].status in _DONE_MILESTONE_STATUSES
 
     async def _execute_milestone(self, milestone: Milestone) -> str:
         agent_name = milestone.agent_hint or "companion"
