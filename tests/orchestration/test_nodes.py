@@ -283,6 +283,116 @@ async def test_write_memory_no_crash_if_no_agent_context():
     assert result == {}
 
 
+# ── memory._write_contact_proposals ──────────────────────────────────────────
+
+async def test_write_contact_proposals_writes_email_to_channel_store():
+    from ze.channels.types import ChannelType
+    from ze.orchestration.nodes.memory import _write_contact_proposals
+
+    person_store = AsyncMock()
+    person_store.get_by_name = AsyncMock(return_value=[])
+    stored_person = MagicMock()
+    stored_person.id = "person-uuid-1"
+    person_store.upsert = AsyncMock(return_value=stored_person)
+    person_store.add_source = AsyncMock()
+
+    channel_store = AsyncMock()
+    channel_store.upsert = AsyncMock()
+
+    proposals = [{
+        "name": "Alice",
+        "classification": "professional",
+        "relationship": "email contact",
+        "contact_info": {"email": "alice@example.com"},
+        "confidence": 0.7,
+        "confirmed": False,
+    }]
+
+    await _write_contact_proposals(
+        person_store, proposals, "test prompt",
+        contact_channel_store=channel_store,
+    )
+
+    channel_store.upsert.assert_awaited_once()
+    call_args = channel_store.upsert.call_args
+    handle = call_args.args[1]
+    assert handle.channel_type == ChannelType.EMAIL
+    assert handle.handle == "alice@example.com"
+
+
+async def test_write_contact_proposals_skips_channel_write_when_no_email():
+    from ze.orchestration.nodes.memory import _write_contact_proposals
+
+    person_store = AsyncMock()
+    person_store.get_by_name = AsyncMock(return_value=[])
+    stored_person = MagicMock()
+    stored_person.id = "person-uuid-1"
+    person_store.upsert = AsyncMock(return_value=stored_person)
+    person_store.add_source = AsyncMock()
+
+    channel_store = AsyncMock()
+    channel_store.upsert = AsyncMock()
+
+    proposals = [{
+        "name": "Bob",
+        "contact_info": {},
+        "confidence": 0.7,
+        "confirmed": False,
+    }]
+
+    await _write_contact_proposals(
+        person_store, proposals, "test prompt",
+        contact_channel_store=channel_store,
+    )
+
+    channel_store.upsert.assert_not_awaited()
+
+
+async def test_write_contact_proposals_works_without_channel_store():
+    from ze.orchestration.nodes.memory import _write_contact_proposals
+
+    person_store = AsyncMock()
+    person_store.get_by_name = AsyncMock(return_value=[])
+    stored_person = MagicMock()
+    stored_person.id = "person-uuid-1"
+    person_store.upsert = AsyncMock(return_value=stored_person)
+    person_store.add_source = AsyncMock()
+
+    proposals = [{"name": "Carol", "contact_info": {"email": "carol@x.com"}, "confidence": 0.8}]
+    # Should not raise even with no channel store
+    await _write_contact_proposals(person_store, proposals, "prompt")
+
+
+async def test_write_contact_proposals_writes_channel_for_existing_contact():
+    from ze.channels.types import ChannelType
+    from ze.contacts.types import Person
+    from ze.orchestration.nodes.memory import _write_contact_proposals
+    from datetime import datetime, timezone
+
+    existing = Person(
+        name="Alice", id="existing-uuid", confirmed=True,
+        first_seen=datetime.now(timezone.utc), last_mentioned=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc),
+    )
+    person_store = AsyncMock()
+    person_store.get_by_name = AsyncMock(return_value=[existing])
+    person_store.add_source = AsyncMock()
+
+    channel_store = AsyncMock()
+    channel_store.upsert = AsyncMock()
+
+    proposals = [{"name": "Alice", "contact_info": {"email": "alice@example.com"}, "confidence": 0.7}]
+    await _write_contact_proposals(
+        person_store, proposals, "prompt",
+        contact_channel_store=channel_store,
+    )
+
+    channel_store.upsert.assert_awaited_once()
+    handle = channel_store.upsert.call_args.args[1]
+    assert handle.channel_type == ChannelType.EMAIL
+    assert handle.handle == "alice@example.com"
+
+
 # ── memory.synthesize ─────────────────────────────────────────────────────────
 
 async def test_synthesize_merges_subtask_results():

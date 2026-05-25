@@ -15,6 +15,11 @@ def make_conn():
     conn.fetch = AsyncMock(return_value=[])
     conn.fetchrow = AsyncMock(return_value=None)
     conn.execute = AsyncMock()
+    # transaction() context manager
+    tx_cm = AsyncMock()
+    tx_cm.__aenter__ = AsyncMock(return_value=None)
+    tx_cm.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx_cm)
     return conn
 
 
@@ -127,6 +132,13 @@ async def test_set_preferred_executes_two_updates():
     store = make_store(conn)
     await store.set_preferred(uuid4(), ChannelType.EMAIL)
     assert conn.execute.await_count == 2
+
+
+async def test_set_preferred_uses_transaction():
+    conn = make_conn()
+    store = make_store(conn)
+    await store.set_preferred(uuid4(), ChannelType.EMAIL)
+    conn.transaction.assert_called_once()
 
 
 async def test_set_preferred_unsets_other_types_then_sets_target():

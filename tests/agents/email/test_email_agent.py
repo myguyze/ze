@@ -44,6 +44,19 @@ def make_credentials(messages: list | None = None) -> MagicMock:
              .list.return_value
              .execute.return_value
     ) = {"messages": messages or []}
+    # stub getProfile for EmailChannel._resolve_user_email
+    (
+        service.users.return_value
+             .getProfile.return_value
+             .execute.return_value
+    ) = {"emailAddress": "ze@example.com"}
+    # stub messages.get for EmailChannel.send timestamp fetch
+    (
+        service.users.return_value
+             .messages.return_value
+             .get.return_value
+             .execute.return_value
+    ) = {"id": "msg1", "payload": {"headers": [{"name": "Date", "value": "Mon, 25 May 2026 10:00:00 +0000"}], "parts": []}}
 
     creds = MagicMock()
     creds.gmail.return_value = service
@@ -183,7 +196,14 @@ async def test_run_sends_email_when_llm_requests():
 
     service = MagicMock()
     service.users.return_value.messages.return_value.send.return_value.execute.return_value = {
-        "id": "sent1"
+        "id": "sent1", "threadId": "thread1",
+    }
+    service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+        "id": "sent1",
+        "payload": {"headers": [{"name": "Date", "value": "Mon, 25 May 2026 10:00:00 +0000"}], "parts": []},
+    }
+    service.users.return_value.getProfile.return_value.execute.return_value = {
+        "emailAddress": "ze@example.com"
     }
     creds = MagicMock()
     creds.gmail.return_value = service

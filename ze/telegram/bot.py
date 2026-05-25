@@ -39,6 +39,7 @@ class ZeBot:
         transcription_client=None,
         translations: ProgressTranslations | None = None,
         pool=None,
+        contact_channel_store=None,
     ) -> None:
         self._bot = bot
         self._graph = graph
@@ -57,6 +58,7 @@ class ZeBot:
         self._transcription_client = transcription_client
         self._translations = translations
         self._pool = pool
+        self._contact_channel_store = contact_channel_store
 
     # ── Public handlers ───────────────────────────────────────────────────────
 
@@ -618,6 +620,7 @@ class ZeBot:
                 "embedder": self._embedder,
                 "settings": self._settings,
                 "workflow_planner": self._workflow_planner,
+                "contact_channel_store": self._contact_channel_store,
             }
         }
         return await self._graph.ainvoke(state, config)
@@ -635,6 +638,7 @@ class ZeBot:
                 "embedder": self._embedder,
                 "settings": self._settings,
                 "workflow_planner": self._workflow_planner,
+                "contact_channel_store": self._contact_channel_store,
             }
         }
 

@@ -9,11 +9,11 @@
 | `ze/channels/registry.py` — channel registry | ✅ Done |
 | Migration 015 — `contact_channels` table | ✅ Done |
 | `ContactChannelStore` — CRUD for per-contact channel handles | ✅ Done |
-| Email agent refactor — delegates transport to `EmailChannel` | 🔲 Pending |
+| Email agent refactor — delegates transport to `EmailChannel` | ✅ Done |
 | `get_contact_channels` tool — expose channel handles to agents | ✅ Done |
 | `set_contact_channel` tool — add/update a channel handle for a contact | ✅ Done |
 | Container wiring | ✅ Done |
-| Tests | 🔲 Pending |
+| Tests | ✅ Done |
 
 ---
 

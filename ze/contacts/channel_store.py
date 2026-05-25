@@ -71,24 +71,25 @@ class ContactChannelStore:
 
     async def set_preferred(self, contact_id: UUID, channel_type: ChannelType) -> None:
         async with self._pool.acquire() as conn:
-            await conn.execute(
-                """
-                UPDATE contact_channels
-                SET preferred = false, updated_at = NOW()
-                WHERE contact_id = $1 AND channel_type != $2
-                """,
-                contact_id,
-                channel_type.value,
-            )
-            await conn.execute(
-                """
-                UPDATE contact_channels
-                SET preferred = true, updated_at = NOW()
-                WHERE contact_id = $1 AND channel_type = $2
-                """,
-                contact_id,
-                channel_type.value,
-            )
+            async with conn.transaction():
+                await conn.execute(
+                    """
+                    UPDATE contact_channels
+                    SET preferred = false, updated_at = NOW()
+                    WHERE contact_id = $1 AND channel_type != $2
+                    """,
+                    contact_id,
+                    channel_type.value,
+                )
+                await conn.execute(
+                    """
+                    UPDATE contact_channels
+                    SET preferred = true, updated_at = NOW()
+                    WHERE contact_id = $1 AND channel_type = $2
+                    """,
+                    contact_id,
+                    channel_type.value,
+                )
         self._log.debug(
             "contact_channel_preferred_set",
             contact_id=str(contact_id),

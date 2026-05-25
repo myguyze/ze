@@ -195,4 +195,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 15 | Telegram commands — `/costs`, `/memory`, `/contacts` introspection commands | Done |
 | 16 | Agentic tool loop — LLM-driven ReAct loop in `BaseAgent`, calendar + email migrated | Done |
 | 17 | Prospecting agent — autonomous target research, browser sidecar, outreach drafting | Done |
-| 18 | Communication channel abstraction — `Channel` ABC, `EmailChannel`, contact channel handles | Pending |
+| 18 | Communication channel abstraction — `Channel` ABC, `EmailChannel`, contact channel handles | Done |

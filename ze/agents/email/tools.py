@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import email as email_lib
 import time
 from email.mime.text import MIMEText
 
@@ -8,6 +7,8 @@ import structlog
 
 from ze.agents.tool import ToolAccess, tool
 from ze.agents.types import ToolCall
+from ze.channels.email import EmailChannel
+from ze.channels.types import ChannelType, Message
 from ze.google.auth import GoogleCredentials
 
 log = structlog.get_logger(__name__)
@@ -120,27 +121,29 @@ async def draft_email(
         )
 
 
-@tool(access=ToolAccess.WRITE, description="Send an email via Gmail.")
+@tool(access=ToolAccess.WRITE, description="Send an email via Gmail. Use thread_id to reply in an existing thread.")
 async def send_email(
-    credentials: GoogleCredentials,
+    email_channel: EmailChannel,
     to: str,
     subject: str,
     body: str,
+    thread_id: str | None = None,
 ) -> ToolCall:
     args = {"to": to, "subject": subject}
     start = time.monotonic()
     try:
-        service = credentials.gmail()
-        raw = _build_raw(to, subject, body)
-        result = await asyncio.to_thread(
-            lambda: service.users().messages().send(
-                userId="me", body={"raw": raw}
-            ).execute()
+        msg = Message(
+            channel_type=ChannelType.EMAIL,
+            to=to,
+            subject=subject,
+            body=body,
+            thread_id=thread_id,
         )
+        sent = await email_channel.send(msg)
         return ToolCall(
             tool_name="send_email",
             args=args,
-            result={"id": result.get("id")},
+            result={"id": sent.message_id, "thread_id": sent.thread_id},
             duration_ms=int((time.monotonic() - start) * 1000),
             success=True,
         )

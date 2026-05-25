@@ -3,6 +3,7 @@ from typing import AsyncIterator
 from ze.agents.base import BaseAgent
 from ze.agents.registry import register
 from ze.agents.types import AgentContext, AgentResult
+from ze.channels.email import EmailChannel
 from ze.contacts.extractors import extract_email_contacts
 from ze.google.auth import GoogleCredentials
 from ze.openrouter.client import OpenRouterClient
@@ -23,6 +24,7 @@ Guidelines:
 - Emails are plain text only — no HTML in the body.
 - Use list_emails then get_email to read content before drafting replies.
 - Summarize email content concisely: sender, subject, key points.
+- Use send_email with thread_id to reply within an existing thread.
 - If an operation fails, explain what went wrong clearly.\
 """
 
@@ -39,8 +41,9 @@ class EmailAgent(BaseAgent):
         settings: Settings,
     ) -> None:
         super().__init__(settings)
-        self._client = openrouter_client
-        self._creds  = google_credentials
+        self._client        = openrouter_client
+        self._creds         = google_credentials
+        self._email_channel = EmailChannel(credentials=google_credentials)
 
     async def run(self, ctx: AgentContext) -> AgentResult:
         key = "email.drafting" if ctx.intent in ("create", "update") else "email.reading"
@@ -51,7 +54,7 @@ class EmailAgent(BaseAgent):
             client=self._client,
             messages=list(ctx.messages),
             system=system,
-            deps={"credentials": self._creds},
+            deps={"credentials": self._creds, "email_channel": self._email_channel},
             tool_names=["list_emails", "get_email", "draft_email", "send_email", "archive_email"],
         )
 

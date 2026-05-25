@@ -4,6 +4,8 @@ from langchain_core.runnables import RunnableConfig
 from sentence_transformers import SentenceTransformer
 
 from ze.agents.types import AgentResult
+from ze.channels.types import ChannelHandle, ChannelType
+from ze.contacts.channel_store import ContactChannelStore
 from ze.contacts.types import Person, PersonSource, SOURCE_WEIGHTS
 from ze.logging import get_logger
 from ze.memory.store import MemoryStore
@@ -70,9 +72,15 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
             await store.propose_facts(result.memory_proposals)
 
         person_store = config["configurable"].get("person_store")
+        contact_channel_store = config["configurable"].get("contact_channel_store")
         if person_store and result.contact_proposals:
             asyncio.create_task(
-                _write_contact_proposals(person_store, result.contact_proposals, ctx.prompt)
+                _write_contact_proposals(
+                    person_store,
+                    result.contact_proposals,
+                    ctx.prompt,
+                    contact_channel_store=contact_channel_store,
+                )
             )
 
     log.debug(
@@ -138,8 +146,9 @@ async def _write_contact_proposals(
     person_store,
     proposals: list[dict],
     prompt: str,
+    contact_channel_store: ContactChannelStore | None = None,
 ) -> None:
-    """Persist contact proposals from the companion agent. Fires as a background task."""
+    """Persist contact proposals from agents. Fires as a background task."""
     for proposal in proposals:
         name = (proposal.get("name") or "").strip()
         if not name:
@@ -157,6 +166,7 @@ async def _write_contact_proposals(
                 best = existing[0]
                 source.person_id = best.id
                 await person_store.add_source(best.id, source)
+                contact_id = best.id
             else:
                 person = Person(
                     name=name,
@@ -171,5 +181,28 @@ async def _write_contact_proposals(
                 stored = await person_store.upsert(person)
                 source.person_id = stored.id
                 await person_store.add_source(stored.id, source)
+                contact_id = stored.id
+
+            if contact_channel_store:
+                await _write_channel_handles(contact_channel_store, contact_id, proposal)
+
         except Exception as exc:
             log.warning("contact_proposal_write_failed", name=name, error=str(exc))
+
+
+async def _write_channel_handles(
+    store: ContactChannelStore,
+    contact_id,
+    proposal: dict,
+) -> None:
+    """Write any channel handles from a contact proposal into contact_channels."""
+    contact_info: dict = proposal.get("contact_info") or {}
+    email_addr = contact_info.get("email", "").strip().lower()
+    if email_addr:
+        try:
+            await store.upsert(contact_id, ChannelHandle(
+                channel_type=ChannelType.EMAIL,
+                handle=email_addr,
+            ))
+        except Exception as exc:
+            log.warning("contact_channel_write_failed", contact_id=str(contact_id), error=str(exc))
