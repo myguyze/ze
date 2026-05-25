@@ -279,6 +279,56 @@ cost records attributed to `flow_type="transcription"`, `agent="whisper"`.
 
 ---
 
+## Communication Channels
+
+**Module:** `ze/channels/`
+
+The channel abstraction decouples agents from transport details. Every outbound
+message Ze sends to a real person goes through a `Channel` implementation —
+agents never call Gmail (or any future transport) directly.
+
+### Core types (`ze/channels/types.py`)
+
+| Type | Purpose |
+|---|---|
+| `ChannelType` | Enum — `email`, `linkedin`, `whatsapp` |
+| `ChannelHandle` | A contact's address on a channel (`handle`, `preferred`, `verified`) |
+| `Message` | Outbound payload — `to`, `body`, optional `subject` and `thread_id` |
+| `SentMessage` | Return value from `send()` — `message_id`, `thread_id`, `sent_at` |
+| `Thread` / `ThreadMessage` | Full thread history, used by `get_thread()` and `poll_replies()` |
+
+### `Channel` ABC (`ze/channels/base.py`)
+
+Every channel must implement three methods:
+
+| Method | Signature | Description |
+|---|---|---|
+| `send` | `(Message) → SentMessage` | Send a new message or reply to an existing thread |
+| `get_thread` | `(thread_id: str) → Thread` | Fetch a full thread by ID |
+| `poll_replies` | `(thread_ids, since) → list[ThreadMessage]` | Return inbound messages since a given datetime |
+
+### `ChannelRegistry` (`ze/channels/registry.py`)
+
+A dict-backed registry keyed by `ChannelType`. Built in `container.py` and
+injected into agents. Raises `ChannelNotFoundError` for unregistered types.
+
+### Contact channel handles (`ze/contacts/channel_store.py`)
+
+`ContactChannelStore` stores per-contact channel handles in the `contact_channels`
+table. Agents use the `get_contact_channels` and `set_contact_channel` tools
+(in `ze/tools/contacts.py`) to read and write this data — they never query the
+store directly.
+
+### Currently implemented channels
+
+| Channel | Class | Transport |
+|---|---|---|
+| `email` | `EmailChannel` (`ze/channels/email.py`) | Gmail API via `GoogleCredentials` |
+
+See [docs/channels.md](channels.md) for the authoring guide for adding new channels.
+
+---
+
 ## Cost Telemetry
 
 **Module:** `ze/telemetry/`
@@ -349,6 +399,7 @@ Migrations live in `migrations/versions/` as raw SQL Alembic files (no ORM).
 | `calendar_reminders` | Synced calendar events scheduled for reminders |
 | `cost_records` | Per-call token usage and estimated cost |
 | `persona_state` | Single-row table: active profile name + dial overrides (JSONB) |
+| `contact_channels` | Per-contact channel handles (type, handle string, preferred flag, verified flag) |
 
 ---
 

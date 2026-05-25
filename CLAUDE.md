@@ -15,6 +15,8 @@ ze/
 │   ├── api/                  # FastAPI app, Telegram webhook handler, REST routes
 │   ├── agents/               # BaseAgent ABC, registry, all agent implementations
 │   ├── capability/           # CapabilityGate — permission enforcement
+│   ├── channels/             # Channel ABC, ChannelRegistry, EmailChannel — outbound transport layer
+│   ├── contacts/             # ContactStore, ContactChannelStore — person tracking
 │   ├── google/               # Google OAuth2 token management (Calendar + Gmail)
 │   ├── memory/               # UserFact, Episode types, MemoryStore, consolidator
 │   ├── openrouter/           # OpenRouterClient (complete() + stream())
@@ -37,7 +39,7 @@ ze/
 │   └── config.yaml           # All structural config — routing, models, persona, memory, proactive, agents
 ├── migrations/versions/      # Alembic raw-SQL migrations (no ORM)
 ├── tests/                    # Mirrors ze/ structure
-├── specs/                    # All 25 design specs (read before modifying a module)
+├── specs/                    # All 27 design specs (read before modifying a module)
 ├── docs/                     # Architecture, configuration, deployment, and authoring guides
 ├── Dockerfile                # Production image
 ├── docker-compose.yml        # Postgres (pgvector/pgvector:pg16) + backend
