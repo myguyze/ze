@@ -133,6 +133,25 @@ class GoalExecutor:
         # Continue loop
         asyncio.create_task(self.advance(goal_id))
 
+    async def approve_plan(self, goal_id: UUID) -> bool:
+        """Activate a goal after the user approves its plan. Returns False if not planning."""
+        goal = await self._store.get_goal(goal_id)
+        if goal is None or goal.status != GoalStatus.PLANNING:
+            return False
+        await self._store.update_status(goal_id, GoalStatus.ACTIVE)
+        log.info("goal_plan_approved", goal_id=str(goal_id))
+        asyncio.create_task(self.advance(goal_id))
+        return True
+
+    async def reject_plan(self, goal_id: UUID) -> bool:
+        """Abandon a goal when the user rejects its plan."""
+        goal = await self._store.get_goal(goal_id)
+        if goal is None or goal.status != GoalStatus.PLANNING:
+            return False
+        await self._store.update_status(goal_id, GoalStatus.ABANDONED)
+        log.info("goal_plan_rejected", goal_id=str(goal_id))
+        return True
+
     async def handle_gate_approved(self, gate_id: UUID) -> None:
         gate = await self._store.get_gate(gate_id)
         if gate is None or gate.status != GateStatus.AWAITING_APPROVAL:

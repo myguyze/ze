@@ -46,16 +46,16 @@ def make_agent(llm_response: str = ""):
     goal_planner = MagicMock()
     goal_planner.plan = AsyncMock(return_value=([], []))
 
-    goal_executor = MagicMock()
-    goal_executor.advance = AsyncMock()
+    notifier = MagicMock()
+    notifier.push_with_keyboard = AsyncMock()
 
     return GoalAgent(
         openrouter_client=client,
         goal_store=goal_store,
         goal_planner=goal_planner,
-        goal_executor=goal_executor,
+        notifier=notifier,
         settings=make_settings(),
-    ), goal_store, goal_planner, goal_executor
+    ), goal_store, goal_planner, notifier
 
 
 @pytest.fixture(autouse=True)
@@ -97,7 +97,7 @@ async def test_create_calls_planner_and_store():
         "time_horizon": "2 weeks",
         "type": "outreach",
     })
-    agent, store, planner, executor = make_agent(cmd)
+    agent, store, planner, notifier = make_agent(cmd)
 
     m = MagicMock()
     m.goal_id = uuid4()
@@ -108,7 +108,10 @@ async def test_create_calls_planner_and_store():
     result = await agent.run(make_ctx())
     planner.plan.assert_awaited_once()
     store.create_goal.assert_awaited_once()
+    store.update_status.assert_not_called()
+    notifier.push_with_keyboard.assert_awaited_once()
     assert "Find leads" in result.response
+    assert "Approve" in result.response
 
 
 async def test_create_returns_error_without_required_fields():

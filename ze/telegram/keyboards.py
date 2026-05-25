@@ -35,3 +35,11 @@ def plan_confirmation_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="✅ Yes, run it", callback_data="plan:yes"),
         InlineKeyboardButton(text="❌ No", callback_data="plan:no"),
     ]])
+
+
+def goal_plan_confirmation_keyboard(goal_id: UUID) -> InlineKeyboardMarkup:
+    gid = str(goal_id)
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Start goal", callback_data=f"goal_plan:yes:{gid}"),
+        InlineKeyboardButton(text="❌ Cancel", callback_data=f"goal_plan:no:{gid}"),
+    ]])

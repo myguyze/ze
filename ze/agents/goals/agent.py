@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio
+import html as _html
 import json
 from typing import AsyncIterator
 from uuid import UUID
@@ -9,12 +9,13 @@ from ze.agents.base import BaseAgent
 from ze.agents.registry import register
 from ze.agents.types import AgentContext, AgentResult
 from ze.errors import GoalPlanError
-from ze.goals.executor import GoalExecutor
 from ze.goals.planner import GoalPlanner
 from ze.goals.store import GoalStore
 from ze.goals.types import Goal, GoalStatus
 from ze.openrouter.client import OpenRouterClient
+from ze.proactive.notifier import ProactiveNotifier
 from ze.settings import Settings
+from ze.telegram.keyboards import goal_plan_confirmation_keyboard
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's goal manager. You create, inspect, pause, resume, and abandon long-running goals.
@@ -47,14 +48,14 @@ class GoalAgent(BaseAgent):
         openrouter_client: OpenRouterClient,
         goal_store: GoalStore,
         goal_planner: GoalPlanner,
-        goal_executor: GoalExecutor,
+        notifier: ProactiveNotifier,
         settings: Settings,
     ) -> None:
         super().__init__(settings)
         self._client = openrouter_client
         self._store = goal_store
         self._planner = goal_planner
-        self._executor = goal_executor
+        self._notifier = notifier
 
     async def run(self, ctx: AgentContext) -> AgentResult:
         await self.emit(ctx, "goals.managing")
@@ -114,6 +115,7 @@ class GoalAgent(BaseAgent):
             success_condition=success_condition,
             time_horizon=parsed.get("time_horizon") or "",
             type=parsed.get("type") or "custom",
+            status=GoalStatus.PLANNING,
         )
 
         try:
@@ -123,7 +125,6 @@ class GoalAgent(BaseAgent):
 
         goal = await self._store.create_goal(goal)
 
-        # Fix goal_id on milestones and gates
         for m in milestones:
             m.goal_id = goal.id
         for g in gates:
@@ -134,18 +135,26 @@ class GoalAgent(BaseAgent):
         for g in gates:
             await self._store.create_gate(g)
 
-        await self._store.update_status(goal.id, GoalStatus.ACTIVE)
-
         step_summary = "\n".join(f"  {m.sequence}. {m.title}" for m in milestones)
-        gate_summary = "\n".join(f"  Gate after step {g.after_sequence}: {g.title}" for g in gates)
+        gate_summary = "\n".join(
+            f"  Gate after step {g.after_sequence}: {g.title}" for g in gates
+        ) or "  (none)"
 
-        asyncio.create_task(self._executor.advance(goal.id))
+        plan_text = (
+            f"🎯 <b>{_html.escape(title)}</b> — proposed plan\n\n"
+            f"<b>Milestones:</b>\n{_html.escape(step_summary)}\n\n"
+            f"<b>Checkpoints:</b>\n{_html.escape(gate_summary)}\n\n"
+            "Start this goal?"
+        )
+        await self._notifier.push_with_keyboard(
+            plan_text,
+            goal_plan_confirmation_keyboard(goal.id),
+            parse_mode="HTML",
+        )
 
         return (
-            f"Goal **{title}** created and started.\n\n"
-            f"**Milestones:**\n{step_summary}\n\n"
-            f"**Checkpoints:**\n{gate_summary}\n\n"
-            f"Ze will update you as milestones complete. Use `goal status {goal.id}` to check progress."
+            f"Goal **{title}** planned ({len(milestones)} milestones). "
+            f"Approve in Telegram to start, or cancel to discard."
         )
 
     async def _handle_status(self, goal_id: UUID | None) -> str:
