@@ -189,6 +189,20 @@ async def test_resolve_gate_stores_feedback():
     assert call_args.args[2] == "new dir"
 
 
+async def test_replace_pending_gates_deletes_and_inserts():
+    conn = make_conn()
+    new_row = make_gate_row(after_sequence=4, title="New gate")
+    conn.fetchrow = AsyncMock(return_value=new_row)
+    store = make_store(conn)
+    goal_id = uuid4()
+    gate = VerificationGate(goal_id=goal_id, after_sequence=4, title="New gate")
+    results = await store.replace_pending_gates(goal_id, [gate])
+    assert len(results) == 1
+    sql = conn.execute.call_args.args[0]
+    assert "DELETE FROM goal_gates" in sql
+    assert "pending" in sql
+
+
 # ── get_pending_gate ──────────────────────────────────────────────────────────
 
 async def test_get_pending_gate_returns_none_when_no_gate():

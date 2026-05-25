@@ -180,11 +180,7 @@ class GoalExecutor:
             g.goal_id = gate.goal_id
 
         await self._store.replace_pending_milestones(gate.goal_id, new_milestones)
-
-        # Replace pending gates too — delete old pending gates and add new ones
-        # (handled implicitly since gates reference sequences; new milestones have new seqs)
-        for g in new_gates:
-            await self._store.create_gate(g)
+        await self._store.replace_pending_gates(gate.goal_id, new_gates)
 
         await self._store.resolve_gate(gate_id, GateStatus.REDIRECTED, user_feedback=feedback)
         await self._store.update_status(gate.goal_id, GoalStatus.ACTIVE)

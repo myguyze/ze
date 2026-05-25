@@ -69,6 +69,7 @@ def make_executor(goal_store=None, goal_planner=None, notifier=None):
         goal_store.get_gate = AsyncMock(return_value=None)
         goal_store.resolve_gate = AsyncMock()
         goal_store.replace_pending_milestones = AsyncMock(return_value=[])
+        goal_store.replace_pending_gates = AsyncMock(return_value=[])
         goal_store.create_gate = AsyncMock()
 
     if goal_planner is None:

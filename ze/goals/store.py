@@ -206,6 +206,31 @@ class GoalStore:
 
     # ── Gates ──────────────────────────────────────────────────────────────────
 
+    async def replace_pending_gates(
+        self,
+        goal_id: UUID,
+        new_gates: list[VerificationGate],
+    ) -> list[VerificationGate]:
+        """Delete all PENDING gates for a goal and insert replacements."""
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "DELETE FROM goal_gates WHERE goal_id = $1 AND status = 'pending'",
+                    goal_id,
+                )
+                results = []
+                for g in new_gates:
+                    row = await conn.fetchrow(
+                        """
+                        INSERT INTO goal_gates (goal_id, after_sequence, title, status)
+                        VALUES ($1, $2, $3, $4)
+                        RETURNING *
+                        """,
+                        goal_id, g.after_sequence, g.title, g.status.value,
+                    )
+                    results.append(_gate_from_row(row))
+        return results
+
     async def create_gate(self, gate: VerificationGate) -> VerificationGate:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
