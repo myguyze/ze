@@ -11,7 +11,7 @@ from ze.agents.types import AgentContext, AgentResult
 from ze.errors import GoalPlanError
 from ze.goals.planner import GoalPlanner
 from ze.goals.store import GoalStore
-from ze.goals.types import Goal, GoalStatus
+from ze.goals.types import Goal, GoalStatus, MilestoneStatus
 from ze.openrouter.client import OpenRouterClient
 from ze.proactive.notifier import ProactiveNotifier
 from ze.settings import Settings
@@ -173,7 +173,7 @@ class GoalAgent(BaseAgent):
         learnings = await self._store.list_learnings(goal_id)
         gate = await self._store.get_pending_gate(goal_id)
 
-        completed = sum(1 for m in milestones if m.status.value in ("completed",))
+        completed = sum(1 for m in milestones if m.status == MilestoneStatus.COMPLETED)
         skipped = sum(1 for m in milestones if m.status.value == "skipped")
         total = len(milestones)
 

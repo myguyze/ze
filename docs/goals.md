@@ -36,9 +36,8 @@ Ze will:
 
 1. Create a `Goal` record (title, objective, success condition, time horizon).
 2. Run `GoalPlanner` to produce milestones and verification gates.
-3. Show you the plan for confirmation (same inline-keyboard pattern as workflows).
-4. On approval, save milestones and gates, set status to `ACTIVE`, and begin the
-   advance loop.
+3. Send the plan in Telegram with **Start goal** / **Cancel** buttons (`goal_plan:yes|no`).
+4. On approval, set status to `ACTIVE` and begin the advance loop.
 
 You can also manage goals conversationally:
 
@@ -131,10 +130,10 @@ goal_gates
   id, goal_id, after_sequence, status, context_summary, plan_summary, user_feedback, ...
 
 goal_learnings
-  id, goal_id, milestone_id, text, created_at
+  id, goal_id, content, source, created_at
 ```
 
-Statuses: `planning` → `active` ↔ `awaiting_gate` / `paused` → `completed` | `abandoned`.
+Statuses: `planning` → (approve) → `active` ↔ `awaiting_gate` / `paused` → `completed` | `abandoned`.
 
 Migration: `migrations/versions/016_goals.py`.
 

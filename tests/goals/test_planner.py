@@ -56,7 +56,7 @@ async def test_plan_milestones_sorted_by_sequence():
             {"title": "A", "description": "a", "agent_hint": None, "intent": "read", "sequence": 1},
             {"title": "B", "description": "b", "agent_hint": None, "intent": "read", "sequence": 2},
         ],
-        "gates": [],
+        "gates": [{"after_sequence": 2, "title": "Checkpoint"}],
     }
     planner = make_planner(json.dumps(data))
     milestones, _ = await planner.plan(make_goal())
@@ -83,6 +83,32 @@ async def test_plan_raises_on_empty_milestones():
     planner = make_planner(json.dumps({"milestones": [], "gates": []}))
     with pytest.raises(GoalPlanError):
         await planner.plan(make_goal())
+
+
+async def test_plan_requires_at_least_one_gate():
+    data = {
+        "milestones": [
+            {"title": "A", "description": "a", "agent_hint": None, "intent": "read", "sequence": 1},
+        ],
+        "gates": [],
+    }
+    planner = make_planner(json.dumps(data))
+    with pytest.raises(GoalPlanError, match="gate"):
+        await planner.plan(make_goal())
+
+
+async def test_replan_normalizes_sequences_to_next_sequence():
+    data = {
+        "milestones": [
+            {"title": "B", "description": "b", "agent_hint": None, "intent": "read", "sequence": 1},
+            {"title": "C", "description": "c", "agent_hint": None, "intent": "read", "sequence": 2},
+        ],
+        "gates": [{"after_sequence": 1, "title": "Check"}],
+    }
+    planner = make_planner(json.dumps(data))
+    milestones, gates = await planner.replan_remaining(make_goal(), [], "focus on Spain", next_sequence=3)
+    assert [m.sequence for m in milestones] == [3, 4]
+    assert gates[0].after_sequence == 3
 
 
 async def test_plan_raises_on_non_object_response():

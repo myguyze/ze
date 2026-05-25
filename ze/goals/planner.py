@@ -11,6 +11,32 @@ from ze.settings import Settings
 
 log = get_logger(__name__)
 
+
+def _normalize_and_validate(
+    milestones: list[Milestone],
+    gates: list[VerificationGate],
+    *,
+    min_sequence: int = 1,
+    require_gates: bool = True,
+) -> tuple[list[Milestone], list[VerificationGate]]:
+    if not milestones:
+        raise GoalPlanError("No milestones in plan")
+    if require_gates and not gates:
+        raise GoalPlanError("Plan must include at least one verification gate")
+
+    base = min(m.sequence for m in milestones)
+    offset = min_sequence - base
+    if offset:
+        for m in milestones:
+            m.sequence += offset
+        for g in gates:
+            g.after_sequence += offset
+
+    milestones.sort(key=lambda m: m.sequence)
+    gates.sort(key=lambda g: g.after_sequence)
+    return milestones, gates
+
+
 _PLAN_SYSTEM = """\
 You decompose a multi-week goal into an ordered list of milestones and verification gates.
 
@@ -116,8 +142,7 @@ class GoalPlanner:
             log.warning("goal_plan_parse_error", error=str(exc), raw=raw[:200])
             raise GoalPlanError(f"Planner returned invalid plan: {exc}") from exc
 
-        milestones.sort(key=lambda m: m.sequence)
-        gates.sort(key=lambda g: g.after_sequence)
+        milestones, gates = _normalize_and_validate(milestones, gates)
         log.info("goal_planned", milestones=len(milestones), gates=len(gates))
         return milestones, gates
 
@@ -176,7 +201,9 @@ class GoalPlanner:
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             raise GoalPlanError(f"Replan failed: {exc}") from exc
 
-        milestones.sort(key=lambda m: m.sequence)
+        milestones, gates = _normalize_and_validate(
+            milestones, gates, min_sequence=next_sequence,
+        )
         return milestones, gates
 
     async def extract_learning(self, milestone_title: str, output: str) -> str:

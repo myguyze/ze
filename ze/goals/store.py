@@ -114,6 +114,14 @@ class GoalStore:
             )
         return [_goal_from_row(r) for r in rows]
 
+    async def list_for_advance(self) -> list[Goal]:
+        """Goals eligible for the advance sweep (excludes awaiting_gate and planning)."""
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM goals WHERE status = 'active' ORDER BY created_at ASC"
+            )
+        return [_goal_from_row(r) for r in rows]
+
     async def list_all(self) -> list[Goal]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch("SELECT * FROM goals ORDER BY created_at DESC")

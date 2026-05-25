@@ -91,7 +91,7 @@ class GoalExecutor:
             output = await self._execute_milestone(next_milestone)
             await self._store.update_milestone(next_milestone.id, MilestoneStatus.COMPLETED, output=output)
             log.info("milestone_completed", goal_id=str(goal_id), sequence=next_milestone.sequence)
-        except Exception as exc:
+        except GoalExecutionError as exc:
             error_msg = str(exc)
             log.warning("milestone_failed", goal_id=str(goal_id), sequence=next_milestone.sequence, error=error_msg)
             await self._store.update_milestone(next_milestone.id, MilestoneStatus.SKIPPED, output=f"Failed: {error_msg}")
@@ -254,7 +254,14 @@ class GoalExecutor:
             gate_decision=GateDecision.EXECUTE,
         )
 
-        result: AgentResult = await agent.run(ctx)
+        try:
+            result: AgentResult = await agent.run(ctx)
+        except GoalExecutionError:
+            raise
+        except Exception as exc:
+            raise GoalExecutionError(
+                f"Milestone {milestone.sequence} ({milestone.title}) failed: {exc}"
+            ) from exc
         return result.response
 
     async def _fire_gate(

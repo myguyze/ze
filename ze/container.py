@@ -257,7 +257,7 @@ async def build_container(settings: Settings) -> Container:
     log.info("cost_reconciliation_scheduled")
 
     async def _sweep_active_goals() -> None:
-        goals = await goal_store.list_active()
+        goals = await goal_store.list_for_advance()
         for g in goals:
             asyncio.create_task(goal_executor.advance(g.id))
 
