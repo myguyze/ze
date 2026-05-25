@@ -114,3 +114,17 @@ class ChannelNotFoundError(ChannelError):
 
 class ChannelSendError(ChannelError):
     """Channel transport failed during send."""
+
+
+# ── Goals ──────────────────────────────────────────────────────────────────────
+
+class GoalError(ZeError):
+    """Base class for goal engine errors."""
+
+
+class GoalPlanError(GoalError):
+    """Planner returned invalid output."""
+
+
+class GoalExecutionError(GoalError):
+    """Milestone execution failed."""

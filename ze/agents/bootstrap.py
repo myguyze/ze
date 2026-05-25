@@ -11,6 +11,9 @@ from ze.browser.client import BrowserClient
 from ze.contacts.channel_store import ContactChannelStore
 from ze.contacts.store import PersonStore
 from ze.errors import AgentConfigError
+from ze.goals.executor import GoalExecutor
+from ze.goals.planner import GoalPlanner
+from ze.goals.store import GoalStore
 from ze.google.auth import GoogleCredentials
 from ze.openrouter.client import OpenRouterClient
 from ze.proactive.notifier import ProactiveNotifier
@@ -39,6 +42,9 @@ def bootstrap_agents(
     person_store: PersonStore | None = None,
     browser_client: BrowserClient | None = None,
     contact_channel_store: ContactChannelStore | None = None,
+    goal_store: GoalStore | None = None,
+    goal_planner: GoalPlanner | None = None,
+    goal_executor: GoalExecutor | None = None,
     pool: asyncpg.Pool | None = None,
 ) -> None:
     """Instantiate and register all enabled agents. Called once at app startup."""
@@ -70,6 +76,12 @@ def bootstrap_agents(
         _dep_map[BrowserClient] = browser_client
     if contact_channel_store is not None:
         _dep_map[ContactChannelStore] = contact_channel_store
+    if goal_store is not None:
+        _dep_map[GoalStore] = goal_store
+    if goal_planner is not None:
+        _dep_map[GoalPlanner] = goal_planner
+    if goal_executor is not None:
+        _dep_map[GoalExecutor] = goal_executor
     if pool is not None:
         _dep_map[asyncpg.Pool] = pool
 

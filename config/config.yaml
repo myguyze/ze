@@ -277,6 +277,30 @@ agents:
       read: autonomous
       write: autonomous
 
+  goals:
+    enabled: true
+    description: |
+      Creates and manages long-running goals that Ze executes autonomously over days or weeks.
+      Use when the user describes a multi-step objective with a time horizon — something that
+      cannot be done in a single run, like "run a prospecting campaign", "research and prepare
+      for a conference", or "build a target list and send outreach over the next month".
+      Also use for inspecting, pausing, resuming, or abandoning active goals.
+      Do NOT use for one-shot tasks — use the workflow agent for those.
+    model: anthropic/claude-sonnet-4-5
+    model_simple: anthropic/claude-haiku-4-5
+    tools: []
+    timeout_seconds: 60
+    intent_map:
+      create: "Create a new multi-week goal and decompose it into milestones."
+      read: "Inspect goal status, list active goals, or review learnings."
+      update: "Pause, resume, or redirect an active goal."
+      delete: "Abandon a goal."
+    capabilities:
+      create: confirm
+      read: autonomous
+      update: confirm
+      delete: confirm
+
 browser:
   service_url: "http://ze-browser.internal:8080"
   timeout_seconds: 20

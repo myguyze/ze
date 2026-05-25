@@ -16,6 +16,9 @@ from ze.channels.registry import ChannelRegistry
 from ze.contacts.channel_store import ContactChannelStore
 from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
 from ze.embeddings import get_embedder
+from ze.goals.executor import GoalExecutor
+from ze.goals.planner import GoalPlanner
+from ze.goals.store import GoalStore
 from ze.google.auth import GoogleCredentials
 from ze.logging import get_logger
 from ze.contacts.consolidator import ContactsConsolidator
@@ -76,6 +79,8 @@ class Container:
     browser_client: BrowserClient
     channel_registry: ChannelRegistry
     contact_channel_store: ContactChannelStore
+    goal_store: GoalStore
+    goal_executor: GoalExecutor
 
     async def close(self) -> None:
         await self.workflow_scheduler.stop()
@@ -233,6 +238,9 @@ async def build_container(settings: Settings) -> Container:
         person_store=person_store,
         browser_client=browser_client,
         contact_channel_store=contact_channel_store,
+        goal_store=goal_store,
+        goal_planner=goal_planner,
+        goal_executor=goal_executor,
         pool=pool,
     )
     graph = build_graph(checkpointer=checkpointer)
@@ -247,6 +255,18 @@ async def build_container(settings: Settings) -> Container:
         job_id="cost_reconciliation",
     )
     log.info("cost_reconciliation_scheduled")
+
+    async def _sweep_active_goals() -> None:
+        goals = await goal_store.list_active()
+        for g in goals:
+            asyncio.create_task(goal_executor.advance(g.id))
+
+    workflow_scheduler.schedule_job(
+        fn=_sweep_active_goals,
+        cron="*/15 * * * *",
+        job_id="goal_advance_sweep",
+    )
+    log.info("goal_advance_sweep_scheduled")
 
     await workflow_scheduler.start()
 
@@ -307,6 +327,15 @@ async def build_container(settings: Settings) -> Container:
     email_channel = EmailChannel(credentials=google_credentials) if google_credentials else None
     channel_registry = ChannelRegistry(channels=[email_channel] if email_channel else [])
     contact_channel_store = ContactChannelStore(pool=pool)
+
+    # ── Goal Engine ───────────────────────────────────────────────────────────
+    goal_store = GoalStore(pool=pool)
+    goal_planner = GoalPlanner(openrouter_client=openrouter_client, settings=settings)
+    goal_executor = GoalExecutor(
+        goal_store=goal_store,
+        goal_planner=goal_planner,
+        notifier=notifier,
+    )
 
     calendar_reminders = CalendarReminderScheduler(
         notifier=notifier,
@@ -378,6 +407,8 @@ async def build_container(settings: Settings) -> Container:
         translations=translations,
         pool=pool,
         contact_channel_store=contact_channel_store,
+        goal_store=goal_store,
+        goal_executor=goal_executor,
     )
 
     return Container(
@@ -404,4 +435,6 @@ async def build_container(settings: Settings) -> Container:
         browser_client=browser_client,
         channel_registry=channel_registry,
         contact_channel_store=contact_channel_store,
+        goal_store=goal_store,
+        goal_executor=goal_executor,
     )

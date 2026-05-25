@@ -269,25 +269,25 @@ async def test_write_log_failure_does_not_raise(two_agent_settings):
 @pytest.fixture
 def two_agent_settings(tmp_path):
     """Settings with only research + companion enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "reminders", "prospecting"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "reminders", "prospecting", "goals"})
 
 
 @pytest.fixture
 def single_agent_settings(tmp_path):
     """Settings with only research enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "prospecting"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "prospecting", "goals"})
 
 
 @pytest.fixture
 def prospecting_only_settings(tmp_path):
     """Settings with only prospecting enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "research"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "research", "goals"})
 
 
 @pytest.fixture
 def prospecting_and_research_settings(tmp_path):
     """Settings with prospecting + research enabled."""
-    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders"})
+    return _make_settings(tmp_path, disable={"calendar", "email", "workflow", "companion", "reminders", "goals"})
 
 
 @pytest.fixture

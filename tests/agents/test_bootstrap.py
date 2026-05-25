@@ -40,6 +40,9 @@ def test_bootstrap_registers_companion_and_research(settings):
     from unittest.mock import MagicMock as MM
     from ze.browser.client import BrowserClient
     from ze.contacts.store import PersonStore
+    from ze.goals.executor import GoalExecutor
+    from ze.goals.planner import GoalPlanner
+    from ze.goals.store import GoalStore
     from ze.proactive.notifier import ProactiveNotifier
     from ze.reminders.store import ReminderStore
     from ze.workflow.store import WorkflowStore
@@ -59,6 +62,9 @@ def test_bootstrap_registers_companion_and_research(settings):
         notifier=MM(spec=ProactiveNotifier),
         person_store=MM(spec=PersonStore),
         browser_client=MM(spec=BrowserClient),
+        goal_store=MM(spec=GoalStore),
+        goal_planner=MM(spec=GoalPlanner),
+        goal_executor=MM(spec=GoalExecutor),
         pool=MagicMock(),
     )
 
