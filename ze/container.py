@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from aiogram import Bot
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -191,16 +193,29 @@ async def build_container(settings: Settings) -> Container:
 
     reminder_store = ReminderStore(pool=pool)
 
-    # Replay any unsent reminders that were scheduled before the last restart.
-    pending_reminders = await reminder_store.list_pending()
-    for r in pending_reminders:
-        workflow_scheduler.schedule_at(
-            fn=lambda rid=r.id: fire_reminder(reminder_store, notifier, rid),
-            dt=r.fire_at,
-            job_id=f"user_reminder:{r.id}",
+    # Replay unsent reminders from before the last restart.
+    # list_all_unsent (no fire_at filter) catches reminders that fired while the
+    # server was down and were never delivered — fire them immediately via a task.
+    now = datetime.now(timezone.utc)
+    unsent_reminders = await reminder_store.list_all_unsent()
+    overdue_count = 0
+    for r in unsent_reminders:
+        if r.fire_at <= now:
+            asyncio.create_task(fire_reminder(reminder_store, notifier, r.id))
+            overdue_count += 1
+        else:
+            workflow_scheduler.schedule_at(
+                fn=lambda rid=r.id: fire_reminder(reminder_store, notifier, rid),
+                dt=r.fire_at,
+                job_id=f"user_reminder:{r.id}",
+            )
+    if unsent_reminders:
+        log.info(
+            "reminders_replayed",
+            total=len(unsent_reminders),
+            overdue=overdue_count,
+            scheduled=len(unsent_reminders) - overdue_count,
         )
-    if pending_reminders:
-        log.info("reminders_replayed", count=len(pending_reminders))
 
     bootstrap_agents(
         openrouter_client=openrouter_client,

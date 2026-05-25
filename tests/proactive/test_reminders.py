@@ -279,23 +279,23 @@ async def test_sync_skips_known_event():
 
 # ── fire_reminder ─────────────────────────────────────────────────────────────
 
-async def test_fire_reminder_pushes_and_marks_sent():
+async def test_fire_reminder_pushes_and_logs():
     rid = uuid4()
     conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value={"id": rid, "label": "Meeting in 1 hour", "sent": False})
+    conn.fetchrow = AsyncMock(return_value={"label": "Meeting in 1 hour"})
     notifier = make_notifier()
 
     rs, _ = make_reminder_scheduler(conn=conn, notifier=notifier)
     await rs.fire_reminder(rid)
 
     notifier.push.assert_awaited_once_with("Meeting in 1 hour")
-    assert conn.execute.await_count == 2  # UPDATE sent + INSERT push_log
+    conn.execute.assert_awaited_once()  # INSERT push_log
 
 
-async def test_fire_reminder_noop_when_already_sent():
+async def test_fire_reminder_noop_when_already_sent_or_missing():
     rid = uuid4()
     conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value={"id": rid, "label": "x", "sent": True})
+    conn.fetchrow = AsyncMock(return_value=None)  # UPDATE returned no row — already sent
     notifier = make_notifier()
 
     rs, _ = make_reminder_scheduler(conn=conn, notifier=notifier)
@@ -303,18 +303,6 @@ async def test_fire_reminder_noop_when_already_sent():
 
     notifier.push.assert_not_awaited()
     conn.execute.assert_not_awaited()
-
-
-async def test_fire_reminder_noop_when_row_missing():
-    rid = uuid4()
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value=None)
-    notifier = make_notifier()
-
-    rs, _ = make_reminder_scheduler(conn=conn, notifier=notifier)
-    await rs.fire_reminder(rid)
-
-    notifier.push.assert_not_awaited()
 
 
 # ── start (replay) ────────────────────────────────────────────────────────────

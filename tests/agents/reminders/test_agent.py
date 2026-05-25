@@ -55,8 +55,12 @@ def make_ctx(prompt: str = "remind me in 1 hour") -> AgentContext:
     )
 
 
-_NOW = datetime(2026, 5, 22, 11, 0, 0, tzinfo=timezone.utc)
-_FUTURE = _NOW + timedelta(hours=2)
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _future(hours: int = 2) -> datetime:
+    return _now() + timedelta(hours=hours)
 
 
 # ── _human_delta ──────────────────────────────────────────────────────────────
@@ -85,7 +89,7 @@ def test_human_delta_one_day():
 
 async def test_set_creates_reminder_and_schedules():
     rid = uuid4()
-    payload = json.dumps({"action": "set", "label": "Take medication", "fire_at": _FUTURE.isoformat(), "cancel_hint": None})
+    payload = json.dumps({"action": "set", "label": "Take medication", "fire_at": _future().isoformat(), "cancel_hint": None})
     agent, store, scheduler, _ = make_agent(payload)
     store.create = AsyncMock(return_value=rid)
 
@@ -144,7 +148,7 @@ async def test_list_shows_pending():
     payload = json.dumps({"action": "list", "label": None, "fire_at": None, "cancel_hint": None})
     agent, store, _, _ = make_agent(payload)
     store.list_pending = AsyncMock(return_value=[
-        Reminder(id=uuid4(), label="Call João", fire_at=_FUTURE, created_at=_NOW, sent=False, sent_at=None),
+        Reminder(id=uuid4(), label="Call João", fire_at=_future(), created_at=_now(), sent=False, sent_at=None),
     ])
 
     result = await agent.run(make_ctx("list my reminders"))
@@ -171,7 +175,7 @@ async def test_cancel_match_found():
     payload = json.dumps({"action": "cancel", "label": None, "fire_at": None, "cancel_hint": "medication"})
     agent, store, scheduler, _ = make_agent(payload)
     store.list_pending = AsyncMock(return_value=[
-        Reminder(id=rid, label="Take medication", fire_at=_FUTURE, created_at=_NOW, sent=False, sent_at=None),
+        Reminder(id=rid, label="Take medication", fire_at=_future(), created_at=_now(), sent=False, sent_at=None),
     ])
     store.delete = AsyncMock()
 
@@ -188,7 +192,7 @@ async def test_cancel_no_match_lists_all():
     payload = json.dumps({"action": "cancel", "label": None, "fire_at": None, "cancel_hint": "xyz"})
     agent, store, _, _ = make_agent(payload)
     store.list_pending = AsyncMock(return_value=[
-        Reminder(id=uuid4(), label="Call João", fire_at=_FUTURE, created_at=_NOW, sent=False, sent_at=None),
+        Reminder(id=uuid4(), label="Call João", fire_at=_future(), created_at=_now(), sent=False, sent_at=None),
     ])
 
     result = await agent.run(make_ctx("cancel my xyz reminder"))

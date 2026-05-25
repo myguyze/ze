@@ -103,7 +103,8 @@ class RemindersAgent(BaseAgent):
             return "I need a time to set the reminder. Try: 'remind me in 2 hours'."
 
         try:
-            fire_at = datetime.fromisoformat(fire_at_str).astimezone(timezone.utc)
+            dt = datetime.fromisoformat(fire_at_str)
+            fire_at = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
         except (ValueError, TypeError):
             return "I couldn't parse that time. Try something like 'remind me in 2 hours'."
 

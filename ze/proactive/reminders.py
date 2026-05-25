@@ -155,26 +155,21 @@ class CalendarReminderScheduler:
     async def fire_reminder(self, reminder_id: UUID) -> None:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, label, sent FROM calendar_reminders WHERE id = $1",
+                "UPDATE calendar_reminders SET sent = true, sent_at = NOW() "
+                "WHERE id = $1 AND sent = false RETURNING label",
                 reminder_id,
             )
         if row is None:
-            self._log.warning("reminder_missing", id=str(reminder_id))
-            return
-        if row["sent"]:
             return
 
-        await self._notifier.push(row["label"])
+        label = row["label"]
+        await self._notifier.push(label)
 
         async with self._pool.acquire() as conn:
             await conn.execute(
-                "UPDATE calendar_reminders SET sent = true, sent_at = NOW() WHERE id = $1",
-                reminder_id,
-            )
-            await conn.execute(
                 "INSERT INTO push_log (event_type, payload) VALUES ($1, $2)",
                 f"calendar_reminder:{reminder_id}",
-                row["label"],
+                label,
             )
         self._log.info("reminder_fired", id=str(reminder_id))
 
