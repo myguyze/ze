@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from ze_core.orchestration.base_agent import BaseAgent
 
 _registry: dict[str, type[BaseAgent]] = {}
+_instances: dict[str, BaseAgent] = {}
 
 
 def agent(cls: type) -> type:
@@ -39,6 +40,25 @@ def get_enabled_agents() -> dict[str, type[BaseAgent]]:
     return {name: cls for name, cls in _registry.items() if getattr(cls, "enabled", True)}
 
 
+def register_instance(name: str, instance: BaseAgent) -> None:
+    """Register a live agent instance. Called by the container after DI wiring."""
+    _instances[name] = instance
+
+
+def get_agent(name: str) -> BaseAgent:
+    """Return the live instance for `name`. Raises UnknownAgentError if not wired."""
+    try:
+        return _instances[name]
+    except KeyError:
+        raise UnknownAgentError(f"No agent instance registered for {name!r}")
+
+
+def get_agent_instances() -> dict[str, BaseAgent]:
+    """Return all registered live instances."""
+    return dict(_instances)
+
+
 def clear_registry() -> None:
-    """Clear all registered agents. Intended for use in tests only."""
+    """Clear all registered agents and instances. Intended for use in tests only."""
     _registry.clear()
+    _instances.clear()

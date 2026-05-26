@@ -4,12 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from ze_core.capability.types import GateDecision
-
-
-@dataclass
-class MemoryContext:
-    facts: list[dict] = field(default_factory=list)
-    episodes: list[dict] = field(default_factory=list)
+from ze_core.memory.types import MemoryContext  # re-exported for AgentContext consumers
 
 
 @dataclass
