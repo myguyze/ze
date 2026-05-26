@@ -6,6 +6,7 @@ from ze_core.orchestration.registry import (
     get_agent_class,
     get_agent_instances,
     get_enabled_agents,
+    get_enabled_instances,
     get_registered_agents,
     register_instance,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "get_agent_class",
     "get_agent_instances",
     "get_enabled_agents",
+    "get_enabled_instances",
     "get_registered_agents",
     "register_instance",
 ]

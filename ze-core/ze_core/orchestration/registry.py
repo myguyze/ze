@@ -58,6 +58,11 @@ def get_agent_instances() -> dict[str, BaseAgent]:
     return dict(_instances)
 
 
+def get_enabled_instances() -> dict[str, BaseAgent]:
+    """Return all live instances (all registered instances are enabled by definition)."""
+    return dict(_instances)
+
+
 def clear_registry() -> None:
     """Clear all registered agents and instances. Intended for use in tests only."""
     _registry.clear()

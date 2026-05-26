@@ -50,3 +50,9 @@ class CapabilityError(ZeCoreError):
 
 class MemoryError(ZeCoreError):
     """Memory store operation failed."""
+
+
+# ── Tools ─────────────────────────────────────────────────────────────────────
+
+class UnknownToolError(AgentError):
+    """No tool registered for the requested name."""
