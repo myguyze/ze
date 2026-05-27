@@ -88,6 +88,7 @@ class Settings(BaseSettings):
 
     @property
     def routing_config(self) -> dict[str, Any]:
+        """Routing thresholds live in ze-core defaults; optional YAML overrides only."""
         return self.config.get("routing", {})
 
     @property

@@ -3,10 +3,11 @@ import numpy as np
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+from ze.agents.bootstrap import prepare_gate_registry
 from ze.errors import InvalidPromptError, RoutingError
 from ze.logging import configure_logging
 from ze.routing.router import EmbeddingRouter
-from ze.routing.types import RoutingEnvelope, SubTask
+from ze.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ def unit_vec(size: int = 384) -> np.ndarray:
 def make_embedder(agent_vecs: dict[str, np.ndarray], prompt_vec: np.ndarray) -> MagicMock:
     """
     Returns a mock embedder whose encode() returns:
-    - agent_vecs stacked in alphabetical agent-name order (matches settings glob sort)
+    - agent_vecs stacked in alphabetical agent-name order (matches ze-core router)
     - prompt_vec when called with a string (per-request encode)
     """
     mock = MagicMock()
@@ -34,16 +35,6 @@ def make_embedder(agent_vecs: dict[str, np.ndarray], prompt_vec: np.ndarray) -> 
     return mock
 
 
-def make_pool() -> AsyncMock:
-    """Pool whose acquire() is an async context manager returning a mock connection."""
-    pool = MagicMock()
-    conn = AsyncMock()
-    conn.execute = AsyncMock()
-    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=conn)
-    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
-    return pool
-
-
 def make_client(response: str = "{}") -> AsyncMock:
     client = AsyncMock()
     client.complete = AsyncMock(return_value=response)
@@ -54,20 +45,24 @@ def make_router(
     settings,
     embedder=None,
     client=None,
-    pool=None,
     prompt_vec=None,
 ) -> EmbeddingRouter:
     if embedder is None:
         _prompt_vec = prompt_vec or unit_vec()
-        agent_vecs = {name: unit_vec() for name in settings.agent_configs if settings.agent_configs[name].get("enabled", True)}
+        enabled = {
+            name: cfg
+            for name, cfg in settings.agent_configs.items()
+            if cfg.get("enabled", True)
+        }
+        agent_vecs = {name: unit_vec() for name in enabled}
         embedder = make_embedder(agent_vecs, _prompt_vec)
+    prepare_gate_registry(settings)
     _client = client or make_client()
-    _pool = pool or make_pool()
     return EmbeddingRouter(
         embedder=embedder,
         openrouter_client=_client,
-        db_pool=_pool,
-        settings=settings,
+        routing_store=None,
+        config=RouterConfig(),
     )
 
 
@@ -109,7 +104,7 @@ def test_router_raises_if_no_enabled_agents(settings_factory):
 
 def test_router_loads_enabled_agents_only(two_agent_settings):
     router = make_router(two_agent_settings)
-    assert set(router._agent_names) == {"research", "companion"}
+    assert set(router._agent_names) == {"companion", "research"}
 
 
 # ── route() — invalid input ───────────────────────────────────────────────────
@@ -142,7 +137,6 @@ async def test_single_agent_routes_directly(single_agent_settings):
 
 async def test_route_picks_highest_score_agent(two_agent_settings):
     research_vec = unit_vec()
-    # companion vec is orthogonal to research vec → score ≈ 0
     agent_vecs = {"research": research_vec, "companion": unit_vec()}
     embedder = make_embedder(agent_vecs=agent_vecs, prompt_vec=research_vec)
     router = make_router(two_agent_settings, embedder=embedder)
@@ -176,55 +170,42 @@ async def test_route_populates_raw_scores(two_agent_settings):
     assert "companion" in env.raw_scores
 
 
-# ── route() — Haiku fallback ─────────────────────────────────────────────────
+# ── route() — low confidence signals decompose (no inline Haiku) ─────────────
 
-async def test_route_uses_haiku_when_score_below_threshold(two_agent_settings):
-    # All scores low → haiku fallback
+async def test_route_signals_decompose_when_score_below_threshold(two_agent_settings):
     low_vec = np.zeros(384, dtype=np.float32)
-    low_vec[0] = 0.01  # tiny but nonzero
+    low_vec[0] = 0.01
 
     agent_vecs = {"research": unit_vec(), "companion": unit_vec()}
     embedder = make_embedder(agent_vecs=agent_vecs, prompt_vec=low_vec)
-    haiku_payload = json.dumps({
-        "subtasks": [{"agent": "research", "intent": "read", "prompt": "find it"}]
-    })
-    client = make_client(haiku_payload)
+    client = make_client()
     router = make_router(two_agent_settings, embedder=embedder, client=client)
 
     env = await router.route("something ambiguous", session_id="s1")
 
-    assert env.routing_method == "haiku"
-    client.complete.assert_awaited_once()
+    assert env.is_compound is True
+    assert env.routing_method == "embedding"
+    client.complete.assert_not_awaited()
 
 
-async def test_route_uses_haiku_when_gap_too_small(two_agent_settings):
-    # Two agents with very similar scores → low gap → haiku
+async def test_route_signals_decompose_when_gap_too_small(two_agent_settings):
     shared_base = unit_vec()
 
     def encode(text, **kwargs):
         if isinstance(text, list):
-            # Both agent embeddings nearly identical → both score ≈ 1.0 vs prompt
             return np.stack([shared_base, shared_base])
         return shared_base
 
     embedder = MagicMock()
     embedder.encode.side_effect = encode
 
-    haiku_payload = json.dumps({
-        "subtasks": [
-            {"agent": "research", "intent": "read", "prompt": "search part"},
-            {"agent": "companion", "intent": "reason", "prompt": "reasoning part"},
-        ]
-    })
-    client = make_client(haiku_payload)
+    client = make_client()
     router = make_router(two_agent_settings, embedder=embedder, client=client)
 
     env = await router.route("compound task", session_id="s1")
 
-    assert env.routing_method == "haiku"
     assert env.is_compound is True
-    assert env.requires_synthesis is True
-    assert len(env.subtasks) == 2
+    client.complete.assert_not_awaited()
 
 
 # ── route() — prospecting agent ──────────────────────────────────────────────
@@ -245,23 +226,6 @@ async def test_route_picks_prospecting_over_research(prospecting_and_research_se
     env = await router.route("build a prospect list of aviation CEOs in Europe", session_id="s1")
     assert env.primary_agent == "prospecting"
     assert env.confidence > 0.9
-
-
-# ── _write_log ────────────────────────────────────────────────────────────────
-
-async def test_write_log_failure_does_not_raise(two_agent_settings):
-    research_vec = unit_vec()
-    agent_vecs = {"research": research_vec, "companion": unit_vec()}
-    embedder = make_embedder(agent_vecs=agent_vecs, prompt_vec=research_vec)
-
-    pool = MagicMock()
-    pool.acquire.return_value.__aenter__ = AsyncMock(side_effect=Exception("DB down"))
-    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
-
-    router = make_router(two_agent_settings, embedder=embedder, pool=pool)
-    # Should not raise even if DB is unavailable
-    env = await router.route("search the web", session_id="s1")
-    assert env is not None
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -307,10 +271,6 @@ def settings_factory(tmp_path):
 
 
 def _make_settings(tmp_path, disable: set[str]):
-    """
-    Build Settings that point at a temp config directory where the named agents
-    have enabled=false. Copies real YAML files; no Pydantic internals patching.
-    """
     import pathlib
     import shutil
     import yaml

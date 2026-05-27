@@ -6,10 +6,10 @@ This document is the **execution plan** for moving the production Ze application
 - [`packages/ze-core/VISION_EVOLUTION.md`](../packages/ze-core/VISION_EVOLUTION.md) — rationale and long-term target architecture
 - [`specs/zc-*.md`](../specs/) — framework contracts (interface, container, orchestration, etc.)
 
-**Current state (baseline):** `ze` declares `ze-core` as a workspace dependency but
-does not import `ze_core` yet. Ze still owns parallel copies of routing, capability,
-memory, orchestration, goals, proactive, and telemetry. Telegram invokes
-`graph.ainvoke()` directly via `ZeBot`, not `Container.invoke()`.
+**Current state:** `ze` depends on `ze-core` for capability, interface, and routing.
+Ze still owns parallel copies of memory, orchestration (graph nodes), goals,
+proactive, and telemetry. Normal Telegram turns use `Container.invoke_raw_turn()`
+/ `resume_turn()` (not ze-core `Container.invoke()` yet).
 
 **Goal:** Ze runs on ze-core with **no user-visible regression**, Ze-specific code
 lives only where it belongs (Telegram, Google, contacts, workflows, prospecting, …),
@@ -153,6 +153,15 @@ ZeBot calls these instead of hand-rolled `graph.ainvoke()` for normal turns and 
 
 **Phase 3 done when:** Ze routing modules deleted or thin wrappers; sequential planning still works.
 
+**Implemented (2025-05):**
+
+- `ze_core.routing` — `EmbeddingRouter`, `ComplexityEstimator`, `fallback.decompose`, `PostgresRoutingStore`
+- `ze/routing/*` — thin re-exports; `haiku_fallback.decompose` adapter for tests
+- `sync_gate_registry` — mirrors `model` / `model_simple` for routing resolution
+- `routing:` block removed from `config.yaml`; thresholds from `RouterConfig` / ze-core defaults
+- Graph: low-confidence embedding → `decompose` node → `after_decompose` → `plan_sequential` when `is_sequential`
+- Checkpointer serde paths updated to `ze_core.routing.types`
+
 ---
 
 ### Phase 4 — Memory
@@ -282,7 +291,7 @@ Update as PRs merge:
 | 0 Prep | ✅ | | Doc + architecture link |
 | 1 Interface | ✅ | | `invoke_raw_turn` / `resume_turn` on `Container` |
 | 2 Capability | ✅ | | ze-core gate + DB overrides; YAML sync via `prepare_gate_registry` |
-| 3 Routing | ⬜ | | |
+| 3 Routing | ✅ | | ze-core router/fallback; `plan_sequential` + `after_decompose` in Ze graph |
 | 4 Memory | ⬜ | | |
 | 5 Goals / proactive | ⬜ | | |
 | 6 Telemetry / persona | ⬜ | | |

@@ -40,6 +40,8 @@ from ze.proactive.notifier import ProactiveNotifier
 from ze.proactive.reminders import CalendarReminderScheduler
 from ze.routing.complexity import ComplexityEstimator
 from ze.routing.router import EmbeddingRouter
+from ze_core.routing.store import PostgresRoutingStore
+from ze_core.routing.types import RouterConfig
 from ze.settings import Settings
 from ze.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze.interface.preprocessor import TelegramInputPreprocessor
@@ -142,8 +144,8 @@ async def build_container(settings: Settings) -> Container:
 
     serde = JsonPlusSerializer(
         allowed_msgpack_modules=[
-            ("ze.routing.types", "SubTask"),
-            ("ze.routing.types", "RoutingEnvelope"),
+            ("ze_core.routing.types", "SubTask"),
+            ("ze_core.routing.types", "RoutingEnvelope"),
             ("ze.agents.types", "ToolCall"),
             ("ze.agents.types", "AgentResult"),
             ("ze.agents.types", "AgentContext"),
@@ -167,15 +169,6 @@ async def build_container(settings: Settings) -> Container:
         http_referer=settings.openrouter_http_referer,
         title=settings.openrouter_title,
         cost_tracker=cost_tracker,
-    )
-
-    estimator = ComplexityEstimator()
-    router = EmbeddingRouter(
-        embedder=embedder,
-        openrouter_client=openrouter_client,
-        db_pool=pool,
-        settings=settings,
-        estimator=estimator,
     )
 
     memory_store = MemoryStore(
@@ -210,9 +203,17 @@ async def build_container(settings: Settings) -> Container:
     # ── Workflow ──────────────────────────────────────────────────────────────
     workflow_store = WorkflowStore(db_pool=pool)
     workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client, settings=settings)
-    workflow_graph = build_workflow_graph(checkpointer=checkpointer)
 
     prepare_gate_registry(settings)
+    estimator = ComplexityEstimator()
+    router = EmbeddingRouter(
+        embedder=embedder,
+        openrouter_client=openrouter_client,
+        routing_store=PostgresRoutingStore(pool),
+        config=RouterConfig(),
+        estimator=estimator,
+    )
+    workflow_graph = build_workflow_graph(checkpointer=checkpointer)
     override_store = PostgresCapabilityOverrideStore(pool=pool)
     capability_gate = CapabilityGate(override_store=override_store)
     await capability_gate.load_persistent_overrides()

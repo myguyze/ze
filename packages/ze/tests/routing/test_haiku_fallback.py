@@ -2,6 +2,7 @@ import json
 import pytest
 from unittest.mock import AsyncMock
 
+from ze.agents.bootstrap import prepare_gate_registry
 from ze.errors import RoutingError
 from ze.logging import configure_logging
 from ze.routing.haiku_fallback import decompose
@@ -19,12 +20,14 @@ def settings(tmp_path):
     from ze.settings import Settings, get_settings
     get_settings.cache_clear()
     real_config = pathlib.Path(__file__).parent.parent.parent / "config"
-    return Settings(
+    settings = Settings(
         openrouter_api_key="test-key",
         database_url="postgresql://ze:ze@localhost:5432/ze",
         database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
         config_dir=real_config,
     )
+    prepare_gate_registry(settings)
+    return settings
 
 
 def make_client(response: str) -> AsyncMock:
@@ -55,7 +58,6 @@ async def test_decompose_single_subtask(settings):
     env = await decompose("find AI news", raw_scores={}, client=client, settings=settings)
 
     assert client.complete.await_args.kwargs["response_format"] == {"type": "json_object"}
-    assert client.complete.await_args.kwargs["reasoning"] == {"enabled": False}
     assert isinstance(env, RoutingEnvelope)
     assert env.routing_method == "haiku"
     assert env.is_compound is False
@@ -111,18 +113,25 @@ async def test_decompose_retries_once_on_invalid_json(settings):
     assert client.complete.call_count == 2
 
 
-async def test_decompose_raises_after_two_bad_responses(settings):
+async def test_decompose_hard_fallback_after_two_bad_responses(settings):
     client = make_client("not json")
-    with pytest.raises(RoutingError, match="invalid JSON"):
-        await decompose("hi", raw_scores={}, client=client, settings=settings)
+    env = await decompose("hi", raw_scores={}, client=client, settings=settings)
 
+    assert env.routing_method == "fallback"
+    assert len(env.subtasks) == 1
     assert client.complete.call_count == 2
 
 
-async def test_decompose_raises_on_missing_subtasks_key(settings):
-    client = make_client(json.dumps({"result": []}))
-    with pytest.raises(RoutingError):
-        await decompose("hi", raw_scores={}, client=client, settings=settings)
+async def test_decompose_retries_on_missing_subtasks_key(settings):
+    client = AsyncMock()
+    client.complete = AsyncMock(side_effect=[
+        json.dumps({"result": []}),
+        single_subtask_response(),
+    ])
+    env = await decompose("hi", raw_scores={}, client=client, settings=settings)
+
+    assert env.primary_agent == "research"
+    assert client.complete.call_count == 2
 
 
 # ── Unknown agent guard ───────────────────────────────────────────────────────

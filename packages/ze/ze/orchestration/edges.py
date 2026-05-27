@@ -5,9 +5,15 @@ from ze.orchestration.state import AgentState
 def after_embed_route(state: AgentState) -> str:
     envelope = state.get("envelope")
     if envelope and envelope.is_compound:
-        if envelope.is_sequential:
-            return "plan_sequential"
         return "decompose"
+    return "fetch_context"
+
+
+def after_decompose(state: AgentState) -> str:
+    """Sequential compound tasks need WorkflowPlanner before fetch_context."""
+    envelope = state.get("envelope")
+    if envelope and envelope.is_sequential:
+        return "plan_sequential"
     return "fetch_context"
 
 

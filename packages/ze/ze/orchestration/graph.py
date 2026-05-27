@@ -37,7 +37,11 @@ def build_graph(checkpointer: AsyncPostgresSaver):
         {"decompose": "decompose", "fetch_context": "fetch_context", "plan_sequential": "plan_sequential"},
     )
     builder.add_edge("plan_sequential", END)
-    builder.add_edge("decompose", "fetch_context")
+    builder.add_conditional_edges(
+        "decompose",
+        edges.after_decompose,
+        {"plan_sequential": "plan_sequential", "fetch_context": "fetch_context"},
+    )
     builder.add_edge("fetch_context", "capability_check")
     builder.add_conditional_edges(
         "capability_check",

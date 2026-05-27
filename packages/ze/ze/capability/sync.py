@@ -38,6 +38,8 @@ def sync_gate_registry(settings: Settings) -> None:
                 "enabled": agent_cfg.get("enabled", True),
                 "capabilities": capabilities,
                 "intent_map": agent_cfg.get("intent_map", {}),
+                "model": agent_cfg.get("model", "anthropic/claude-sonnet-4-5"),
+                "model_simple": agent_cfg.get("model_simple", ""),
                 "tools": [],
             },
         )

@@ -2,7 +2,12 @@ import pytest
 
 from ze.capability.types import GateDecision
 from ze.logging import configure_logging
-from ze.orchestration.edges import after_capability_check, after_embed_route, after_execute_tool
+from ze.orchestration.edges import (
+    after_capability_check,
+    after_decompose,
+    after_embed_route,
+    after_execute_tool,
+)
 from ze.routing.types import RoutingEnvelope, SubTask
 
 
@@ -61,17 +66,23 @@ def test_after_embed_route_none_envelope_goes_to_fetch_context():
     assert after_embed_route(state) == "fetch_context"
 
 
-def test_after_embed_route_sequential_compound_goes_to_plan_sequential():
+def test_after_embed_route_sequential_compound_still_goes_to_decompose():
     state = base_state(
         envelope=make_envelope(is_compound=True, agents=("research", "email"), is_sequential=True)
     )
-    assert after_embed_route(state) == "plan_sequential"
+    assert after_embed_route(state) == "decompose"
 
 
-def test_after_embed_route_sequential_single_agent_goes_to_fetch_context():
-    # Sequential flag on a single-agent task should not trigger plan_sequential
-    state = base_state(envelope=make_envelope(is_compound=False, is_sequential=True))
-    assert after_embed_route(state) == "fetch_context"
+def test_after_decompose_sequential_goes_to_plan_sequential():
+    state = base_state(
+        envelope=make_envelope(is_compound=True, agents=("research", "email"), is_sequential=True)
+    )
+    assert after_decompose(state) == "plan_sequential"
+
+
+def test_after_decompose_non_sequential_goes_to_fetch_context():
+    state = base_state(envelope=make_envelope(is_compound=True, agents=("research", "email")))
+    assert after_decompose(state) == "fetch_context"
 
 
 # ── after_capability_check ────────────────────────────────────────────────────
@@ -111,5 +122,8 @@ def test_after_execute_tool_single_goes_to_write_memory():
 def test_after_execute_tool_compound_goes_to_synthesize():
     from ze.agents.types import AgentResult
     results = [AgentResult(agent="research", response="data")]
-    state = base_state(subtask_results=results)
+    state = base_state(
+        subtask_results=results,
+        envelope=make_envelope(is_compound=True, agents=("research", "companion")),
+    )
     assert after_execute_tool(state) == "synthesize"

@@ -1,9 +1,3 @@
-routing:
-  threshold: 0.55
-  gap_threshold: 0.10
-  embedding_model: all-MiniLM-L6-v2
-  fallback_model: anthropic/claude-haiku-4-5
-
 models:
   router:         anthropic/claude-haiku-4-5   # routing fallback + fact dedup merges
   synthesis:      anthropic/claude-haiku-4-5   # multi-agent response synthesis + episode summaries

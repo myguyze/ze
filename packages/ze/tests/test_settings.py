@@ -29,17 +29,13 @@ def test_capabilities_path_points_to_config_dir(tmp_path):
 def test_models_config_loads_yaml():
     s = make_settings()
     config = s.models_config
-    assert "routing" in config
     assert "models" in config
-    assert "threshold" in config["routing"]
+    assert "router" in config["models"]
 
 
-def test_routing_config_shortcut():
+def test_routing_config_defaults_empty_without_yaml_block():
     s = make_settings()
-    rc = s.routing_config
-    assert "threshold" in rc
-    assert "gap_threshold" in rc
-    assert "embedding_model" in rc
+    assert s.routing_config == {}
 
 
 def test_agent_configs_loads_all_agents():

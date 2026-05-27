@@ -1,90 +1,42 @@
-import base64
-
 from langchain_core.runnables import RunnableConfig
 
 from ze.capability.gate import CapabilityGate
 from ze.capability.types import GateDecision
 from ze.errors import WorkflowPlanError
 from ze.logging import get_logger
-from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.state import AgentState
 from ze.routing.router import EmbeddingRouter
-from ze.settings import Settings
 from ze.telemetry.context import set_agent_context
 from ze.workflow.planner import WorkflowPlanner
+from ze_core.orchestration.nodes.routing import decompose as zc_decompose
+from ze_core.orchestration.nodes.routing import embed_route as zc_embed_route
 
 log = get_logger(__name__)
 
 
-async def _vision_caption(
-    image_data: bytes,
-    image_mime: str,
-    client: OpenRouterClient,
-    model: str,
-) -> str:
-    """Call a cheap vision model for a one-sentence routing description."""
-    message = {
-        "role": "user",
-        "content": [
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:{image_mime};base64,{base64.b64encode(image_data).decode()}",
-                    "detail": "low",
-                },
-            },
-            {"type": "text", "text": "Describe this image in one sentence for intent classification."},
-        ],
-    }
-    return await client.complete(messages=[message], model=model, max_tokens=80)
-
-
 async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
     """Score the prompt against agent embeddings and produce a RoutingEnvelope."""
-    router: EmbeddingRouter = config["configurable"]["router"]
-    updates: dict = {}
-
-    routing_text = state["prompt"]
-
-    if state.get("input_modality") == "image":
-        if not state.get("prompt"):
-            client: OpenRouterClient = config["configurable"]["openrouter_client"]
-            settings: Settings = config["configurable"]["settings"]
-            caption_model = settings.config.get("models", {}).get(
-                "vision_caption", "google/gemini-flash-1.5"
-            )
-            caption = await _vision_caption(
-                state["image_data"], state["image_mime"], client, caption_model
-            )
-            routing_text = caption
-            updates["image_caption"] = caption
-        else:
-            updates["image_caption"] = state["prompt"]
-
-    envelope = await router.route(
-        prompt=routing_text,
-        session_id=state["session_id"],
-    )
-    log.info(
-        "orchestration_routed",
-        session_id=state["session_id"],
-        primary_agent=envelope.primary_agent,
-        routing_method=envelope.routing_method,
-        is_compound=envelope.is_compound,
-        is_sequential=envelope.is_sequential,
-    )
-
-    updates["envelope"] = envelope
-    return updates
+    return await zc_embed_route(state, config)
 
 
 async def decompose(state: AgentState, config: RunnableConfig) -> dict:
-    """
-    For compound tasks the EmbeddingRouter already called haiku_fallback.decompose()
-    internally. This node is a no-op passthrough that keeps the graph readable.
-    The envelope already has all subtasks populated.
-    """
-    return {}
+    """LLM decomposition when embedding confidence is low (ze-core fallback)."""
+    result = await zc_decompose(state, config)
+    envelope = result.get("envelope")
+    if not envelope or not envelope.subtasks:
+        return result
+
+    router: EmbeddingRouter | None = config["configurable"].get("router")
+    if router is None:
+        return result
+
+    prompt = state["prompt"]
+    primary_intent = envelope.subtasks[0].intent
+    complexity = router._estimator.classify(prompt, primary_intent, envelope.confidence)
+    for subtask in envelope.subtasks:
+        subtask.model = router._resolve_model(subtask.agent, complexity)
+    envelope.complexity = complexity
+    return result
 
 
 async def plan_sequential(state: AgentState, config: RunnableConfig) -> dict:

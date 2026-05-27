@@ -2,14 +2,9 @@ class ZeError(Exception):
     """Base exception for all Ze errors."""
 
 
-# ── Routing ───────────────────────────────────────────────────────────────────
+# ── Routing (ze-core) ─────────────────────────────────────────────────────────
 
-class RoutingError(ZeError):
-    """Routing failed after all attempts."""
-
-
-class InvalidPromptError(RoutingError):
-    """Prompt is empty or invalid."""
+from ze_core.errors import InvalidPromptError, RoutingError  # noqa: E402
 
 
 # ── Agents ────────────────────────────────────────────────────────────────────
