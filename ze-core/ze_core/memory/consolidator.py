@@ -15,7 +15,7 @@ from ze_core.defaults import (
     MODEL_SYNTHESIS,
 )
 from ze_core.logging import get_logger
-from ze_core.storage.postgres import _cosine_similarity, _parse_update_count, _to_list
+from ze_core.memory.postgres import _cosine_similarity, _parse_update_count, _to_list
 from ze_core.memory.types import ConsolidationReport
 
 log = get_logger(__name__)

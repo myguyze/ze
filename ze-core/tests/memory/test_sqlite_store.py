@@ -6,7 +6,7 @@ import pytest
 
 from ze_core.container import _sqlite_db_path
 from ze_core.memory.types import UserFact
-from ze_core.storage.sqlite import SQLiteMemoryStore, _cosine
+from ze_core.memory.sqlite import SQLiteMemoryStore, _cosine
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────

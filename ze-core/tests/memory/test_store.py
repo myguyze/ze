@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_core.storage.postgres import PostgresMemoryStore as MemoryStore, _cosine_similarity
+from ze_core.memory.postgres import PostgresMemoryStore as MemoryStore, _cosine_similarity
 from ze_core.memory.types import Episode, MemoryContext, UserFact, UserProfile
 
 

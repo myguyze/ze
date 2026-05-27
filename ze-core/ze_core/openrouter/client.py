@@ -151,6 +151,73 @@ class OpenRouterClient:
                     except (json.JSONDecodeError, KeyError):
                         pass
 
+    async def complete_with_usage(
+        self,
+        messages: list[dict],
+        model: str,
+        system: str | None = None,
+        temperature: float = 0.3,
+        max_tokens: int | None = None,
+        response_format: dict | None = None,
+        **kwargs: Any,
+    ) -> tuple[str, dict]:
+        """Like complete(), but also returns usage metadata.
+
+        Returns (text, usage) where usage has keys:
+          prompt_tokens, completion_tokens, total_tokens, generation_id, duration_ms.
+        """
+        import time
+
+        session = await self._get_session()
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": _build_messages(messages, system),
+            "temperature": temperature,
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+        if response_format is not None:
+            payload["response_format"] = response_format
+        payload.update(kwargs)
+
+        t0 = time.monotonic()
+        async with session.post(
+            f"{self._base_url}/chat/completions", json=payload
+        ) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+        duration_ms = int((time.monotonic() - t0) * 1000)
+
+        text = data["choices"][0]["message"]["content"]
+        usage_raw = data.get("usage") or {}
+        usage = {
+            "prompt_tokens": usage_raw.get("prompt_tokens", 0),
+            "completion_tokens": usage_raw.get("completion_tokens", 0),
+            "total_tokens": usage_raw.get("total_tokens", 0),
+            "generation_id": data.get("id"),
+            "duration_ms": duration_ms,
+        }
+        return text, usage
+
+    async def fetch_generation_cost(self, generation_id: str) -> float | None:
+        """Fetch the actual USD cost of a generation from OpenRouter.
+
+        Returns None if the cost is unavailable or the request fails.
+        """
+        session = await self._get_session()
+        try:
+            async with session.get(
+                f"{self._base_url}/generation",
+                params={"id": generation_id},
+            ) as resp:
+                if resp.status != 200:
+                    return None
+                data = await resp.json()
+                return data.get("data", {}).get("total_cost")
+        except Exception as exc:
+            log.warning("fetch_generation_cost_failed", generation_id=generation_id, error=str(exc))
+            return None
+
     async def aclose(self) -> None:
         if self._session is not None:
             await self._session.close()

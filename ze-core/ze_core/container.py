@@ -270,7 +270,7 @@ class Container:
 
         # 11. Build MemoryStore and MemoryConsolidator
         if is_sqlite:
-            from ze_core.storage.sqlite import SQLiteMemoryStore
+            from ze_core.memory.sqlite import SQLiteMemoryStore
 
             db_path = _sqlite_db_path(settings.database_url)
             memory_store = SQLiteMemoryStore(
@@ -283,7 +283,7 @@ class Container:
             memory_consolidator = None  # consolidation not supported for SQLite yet
         else:
             from ze_core.memory.consolidator import MemoryConsolidator
-            from ze_core.storage.postgres import PostgresMemoryStore
+            from ze_core.memory.postgres import PostgresMemoryStore
 
             memory_store = PostgresMemoryStore(
                 pool=pool,
