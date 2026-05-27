@@ -5,6 +5,7 @@ description = "Ze personal AI assistant"
 requires-python = ">=3.12"
 dependencies = [
     "ze-core",
+    "ze-browser",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "httpx[http2]>=0.28",
@@ -44,6 +45,7 @@ dev = [
 
 [tool.uv.sources]
 ze-core = { workspace = true }
+ze-browser = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

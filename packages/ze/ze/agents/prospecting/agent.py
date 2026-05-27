@@ -9,7 +9,7 @@ import ze.tools.prospecting  # noqa: F401 — registers add_prospect, draft_outr
 from ze.agents.base import BaseAgent
 from ze.agents.registry import register
 from ze.agents.types import AgentContext, AgentResult
-from ze.browser.client import BrowserClient
+from ze_browser import BrowserClient
 from ze.contacts.store import PersonStore
 from ze.openrouter.client import OpenRouterClient
 from ze.settings import Settings

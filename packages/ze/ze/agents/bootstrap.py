@@ -7,7 +7,7 @@ import asyncpg
 from tavily import AsyncTavilyClient
 
 from ze.agents.registry import _registry, register_instance
-from ze.browser.client import BrowserClient
+from ze_browser import BrowserClient
 from ze.contacts.channel_store import ContactChannelStore
 from ze.contacts.store import PersonStore
 from ze.errors import AgentConfigError

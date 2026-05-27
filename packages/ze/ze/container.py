@@ -9,7 +9,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from ze.agents.bootstrap import bootstrap_agents
-from ze.browser.client import BrowserClient
+from ze_browser import BrowserClient
 from ze.capability.gate import CapabilityGate
 from ze.channels.email import EmailChannel
 from ze.channels.registry import ChannelRegistry

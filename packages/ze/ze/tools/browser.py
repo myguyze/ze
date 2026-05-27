@@ -3,7 +3,7 @@ import time
 
 from ze.agents.tool import ToolAccess, tool
 from ze.agents.types import ToolCall
-from ze.browser.client import BrowserClient
+from ze_browser import BrowserClient
 from ze.settings import Settings
 
 _BLOCKED_MSG = "[blocked or empty — skip this URL]"
