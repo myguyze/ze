@@ -266,6 +266,121 @@ class PostgresMemoryStore:
             return self._settings.get("models", {}).get("synthesis", MODEL_SYNTHESIS)
         return MODEL_SYNTHESIS
 
+    # ── consolidation methods ─────────────────────────────────────────────────
+
+    async def fetch_active_facts(self) -> list:
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT id, key, value, agent, confidence"
+                " FROM user_facts WHERE contradicted = false ORDER BY updated_at DESC"
+            )
+
+    async def mark_contradicted(self, fact_id: Any) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE user_facts SET contradicted = true WHERE id = $1", fact_id
+            )
+
+    async def insert_merged_fact(
+        self, key: str, value: str, agent: str, confidence: float, embedding: Any
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO user_facts (key, value, agent, confidence, embedding)"
+                " VALUES ($1, $2, $3, $4, $5::vector)",
+                key, value, agent, confidence, _to_list(embedding),
+            )
+
+    async def expire_unreviewed_facts(self, ttl_days: int) -> int:
+        async with self._pool.acquire() as conn:
+            result = await conn.execute(
+                "UPDATE user_facts SET contradicted = true"
+                " WHERE reviewed = false AND contradicted = false"
+                " AND updated_at < NOW() - $1::interval",
+                f"{ttl_days} days",
+            )
+        return _parse_update_count(result)
+
+    async def delete_contradicted_facts(self, ttl_days: int) -> int:
+        async with self._pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM user_facts WHERE contradicted = true"
+                " AND updated_at < NOW() - $1::interval",
+                f"{ttl_days} days",
+            )
+        return _parse_update_count(result)
+
+    async def fetch_episode_candidates(self, recency_days: int, max_batch: int) -> list:
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT id, prompt, response, summary FROM episodes"
+                " WHERE is_archive = false"
+                " AND created_at < NOW() - $1::interval"
+                " ORDER BY created_at ASC LIMIT $2",
+                f"{recency_days} days",
+                max_batch,
+            )
+
+    async def delete_old_episode_summaries(self, recency_days: int) -> int:
+        async with self._pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM episodes WHERE is_archive = false"
+                " AND summary IS NOT NULL"
+                " AND created_at < NOW() - $1::interval",
+                f"{recency_days * 2} days",
+            )
+        return _parse_update_count(result)
+
+    async def insert_archive_episode(self, archive_text: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO episodes (agent, prompt, response, summary, is_archive)"
+                " VALUES ('consolidator', 'archive', $1, $1, true)",
+                archive_text,
+            )
+
+    async def delete_episodes_by_ids(self, ids: list) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "DELETE FROM episodes WHERE id = ANY($1::uuid[])", ids
+            )
+
+    async def fetch_active_fact_summaries(self, limit: int) -> list:
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT key, value FROM user_facts WHERE contradicted = false"
+                " ORDER BY updated_at DESC LIMIT $1",
+                limit,
+            )
+
+    async def fetch_recent_episode_summaries(self, limit: int) -> list:
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT summary FROM episodes WHERE summary IS NOT NULL"
+                " ORDER BY created_at DESC LIMIT $1",
+                limit,
+            )
+
+    async def upsert_profile(
+        self,
+        preferences: str,
+        habits: str,
+        topics: str,
+        relationships: str,
+        goals: str,
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO user_profile"
+                " (id, preferences, habits, topics, relationships, goals, updated_at, version)"
+                " VALUES (1, $1, $2, $3, $4, $5, NOW(), 1)"
+                " ON CONFLICT (id) DO UPDATE SET"
+                " preferences = $1, habits = $2, topics = $3,"
+                " relationships = $4, goals = $5,"
+                " updated_at = NOW(), version = user_profile.version + 1",
+                preferences, habits, topics, relationships, goals,
+            )
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 

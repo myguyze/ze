@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any
 
 from ze_core.errors import InvalidPromptError, RoutingError
 from ze_core.logging import get_logger
 from ze_core.orchestration.registry import get_enabled_agents
 from ze_core.routing.complexity import ComplexityEstimator
+from ze_core.routing.store import RoutingStore
 from ze_core.routing.types import LLMClient, RouterConfig, RoutingEnvelope, SubTask
 
 log = get_logger(__name__)
@@ -18,13 +18,13 @@ class EmbeddingRouter:
         self,
         embedder: Any,
         openrouter_client: LLMClient,
-        db_pool: Any,
+        routing_store: RoutingStore | None = None,
         config: RouterConfig | None = None,
         estimator: ComplexityEstimator | None = None,
     ) -> None:
         self._embedder = embedder
         self._client = openrouter_client
-        self._pool = db_pool
+        self._store = routing_store
         self._config = config or RouterConfig()
         self._estimator = estimator or ComplexityEstimator()
 
@@ -45,7 +45,8 @@ class EmbeddingRouter:
         else:
             envelope = await self._score_and_route(prompt)
 
-        asyncio.create_task(self._write_log(session_id, prompt, envelope))
+        if self._store is not None:
+            asyncio.create_task(self._store.write_log(session_id, prompt, envelope))
         return envelope
 
     # ── Private ───────────────────────────────────────────────────────────────
@@ -141,31 +142,3 @@ class EmbeddingRouter:
             complexity=complexity,
         )
 
-    async def _write_log(
-        self, session_id: str, prompt: str, envelope: RoutingEnvelope
-    ) -> None:
-        if self._pool is None:
-            return
-        try:
-            async with self._pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    INSERT INTO routing_log
-                        (session_id, prompt, method, primary_agent,
-                         confidence, score_gap, is_compound, raw_scores,
-                         complexity, model_selected)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10)
-                    """,
-                    session_id,
-                    prompt,
-                    envelope.routing_method,
-                    envelope.primary_agent,
-                    envelope.confidence,
-                    envelope.score_gap,
-                    envelope.is_compound,
-                    json.dumps(envelope.raw_scores),
-                    envelope.complexity,
-                    envelope.subtasks[0].model if envelope.subtasks else None,
-                )
-        except Exception as exc:
-            log.warning("routing_log_write_failed", error=str(exc))

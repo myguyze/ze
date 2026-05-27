@@ -3,7 +3,6 @@ Router tests use a fake embedder that returns pre-canned vectors, avoiding
 any dependency on sentence_transformers or numpy.
 """
 import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,6 +11,7 @@ from ze_core.errors import InvalidPromptError, RoutingError
 from ze_core.orchestration import agent, clear_registry
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.routing.router import EmbeddingRouter
+from ze_core.routing.store import PostgresRoutingStore, RoutingStore
 from ze_core.routing.types import RouterConfig
 
 
@@ -70,12 +70,10 @@ class _FakeEmbedder:
         return self._prompt_vec
 
 
-def _make_pool() -> MagicMock:
-    pool = MagicMock()
-    conn = AsyncMock()
-    conn.execute = AsyncMock()
-    pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=conn), __aexit__=AsyncMock()))
-    return pool
+def _make_routing_store() -> AsyncMock:
+    store = AsyncMock(spec=PostgresRoutingStore)
+    store.write_log = AsyncMock()
+    return store
 
 
 def _make_client(response: str = "{}") -> AsyncMock:
@@ -88,7 +86,7 @@ class TestRouteEmptyPrompt:
     def _router(self):
         _register("a")
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
-        return EmbeddingRouter(embedder, _make_client(), _make_pool())
+        return EmbeddingRouter(embedder, _make_client(), _make_routing_store())
 
     async def test_empty_string_raises(self):
         r = self._router()
@@ -105,7 +103,7 @@ class TestSingleAgentShortCircuit:
     async def test_returns_embedding_method_no_scoring(self):
         _register("solo", model="m-solo", intent_map={"execute": "Execute"})
         embedder = _FakeEmbedder({"solo": [1.0]}, [1.0])
-        r = EmbeddingRouter(embedder, _make_client(), _make_pool())
+        r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
         env = await r.route("do something", "s1")
         assert env.primary_agent == "solo"
         assert env.routing_method == "embedding"
@@ -114,7 +112,7 @@ class TestSingleAgentShortCircuit:
 
     async def test_no_enabled_agents_raises_at_construction(self):
         with pytest.raises(RoutingError, match="No enabled agents"):
-            EmbeddingRouter(_FakeEmbedder({}, []), _make_client(), _make_pool())
+            EmbeddingRouter(_FakeEmbedder({}, []), _make_client(), _make_routing_store())
 
 
 class TestEmbeddingRouting:
@@ -126,7 +124,7 @@ class TestEmbeddingRouting:
             {"alpha": [top_score, 0.0], "beta": [second_score, 0.0]},
             [1.0, 0.0],
         )
-        return EmbeddingRouter(embedder, _make_client(), _make_pool(), config=cfg)
+        return EmbeddingRouter(embedder, _make_client(), _make_routing_store(), config=cfg)
 
     async def test_high_confidence_routes_by_embedding(self):
         r = self._two_agent_router(0.9, 0.3)
@@ -143,7 +141,7 @@ class TestEmbeddingRouting:
             [1.0, 0.0],
         )
         client = _make_client()
-        r = EmbeddingRouter(embedder, client, _make_pool())
+        r = EmbeddingRouter(embedder, client, _make_routing_store())
         env = await r.route("hello", "s1")
         # Router no longer calls the LLM — it signals the graph via is_compound=True
         assert env.routing_method == "embedding"
@@ -159,7 +157,7 @@ class TestEmbeddingRouting:
             [1.0, 0.0],
         )
         client = _make_client()
-        r = EmbeddingRouter(embedder, client, _make_pool(), config=RouterConfig(gap_threshold=0.10))
+        r = EmbeddingRouter(embedder, client, _make_routing_store(), config=RouterConfig(gap_threshold=0.10))
         env = await r.route("hello", "s1")
         assert env.routing_method == "embedding"
         assert env.is_compound is True
@@ -170,7 +168,7 @@ class TestModelResolution:
     async def test_uses_model_simple_for_simple_prompt(self):
         _register("a", model="big-model", model_simple="small-model", intent_map={"read": "Read"})
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
-        r = EmbeddingRouter(embedder, _make_client(), _make_pool())
+        r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
         # Short simple prompt → should be "simple" complexity
         env = await r.route("what is python", "s1")
         assert env.subtasks[0].model == "small-model"
@@ -178,21 +176,38 @@ class TestModelResolution:
     async def test_uses_primary_model_for_complex_prompt(self):
         _register("a", model="big-model", model_simple="small-model", intent_map={"reason": "Reason"})
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
-        r = EmbeddingRouter(embedder, _make_client(), _make_pool())
+        r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
         long_complex = "analyze and explain in depth the trade-offs between " + " ".join(["word"] * 30)
         env = await r.route(long_complex, "s1")
         assert env.subtasks[0].model == "big-model"
 
 
 class TestRoutingLog:
-    async def test_log_write_failure_is_swallowed(self):
+    async def test_write_log_called_after_route(self):
         _register("a")
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
-        bad_pool = MagicMock()
-        bad_pool.acquire = MagicMock(side_effect=Exception("DB down"))
-        r = EmbeddingRouter(embedder, _make_client(), bad_pool)
-        # Should not raise
+        store = _make_routing_store()
+        r = EmbeddingRouter(embedder, _make_client(), store)
+        await r.route("hello", "s1")
+        await asyncio.sleep(0)
+        store.write_log.assert_awaited_once()
+        args = store.write_log.call_args[0]
+        assert args[0] == "s1"
+        assert args[1] == "hello"
+
+    async def test_no_store_does_not_raise(self):
+        _register("a")
+        embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
+        r = EmbeddingRouter(embedder, _make_client(), routing_store=None)
         env = await r.route("hello", "s1")
         assert env.primary_agent == "a"
-        # Let the fire-and-forget task run
+
+    async def test_store_write_failure_is_swallowed(self):
+        _register("a")
+        embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
+        bad_store = AsyncMock(spec=PostgresRoutingStore)
+        bad_store.write_log = AsyncMock(side_effect=Exception("DB down"))
+        r = EmbeddingRouter(embedder, _make_client(), bad_store)
+        env = await r.route("hello", "s1")
+        assert env.primary_agent == "a"
         await asyncio.sleep(0)

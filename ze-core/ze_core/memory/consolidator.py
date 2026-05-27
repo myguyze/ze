@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ze_core.defaults import (
     MEMORY_CONTRADICTED_TTL_DAYS,
@@ -15,7 +15,7 @@ from ze_core.defaults import (
     MODEL_SYNTHESIS,
 )
 from ze_core.logging import get_logger
-from ze_core.memory.postgres import _cosine_similarity, _parse_update_count, _to_list
+from ze_core.memory.postgres import PostgresMemoryStore, _cosine_similarity, _to_list
 from ze_core.memory.types import ConsolidationReport
 
 log = get_logger(__name__)
@@ -26,12 +26,12 @@ _PROFILE_KEYS = {"preferences", "habits", "topics", "relationships", "goals"}
 class MemoryConsolidator:
     def __init__(
         self,
-        pool: Any,
+        store: PostgresMemoryStore,
         embedder: Any,
         openrouter_client: Any,
         settings: Any = None,
     ) -> None:
-        self._pool = pool
+        self._store = store
         self._embedder = embedder
         self._client = openrouter_client
         self._settings = settings
@@ -67,11 +67,7 @@ class MemoryConsolidator:
         silent_threshold = cfg.get("merge_silent_threshold", MEMORY_MERGE_SILENT_THRESHOLD)
         llm_threshold = cfg.get("merge_llm_threshold", MEMORY_MERGE_LLM_THRESHOLD)
 
-        async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT id, key, value, agent, confidence FROM user_facts"
-                " WHERE contradicted = false ORDER BY updated_at DESC"
-            )
+        rows = await self._store.fetch_active_facts()
 
         if len(rows) < 2:
             return 0
@@ -94,38 +90,19 @@ class MemoryConsolidator:
                         else (j, i)
                     )
                     contradicted_ids.add(rows[drop]["id"])
-                    async with self._pool.acquire() as conn:
-                        await conn.execute(
-                            "UPDATE user_facts SET contradicted = true WHERE id = $1",
-                            rows[drop]["id"],
-                        )
+                    await self._store.mark_contradicted(rows[drop]["id"])
                     merged += 1
                 elif sim >= llm_threshold:
-                    merged_value = await self._llm_merge(
-                        rows[i]["value"], rows[j]["value"]
-                    )
+                    merged_value = await self._llm_merge(rows[i]["value"], rows[j]["value"])
                     if merged_value:
                         new_emb = self._embedder.encode(merged_value)
-                        emb_list = _to_list(new_emb)
-                        async with self._pool.acquire() as conn:
-                            await conn.execute(
-                                "UPDATE user_facts SET contradicted = true WHERE id = $1",
-                                rows[i]["id"],
-                            )
-                            await conn.execute(
-                                "UPDATE user_facts SET contradicted = true WHERE id = $1",
-                                rows[j]["id"],
-                            )
-                            await conn.execute(
-                                "INSERT INTO user_facts"
-                                " (key, value, agent, confidence, embedding)"
-                                " VALUES ($1, $2, $3, $4, $5::vector)",
-                                rows[i]["key"],
-                                merged_value,
-                                rows[i]["agent"],
-                                max(rows[i]["confidence"], rows[j]["confidence"]),
-                                emb_list,
-                            )
+                        await self._store.mark_contradicted(rows[i]["id"])
+                        await self._store.mark_contradicted(rows[j]["id"])
+                        await self._store.insert_merged_fact(
+                            rows[i]["key"], merged_value, rows[i]["agent"],
+                            max(rows[i]["confidence"], rows[j]["confidence"]),
+                            new_emb,
+                        )
                         contradicted_ids.add(rows[i]["id"])
                         contradicted_ids.add(rows[j]["id"])
                         merged += 1
@@ -136,22 +113,9 @@ class MemoryConsolidator:
         cfg = self._memory_config()
         unreviewed_ttl = cfg.get("unreviewed_ttl_days", MEMORY_UNREVIEWED_TTL_DAYS)
         contradicted_ttl = cfg.get("contradicted_ttl_days", MEMORY_CONTRADICTED_TTL_DAYS)
-
-        async with self._pool.acquire() as conn:
-            soft = await conn.execute(
-                "UPDATE user_facts SET contradicted = true"
-                " WHERE reviewed = false AND contradicted = false"
-                " AND updated_at < NOW() - $1::interval",
-                f"{unreviewed_ttl} days",
-            )
-            hard = await conn.execute(
-                "DELETE FROM user_facts"
-                " WHERE contradicted = true"
-                " AND updated_at < NOW() - $1::interval",
-                f"{contradicted_ttl} days",
-            )
-
-        return _parse_update_count(soft), _parse_update_count(hard)
+        soft = await self._store.expire_unreviewed_facts(unreviewed_ttl)
+        hard = await self._store.delete_contradicted_facts(contradicted_ttl)
+        return soft, hard
 
     async def archive_episodes(self) -> tuple[int, int]:
         cfg = self._memory_config()
@@ -159,25 +123,11 @@ class MemoryConsolidator:
         min_batch = cfg.get("episode_min_archive_batch", MEMORY_EPISODE_MIN_ARCHIVE_BATCH)
         max_batch = cfg.get("episode_archive_batch", MEMORY_EPISODE_ARCHIVE_BATCH)
 
-        async with self._pool.acquire() as conn:
-            candidates = await conn.fetch(
-                "SELECT id, prompt, response, summary FROM episodes"
-                " WHERE is_archive = false"
-                " AND created_at < NOW() - $1::interval"
-                " ORDER BY created_at ASC LIMIT $2",
-                f"{recency_days} days",
-                max_batch,
-            )
+        candidates = await self._store.fetch_episode_candidates(recency_days, max_batch)
 
         if len(candidates) < min_batch:
-            async with self._pool.acquire() as conn:
-                result = await conn.execute(
-                    "DELETE FROM episodes WHERE is_archive = false"
-                    " AND summary IS NOT NULL"
-                    " AND created_at < NOW() - $1::interval",
-                    f"{recency_days * 2} days",
-                )
-            return 0, _parse_update_count(result)
+            deleted = await self._store.delete_old_episode_summaries(recency_days)
+            return 0, deleted
 
         parts = "\n\n".join(
             f"[{i + 1}] User: {r['prompt']}\nAssistant: {r['response']}"
@@ -185,45 +135,26 @@ class MemoryConsolidator:
         )
         try:
             archive_text = await self._client.complete(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Create a concise archival summary of these"
-                            f" {len(candidates)} conversations:\n\n{parts}"
-                        ),
-                    }
-                ],
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        f"Create a concise archival summary of these"
+                        f" {len(candidates)} conversations:\n\n{parts}"
+                    ),
+                }],
                 model=self._synthesis_model(),
             )
         except Exception as exc:
             log.warning("memory_archive_summarize_failed", error=str(exc))
             return 0, 0
 
-        ids = [r["id"] for r in candidates]
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                "INSERT INTO episodes (agent, prompt, response, summary, is_archive)"
-                " VALUES ('consolidator', 'archive', $1, $1, true)",
-                archive_text,
-            )
-            await conn.execute(
-                "DELETE FROM episodes WHERE id = ANY($1::uuid[])",
-                ids,
-            )
-
+        await self._store.insert_archive_episode(archive_text)
+        await self._store.delete_episodes_by_ids([r["id"] for r in candidates])
         return len(candidates), 0
 
     async def update_profile(self) -> bool:
-        async with self._pool.acquire() as conn:
-            facts_rows = await conn.fetch(
-                "SELECT key, value FROM user_facts WHERE contradicted = false"
-                " ORDER BY updated_at DESC LIMIT 100"
-            )
-            episode_rows = await conn.fetch(
-                "SELECT summary FROM episodes WHERE summary IS NOT NULL"
-                " ORDER BY created_at DESC LIMIT 20"
-            )
+        facts_rows = await self._store.fetch_active_fact_summaries(limit=100)
+        episode_rows = await self._store.fetch_recent_episode_summaries(limit=20)
 
         if not facts_rows and not episode_rows:
             return False
@@ -250,21 +181,13 @@ class MemoryConsolidator:
             log.warning("memory_update_profile_failed", error=str(exc))
             return False
 
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                "INSERT INTO user_profile"
-                " (id, preferences, habits, topics, relationships, goals, updated_at, version)"
-                " VALUES (1, $1, $2, $3, $4, $5, NOW(), 1)"
-                " ON CONFLICT (id) DO UPDATE SET"
-                " preferences = $1, habits = $2, topics = $3,"
-                " relationships = $4, goals = $5,"
-                " updated_at = NOW(), version = user_profile.version + 1",
-                profile_data["preferences"],
-                profile_data["habits"],
-                profile_data["topics"],
-                profile_data["relationships"],
-                profile_data["goals"],
-            )
+        await self._store.upsert_profile(
+            profile_data["preferences"],
+            profile_data["habits"],
+            profile_data["topics"],
+            profile_data["relationships"],
+            profile_data["goals"],
+        )
         return True
 
     # ── internal ──────────────────────────────────────────────────────────────
@@ -272,16 +195,14 @@ class MemoryConsolidator:
     async def _llm_merge(self, value_a: str, value_b: str) -> str | None:
         try:
             return await self._client.complete(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Merge these two similar facts into one concise fact:\n"
-                            f"Fact 1: {value_a}\nFact 2: {value_b}\n"
-                            "Return only the merged fact text, nothing else."
-                        ),
-                    }
-                ],
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        f"Merge these two similar facts into one concise fact:\n"
+                        f"Fact 1: {value_a}\nFact 2: {value_b}\n"
+                        "Return only the merged fact text, nothing else."
+                    ),
+                }],
                 model=self._synthesis_model(),
             )
         except Exception as exc:

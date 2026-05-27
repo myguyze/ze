@@ -256,10 +256,13 @@ class Container:
             gap_threshold=routing_cfg.get("gap_threshold", _defaults.gap_threshold),
             fallback_model=routing_cfg.get("fallback_model", _defaults.fallback_model),
         )
+        from ze_core.routing.store import PostgresRoutingStore
+
+        routing_store = PostgresRoutingStore(pool) if not is_sqlite else None
         router = EmbeddingRouter(
             embedder=embedder,
             openrouter_client=openrouter_client,
-            db_pool=pool,
+            routing_store=routing_store,
             config=router_config,
         )
 
@@ -292,7 +295,7 @@ class Container:
                 settings=settings,
             )
             memory_consolidator = MemoryConsolidator(
-                pool=pool,
+                store=memory_store,
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,
