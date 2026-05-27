@@ -40,8 +40,11 @@ from ze.proactive.reminders import CalendarReminderScheduler
 from ze.routing.complexity import ComplexityEstimator
 from ze.routing.router import EmbeddingRouter
 from ze.settings import Settings
+from ze.interface.preprocessor import TelegramInputPreprocessor
+from ze.interface.telegram import TelegramInterface
 from ze.telegram.bot import ZeBot
 from ze.telegram.session import ActiveSessionStore
+from ze_core.interface.validation import validate_interface
 from ze.telemetry.reconciler import CostReconciler
 from ze.telemetry.tracker import CostTracker
 from ze.transcription.client import TranscriptionClient
@@ -64,10 +67,12 @@ class Container:
     router: EmbeddingRouter
     capability_gate: CapabilityGate
     memory_store: MemoryStore
+    persona_store: PersonaStore
     person_store: PersonStore
     memory_consolidator: MemoryConsolidator
     contacts_consolidator: ContactsConsolidator
     workflow_store: WorkflowStore
+    workflow_planner: WorkflowPlanner
     workflow_scheduler: WorkflowScheduler
     graph: object
     bot: Bot
@@ -81,6 +86,26 @@ class Container:
     contact_channel_store: ContactChannelStore
     goal_store: GoalStore
     goal_executor: GoalExecutor
+    interface: TelegramInterface
+    preprocessor: TelegramInputPreprocessor
+
+    def make_graph_config(self, chat_id: int | str, **configurable_extra: object) -> dict:
+        """LangGraph config for the main conversation graph."""
+        configurable: dict = {
+            "thread_id": str(chat_id),
+            "router": self.router,
+            "capability_gate": self.capability_gate,
+            "memory_store": self.memory_store,
+            "persona_store": self.persona_store,
+            "person_store": self.person_store,
+            "openrouter_client": self.openrouter_client,
+            "embedder": self.embedder,
+            "settings": self.settings,
+            "workflow_planner": self.workflow_planner,
+            "contact_channel_store": self.contact_channel_store,
+        }
+        configurable.update(configurable_extra)
+        return {"configurable": configurable}
 
     async def close(self) -> None:
         await self.workflow_scheduler.stop()
@@ -186,10 +211,13 @@ async def build_container(settings: Settings) -> Container:
     }
 
     bot = Bot(token=settings.telegram_bot_token)
-    notifier = ProactiveNotifier(
-        bot=bot,
-        chat_id=int(settings.telegram_allowed_chat_id) if settings.telegram_allowed_chat_id else 0,
+    telegram_chat_id = (
+        int(settings.telegram_allowed_chat_id)
+        if settings.telegram_allowed_chat_id
+        else 0
     )
+    interface = TelegramInterface(bot=bot, chat_id=telegram_chat_id)
+    validate_interface(interface)
 
     proactive_cfg = settings.proactive_config
     workflow_scheduler = WorkflowScheduler(
@@ -384,6 +412,8 @@ async def build_container(settings: Settings) -> Container:
         model=whisper_model,
         logger=get_logger("ze.transcription"),
     )
+    preprocessor = TelegramInputPreprocessor(transcription_client=transcription_client)
+    notifier = ProactiveNotifier(interface=interface)
 
     locale = settings.persona_config.get("locale", "en")
     translations = ProgressTranslations.load(locale, settings.config_dir)
@@ -409,6 +439,8 @@ async def build_container(settings: Settings) -> Container:
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
+        interface=interface,
+        preprocessor=preprocessor,
     )
 
     return Container(
@@ -420,10 +452,12 @@ async def build_container(settings: Settings) -> Container:
         router=router,
         capability_gate=capability_gate,
         memory_store=memory_store,
+        persona_store=persona_store,
         person_store=person_store,
         memory_consolidator=memory_consolidator,
         contacts_consolidator=contacts_consolidator,
         workflow_store=workflow_store,
+        workflow_planner=workflow_planner,
         workflow_scheduler=workflow_scheduler,
         graph=graph,
         bot=bot,
@@ -437,4 +471,6 @@ async def build_container(settings: Settings) -> Container:
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
+        interface=interface,
+        preprocessor=preprocessor,
     )

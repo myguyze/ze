@@ -104,6 +104,18 @@ Ze still uses its own graph for this phase; only the **transport boundary** chan
 **Phase 1 done when:** Normal text message → `invoke_raw` → response; confirm button →
 pause → callback → `resume` → response; proactive pushes use `interface.push()`.
 
+**Implemented (2025-05):**
+
+- `ze/interface/telegram.py` — `TelegramInterface` (`async` confirmation, `send`, `push`, `push_with_keyboard`)
+- `ze/interface/preprocessor.py` — voice/image/text → `ProcessedInput`
+- `ZeBot` — `_ingest_raw()` builds `RawInput`, preprocesses, runs graph; responses and capability confirmations go through the interface
+- `ProactiveNotifier` — delegates to `TelegramInterface`
+- `Container` — `validate_interface()` at startup; `make_graph_config()` helper
+- Goal/plan/persona/contact callbacks remain in `ZeBot` (pre-invoke routing per step 1.6)
+
+**Still for a follow-up PR:** call `ze_core.container.Container.invoke_raw()` / `resume()` from
+`ZeBot` instead of hand-rolled `graph.ainvoke()` (requires a `ZeContainer` subclass with Ze’s graph and config).
+
 ---
 
 ### Phase 2 — Capability gate
@@ -258,8 +270,8 @@ Update as PRs merge:
 
 | Phase | Status | PR(s) | Notes |
 |-------|--------|-------|-------|
-| 0 Prep | ⬜ | | |
-| 1 Interface | ⬜ | | |
+| 0 Prep | ✅ | | Doc + architecture link |
+| 1 Interface | 🟡 | | `TelegramInterface`, preprocessor, ZeBot `RawInput` path |
 | 2 Capability | ⬜ | | |
 | 3 Routing | ⬜ | | |
 | 4 Memory | ⬜ | | |

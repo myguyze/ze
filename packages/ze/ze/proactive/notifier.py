@@ -1,30 +1,48 @@
-from aiogram import Bot
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from ze.logging import get_logger
+from ze_core.interface.types import Notification
+
+if TYPE_CHECKING:
+    from aiogram.types import InlineKeyboardMarkup
+    from ze.interface.telegram import TelegramInterface
+
+log = get_logger(__name__)
 
 _MAX_MESSAGE_LEN = 4096
 
 
 class ProactiveNotifier:
-    def __init__(self, bot: Bot, chat_id: int) -> None:
-        self._bot = bot
-        self._chat_id = chat_id
+    """Delivers proactive messages through TelegramInterface."""
+
+    def __init__(self, interface: TelegramInterface) -> None:
+        self._interface = interface
         self._log = get_logger(__name__)
 
     async def push(self, text: str, parse_mode: str | None = None) -> None:
-        """Send text to the user. Swallows and logs errors — never raises."""
+        fmt = "markdown" if parse_mode == "HTML" else "text"
         try:
             for chunk in _split(text):
-                await self._bot.send_message(self._chat_id, chunk, parse_mode=parse_mode)
+                await self._interface.push(Notification(content=chunk, format=fmt))
         except Exception as exc:
-            self._log.warning("proactive_push_failed", chat_id=self._chat_id, error=str(exc))
+            self._log.warning("proactive_push_failed", error=str(exc))
 
-    async def push_with_keyboard(self, text: str, reply_markup, parse_mode: str | None = None) -> None:
-        """Send a single message with an inline keyboard. Swallows and logs errors."""
+    async def push_with_keyboard(
+        self,
+        text: str,
+        reply_markup: InlineKeyboardMarkup,
+        parse_mode: str | None = None,
+    ) -> None:
         try:
-            await self._bot.send_message(self._chat_id, text, reply_markup=reply_markup, parse_mode=parse_mode)
+            await self._interface.push_with_keyboard(
+                text,
+                reply_markup,
+                parse_mode=parse_mode,
+            )
         except Exception as exc:
-            self._log.warning("proactive_push_failed", chat_id=self._chat_id, error=str(exc))
+            self._log.warning("proactive_push_failed", error=str(exc))
 
 
 def _split(text: str, limit: int = _MAX_MESSAGE_LEN) -> list[str]:

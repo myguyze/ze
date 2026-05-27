@@ -6,15 +6,19 @@ from uuid import UUID
 from aiogram import Bot
 from aiogram.types import CallbackQuery, ForceReply, Message
 
+from ze.conversation import extract_response, make_graph_input, preprocess_raw
 from ze.errors import ImageDownloadError
+from ze.interface.preprocessor import TelegramInputPreprocessor
+from ze.interface.telegram import TelegramInterface
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.progress.reporter import ProgressReporter
 from ze.progress.translations import ProgressTranslations
 from ze.telegram.commands import contacts_search, contacts_summary, costs_summary, memory_summary, parse_persona_command, persona_summary
 from ze.telegram.formatting import md_to_html, split_html
-from ze.telegram.keyboards import confirmation_keyboard, persona_keyboard, plan_confirmation_keyboard
+from ze.telegram.keyboards import persona_keyboard, plan_confirmation_keyboard
 from ze.telegram.session import ActiveSessionStore
 from ze.telemetry.context import set_flow_context
+from ze_core.interface.types import ConfirmationRequest, OutboundMessage, RawInput
 
 log = get_logger(__name__)
 
@@ -42,8 +46,12 @@ class ZeBot:
         contact_channel_store=None,
         goal_store=None,
         goal_executor=None,
+        interface: TelegramInterface | None = None,
+        preprocessor: TelegramInputPreprocessor | None = None,
     ) -> None:
         self._bot = bot
+        self._interface = interface
+        self._preprocessor = preprocessor
         self._graph = graph
         self._workflow_graph = workflow_graph
         self._store = store
@@ -111,7 +119,7 @@ class ZeBot:
             self._store.mark_active(chat_id)
             set_flow_context("user_message", str(chat_id))
             log.info("message_received", chat_id=chat_id)
-            await self._run_graph(chat_id, self._make_initial_state(text, chat_id))
+            await self._ingest_raw(chat_id, RawInput(text=text or None))
         finally:
             unbind_context()
 
@@ -133,21 +141,14 @@ class ZeBot:
             await self._bot.download_file(file.file_path, buffer)
             audio_bytes = buffer.getvalue()
 
-            duration = float(voice.duration) if voice.duration else None
-            try:
-                result = await self._transcription_client.transcribe(audio_bytes, "ogg", duration_seconds=duration)
-            except Exception as exc:
-                log.warning("transcription_failed", chat_id=chat_id, error=str(exc))
-                await self._bot.send_message(chat_id, "Sorry, I couldn't transcribe that voice note.")
-                return
-
             self._store.mark_active(chat_id)
             set_flow_context("user_message", str(chat_id))
-            log.info("voice_received", chat_id=chat_id, text_len=len(result.text))
+            log.info("voice_received", chat_id=chat_id, bytes=len(audio_bytes))
 
-            state = self._make_initial_state(result.text, chat_id)
-            state["input_modality"] = "voice"
-            await self._run_graph(chat_id, state)
+            await self._ingest_raw(
+                chat_id,
+                RawInput(audio=audio_bytes, audio_mime="audio/ogg"),
+            )
         finally:
             unbind_context()
 
@@ -182,11 +183,14 @@ class ZeBot:
             log.info("photo_received", chat_id=chat_id, file_size=photo.file_size)
 
             caption = message.caption or ""
-            state = self._make_initial_state(caption, chat_id)
-            state["input_modality"] = "image"
-            state["image_data"] = image_bytes
-            state["image_mime"] = "image/jpeg"
-            await self._run_graph(chat_id, state)
+            await self._ingest_raw(
+                chat_id,
+                RawInput(
+                    text=caption or None,
+                    image=image_bytes,
+                    image_mime="image/jpeg",
+                ),
+            )
         finally:
             unbind_context()
 
@@ -240,6 +244,29 @@ class ZeBot:
             unbind_context()
 
     # ── Internal helpers ──────────────────────────────────────────────────────
+
+    async def _ingest_raw(self, chat_id: int, raw: RawInput) -> None:
+        """Preprocess transport input and run the conversation graph."""
+        if self._interface is not None:
+            self._interface.set_chat(chat_id)
+
+        class _PreprocessCtx:
+            preprocessor = self._preprocessor
+            openrouter_client = self._openrouter_client
+
+        try:
+            processed = await preprocess_raw(_PreprocessCtx(), raw)
+        except Exception as exc:
+            log.warning("preprocess_failed", chat_id=chat_id, error=str(exc))
+            await self._bot.send_message(
+                chat_id,
+                "Sorry, I couldn't process that input.",
+            )
+            self._store.clear_active(chat_id)
+            return
+
+        state = make_graph_input(processed, str(chat_id))
+        await self._run_graph(chat_id, state)
 
     async def _reset_session(self, chat_id: int) -> None:
         config = self._make_config(chat_id)
@@ -300,7 +327,6 @@ class ZeBot:
 
         graph_state = await self._graph.aget_state(config)
         if graph_state.next:
-            # Graph interrupted — needs confirmation
             result = final_state.get("agent_result")
             envelope = final_state.get("envelope")
             draft = result.response if result else ""
@@ -321,9 +347,9 @@ class ZeBot:
                 # Show plan for user approval
                 await self._send_plan_confirmation(chat_id, steps, high_risk)
         else:
-            response = _extract_response(final_state)
+            response = extract_response(final_state)
             self._store.clear_active(chat_id)
-            await self._send_response(chat_id, response)
+            await self._deliver_response(chat_id, response)
             log.info("graph_complete", chat_id=chat_id)
 
     async def _resume_graph(
@@ -363,8 +389,8 @@ class ZeBot:
             typing_task.cancel()
 
         self._store.clear_all(chat_id)
-        response = _extract_response(final_state)
-        await self._send_response(chat_id, response)
+        response = extract_response(final_state)
+        await self._deliver_response(chat_id, response)
         log.info("resume_complete", chat_id=chat_id)
 
     async def _send_confirmation(
@@ -375,18 +401,20 @@ class ZeBot:
         action: str,
         config: dict,
     ) -> None:
-        text = (
-            f"⚠️ <b>Confirmation required</b>\n\n"
-            f"<b>Agent:</b> {_html.escape(agent)}\n"
-            f"<b>Action:</b> {_html.escape(action)}\n\n"
-            f"<b>Draft:</b>\n{md_to_html(draft)}"
-        )
-        await self._bot.send_message(
-            chat_id,
-            text,
-            parse_mode="HTML",
-            reply_markup=confirmation_keyboard(),
-        )
+        if self._interface is not None:
+            self._interface.set_chat(chat_id)
+            await self._interface.send_confirmation(
+                ConfirmationRequest(
+                    content=draft,
+                    options=["Approve", "Cancel", "Edit"],
+                    editable=True,
+                    timeout_seconds=self._settings.confirm_timeout_seconds,
+                ),
+                agent=agent,
+                action=action,
+            )
+        else:
+            await self._bot.send_message(chat_id, draft or "Confirm?")
 
         timeout_task = asyncio.create_task(
             self._confirmation_timeout(chat_id, config)
@@ -669,9 +697,9 @@ class ZeBot:
         finally:
             typing_task.cancel()
 
-        response = _extract_response(final_state)
+        response = extract_response(final_state)
         self._store.clear_active(chat_id)
-        await self._send_response(chat_id, response)
+        await self._deliver_response(chat_id, response)
         log.info("dynamic_plan_complete", chat_id=chat_id, execution_id=str(execution_id))
 
     async def _plan_approval_timeout(self, chat_id: int) -> None:
@@ -687,8 +715,14 @@ class ZeBot:
         except asyncio.CancelledError:
             pass
 
-    async def _send_response(self, chat_id: int, text: str) -> None:
+    async def _deliver_response(self, chat_id: int, text: str) -> None:
         if not text:
+            return
+        if self._interface is not None:
+            self._interface.set_chat(chat_id)
+            await self._interface.send(
+                OutboundMessage(content=text, format="markdown"),
+            )
             return
         html = md_to_html(text)
         for chunk in split_html(html):
@@ -696,7 +730,9 @@ class ZeBot:
 
     async def invoke(self, prompt: str, session_id: str) -> dict:
         """Invoke the graph directly for eval/testing. Returns raw final state."""
-        state = self._make_initial_state(prompt, session_id)
+        from ze.conversation import make_graph_input_from_raw_text
+
+        state = make_graph_input_from_raw_text(prompt, session_id)
         config = {
             "configurable": {
                 "thread_id": f"eval-{session_id}",
@@ -746,44 +782,5 @@ class ZeBot:
             }
         }
 
-    @staticmethod
-    def _make_initial_state(prompt: str, chat_id: int | str) -> dict:
-        return {
-            "prompt": prompt,
-            "session_id": str(chat_id),
-            "session_overrides": {},
-            "input_modality": "text",
-            "image_data": None,
-            "image_mime": None,
-            "image_caption": None,
-            "envelope": None,
-            "memory_context": None,
-            "agent_context": None,
-            "gate_decision": None,
-            "agent_result": None,
-            "subtask_results": [],
-            "pending_confirmation": False,
-            "final_response": None,
-            "error": None,
-            "messages": [],
-            "last_active_at": None,
-            "workflow_id": None,
-            "workflow_execution_id": None,
-            "workflow_steps": None,
-            "current_step_index": 0,
-            "workflow_step_results": [],
-            "dynamic_plan_steps": None,
-            "dynamic_plan_high_risk": [],
-        }
-
-
-def _extract_response(state: dict) -> str:
-    """Return the best available response text from a completed graph state."""
-    if state.get("final_response"):
-        return state["final_response"]
-    result = state.get("agent_result")
-    if result and result.response:
-        return result.response
-    return ""
 
 
