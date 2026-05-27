@@ -3,6 +3,7 @@ from ze_core.interface.cli import CLIInterface
 from ze_core.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
+    InvokeResult,
     Notification,
     OutboundMessage,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "CLIInterface",
     "ConfirmationRequest",
     "ConfirmationResponse",
+    "InvokeResult",
     "Notification",
     "OutboundMessage",
     "validate_interface",

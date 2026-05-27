@@ -60,35 +60,30 @@ lives directly on `BaseAgent` and agents opt in by calling it from `run()`.
 
 ---
 
-## 4. Interface ↔ Graph Bridge (Design Decision Required)
+## 4. ~~Interface ↔ Graph Bridge~~ ✓ DONE
 
-`AppInterface` is defined and validated, but:
+`Container.from_config()` now accepts an optional `interface` parameter.
+`validate_interface()` is called immediately at startup — misconfigured
+interfaces fail fast before any DB or embedder initialisation.
 
-- `Container.from_config()` does not accept an interface.
-- Nothing calls `interface.send()` after the graph completes.
-- The confirmation flow (`draft_response` → `await_confirmation`) pauses the
-  graph but nothing calls `interface.send_confirmation()` or
-  `interface.confirm()` before the pause.
+Two new methods on `Container`:
 
-The application is expected to call `interface.send()` itself after
-`graph.ainvoke()` returns, but this contract is implicit.
+- **`invoke(prompt, session_id, ...)`** — runs the full conversation turn.
+  Checks `pending_confirmation` after the first graph pass and handles both
+  confirmation styles:
+  - *inline*: calls `interface.confirm()`, resumes graph on approval,
+    calls `interface.send()` with the final response.
+  - *async*: calls `interface.send_confirmation()`, returns
+    `InvokeResult(confirmation_pending=True)`.
+  - *no interface*: returns `InvokeResult(confirmation_pending=True)` so
+    callers can handle the pause themselves.
 
-For the **inline confirmation style**, the application must:
-1. Run `graph.ainvoke()` until the graph pauses at `await_confirmation`.
-2. Read `state["agent_result"]` and call `interface.confirm()`.
-3. Resume with `graph.ainvoke(None, config)`.
+- **`resume(session_id)`** — for async style; called after the transport
+  callback writes the decision into state. Resumes the graph with
+  `ainvoke(None, config)` and delivers the final response.
 
-For the **async confirmation style** (Telegram-style):
-1. Run graph until pause.
-2. Call `interface.send_confirmation()`.
-3. Receive callback from transport → write decision to state → resume graph.
-
-Neither path is enforced or even suggested by the container today.
-
-**Action:** Either (a) add an `interface` parameter to `Container.from_config()`
-with `validate_interface()` called at startup, or (b) write a concise
-`docs/interface-integration.md` documenting the contract so application authors
-know what to implement. Validate the interface style regardless.
+`InvokeResult(session_id, response, confirmation_pending, error)` added to
+`interface/types.py` and exported from `ze_core.interface`.
 
 ---
 
@@ -153,7 +148,7 @@ to hatch build config.
 | 1 | ~~Database schema (schema.sql / migration)~~ ✓ | Blocker | Small |
 | 2 | `decompose` node is a stub | Blocker | Small |
 | 3 | ~~Tool execution path~~ ✓ | High | Medium–Large |
-| 4 | Interface ↔ graph bridge (design decision) | High | Small–Medium |
+| 4 | ~~Interface ↔ graph bridge~~ ✓ | High | Small–Medium |
 | 5 | ~~`OpenRouterClient` / `LLMClient` mismatch~~ ✓ | Medium | Small |
 | 6 | `ze_core/__init__.py` public API | Medium | Small |
 | 7 | `asyncpg.Pool` DI key forces agent dep | Medium | Small |

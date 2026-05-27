@@ -26,6 +26,123 @@ class Container:
     memory_store: Any
     memory_consolidator: Any
     graph: Any
+    interface: Any = None
+
+    def _build_config(self, session_id: str, **extra: Any) -> dict:
+        """Build the LangGraph configurable dict for a session."""
+        return {
+            "configurable": {
+                "thread_id": session_id,
+                "router": self.router,
+                "openrouter_client": self.openrouter_client,
+                "capability_gate": self.capability_gate,
+                "memory_store": self.memory_store,
+                **extra,
+            }
+        }
+
+    async def invoke(
+        self,
+        prompt: str,
+        session_id: str,
+        *,
+        session_overrides: dict[str, str] | None = None,
+        input_modality: str = "text",
+        image_data: bytes | None = None,
+        image_mime: str | None = None,
+        messages: list[dict] | None = None,
+    ) -> "InvokeResult":
+        """Run a full conversation turn, handling the confirmation loop.
+
+        For **inline** confirmation: calls interface.confirm(), resumes the
+        graph on approval, and delivers the final response via interface.send().
+
+        For **async** confirmation: calls interface.send_confirmation() and
+        returns InvokeResult(confirmation_pending=True). The caller must invoke
+        Container.resume() once the user decision arrives.
+
+        If no interface is configured, the graph is invoked once and
+        final_response is returned directly without any delivery call.
+        """
+        from ze_core.interface.types import ConfirmationRequest, InvokeResult, OutboundMessage
+
+        graph_input = {
+            "prompt": prompt,
+            "session_id": session_id,
+            "session_overrides": session_overrides or {},
+            "input_modality": input_modality,
+            "image_data": image_data,
+            "image_mime": image_mime,
+            "image_caption": None,
+            "messages": messages or [],
+            "envelope": None,
+            "memory_context": None,
+            "agent_context": None,
+            "gate_decision": None,
+            "agent_result": None,
+            "subtask_results": [],
+            "pending_confirmation": False,
+            "last_active_at": None,
+            "final_response": None,
+            "error": None,
+        }
+        config = self._build_config(session_id)
+
+        state = await self.graph.ainvoke(graph_input, config)
+
+        if state.get("error"):
+            return InvokeResult(session_id=session_id, error=state["error"])
+
+        if state.get("pending_confirmation"):
+            agent_result = state.get("agent_result")
+            draft = agent_result.response if agent_result is not None else ""
+            request = ConfirmationRequest(
+                content=draft or "",
+                options=["Approve", "Cancel"],
+                timeout_seconds=getattr(self.settings, "confirm_timeout_seconds", None),
+            )
+
+            if self.interface is None:
+                return InvokeResult(session_id=session_id, confirmation_pending=True)
+
+            style = getattr(type(self.interface), "confirmation_style", None)
+
+            if style == "async":
+                await self.interface.send_confirmation(request)
+                return InvokeResult(session_id=session_id, confirmation_pending=True)
+
+            # inline — block until user responds
+            decision = await self.interface.confirm(request)
+            if not decision.approved:
+                cancelled = decision.edited_content or draft or ""
+                return InvokeResult(session_id=session_id, response=cancelled)
+
+            # Resume the graph after approval
+            state = await self.graph.ainvoke(None, config)
+
+        response = state.get("final_response") or ""
+        if self.interface and response:
+            await self.interface.send(OutboundMessage(content=response))
+        return InvokeResult(session_id=session_id, response=response)
+
+    async def resume(self, session_id: str) -> "InvokeResult":
+        """Resume a graph that paused at await_confirmation (async style).
+
+        Called by the transport callback handler after the user decision has
+        been written into AgentState and the application is ready to continue.
+        """
+        from ze_core.interface.types import InvokeResult, OutboundMessage
+
+        config = self._build_config(session_id)
+        state = await self.graph.ainvoke(None, config)
+
+        if state.get("error"):
+            return InvokeResult(session_id=session_id, error=state["error"])
+
+        response = state.get("final_response") or ""
+        if self.interface and response:
+            await self.interface.send(OutboundMessage(content=response))
+        return InvokeResult(session_id=session_id, response=response)
 
     async def close(self) -> None:
         from ze_core.orchestration.registry import get_enabled_instances
@@ -50,9 +167,15 @@ class Container:
         cls,
         config_path: Path,
         deps: dict[type, Any] | None = None,
+        interface: Any = None,
     ) -> "Container":
         config_path = Path(config_path)
         app_root = config_path.parent
+
+        # 0. Validate interface early so misconfiguration fails fast
+        if interface is not None:
+            from ze_core.interface.validation import validate_interface
+            validate_interface(interface)
 
         # 1. Load Settings
         from ze_core.settings import Settings
@@ -188,6 +311,7 @@ class Container:
             memory_store=memory_store,
             memory_consolidator=memory_consolidator,
             graph=graph,
+            interface=interface,
         )
 
 

@@ -29,3 +29,12 @@ class Notification:
     content: str
     format: str = "text"    # "text" | "markdown"
     urgency: str = "normal"  # "normal" | "high"
+
+
+@dataclass
+class InvokeResult:
+    """Return value from Container.invoke() and Container.resume()."""
+    session_id: str
+    response: str | None = None
+    confirmation_pending: bool = False
+    error: str | None = None
