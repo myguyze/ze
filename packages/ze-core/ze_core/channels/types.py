@@ -1,44 +1,50 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import Any
+from datetime import datetime
+from enum import StrEnum
+
+
+class ChannelType(StrEnum):
+    EMAIL    = "email"
+    LINKEDIN = "linkedin"
+    WHATSAPP = "whatsapp"
+
+
+@dataclass
+class ChannelHandle:
+    channel_type: ChannelType
+    handle: str
+    preferred: bool = False
+    verified: bool = False
 
 
 @dataclass
 class Message:
-    content: str
-    channel_type: str
-    recipient: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    channel_type: ChannelType
+    to: str
+    body: str
+    subject: str | None = None
+    thread_id: str | None = None
 
 
 @dataclass
 class SentMessage:
     message_id: str
-    channel_type: str
-    recipient: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    thread_id: str
+    channel_type: ChannelType
+    sent_at: datetime
 
 
 @dataclass
 class ThreadMessage:
     message_id: str
     sender: str
-    content: str
-    timestamp: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    body: str
+    sent_at: datetime
+    is_outbound: bool
 
 
 @dataclass
 class Thread:
     thread_id: str
-    channel_type: str
+    channel_type: ChannelType
     messages: list[ThreadMessage] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ChannelHandle:
-    channel_type: str
-    address: str
-    metadata: dict[str, Any] = field(default_factory=dict)

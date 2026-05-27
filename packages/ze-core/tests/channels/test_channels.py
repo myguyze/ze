@@ -1,52 +1,69 @@
 """Tests for Channel ABC, ChannelRegistry, and channel types."""
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock
+
 import pytest
 
 from ze_core.channels import Channel, ChannelRegistry
-from ze_core.channels.types import ChannelHandle, Message, SentMessage, Thread, ThreadMessage
+from ze_core.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_core.errors import ChannelError, ChannelNotFoundError
 
 
 # ── stub implementation ───────────────────────────────────────────────────────
 
 class StubChannel(Channel):
-    channel_type = "stub"
+    def __init__(self, ctype: ChannelType = ChannelType.EMAIL) -> None:
+        self._type = ctype
 
-    def __init__(self):
-        self._sent = []
+    @property
+    def channel_type(self) -> ChannelType:
+        return self._type
 
     async def send(self, message: Message) -> SentMessage:
-        self._sent.append(message)
-        return SentMessage(message_id="msg-1", channel_type=self.channel_type, recipient=message.recipient)
+        return SentMessage(
+            message_id="msg-1",
+            thread_id="thread-1",
+            channel_type=self._type,
+            sent_at=datetime.now(timezone.utc),
+        )
 
     async def get_thread(self, thread_id: str) -> Thread:
-        return Thread(thread_id=thread_id, channel_type=self.channel_type)
+        return Thread(thread_id=thread_id, channel_type=self._type)
 
-    async def poll_replies(self, sent: SentMessage) -> list[Thread]:
+    async def poll_replies(self, thread_ids: list[str], since: datetime) -> list[ThreadMessage]:
         return []
 
 
 # ── TestChannelTypes ──────────────────────────────────────────────────────────
 
 class TestChannelTypes:
-    def test_message_defaults(self):
-        m = Message(content="hello", channel_type="email", recipient="a@b.com")
-        assert m.metadata == {}
+    def test_channel_type_values(self):
+        assert ChannelType.EMAIL == "email"
+        assert ChannelType.LINKEDIN == "linkedin"
+        assert ChannelType.WHATSAPP == "whatsapp"
+
+    def test_message_fields(self):
+        m = Message(channel_type=ChannelType.EMAIL, to="a@b.com", body="hello")
+        assert m.to == "a@b.com"
+        assert m.body == "hello"
+        assert m.subject is None
+        assert m.thread_id is None
 
     def test_sent_message_fields(self):
-        s = SentMessage(message_id="x", channel_type="sms", recipient="+1234")
+        now = datetime.now(timezone.utc)
+        s = SentMessage(message_id="x", thread_id="t", channel_type=ChannelType.EMAIL, sent_at=now)
         assert s.message_id == "x"
+        assert s.thread_id == "t"
 
     def test_thread_message_fields(self):
-        tm = ThreadMessage(message_id="m", sender="alice", content="hi", timestamp="2024-01-01")
-        assert tm.content == "hi"
+        now = datetime.now(timezone.utc)
+        tm = ThreadMessage(message_id="m", sender="alice", body="hi", sent_at=now, is_outbound=False)
+        assert tm.body == "hi"
+        assert not tm.is_outbound
 
     def test_thread_defaults(self):
-        t = Thread(thread_id="t1", channel_type="slack")
+        t = Thread(thread_id="t1", channel_type=ChannelType.EMAIL)
         assert t.messages == []
-
-    def test_channel_handle(self):
-        h = ChannelHandle(channel_type="email", address="user@example.com")
-        assert h.channel_type == "email"
 
 
 # ── TestChannelABC ────────────────────────────────────────────────────────────
@@ -61,10 +78,10 @@ class TestChannelABC:
 
     async def test_stub_send_returns_sent_message(self):
         ch = StubChannel()
-        msg = Message(content="test", channel_type="stub", recipient="bob")
+        msg = Message(channel_type=ChannelType.EMAIL, to="bob@example.com", body="test")
         sent = await ch.send(msg)
         assert isinstance(sent, SentMessage)
-        assert sent.channel_type == "stub"
+        assert sent.channel_type == ChannelType.EMAIL
 
     async def test_stub_get_thread_returns_thread(self):
         ch = StubChannel()
@@ -73,51 +90,38 @@ class TestChannelABC:
 
     async def test_stub_poll_replies_returns_list(self):
         ch = StubChannel()
-        sent = SentMessage(message_id="m", channel_type="stub", recipient="x")
-        replies = await ch.poll_replies(sent)
+        replies = await ch.poll_replies(["t1"], since=datetime.now(timezone.utc))
         assert replies == []
 
 
 # ── TestChannelRegistry ───────────────────────────────────────────────────────
 
 class TestChannelRegistry:
-    def test_register_and_get(self):
-        reg = ChannelRegistry()
-        ch = StubChannel()
-        reg.register(ch)
-        assert reg.get("stub") is ch
+    def test_get_registered_channel(self):
+        ch = StubChannel(ChannelType.EMAIL)
+        reg = ChannelRegistry([ch])
+        assert reg.get(ChannelType.EMAIL) is ch
 
-    def test_get_unknown_raises(self):
-        reg = ChannelRegistry()
+    def test_get_missing_raises(self):
+        reg = ChannelRegistry([])
         with pytest.raises(ChannelNotFoundError):
-            reg.get("unknown")
+            reg.get(ChannelType.EMAIL)
 
     def test_channel_not_found_is_channel_error(self):
-        reg = ChannelRegistry()
+        reg = ChannelRegistry([])
         with pytest.raises(ChannelError):
-            reg.get("missing")
+            reg.get(ChannelType.EMAIL)
 
-    def test_contains(self):
-        reg = ChannelRegistry()
-        reg.register(StubChannel())
-        assert "stub" in reg
-        assert "other" not in reg
+    def test_available_returns_types(self):
+        reg = ChannelRegistry([StubChannel(ChannelType.EMAIL), StubChannel(ChannelType.WHATSAPP)])
+        assert set(reg.available()) == {ChannelType.EMAIL, ChannelType.WHATSAPP}
 
-    def test_all_returns_all_channels(self):
-        reg = ChannelRegistry()
-        ch = StubChannel()
-        reg.register(ch)
-        assert ch in reg.all()
+    def test_available_empty(self):
+        reg = ChannelRegistry([])
+        assert reg.available() == []
 
-    def test_register_overwrites_same_type(self):
-        reg = ChannelRegistry()
-        ch1 = StubChannel()
-        ch2 = StubChannel()
-        reg.register(ch1)
-        reg.register(ch2)
-        assert reg.get("stub") is ch2
-        assert len(reg.all()) == 1
-
-    def test_empty_registry_all(self):
-        reg = ChannelRegistry()
-        assert reg.all() == []
+    def test_last_channel_wins_for_same_type(self):
+        ch1 = StubChannel(ChannelType.EMAIL)
+        ch2 = StubChannel(ChannelType.EMAIL)
+        reg = ChannelRegistry([ch1, ch2])
+        assert reg.get(ChannelType.EMAIL) is ch2

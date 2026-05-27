@@ -3,7 +3,7 @@
 from ze_core.capability.types import Mode
 import ze_core.defaults as defaults
 from ze_core.channels import Channel, ChannelRegistry
-from ze_core.channels.types import ChannelHandle, Message, SentMessage, Thread, ThreadMessage
+from ze_core.channels.types import ChannelHandle, ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_core.container import Container
 from ze_core.db import DBPool
 from ze_core.errors import (
@@ -12,7 +12,9 @@ from ze_core.errors import (
     GoalError,
     GoalExecutionError,
     GoalPlanError,
+    OpenRouterError,
     PersonaError,
+    RateLimitError,
     UnknownDialError,
     UnknownProfileError,
 )
@@ -69,6 +71,9 @@ __all__ = [
     "ChannelHandle",
     "ChannelError",
     "ChannelNotFoundError",
+    "ChannelType",
+    "OpenRouterError",
+    "RateLimitError",
     "Container",
     "DBPool",
     # Goals

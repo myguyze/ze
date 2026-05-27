@@ -90,6 +90,20 @@ class UnknownDialError(PersonaError):
     """Named persona dial not found."""
 
 
+# ── OpenRouter ────────────────────────────────────────────────────────────────
+
+class OpenRouterError(ZeCoreError):
+    """OpenRouter API call failed."""
+
+    def __init__(self, message: str, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class RateLimitError(OpenRouterError):
+    """OpenRouter returned HTTP 429."""
+
+
 # ── Channels ──────────────────────────────────────────────────────────────────
 
 class ChannelError(ZeCoreError):
