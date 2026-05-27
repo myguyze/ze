@@ -106,7 +106,9 @@ class WorkflowStore:
     async def list_enabled_scheduled(self) -> list[Workflow]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT * FROM workflows WHERE enabled = TRUE AND schedule IS NOT NULL"
+                "SELECT * FROM workflows"
+                " WHERE enabled = TRUE AND schedule IS NOT NULL"
+                " ORDER BY name"
             )
         return [_row_to_workflow(r) for r in rows]
 

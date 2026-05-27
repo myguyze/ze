@@ -69,6 +69,12 @@ class PersonContext:
 
 
 @dataclass
+class StaleFollowUpNudge:
+    name: str
+    days_ago: int
+
+
+@dataclass
 class ContactsConsolidationReport:
     episodes_scanned: int = 0
     candidates_extracted: int = 0

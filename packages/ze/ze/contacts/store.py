@@ -8,6 +8,7 @@ from ze.contacts.types import (
     PersonContext,
     PersonRelationship,
     PersonSource,
+    StaleFollowUpNudge,
 )
 from ze.logging import get_logger
 
@@ -307,6 +308,27 @@ class PersonStore:
             )
             for r in rows
         ]
+
+    async def list_stale_for_follow_up(
+        self, stale_days: int, limit: int
+    ) -> list[StaleFollowUpNudge]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT name,
+                       EXTRACT(DAY FROM NOW() - last_mentioned)::int AS days_ago
+                FROM contacts
+                WHERE confirmed = true
+                  AND dismissed = false
+                  AND last_mentioned IS NOT NULL
+                  AND last_mentioned < NOW() - ($1 || ' days')::interval
+                ORDER BY last_mentioned ASC
+                LIMIT $2
+                """,
+                str(stale_days),
+                limit,
+            )
+        return [StaleFollowUpNudge(name=r["name"], days_ago=r["days_ago"]) for r in rows]
 
     async def get_context(self, query: str, token_budget: int = 300) -> PersonContext:
         """Return confirmed contacts whose name/role/notes match the query."""

@@ -38,6 +38,7 @@ from ze.progress.translations import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
 from ze.orchestration.workflow_graph import build_workflow_graph
 from ze.proactive.briefing import MorningBriefing
+from ze.proactive.push_log_store import PushLogStore
 from ze.proactive.insights import InsightEngine
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_core.proactive.scheduler import ProactiveScheduler
@@ -389,7 +390,15 @@ async def build_container(settings: Settings) -> ZeContainer:
         log.info("stale_campaign_recovery_scheduled")
 
     # ── Proactive push ────────────────────────────────────────────────────────
-    morning_briefing = MorningBriefing(notifier=notifier, pool=pool, settings=settings)
+    push_log_store = PushLogStore(pool=pool)
+    morning_briefing = MorningBriefing(
+        notifier=notifier,
+        push_log_store=push_log_store,
+        memory_store=memory_store,
+        workflow_store=workflow_store,
+        person_store=person_store,
+        settings=settings,
+    )
     briefing_cfg = proactive_cfg.get("briefing", {})
     if briefing_cfg.get("enabled", True):
         briefing_cron = briefing_cfg.get("cron", "0 8 * * *")
