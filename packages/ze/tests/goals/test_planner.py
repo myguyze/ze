@@ -5,7 +5,7 @@ from uuid import UUID
 import pytest
 
 from ze_core.errors import GoalPlanError
-from ze.goals.planner import GoalPlanner
+from ze_core.goals.planner import GoalPlanner
 from ze_core.goals.types import Goal
 
 
@@ -14,7 +14,7 @@ def make_planner(response: str = ""):
     client.complete = AsyncMock(return_value=response)
     settings = MagicMock()
     settings.workflow_plan_model = "some-model"
-    return GoalPlanner(openrouter_client=client, settings=settings)
+    return GoalPlanner(client=client, model=settings.workflow_plan_model)
 
 
 def make_goal(**overrides) -> Goal:

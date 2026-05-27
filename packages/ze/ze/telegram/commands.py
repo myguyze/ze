@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ze.contacts.store import PersonStore
-    from ze.persona.store import PersonaStore
+    from ze_core.persona.postgres import PostgresPersonaStore as PersonaStore
 
 _NAMED_AGENTS = {"companion", "research", "calendar", "email", "whisper", "routing", "memory"}
 

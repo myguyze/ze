@@ -12,7 +12,7 @@ from ze_core.capability.types import Mode
 from ze.agents.types import AgentContext, AgentResult
 from ze_core.errors import GoalPlanError
 from ze_core.goals.executor import GoalExecutor
-from ze.goals.planner import GoalPlanner
+from ze_core.goals.planner import GoalPlanner
 from ze_core.goals.postgres import PostgresGoalStore as GoalStore
 from ze_core.goals.types import Goal, GoalStatus, MilestoneStatus
 from ze.openrouter.client import OpenRouterClient

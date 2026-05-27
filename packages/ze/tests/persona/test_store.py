@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze.persona.store import PersonaStore
+from ze_core.persona.postgres import PostgresPersonaStore as PersonaStore
 from ze_core.persona.types import PersonaState
 from ze.settings import Settings
 from ze_core.errors import UnknownDialError, UnknownProfileError
@@ -43,9 +43,12 @@ def make_pool(conn=None):
 
 
 def make_store(pool=None, settings=None):
+    s = settings or make_settings()
+    cfg = s.persona_config
     return PersonaStore(
         pool=pool or make_pool(),
-        settings=settings or make_settings(),
+        profiles=cfg.get("profiles", {}),
+        default_profile=cfg.get("profile", "default"),
     )
 
 

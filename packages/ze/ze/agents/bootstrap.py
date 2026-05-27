@@ -8,7 +8,7 @@ from tavily import AsyncTavilyClient
 
 from ze_core.errors import AgentConfigError
 from ze_core.goals.executor import GoalExecutor
-from ze.goals.planner import GoalPlanner
+from ze_core.goals.planner import GoalPlanner
 from ze_core.goals.postgres import PostgresGoalStore as GoalStore
 from ze.google.auth import GoogleCredentials
 from ze.openrouter.client import OpenRouterClient

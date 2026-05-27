@@ -21,7 +21,7 @@ from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_po
 from ze.embeddings import get_embedder
 from ze_core.orchestration.registry import get_agent
 from ze_core.goals.executor import GoalExecutor
-from ze.goals.planner import GoalPlanner
+from ze_core.goals.planner import GoalPlanner
 from ze_core.goals.postgres import PostgresGoalStore as GoalStore
 from ze.google.auth import GoogleCredentials
 from ze.logging import get_logger
@@ -31,7 +31,7 @@ from ze.proactive.contacts import ContactReviewNotifier
 from ze.proactive.prospecting import recover_stale_campaigns
 from ze.memory.consolidator import MemoryConsolidator
 from ze_core.memory.postgres import PostgresMemoryStore
-from ze.persona.store import PersonaStore
+from ze_core.persona.postgres import PostgresPersonaStore
 from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
 from ze.progress.translations import ProgressTranslations
@@ -198,7 +198,12 @@ async def build_container(settings: Settings) -> ZeContainer:
         timeout=settings.browser_timeout_seconds,
     )
 
-    persona_store = PersonaStore(pool=pool, settings=settings)
+    persona_cfg = settings.persona_config
+    persona_store = PostgresPersonaStore(
+        pool=pool,
+        profiles=persona_cfg.get("profiles", {}),
+        default_profile=persona_cfg.get("profile", "default"),
+    )
     person_store = PersonStore(pool=pool)
     contacts_consolidator = ContactsConsolidator(
         pool=pool,
@@ -268,7 +273,7 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     contact_channel_store = ContactChannelStore(pool=pool)
     goal_store = GoalStore(pool=pool)
-    goal_planner = GoalPlanner(openrouter_client=openrouter_client, settings=settings)
+    goal_planner = GoalPlanner(client=openrouter_client, model=settings.workflow_plan_model)
     goal_executor = GoalExecutor(
         goal_store=goal_store,
         goal_planner=goal_planner,
