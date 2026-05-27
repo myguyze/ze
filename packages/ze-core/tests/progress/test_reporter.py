@@ -2,14 +2,18 @@ import asyncio
 
 import pytest
 
-from ze.progress.reporter import ProgressReporter
-from ze.progress.translations import ProgressTranslations
+from ze_core.progress.reporter import ProgressReporter
+from ze_core.progress.translations import ProgressTranslations
 
 
 def make_reporter(data: dict) -> tuple[ProgressReporter, asyncio.Queue]:
     queue: asyncio.Queue = asyncio.Queue()
+
+    async def _sink(text: str) -> None:
+        await queue.put(text)
+
     t = ProgressTranslations(data=data, fallback=data)
-    return ProgressReporter(queue, t), queue
+    return ProgressReporter(t, sink=_sink), queue
 
 
 async def test_emit_puts_text_on_queue():

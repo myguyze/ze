@@ -45,6 +45,11 @@ class BaseAgent(ABC):
     async def shutdown(self) -> None:
         """Called during app shutdown. Override for cleanup."""
 
+    async def emit(self, ctx: AgentContext, key: str, **kwargs: str) -> None:
+        """Emit a progress message. No-op when no reporter is attached (e.g. tests)."""
+        if ctx.reporter is not None:
+            await ctx.reporter.emit(key, **kwargs)
+
     # ── Tool execution ────────────────────────────────────────────────────────
 
     async def call_tool(self, name: str, ctx: AgentContext, **kwargs: Any) -> ToolCall:

@@ -45,10 +45,6 @@ class BaseAgent(_CoreBaseAgent):
     def _timeout(self) -> int:
         return int(self.timeout)
 
-    async def emit(self, ctx: AgentContext, key: str, **kwargs: str) -> None:
-        if ctx.reporter is not None:
-            await ctx.reporter.emit(key, **kwargs)
-
     def _format_memory(self, ctx: AgentContext) -> str:
         lines = [f"- {f.key}: {f.value}" for f in ctx.memory.facts]
         return "\n".join(lines) if lines else "(none)"

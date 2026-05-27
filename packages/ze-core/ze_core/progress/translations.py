@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import random
 from pathlib import Path
 
 import yaml
 
-from ze.logging import get_logger
+from ze_core.logging import get_logger
 
 log = get_logger(__name__)
 

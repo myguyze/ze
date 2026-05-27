@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext  # re-exported for AgentContext consumers
+from ze_core.progress.reporter import ProgressReporter
 
 
 @dataclass
@@ -16,11 +17,6 @@ class ToolCall:
     success: bool
     error: str | None = None
     is_draft: bool = False
-
-
-@runtime_checkable
-class ProgressReporter(Protocol):
-    async def report(self, message: str) -> None: ...
 
 
 @dataclass

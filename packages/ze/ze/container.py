@@ -34,7 +34,7 @@ from ze_core.memory.postgres import PostgresMemoryStore
 from ze_core.persona.postgres import PostgresPersonaStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
-from ze.progress.translations import ProgressTranslations
+from ze_core.progress import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
 from ze.orchestration.workflow_graph import build_workflow_graph
 from ze.proactive.briefing import MorningBriefing

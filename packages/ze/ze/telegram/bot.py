@@ -11,8 +11,7 @@ from ze.errors import ImageDownloadError
 from ze_core.errors import UnknownDialError, UnknownProfileError
 from ze.interface.telegram import TelegramInterface
 from ze.logging import bind_context, get_logger, unbind_context
-from ze.progress.reporter import ProgressReporter
-from ze.progress.translations import ProgressTranslations
+from ze_core.progress import ProgressReporter, ProgressTranslations
 from ze.telegram.commands import contacts_search, contacts_summary, costs_summary, memory_summary, parse_persona_command, persona_summary
 from ze.telegram.formatting import md_to_html, split_html
 from ze.telegram.keyboards import persona_keyboard, plan_confirmation_keyboard
@@ -278,7 +277,13 @@ class ZeBot:
         watcher_task: asyncio.Task | None = None
 
         if self._translations is not None:
-            reporter = ProgressReporter(progress_queue, self._translations)
+            async def _enqueue(text: str) -> None:
+                try:
+                    progress_queue.put_nowait(text)
+                except asyncio.QueueFull:
+                    pass
+
+            reporter = ProgressReporter(self._translations, sink=_enqueue)
             config_extra["reporter"] = reporter
 
             async def _progress_watcher() -> None:

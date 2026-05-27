@@ -1,6 +1,6 @@
 import pytest
 
-from ze.progress.translations import ProgressTranslations
+from ze_core.progress.translations import ProgressTranslations
 
 
 def make_translations(data: dict, fallback: dict | None = None) -> ProgressTranslations:
