@@ -6,8 +6,33 @@ from ze_core.channels import Channel, ChannelRegistry
 from ze_core.channels.types import ChannelHandle, Message, SentMessage, Thread, ThreadMessage
 from ze_core.container import Container
 from ze_core.db import DBPool
-from ze_core.errors import ChannelError, ChannelNotFoundError
+from ze_core.errors import (
+    ChannelError,
+    ChannelNotFoundError,
+    GoalError,
+    GoalExecutionError,
+    GoalPlanError,
+    PersonaError,
+    UnknownDialError,
+    UnknownProfileError,
+)
+from ze_core.goals import (
+    Goal,
+    GoalExecutor,
+    GoalLearning,
+    GoalPlanner,
+    GoalStatus,
+    GateStatus,
+    Milestone,
+    MilestoneStatus,
+    VerificationGate,
+)
+from ze_core.goals.store import GoalStore
+from ze_core.goals.postgres import PostgresGoalStore
+from ze_core.interface.types import Action, Notification
 from ze_core.memory import MemoryConsolidator, MemoryStore
+from ze_core.persona import PersonaState, PersonaStore, PostgresPersonaStore
+from ze_core.proactive import ProactiveNotifier, ProactiveScheduler
 from ze_core.telemetry import (
     CostContext,
     CostRecord,
@@ -31,18 +56,46 @@ from ze_core.settings import Settings
 __all__ = [
     "defaults",
     "Mode",
+    "Action",
+    "Notification",
     "Channel",
     "ChannelRegistry",
     "ChannelHandle",
     "ChannelError",
     "ChannelNotFoundError",
+    "Container",
+    "DBPool",
+    # Goals
+    "Goal",
+    "GoalExecutor",
+    "GoalLearning",
+    "GoalPlanner",
+    "GoalStatus",
+    "GateStatus",
+    "Milestone",
+    "MilestoneStatus",
+    "VerificationGate",
+    "GoalStore",
+    "PostgresGoalStore",
+    "GoalError",
+    "GoalExecutionError",
+    "GoalPlanError",
+    # Persona
+    "PersonaState",
+    "PersonaStore",
+    "PostgresPersonaStore",
+    "PersonaError",
+    "UnknownDialError",
+    "UnknownProfileError",
+    # Proactive
+    "ProactiveNotifier",
+    "ProactiveScheduler",
+    # Memory
+    "MemoryConsolidator",
     "Message",
     "SentMessage",
     "Thread",
     "ThreadMessage",
-    "Container",
-    "DBPool",
-    "MemoryConsolidator",
     "CostContext",
     "CostRecord",
     "CostReconciler",
