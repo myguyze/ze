@@ -3,28 +3,31 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from ze_core.interface.types import ProcessedInput, RawInput
+from ze_core.interface.types import RawInput
 
 if TYPE_CHECKING:
     from ze.container import Container
 
 
 def make_graph_input(
-    processed: ProcessedInput,
+    raw: RawInput,
     session_id: str,
     *,
     session_overrides: dict[str, str] | None = None,
 ) -> dict:
-    """Build AgentState input for the main conversation graph."""
+    """Build AgentState input for the main conversation graph from raw transport input."""
+    modality = "voice" if raw.audio else "image" if raw.image else "text"
     return {
-        "prompt": processed.prompt,
+        "prompt": raw.text or "",
         "session_id": session_id,
         "session_overrides": session_overrides or {},
-        "input_modality": processed.input_modality,
-        "image_data": processed.image_data,
-        "image_mime": processed.image_mime,
+        "input_modality": modality,
+        "audio_data": raw.audio,
+        "audio_mime": raw.audio_mime,
+        "image_data": raw.image,
+        "image_mime": raw.image_mime,
         "image_caption": None,
         "envelope": None,
         "memory_context": None,
@@ -48,10 +51,7 @@ def make_graph_input(
 
 
 def make_graph_input_from_raw_text(prompt: str, session_id: str) -> dict:
-    return make_graph_input(
-        ProcessedInput(prompt=prompt, input_modality="text"),
-        session_id,
-    )
+    return make_graph_input(RawInput(text=prompt), session_id)
 
 
 def extract_response(state: dict) -> str:
@@ -62,18 +62,6 @@ def extract_response(state: dict) -> str:
     if result and result.response:
         return result.response
     return ""
-
-
-async def preprocess_raw(container: Any, raw: RawInput) -> ProcessedInput:
-    if container.preprocessor is not None:
-        return await container.preprocessor.process(raw, container.openrouter_client)
-    modality = "voice" if raw.audio else "image" if raw.image else "text"
-    return ProcessedInput(
-        prompt=raw.text or "",
-        input_modality=modality,
-        image_data=raw.image,
-        image_mime=raw.image_mime,
-    )
 
 
 @dataclass
@@ -112,9 +100,8 @@ async def invoke_raw_turn(
     *,
     config_extra: dict | None = None,
 ) -> TurnResult:
-    """Preprocess input, run the conversation graph once, interpret the outcome."""
-    processed = await preprocess_raw(container, raw)
-    graph_input = make_graph_input(processed, session_id)
+    """Run the conversation graph once from raw transport input and interpret the outcome."""
+    graph_input = make_graph_input(raw, session_id)
     config = container.make_graph_config(session_id, **(config_extra or {}))
 
     final_state = await container.graph.ainvoke(graph_input, config)

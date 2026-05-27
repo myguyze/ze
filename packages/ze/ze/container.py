@@ -15,7 +15,7 @@ from ze_browser import BrowserClient
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze.channels.email import EmailChannel
-from ze.channels.registry import ChannelRegistry
+from ze_core.channels.registry import ChannelRegistry
 from ze.contacts.channel_store import ContactChannelStore
 from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
 from ze.embeddings import get_embedder
@@ -32,7 +32,7 @@ from ze.proactive.prospecting import recover_stale_campaigns
 from ze_core.memory.consolidator import MemoryConsolidator
 from ze_core.memory.postgres import PostgresMemoryStore
 from ze_core.persona.postgres import PostgresPersonaStore
-from ze.openrouter.client import OpenRouterClient
+from ze_core.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
 from ze.progress.translations import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
@@ -49,7 +49,6 @@ from ze_core.routing.store import PostgresRoutingStore
 from ze_core.routing.types import RouterConfig
 from ze.settings import Settings, get_settings
 from ze.conversation import TurnResult, invoke_raw_turn, resume_turn
-from ze.interface.preprocessor import TelegramInputPreprocessor
 from ze.interface.telegram import TelegramInterface
 from ze_core.interface.types import RawInput
 from ze.telegram.bot import ZeBot
@@ -58,7 +57,6 @@ from ze_core.interface.validation import validate_interface
 from ze_core.telemetry.reconciler import CostReconciler
 from ze_core.telemetry.tracker import CostTracker
 from ze_core.telemetry.postgres import PostgresCostStore
-from ze.transcription.client import TranscriptionClient
 from ze.workflow.planner import WorkflowPlanner
 from ze.workflow.scheduler import WorkflowScheduler
 from ze.workflow.store import WorkflowStore
@@ -457,14 +455,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         )
         log.info("telegram_webhook_registered", url=settings.public_url)
 
-    whisper_model = settings.config.get("models", {}).get("whisper", "openai/whisper-1")
-    transcription_client = TranscriptionClient(
-        openrouter_client=openrouter_client,
-        model=whisper_model,
-        logger=get_logger("ze.transcription"),
-    )
-    preprocessor = TelegramInputPreprocessor(transcription_client=transcription_client)
-
     locale = settings.persona_config.get("locale", "en")
     translations = ProgressTranslations.load(locale, settings.config_dir)
 
@@ -483,14 +473,12 @@ async def build_container(settings: Settings) -> ZeContainer:
         openrouter_client=openrouter_client,
         embedder=embedder,
         settings=settings,
-        transcription_client=transcription_client,
         translations=translations,
         pool=pool,
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
         interface=interface,
-        preprocessor=preprocessor,
     )
 
     container = ZeContainer(
@@ -505,7 +493,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         memory_consolidator=memory_consolidator,
         graph=graph,
         interface=interface,
-        preprocessor=preprocessor,
         persona_store=persona_store,
         person_store=person_store,
         contacts_consolidator=contacts_consolidator,

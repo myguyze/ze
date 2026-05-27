@@ -3,8 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze.conversation import TurnResult, invoke_raw_turn, resume_turn
-from ze.interface.preprocessor import TelegramInputPreprocessor
-from ze_core.interface.types import ProcessedInput, RawInput
+from ze_core.interface.types import RawInput
 
 
 @pytest.fixture
@@ -26,8 +25,6 @@ def container():
 
     c = MagicMock()
     c.graph = graph
-    c.preprocessor = TelegramInputPreprocessor()
-    c.openrouter_client = MagicMock()
     c.make_graph_config = MagicMock(
         return_value={"configurable": {"thread_id": "42"}},
     )

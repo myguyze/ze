@@ -9,7 +9,6 @@ from aiogram.types import CallbackQuery, ForceReply, Message
 from ze.conversation import extract_response, make_graph_input_from_raw_text
 from ze.errors import ImageDownloadError
 from ze_core.errors import UnknownDialError, UnknownProfileError
-from ze.interface.preprocessor import TelegramInputPreprocessor
 from ze.interface.telegram import TelegramInterface
 from ze.logging import bind_context, get_logger, unbind_context
 from ze.progress.reporter import ProgressReporter
@@ -41,18 +40,15 @@ class ZeBot:
         openrouter_client,
         embedder,
         settings,
-        transcription_client=None,
         translations: ProgressTranslations | None = None,
         pool=None,
         contact_channel_store=None,
         goal_store=None,
         goal_executor=None,
         interface: TelegramInterface | None = None,
-        preprocessor: TelegramInputPreprocessor | None = None,
     ) -> None:
         self._bot = bot
         self._interface = interface
-        self._preprocessor = preprocessor
         self._container = None
         self._graph = graph
         self._workflow_graph = workflow_graph
@@ -67,7 +63,6 @@ class ZeBot:
         self._openrouter_client = openrouter_client
         self._embedder = embedder
         self._settings = settings
-        self._transcription_client = transcription_client
         self._translations = translations
         self._pool = pool
         self._contact_channel_store = contact_channel_store
