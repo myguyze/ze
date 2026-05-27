@@ -66,29 +66,6 @@ contacts:
     stale_days: 7                # nudge if a contact hasn't been mentioned in N days
     max_nudges: 3                # max nudges to show in the morning briefing
 
-memory:
-  contradiction_threshold: 0.85
-
-  consolidation:
-    merge_silent_threshold: 0.95   # > this → silent merge, no LLM
-    merge_llm_threshold: 0.85      # > this (and < silent) → LLM merge
-    contradicted_ttl_days: 30      # hard-delete contradicted facts after N days
-    unreviewed_ttl_days: 90        # soft-expire unreviewed facts after N days
-    expiry_grace_days: 7           # days between soft-expire and hard-delete
-    episode_recency_days: 14       # never archive episodes newer than N days
-    episode_archive_batch: 20      # episodes per archive batch
-    episode_min_archive_batch: 10  # minimum unarchived episodes to trigger a run
-    nightly_cron: "0 2 * * *"      # 2 AM UTC daily
-
-  profile:
-    min_facts: 3      # skip synthesis below this many reviewed facts
-    episode_limit: 50 # max episodes fed into synthesis prompt
-
-  insights:
-    lookback_days: 7  # evidence window
-    min_evidence: 3   # min facts + episodes to proceed
-    max_per_run: 3    # cap on insights pushed per weekly run
-
 proactive:
   briefing:
     enabled: true
@@ -107,6 +84,9 @@ proactive:
   insights:
     enabled: true
     cron: "0 7 * * 0"           # Sunday 7 AM UTC — before the 8 AM briefing
+    lookback_days: 7            # evidence window (was memory.insights)
+    min_evidence: 3             # min facts + episodes to proceed
+    max_per_run: 3              # cap on insights pushed per weekly run
     category_cooldown_days: 7   # suppress same category within this window
 
 agents:

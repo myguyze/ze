@@ -93,6 +93,7 @@ class Settings(BaseSettings):
 
     @property
     def consolidation_config(self) -> dict[str, Any]:
+        """Legacy YAML overrides; thresholds default in ze-core."""
         return self.config.get("memory", {}).get("consolidation", {})
 
     @property
@@ -105,7 +106,8 @@ class Settings(BaseSettings):
 
     @property
     def memory_insights_config(self) -> dict[str, Any]:
-        return self.config.get("memory", {}).get("insights", {})
+        """Insight engine tuning (lives under proactive.insights in config.yaml)."""
+        return self.proactive_config.get("insights", {})
 
     @property
     def proactive_config(self) -> dict[str, Any]:

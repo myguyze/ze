@@ -27,7 +27,7 @@ from ze.contacts.store import PersonStore
 from ze.proactive.contacts import ContactReviewNotifier
 from ze.proactive.prospecting import recover_stale_campaigns
 from ze.memory.consolidator import MemoryConsolidator
-from ze.memory.store import MemoryStore
+from ze_core.memory.postgres import PostgresMemoryStore
 from ze.persona.store import PersonaStore
 from ze.openrouter.client import OpenRouterClient
 from ze.orchestration.graph import build_graph
@@ -71,7 +71,7 @@ class Container:
     openrouter_client: OpenRouterClient
     router: EmbeddingRouter
     capability_gate: CapabilityGate
-    memory_store: MemoryStore
+    memory_store: PostgresMemoryStore
     persona_store: PersonaStore
     person_store: PersonStore
     memory_consolidator: MemoryConsolidator
@@ -150,10 +150,10 @@ async def build_container(settings: Settings) -> Container:
             ("ze.agents.types", "AgentResult"),
             ("ze.agents.types", "AgentContext"),
             ("ze_core.capability.types", "GateDecision"),
-            ("ze.memory.types", "MemoryContext"),
-            ("ze.memory.types", "UserFact"),
-            ("ze.memory.types", "Episode"),
-            ("ze.memory.types", "UserProfile"),
+            ("ze_core.memory.types", "MemoryContext"),
+            ("ze_core.memory.types", "UserFact"),
+            ("ze_core.memory.types", "Episode"),
+            ("ze_core.memory.types", "UserProfile"),
             ("asyncpg.pgproto.pgproto", "UUID"),
         ]
     )
@@ -171,7 +171,7 @@ async def build_container(settings: Settings) -> Container:
         cost_tracker=cost_tracker,
     )
 
-    memory_store = MemoryStore(
+    memory_store = PostgresMemoryStore(
         pool=pool,
         embedder=embedder,
         openrouter_client=openrouter_client,
@@ -327,7 +327,7 @@ async def build_container(settings: Settings) -> Container:
     await workflow_scheduler.start()
 
     if settings.consolidation_enabled:
-        nightly_cron = settings.consolidation_config.get("nightly_cron", "0 2 * * *")
+        nightly_cron = settings.consolidation_config.get("nightly_cron") or "0 2 * * *"
         workflow_scheduler.schedule_job(
             fn=memory_consolidator.run,
             cron=nightly_cron,

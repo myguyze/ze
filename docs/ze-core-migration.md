@@ -6,9 +6,8 @@ This document is the **execution plan** for moving the production Ze application
 - [`packages/ze-core/VISION_EVOLUTION.md`](../packages/ze-core/VISION_EVOLUTION.md) — rationale and long-term target architecture
 - [`specs/zc-*.md`](../specs/) — framework contracts (interface, container, orchestration, etc.)
 
-**Current state:** `ze` depends on `ze-core` for capability, interface, and routing.
-Ze still owns parallel copies of memory, orchestration (graph nodes), goals,
-proactive, and telemetry. Normal Telegram turns use `Container.invoke_raw_turn()`
+**Current state:** `ze` depends on `ze-core` for capability, interface, routing, and memory.
+Ze still owns orchestration (graph nodes), goals, proactive, and telemetry. Normal Telegram turns use `Container.invoke_raw_turn()`
 / `resume_turn()` (not ze-core `Container.invoke()` yet).
 
 **Goal:** Ze runs on ze-core with **no user-visible regression**, Ze-specific code
@@ -177,6 +176,14 @@ ZeBot calls these instead of hand-rolled `graph.ainvoke()` for normal turns and 
 
 **Phase 4 done when:** No `ze.memory` implementation files; `config.yaml` has no `memory:` section.
 
+**Implemented (2025-05):**
+
+- `ze_core.memory.postgres.PostgresMemoryStore` wired in `Container`
+- `ze/memory/*` — thin re-exports; `MemoryConsolidator` wrapper adds telemetry on `run()`
+- `memory:` block removed from `config.yaml`; insight tuning moved to `proactive.insights`
+- Checkpointer serde paths → `ze_core.memory.types`
+- `person_store` already in `make_graph_config()` (contact proposals in Ze `write_memory` node)
+
 ---
 
 ### Phase 5 — Goals & proactive
@@ -292,7 +299,7 @@ Update as PRs merge:
 | 1 Interface | ✅ | | `invoke_raw_turn` / `resume_turn` on `Container` |
 | 2 Capability | ✅ | | ze-core gate + DB overrides; YAML sync via `prepare_gate_registry` |
 | 3 Routing | ✅ | | ze-core router/fallback; `plan_sequential` + `after_decompose` in Ze graph |
-| 4 Memory | ⬜ | | |
+| 4 Memory | ✅ | | ze-core PostgresMemoryStore + consolidator; memory: removed from config.yaml |
 | 5 Goals / proactive | ⬜ | | |
 | 6 Telemetry / persona | ⬜ | | |
 | 7 Agents `@agent` | ⬜ | | |
