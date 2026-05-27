@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -25,10 +26,19 @@ class ConfirmationResponse:
 
 
 @dataclass
+class Action:
+    """A labelled button the user can tap in a notification."""
+    label: str
+    payload: str  # opaque string passed back by the transport layer
+
+
+@dataclass
 class Notification:
     content: str
     format: str = "text"    # "text" | "markdown"
     urgency: str = "normal"  # "normal" | "high"
+    actions: list[Action] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

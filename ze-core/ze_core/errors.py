@@ -62,6 +62,34 @@ class ToolBlockedError(AgentError):
     """Tool call rejected because the capability gate is BLOCKED."""
 
 
+# ── Goals ─────────────────────────────────────────────────────────────────────
+
+class GoalError(ZeCoreError):
+    """Base class for goal errors."""
+
+
+class GoalPlanError(GoalError):
+    """Goal planner returned an invalid or unparseable plan."""
+
+
+class GoalExecutionError(GoalError):
+    """A milestone failed during goal execution."""
+
+
+# ── Persona ───────────────────────────────────────────────────────────────────
+
+class PersonaError(ZeCoreError):
+    """Base class for persona errors."""
+
+
+class UnknownProfileError(PersonaError):
+    """Named persona profile not found."""
+
+
+class UnknownDialError(PersonaError):
+    """Named persona dial not found."""
+
+
 # ── Channels ──────────────────────────────────────────────────────────────────
 
 class ChannelError(ZeCoreError):
