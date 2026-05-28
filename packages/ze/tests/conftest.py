@@ -1,6 +1,7 @@
 import pytest
 
-import ze.tools  # noqa: F401 — registers all shared @tool decorators for every test
+import ze_core.contacts.tools  # noqa: F401 — registers get_contact_channels, set_contact_channel
+import ze_browser.tool  # noqa: F401 — registers browser_extract
 
 
 def _registry_has_real_agents() -> bool:

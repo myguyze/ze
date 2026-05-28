@@ -129,7 +129,8 @@ def validate_registry() -> None:
 
 def _import_agent_modules() -> None:
     """Import shared tools then every agent sub-package that has an agent.py."""
-    importlib.import_module("ze.tools")
+    importlib.import_module("ze_core.contacts.tools")
+    importlib.import_module("ze_browser.tool")
     for path in sorted(_AGENTS_DIR.iterdir()):
         if path.is_dir() and (path / "agent.py").exists():
             importlib.import_module(f"ze.agents.{path.name}.agent")
@@ -143,7 +144,6 @@ def reload_agent_modules() -> None:
 
     _registry.clear()
     _instances.clear()
-    importlib.import_module("ze.tools")
     for path in sorted(_AGENTS_DIR.iterdir()):
         if path.is_dir() and (path / "agent.py").exists():
             sys.modules.pop(f"ze.agents.{path.name}.agent", None)
