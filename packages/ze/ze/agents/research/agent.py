@@ -1,8 +1,8 @@
 from typing import AsyncIterator
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
 from ze_core.capability.types import Mode
@@ -49,7 +49,7 @@ class ResearchAgent(BaseAgent):
         openrouter_client: OpenRouterClient,
         settings: Settings,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
 
     async def run(self, ctx: AgentContext) -> AgentResult:

@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from ze.agents.goals.agent import GoalAgent
-from ze.agents.types import AgentContext
+from ze_core.orchestration.types import AgentContext
 from ze_core.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus
 from ze.logging import configure_logging
 

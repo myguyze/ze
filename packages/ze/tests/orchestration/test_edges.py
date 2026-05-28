@@ -120,7 +120,7 @@ def test_after_execute_tool_single_goes_to_write_memory():
 
 
 def test_after_execute_tool_compound_goes_to_synthesize():
-    from ze.agents.types import AgentResult
+    from ze_core.orchestration.types import AgentResult
     results = [AgentResult(agent="research", response="data")]
     state = base_state(
         subtask_results=results,

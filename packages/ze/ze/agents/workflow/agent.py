@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 from typing import AsyncIterator
 from uuid import UUID
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
 from ze_core.capability.types import Mode
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze.errors import WorkflowPlanError
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
@@ -60,7 +60,7 @@ class WorkflowManagerAgent(BaseAgent):
         workflow_scheduler: WorkflowScheduler,
         settings: Settings,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
         self._store = workflow_store
         self._planner = workflow_planner

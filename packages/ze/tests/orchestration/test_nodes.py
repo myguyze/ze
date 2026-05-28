@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.types import GateDecision
 from ze_core.errors import AgentTimeoutError

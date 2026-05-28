@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, AsyncIterator
 
 from ze_core.capability.types import GateDecision, Mode
@@ -10,6 +11,7 @@ from ze_core.defaults import MODEL_AGENT_DEFAULT, MODEL_AGENT_TIMEOUT
 from ze_core.errors import AgentError, ToolBlockedError
 from ze_core.logging import get_logger
 from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
+from ze_core.persona.identity import build_identity_block
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
@@ -60,10 +62,50 @@ class BaseAgent(ABC):
     async def shutdown(self) -> None:
         """Called during app shutdown. Override for cleanup."""
 
+    @cached_property
+    def _log(self):
+        return get_logger(type(self).__module__)
+
     async def emit(self, ctx: AgentContext, key: str, **kwargs: str) -> None:
         """Emit a progress message. No-op when no reporter is attached (e.g. tests)."""
         if ctx.reporter is not None:
             await ctx.reporter.emit(key, **kwargs)
+
+    def _model(self, ctx: AgentContext | None = None) -> str:
+        if ctx is not None and ctx.model is not None:
+            return ctx.model
+        return self.model
+
+    def _timeout(self) -> int:
+        return int(self.timeout)
+
+    def _format_memory(self, ctx: AgentContext) -> str:
+        lines = [f"- {f.key}: {f.value}" for f in ctx.memory.facts]
+        return "\n".join(lines) if lines else "(none)"
+
+    def _format_contacts(self, ctx: AgentContext) -> str:
+        lines = []
+        for p in ctx.contacts.people:
+            line = f"- {p.name}: {p.relationship_to_user}"
+            if p.notes:
+                line += f" ({p.notes})"
+            lines.append(line)
+        return "\n".join(lines)
+
+    def _build_system_prompt(
+        self,
+        agent_instructions: str,
+        ctx: AgentContext,
+        **extra: str,
+    ) -> str:
+        identity = build_identity_block(
+            ctx.persona,
+            self._format_memory(ctx),
+            profile=ctx.memory.profile,
+            contacts_context=self._format_contacts(ctx),
+        )
+        rendered = agent_instructions.format(**extra) if extra else agent_instructions
+        return f"{identity}\n\n{rendered}"
 
     # ── Tool execution ────────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ import time
 from langchain_core.runnables import RunnableConfig
 from sentence_transformers import SentenceTransformer
 
-from ze.agents.types import AgentContext
+from ze_core.orchestration.types import AgentContext
 from ze_core.contacts.store import PersonStore
 from ze_core.contacts.types import PersonContext
 from ze.logging import get_logger

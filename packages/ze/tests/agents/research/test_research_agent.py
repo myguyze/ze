@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock
 
 from ze.agents.research.agent import ResearchAgent
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze.logging import configure_logging
 from ze_core.memory.types import MemoryContext, UserFact
 

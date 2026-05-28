@@ -6,10 +6,10 @@ import asyncpg
 import ze_browser.tool  # noqa: F401 — registers browser_extract @tool
 import ze.agents.prospecting.tools  # noqa: F401 — registers add_prospect, draft_outreach, log_outreach_event @tool
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
 from ze_core.capability.types import Mode
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_browser import BrowserClient
 from ze_core.contacts.store import PersonStore
 from ze_core.openrouter.client import OpenRouterClient
@@ -78,7 +78,7 @@ class ProspectingAgent(BaseAgent):
         person_store: PersonStore,
         pool: asyncpg.Pool,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
         self._browser_client = browser_client
         self._person_store = person_store

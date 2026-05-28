@@ -10,8 +10,6 @@ _VERBOSITY_CLAUSES = {
     "detailed": " Be thorough — elaborate fully and include examples where helpful.",
 }
 
-# Each dial maps band boundaries to a prose clause. Only the extremes ([0, 0.2) and
-# [0.8, 1.0]) emit a clause; the neutral middle is silent to keep the prompt compact.
 _DIAL_CLAUSES: dict[str, list[tuple[float, float, str]]] = {
     "humor": [
         (0.0, 0.2, "Keep responses strictly professional — no humor."),

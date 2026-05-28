@@ -3,7 +3,7 @@ import asyncio
 from langchain_core.runnables import RunnableConfig
 from sentence_transformers import SentenceTransformer
 
-from ze.agents.types import AgentResult
+from ze_core.orchestration.types import AgentResult
 from ze_core.channels.types import ChannelHandle, ChannelType
 from ze_core.contacts.channel_store import ContactChannelStore
 from ze_core.contacts.types import ContactProposal, Person, PersonSource, SOURCE_WEIGHTS

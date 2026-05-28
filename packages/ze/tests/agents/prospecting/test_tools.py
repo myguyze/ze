@@ -4,7 +4,6 @@ from uuid import uuid4
 
 import pytest
 
-from ze.agents.types import ToolCall
 from ze_core.contacts.types import Person
 from ze_browser import BrowserError, BrowserResult
 
@@ -194,7 +193,7 @@ async def test_add_prospect_new_person():
     pool = make_pool()
     campaign_id = str(uuid4())
 
-    tc = await add_prospect(
+    result = await add_prospect(
         name="Maria Santos",
         company="AirCharter PT",
         role="CEO",
@@ -208,7 +207,7 @@ async def test_add_prospect_new_person():
         pool=pool,
     )
 
-    assert tc.success is True
+    assert "Maria Santos" in result
     person_store.upsert.assert_called_once()
     person_store.add_source.assert_called()
 
@@ -223,7 +222,7 @@ async def test_add_prospect_duplicate_adds_source():
     pool = make_pool(conn)
     campaign_id = str(uuid4())
 
-    tc = await add_prospect(
+    result = await add_prospect(
         name="Maria Santos",
         company=None,
         role=None,
@@ -237,7 +236,7 @@ async def test_add_prospect_duplicate_adds_source():
         pool=pool,
     )
 
-    assert tc.success is True
+    assert "Maria Santos" in result
     person_store.upsert.assert_not_called()
     person_store.add_source.assert_called_once()
 
@@ -286,7 +285,7 @@ async def test_draft_outreach_tool():
     client = AsyncMock()
     client.complete = AsyncMock(return_value="Hi João, reaching out about charter opportunities...")
 
-    tc = await draft_outreach(
+    result = await draft_outreach(
         name="João Silva",
         context="CEO of AirCharter, runs short-haul charter ops in Portugal",
         campaign_brief="Find charter operators in Portugal for partnership",
@@ -298,8 +297,7 @@ async def test_draft_outreach_tool():
         pool=pool,
     )
 
-    assert tc.success is True
-    assert "João" in tc.result
+    assert "João" in result
     client.complete.assert_called_once()
 
 
@@ -309,20 +307,18 @@ async def test_draft_outreach_no_contact_returns_error():
     person_store = make_person_store(existing=[])
     pool = make_pool()
 
-    tc = await draft_outreach(
-        name="Unknown Person",
-        context="unknown",
-        campaign_brief="test",
-        channel="email",
-        campaign_id=str(uuid4()),
-        client=AsyncMock(),
-        model="test",
-        person_store=person_store,
-        pool=pool,
-    )
-
-    assert tc.success is False
-    assert "No contact found" in tc.result
+    with pytest.raises(ValueError, match="No contact found"):
+        await draft_outreach(
+            name="Unknown Person",
+            context="unknown",
+            campaign_brief="test",
+            channel="email",
+            campaign_id=str(uuid4()),
+            client=AsyncMock(),
+            model="test",
+            person_store=person_store,
+            pool=pool,
+        )
 
 
 # ── log_outreach_event ────────────────────────────────────────────────────────
@@ -338,7 +334,7 @@ async def test_log_outreach_event_sent():
     conn.fetchrow = AsyncMock(return_value={"id": outreach_id})
     pool = make_pool(conn)
 
-    tc = await log_outreach_event(
+    result = await log_outreach_event(
         contact_name="Maria Santos",
         event_type="sent",
         channel="email",
@@ -347,7 +343,7 @@ async def test_log_outreach_event_sent():
         person_store=person_store,
     )
 
-    assert tc.success is True
+    assert "Maria Santos" in result
     conn.execute.assert_called_once()
     call_sql = conn.execute.call_args[0][0]
     assert "UPDATE prospect_outreach" in call_sql
@@ -364,17 +360,16 @@ async def test_log_outreach_event_no_campaign_row_returns_not_a_prospect():
     conn.fetchrow = AsyncMock(return_value=None)
     pool = make_pool(conn)
 
-    tc = await log_outreach_event(
-        contact_name="Unknown Contact",
-        event_type="sent",
-        channel="email",
-        notes="Sent intro email",
-        pool=pool,
-        person_store=person_store,
-    )
+    with pytest.raises(ValueError, match="not in any outreach campaign"):
+        await log_outreach_event(
+            contact_name="Unknown Contact",
+            event_type="sent",
+            channel="email",
+            notes="Sent intro email",
+            pool=pool,
+            person_store=person_store,
+        )
 
-    assert tc.success is False
-    assert tc.error == "not a prospect"
     conn.execute.assert_not_called()
 
 
@@ -388,17 +383,16 @@ async def test_log_outreach_event_ambiguous_returns_clarification():
     person_store = make_person_store(existing=matches)
     pool = make_pool()
 
-    tc = await log_outreach_event(
-        contact_name="João",
-        event_type="sent",
-        channel="email",
-        notes="Sent email",
-        pool=pool,
-        person_store=person_store,
-    )
+    with pytest.raises(ValueError, match="Ambiguous"):
+        await log_outreach_event(
+            contact_name="João",
+            event_type="sent",
+            channel="email",
+            notes="Sent email",
+            pool=pool,
+            person_store=person_store,
+        )
 
-    assert tc.success is False
-    assert "Ambiguous" in tc.result
     pool.acquire.assert_not_called()
 
 
@@ -408,16 +402,15 @@ async def test_log_outreach_event_invalid_event_type_rejected():
     person_store = make_person_store(existing=[make_person(name="Maria Santos")])
     pool = make_pool()
 
-    tc = await log_outreach_event(
-        contact_name="Maria Santos",
-        event_type="hacked",
-        channel="email",
-        notes="test",
-        pool=pool,
-        person_store=person_store,
-    )
+    with pytest.raises(ValueError, match="Invalid event_type"):
+        await log_outreach_event(
+            contact_name="Maria Santos",
+            event_type="hacked",
+            channel="email",
+            notes="test",
+            pool=pool,
+            person_store=person_store,
+        )
 
-    assert tc.success is False
-    assert "invalid event_type" in tc.error
     pool.acquire.assert_not_called()
     person_store.get_by_name.assert_not_called()

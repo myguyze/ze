@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from ze.agents.reminders.agent import RemindersAgent, _human_delta
-from ze.agents.types import AgentContext
+from ze_core.orchestration.types import AgentContext
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext
 from ze.settings import Settings

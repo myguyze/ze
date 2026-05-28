@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from ze.agents.identity import build_identity_block
+from ze_core.persona.identity import build_identity_block
 from ze_core.memory.types import UserProfile
 
 

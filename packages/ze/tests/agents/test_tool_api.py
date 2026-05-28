@@ -1,39 +1,24 @@
 """Tests for the tool registry, call_tool() enforcement, and validate_registry()."""
 
-import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent, _truncate_messages
 import ze_core.orchestration.tool as _tool_mod
 from ze_core.orchestration.tool import ToolAccess, ToolSpec, get_tool, registered_tools, tool
 
 _tool_registry = _tool_mod._tools
-from ze.agents.types import AgentContext, AgentResult, ToolCall
+from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 from ze_core.capability.types import GateDecision
 from ze_core.errors import AgentConfigError, ToolBlockedError, UnknownToolError
 from ze.logging import configure_logging
 from ze_core.memory.types import MemoryContext
-from ze.settings import Settings
 
 
 @pytest.fixture(autouse=True)
 def setup_logging():
     configure_logging()
-
-
-@pytest.fixture
-def settings():
-    from ze.settings import get_settings
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
 
 
 # ── Fixtures — minimal concrete agent for testing call_tool() ─────────────────
@@ -49,8 +34,8 @@ class _ConcreteAgent(BaseAgent):
         yield "ok"
 
 
-def make_agent(settings) -> _ConcreteAgent:
-    return _ConcreteAgent(settings=settings)
+def make_agent(_settings=None) -> _ConcreteAgent:
+    return _ConcreteAgent()
 
 
 def make_ctx(gate_decision: GateDecision = GateDecision.EXECUTE) -> AgentContext:
@@ -120,7 +105,7 @@ def test_registered_tools_returns_snapshot():
 
 # ── call_tool() — EXECUTE mode ────────────────────────────────────────────────
 
-async def test_call_tool_execute_read_tool_runs(settings):
+async def test_call_tool_execute_read_tool_runs():
     called_with: dict = {}
 
     @tool(access=ToolAccess.READ, description="Execute read.")
@@ -128,7 +113,7 @@ async def test_call_tool_execute_read_tool_runs(settings):
         called_with["query"] = query
         return ToolCall(tool_name="_exec_read", args={"query": query}, result="ok", duration_ms=1, success=True)
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.EXECUTE)
     result = await agent.call_tool("_exec_read", ctx, query="hello")
 
@@ -136,12 +121,12 @@ async def test_call_tool_execute_read_tool_runs(settings):
     assert called_with["query"] == "hello"
 
 
-async def test_call_tool_execute_write_tool_runs(settings):
+async def test_call_tool_execute_write_tool_runs():
     @tool(access=ToolAccess.WRITE, description="Execute write.")
     async def _exec_write(body: str) -> ToolCall:
         return ToolCall(tool_name="_exec_write", args={"body": body}, result="sent", duration_ms=1, success=True)
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.EXECUTE)
     result = await agent.call_tool("_exec_write", ctx, body="hello")
 
@@ -151,12 +136,12 @@ async def test_call_tool_execute_write_tool_runs(settings):
 
 # ── call_tool() — DRAFT mode ──────────────────────────────────────────────────
 
-async def test_call_tool_draft_read_tool_runs(settings):
+async def test_call_tool_draft_read_tool_runs():
     @tool(access=ToolAccess.READ, description="Draft read.")
     async def _draft_read(query: str) -> ToolCall:
         return ToolCall(tool_name="_draft_read", args={}, result="data", duration_ms=1, success=True)
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.DRAFT)
     result = await agent.call_tool("_draft_read", ctx, query="hello")
 
@@ -164,7 +149,7 @@ async def test_call_tool_draft_read_tool_runs(settings):
     assert result.is_draft is False
 
 
-async def test_call_tool_draft_suppresses_write_tool(settings):
+async def test_call_tool_draft_suppresses_write_tool():
     side_effects: list = []
 
     @tool(access=ToolAccess.WRITE, description="Draft write.")
@@ -172,7 +157,7 @@ async def test_call_tool_draft_suppresses_write_tool(settings):
         side_effects.append(body)  # should never run
         return ToolCall(tool_name="_draft_write", args={}, result=None, duration_ms=1, success=True)
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.DRAFT)
     result = await agent.call_tool("_draft_write", ctx, body="secret")
 
@@ -184,22 +169,22 @@ async def test_call_tool_draft_suppresses_write_tool(settings):
 
 # ── call_tool() — BLOCKED mode ────────────────────────────────────────────────
 
-async def test_call_tool_blocked_raises_for_read_tool(settings):
+async def test_call_tool_blocked_raises_for_read_tool():
     @tool(access=ToolAccess.READ, description="Blocked read.")
     async def _blocked_read(query: str) -> ToolCall: ...
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.BLOCKED)
 
     with pytest.raises(ToolBlockedError):
         await agent.call_tool("_blocked_read", ctx, query="x")
 
 
-async def test_call_tool_blocked_raises_for_write_tool(settings):
+async def test_call_tool_blocked_raises_for_write_tool():
     @tool(access=ToolAccess.WRITE, description="Blocked write.")
     async def _blocked_write(body: str) -> ToolCall: ...
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.BLOCKED)
 
     with pytest.raises(ToolBlockedError):
@@ -208,8 +193,8 @@ async def test_call_tool_blocked_raises_for_write_tool(settings):
 
 # ── call_tool() — unknown tool ────────────────────────────────────────────────
 
-async def test_call_tool_raises_for_unregistered_tool(settings):
-    agent = make_agent(settings)
+async def test_call_tool_raises_for_unregistered_tool():
+    agent = make_agent()
     ctx = make_ctx()
 
     with pytest.raises(UnknownToolError):
@@ -218,12 +203,12 @@ async def test_call_tool_raises_for_unregistered_tool(settings):
 
 # ── call_tool() — tool raises unexpectedly ────────────────────────────────────
 
-async def test_call_tool_wraps_unexpected_exception(settings):
+async def test_call_tool_wraps_unexpected_exception():
     @tool(access=ToolAccess.READ, description="Crashing tool.")
     async def _crashing_tool(query: str) -> ToolCall:
         raise RuntimeError("kaboom")
 
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = make_ctx(GateDecision.EXECUTE)
     result = await agent.call_tool("_crashing_tool", ctx, query="x")
 
@@ -234,36 +219,36 @@ async def test_call_tool_wraps_unexpected_exception(settings):
 
 # ── BaseAgent config helpers ──────────────────────────────────────────────────
 
-def test_model_reads_from_agent_config(settings):
-    # "research" is a real agent config with a model key
+def test_model_returns_class_default():
+    class _ResearchLike(BaseAgent):
+        name = "research"
+        model = "anthropic/claude-sonnet-4-5"
+        async def run(self, ctx): ...
+        async def stream(self, ctx): yield ""
+
+    agent = _ResearchLike()
+    assert "anthropic" in agent._model()
+
+
+def test_timeout_returns_class_default():
     class _ResearchLike(BaseAgent):
         name = "research"
         async def run(self, ctx): ...
         async def stream(self, ctx): yield ""
 
-    agent = _ResearchLike(settings=settings)
-    assert "claude" in agent._model() or "anthropic" in agent._model()
-
-
-def test_timeout_reads_from_agent_config(settings):
-    class _ResearchLike(BaseAgent):
-        name = "research"
-        async def run(self, ctx): ...
-        async def stream(self, ctx): yield ""
-
-    agent = _ResearchLike(settings=settings)
+    agent = _ResearchLike()
     assert agent._timeout() > 0
 
 
-def test_format_memory_empty(settings):
-    agent = make_agent(settings)
+def test_format_memory_empty():
+    agent = make_agent()
     ctx = make_ctx()
     assert agent._format_memory(ctx) == "(none)"
 
 
-def test_format_memory_with_facts(settings):
+def test_format_memory_with_facts():
     from ze_core.memory.types import UserFact
-    agent = make_agent(settings)
+    agent = make_agent()
     ctx = AgentContext(
         session_id="s1", prompt="x", intent="read",
         gate_decision=GateDecision.EXECUTE,
@@ -436,7 +421,7 @@ def make_loop_ctx() -> AgentContext:
     )
 
 
-async def test_agentic_loop_returns_text_immediately(settings):
+async def test_agentic_loop_returns_text_immediately():
     """LLM returns text on first call — no tool calls, no iterations."""
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(return_value=("Answer.", None))
@@ -454,7 +439,7 @@ async def test_agentic_loop_returns_text_immediately(settings):
     client.complete_with_tools.assert_awaited_once()
 
 
-async def test_agentic_loop_one_tool_call_round_trip(settings):
+async def test_agentic_loop_one_tool_call_round_trip():
     """LLM calls openrouter:web_search once (server tool), then returns text."""
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
@@ -479,7 +464,7 @@ async def test_agentic_loop_one_tool_call_round_trip(settings):
     assert tool_calls[0].success is True
 
 
-async def test_agentic_loop_appends_tool_turns_to_messages(settings):
+async def test_agentic_loop_appends_tool_turns_to_messages():
     """Server tool call and result messages are appended to the messages list."""
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
@@ -503,7 +488,7 @@ async def test_agentic_loop_appends_tool_turns_to_messages(settings):
     assert "tool" in roles
 
 
-async def test_agentic_loop_forces_text_after_max_iterations(settings):
+async def test_agentic_loop_forces_text_after_max_iterations():
     """After max_iterations, falls back to plain complete() without tools."""
     tool_call = (None, [{"id": "c1", "name": "openrouter:web_search", "arguments": {"query": "q"}}])
     client = AsyncMock()
@@ -525,7 +510,7 @@ async def test_agentic_loop_forces_text_after_max_iterations(settings):
     client.complete.assert_awaited_once()
 
 
-async def test_agentic_loop_passes_schemas_to_client(settings):
+async def test_agentic_loop_passes_schemas_to_client():
     """Tool schemas are generated and forwarded to complete_with_tools."""
     received_tools: list = []
 
@@ -549,7 +534,7 @@ async def test_agentic_loop_passes_schemas_to_client(settings):
     assert received_tools[0]["name"] == "openrouter:web_search"
 
 
-async def test_agentic_loop_raises_agent_error_on_none_none_response(settings):
+async def test_agentic_loop_raises_agent_error_on_none_none_response():
     """complete_with_tools returning (None, None) raises AgentError, not AssertionError."""
     from ze_core.errors import AgentError
 
@@ -567,7 +552,7 @@ async def test_agentic_loop_raises_agent_error_on_none_none_response(settings):
         )
 
 
-async def test_agentic_loop_empty_string_raises_agent_error(settings):
+async def test_agentic_loop_empty_string_raises_agent_error():
     """Empty text + no tool calls from complete_with_tools raises AgentError, not returns ''."""
     from ze_core.errors import AgentError
 
@@ -585,7 +570,7 @@ async def test_agentic_loop_empty_string_raises_agent_error(settings):
         )
 
 
-async def test_agentic_loop_forwards_max_tokens(settings):
+async def test_agentic_loop_forwards_max_tokens():
     """max_tokens is forwarded to complete_with_tools."""
     received_kwargs: list[dict] = []
 
@@ -613,7 +598,7 @@ async def test_agentic_loop_forwards_max_tokens(settings):
 
 def test_truncate_removes_full_round_atomically():
     """Removing a round removes the assistant turn AND its tool results together."""
-    from ze.agents.base import _truncate_messages
+    from ze_core.orchestration.base_agent import _truncate_messages
 
     messages = [
         {"role": "user", "content": "find me prospects"},
@@ -639,7 +624,7 @@ def test_truncate_removes_full_round_atomically():
 
 def test_truncate_removes_multi_tool_round_atomically():
     """An assistant turn with two tool calls has both results removed together."""
-    from ze.agents.base import _truncate_messages
+    from ze_core.orchestration.base_agent import _truncate_messages
 
     messages = [
         {"role": "user", "content": "q"},
@@ -668,7 +653,7 @@ def test_truncate_removes_multi_tool_round_atomically():
 
 def test_truncate_never_removes_protected_messages():
     """Last 4 messages are never removed even when over budget."""
-    from ze.agents.base import _truncate_messages
+    from ze_core.orchestration.base_agent import _truncate_messages
 
     tail = [
         {"role": "tool", "tool_call_id": "recent-1", "content": "recent result"},

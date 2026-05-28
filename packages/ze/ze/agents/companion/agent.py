@@ -3,9 +3,9 @@ from typing import AsyncIterator
 
 import asyncpg
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
-from ze.agents.types import AgentContext, AgentResult, ToolCall
+from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 from ze_core.contacts.store import PersonStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
@@ -68,7 +68,7 @@ class CompanionAgent(BaseAgent):
         person_store: PersonStore,
         pool: asyncpg.Pool,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
         self._person_store = person_store
         self._pool = pool

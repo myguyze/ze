@@ -5,10 +5,10 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncIterator
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
 from ze_core.capability.types import Mode
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze.reminders.store import ReminderStore, fire_reminder
@@ -66,7 +66,7 @@ class RemindersAgent(BaseAgent):
         notifier: ProactiveNotifier,
         settings: Settings,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
         self._store = reminder_store
         self._scheduler = workflow_scheduler

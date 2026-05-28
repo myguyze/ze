@@ -6,10 +6,10 @@ import json
 from typing import AsyncIterator
 from uuid import UUID
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
 from ze_core.capability.types import Mode
-from ze.agents.types import AgentContext, AgentResult
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.errors import GoalPlanError
 from ze_core.goals.executor import GoalExecutor
 from ze_core.goals.planner import GoalPlanner
@@ -76,7 +76,7 @@ class GoalAgent(BaseAgent):
         notifier: ProactiveNotifier,
         settings: Settings,
     ) -> None:
-        super().__init__(settings)
+        self._settings = settings
         self._client = openrouter_client
         self._store = goal_store
         self._planner = goal_planner
