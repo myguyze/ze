@@ -3,7 +3,7 @@ import base64
 
 from langchain_core.runnables import RunnableConfig
 
-from ze.agents.base import BaseAgent
+from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import get_agent, get_agent_class
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.capability.types import GateDecision

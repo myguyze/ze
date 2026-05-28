@@ -404,8 +404,8 @@ def test_llm_schema_all_complex_excluded_yields_empty_properties():
 
 # ── agentic_loop() ────────────────────────────────────────────────────────────
 
-def _make_loop_agent(settings) -> _ConcreteAgent:
-    agent = _ConcreteAgent(settings=settings)
+def _make_loop_agent() -> _ConcreteAgent:
+    agent = _ConcreteAgent()
     agent.tools = ["openrouter:web_search"]
     return agent
 
@@ -425,7 +425,7 @@ async def test_agentic_loop_returns_text_immediately():
     """LLM returns text on first call — no tool calls, no iterations."""
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(return_value=("Answer.", None))
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
 
     text, tool_calls = await agent.agentic_loop(
         make_loop_ctx(),
@@ -448,7 +448,7 @@ async def test_agentic_loop_one_tool_call_round_trip():
     ])
     client.complete = AsyncMock(return_value="Final answer.")
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     messages = [{"role": "user", "content": "test"}]
     text, tool_calls = await agent.agentic_loop(
         make_loop_ctx(),
@@ -472,7 +472,7 @@ async def test_agentic_loop_appends_tool_turns_to_messages():
         ("Done.", None),
     ])
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     messages = [{"role": "user", "content": "q"}]
     await agent.agentic_loop(
         make_loop_ctx(),
@@ -495,7 +495,7 @@ async def test_agentic_loop_forces_text_after_max_iterations():
     client.complete_with_tools = AsyncMock(return_value=tool_call)
     client.complete = AsyncMock(return_value="Forced final answer.")
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     text, tool_calls = await agent.agentic_loop(
         make_loop_ctx(),
         client=client,
@@ -521,7 +521,7 @@ async def test_agentic_loop_passes_schemas_to_client():
     client = AsyncMock()
     client.complete_with_tools = _mock_cwt
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     await agent.agentic_loop(
         make_loop_ctx(),
         client=client,
@@ -541,7 +541,7 @@ async def test_agentic_loop_raises_agent_error_on_none_none_response():
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(return_value=(None, None))
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     with pytest.raises(AgentError, match="no text and no tool calls"):
         await agent.agentic_loop(
             make_loop_ctx(),
@@ -559,7 +559,7 @@ async def test_agentic_loop_empty_string_raises_agent_error():
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(return_value=("", None))
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     with pytest.raises(AgentError, match="no text and no tool calls"):
         await agent.agentic_loop(
             make_loop_ctx(),
@@ -581,7 +581,7 @@ async def test_agentic_loop_forwards_max_tokens():
     client = AsyncMock()
     client.complete_with_tools = _mock_cwt
 
-    agent = _make_loop_agent(settings)
+    agent = _make_loop_agent()
     await agent.agentic_loop(
         make_loop_ctx(),
         client=client,

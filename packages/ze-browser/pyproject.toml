@@ -11,6 +11,9 @@ dependencies = [
     "ze-core",
 ]
 
+[tool.uv.sources]
+ze-core = { workspace = true }
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",

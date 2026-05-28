@@ -193,7 +193,7 @@ async def test_prospecting_agent_passes_campaign_id_in_deps():
 # ── agentic_loop max_history_tokens ──────────────────────────────────────────
 
 async def test_agentic_loop_truncates_old_rounds():
-    from ze.agents.base import _truncate_messages
+    from ze_core.orchestration.base_agent import _truncate_messages
 
     def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
 
@@ -220,7 +220,7 @@ async def test_agentic_loop_truncates_old_rounds():
 
 
 async def test_agentic_loop_protects_last_4_messages():
-    from ze.agents.base import _truncate_messages
+    from ze_core.orchestration.base_agent import _truncate_messages
 
     def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
 
