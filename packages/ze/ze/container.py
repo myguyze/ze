@@ -27,8 +27,8 @@ from ze.google.auth import GoogleCredentials
 from ze.logging import get_logger
 from ze_core.contacts.consolidator import ContactsConsolidator
 from ze_core.contacts.store import PersonStore
-from ze.proactive.contacts import ContactReviewNotifier
-from ze.proactive.prospecting import recover_stale_campaigns
+from ze.jobs.contacts import ContactReviewNotifier
+from ze.jobs.prospecting import recover_stale_campaigns
 from ze_core.memory.consolidator import MemoryConsolidator
 from ze_core.memory.postgres import PostgresMemoryStore
 from ze_core.persona.postgres import PostgresPersonaStore
@@ -37,12 +37,14 @@ from ze.orchestration.graph import build_graph
 from ze_core.progress import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
 from ze.orchestration.workflow_graph import build_workflow_graph
-from ze.proactive.briefing import MorningBriefing
-from ze.proactive.push_log_store import PushLogStore
-from ze.proactive.insights import InsightEngine
+from ze.jobs.briefing import MorningBriefing
+from ze_core.proactive.push_log_store import PushLogStore
+from ze.jobs.insights import InsightEngine
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_core.proactive.scheduler import ProactiveScheduler
-from ze.proactive.reminders import CalendarReminderScheduler
+from ze.reminders.calendar_store import CalendarReminderStore
+from ze.reminders.calendar import CalendarReminderService
+from ze.jobs.calendar import CalendarReminderJob
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore
@@ -82,7 +84,7 @@ class ZeContainer(CoreContainer):
     ze_bot: ZeBot
     notifier: ProactiveNotifier
     morning_briefing: MorningBriefing
-    calendar_reminders: CalendarReminderScheduler
+    calendar_reminders: CalendarReminderJob
     insight_engine: InsightEngine
     browser_client: BrowserClient
     channel_registry: ChannelRegistry
@@ -452,22 +454,23 @@ async def build_container(settings: Settings) -> ZeContainer:
     gmail_channel = GmailChannel(credentials=google_credentials) if google_credentials else None
     channel_registry = ChannelRegistry(channels=[gmail_channel] if gmail_channel else [])
 
-    calendar_reminders = CalendarReminderScheduler(
+    calendar_reminder_store = CalendarReminderStore(pool=pool)
+    calendar_reminder_service = CalendarReminderService(
         notifier=notifier,
-        pool=pool,
+        store=calendar_reminder_store,
+        push_log_store=push_log_store,
         openrouter_client=openrouter_client,
-        workflow_scheduler=workflow_scheduler,
-        google_credentials=google_credentials,
+        scheduler=workflow_scheduler,
         settings=settings,
+    )
+    calendar_reminders = CalendarReminderJob(
+        service=calendar_reminder_service,
+        credentials=google_credentials,
     )
     calendar_cfg = proactive_cfg.get("calendar", {})
     if calendar_cfg.get("sync_enabled", True):
-        await calendar_reminders.start()
-        proactive_scheduler.add_cron_job(
-            fn=calendar_reminders.sync,
-            cron=calendar_cfg.get("sync_cron", "45 7 * * *"),
-            job_id="calendar_reminder_sync",
-        )
+        await calendar_reminder_service.replay_unsent()
+        proactive_scheduler.register(calendar_reminders, cron=calendar_cfg.get("sync_cron", "45 7 * * *"))
         log.info("calendar_reminders_scheduled")
 
     insight_engine = InsightEngine(

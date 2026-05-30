@@ -245,7 +245,7 @@ async def test_agentic_loop_protects_last_4_messages():
 # ── recover_stale_campaigns ───────────────────────────────────────────────────
 
 async def test_recover_stale_campaigns():
-    from ze.proactive.prospecting import recover_stale_campaigns
+    from ze.jobs.prospecting import recover_stale_campaigns
 
     pool = MagicMock()
     pool.execute = AsyncMock(return_value="UPDATE 0")
@@ -260,7 +260,7 @@ async def test_recover_stale_campaigns():
 
 
 async def test_recover_stale_campaigns_logs_when_rows_updated():
-    from ze.proactive.prospecting import recover_stale_campaigns
+    from ze.jobs.prospecting import recover_stale_campaigns
 
     pool = MagicMock()
     pool.execute = AsyncMock(return_value="UPDATE 3")

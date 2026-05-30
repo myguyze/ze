@@ -5,13 +5,15 @@ import json
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-import asyncpg
-
 from ze.logging import get_logger
+from ze_core.proactive.push_log_store import PushLogStore
+from ze.reminders.calendar_store import CalendarReminderStore
+from ze.settings import Settings
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
-from ze.settings import Settings
 from ze_core.telemetry.context import set_agent_context, set_flow_context
+
+log = get_logger(__name__)
 
 _ASSESS_SYSTEM = """\
 You are Ze's calendar assistant. Given a calendar event, return a JSON object
@@ -41,7 +43,7 @@ def _parse_interval(s: str) -> timedelta | None:
         n = float(parts[0])
     except ValueError:
         return None
-    unit = parts[1].rstrip("s")  # normalize plural
+    unit = parts[1].rstrip("s")
     seconds_per_unit = _UNIT_SECONDS.get(parts[1]) or _UNIT_SECONDS.get(unit)
     if not seconds_per_unit:
         return None
@@ -49,6 +51,21 @@ def _parse_interval(s: str) -> timedelta | None:
     if td < _MIN_OFFSET or td > _MAX_OFFSET:
         return None
     return td
+
+
+def _human_offset(td: timedelta) -> str:
+    total = int(td.total_seconds())
+    days = total // 86400
+    hours = (total % 86400) // 3600
+    minutes = (total % 3600) // 60
+    if days >= 7:
+        weeks = days // 7
+        return f"{weeks} week{'s' if weeks > 1 else ''}"
+    if days > 0:
+        return f"{days} day{'s' if days > 1 else ''}"
+    if hours > 0:
+        return f"{hours} hour{'s' if hours > 1 else ''}"
+    return f"{minutes} minute{'s' if minutes > 1 else ''}"
 
 
 def _event_start(event: dict) -> datetime | None:
@@ -69,71 +86,39 @@ def _event_updated(event: dict) -> datetime | None:
     return datetime.fromisoformat(updated.replace("Z", "+00:00")).astimezone(timezone.utc)
 
 
-def _human_offset(td: timedelta) -> str:
-    total = int(td.total_seconds())
-    days = total // 86400
-    hours = (total % 86400) // 3600
-    minutes = (total % 3600) // 60
-    if days >= 7:
-        weeks = days // 7
-        return f"{weeks} week{'s' if weeks > 1 else ''}"
-    if days > 0:
-        return f"{days} day{'s' if days > 1 else ''}"
-    if hours > 0:
-        return f"{hours} hour{'s' if hours > 1 else ''}"
-    return f"{minutes} minute{'s' if minutes > 1 else ''}"
-
-
-class CalendarReminderScheduler:
+class CalendarReminderService:
     def __init__(
         self,
         notifier: ProactiveNotifier,
-        pool: asyncpg.Pool,
+        store: CalendarReminderStore,
+        push_log_store: PushLogStore,
         openrouter_client: OpenRouterClient,
-        workflow_scheduler,
-        google_credentials,  # GoogleCredentials | None — avoid import cycle
+        scheduler,  # WorkflowScheduler — avoids circular import
         settings: Settings,
     ) -> None:
         self._notifier = notifier
-        self._pool = pool
+        self._store = store
+        self._push_log = push_log_store
         self._client = openrouter_client
-        self._scheduler = workflow_scheduler
-        self._credentials = google_credentials
+        self._scheduler = scheduler
         self._settings = settings
-        self._log = get_logger(__name__)
 
-    async def start(self) -> None:
-        async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT id, fire_at, label FROM calendar_reminders "
-                "WHERE sent = false AND fire_at > NOW() ORDER BY fire_at"
-            )
-        for row in rows:
-            rid = row["id"]
-            self._scheduler.schedule_at(
-                fn=self.fire_reminder,
-                dt=row["fire_at"],
-                job_id=f"reminder:{rid}",
-                args=(rid,),
-            )
-        self._log.info("reminders_replayed", count=len(rows))
-
-    async def sync(self) -> None:
+    async def sync(self, credentials) -> None:
+        """Fetch upcoming calendar events and schedule reminders for them."""
         set_flow_context("calendar_sync")
         set_agent_context("reminders")
-        if self._credentials is None:
-            self._log.info("reminder_sync_skipped_no_credentials")
+        if credentials is None:
+            log.info("reminder_sync_skipped_no_credentials")
             return
 
         days_ahead = int(
             self._settings.proactive_config.get("calendar", {}).get("sync_days_ahead", 7)
         )
-
         now = datetime.now(timezone.utc)
         time_max = now + timedelta(days=days_ahead)
 
         try:
-            service = self._credentials.calendar()
+            service = credentials.calendar()
             result = await asyncio.to_thread(
                 lambda: service.events().list(
                     calendarId="primary",
@@ -145,33 +130,33 @@ class CalendarReminderScheduler:
             )
             events = result.get("items", [])
         except Exception as exc:
-            self._log.warning("calendar_sync_failed", error=str(exc))
+            log.warning("calendar_sync_failed", error=str(exc))
             return
 
-        self._log.info("calendar_sync_fetched", count=len(events))
+        log.info("calendar_sync_fetched", count=len(events))
         for event in events:
             await self._process_event(event, now)
 
+    async def replay_unsent(self) -> None:
+        """Startup recovery: re-register unsent reminders into the scheduler."""
+        reminders = await self._store.list_unsent()
+        for r in reminders:
+            self._scheduler.schedule_at(
+                fn=self.fire_reminder,
+                dt=r.fire_at,
+                job_id=f"reminder:{r.id}",
+                args=(r.id,),
+            )
+        log.info("reminders_replayed", count=len(reminders))
+
     async def fire_reminder(self, reminder_id: UUID) -> None:
-        async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "UPDATE calendar_reminders SET sent = true, sent_at = NOW() "
-                "WHERE id = $1 AND sent = false RETURNING label",
-                reminder_id,
-            )
-        if row is None:
+        """Scheduler callback: push the notification and mark the reminder sent."""
+        label = await self._store.mark_sent(reminder_id)
+        if label is None:
             return
-
-        label = row["label"]
         await self._notifier.push(label)
-
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                "INSERT INTO push_log (event_type, payload) VALUES ($1, $2)",
-                f"calendar_reminder:{reminder_id}",
-                label,
-            )
-        self._log.info("reminder_fired", id=str(reminder_id))
+        await self._push_log.log(f"calendar_reminder:{reminder_id}", label)
+        log.info("reminder_fired", id=str(reminder_id))
 
     # ── Private ───────────────────────────────────────────────────────────────
 
@@ -183,26 +168,15 @@ class CalendarReminderScheduler:
             return
 
         event_updated = _event_updated(event)
-
-        async with self._pool.acquire() as conn:
-            existing = await conn.fetch(
-                "SELECT id, assessed_at, sent FROM calendar_reminders WHERE event_id = $1",
-                event_id,
-            )
+        existing = await self._store.list_for_event(event_id)
 
         if existing:
-            latest_assessed = max(r["assessed_at"] for r in existing)
+            latest_assessed = max(r.assessed_at for r in existing)
             if event_updated and event_updated > latest_assessed:
-                unsent_ids = [r["id"] for r in existing if not r["sent"]]
-                if unsent_ids:
-                    async with self._pool.acquire() as conn:
-                        await conn.execute(
-                            "DELETE FROM calendar_reminders WHERE id = ANY($1::uuid[])",
-                            unsent_ids,
-                        )
-                    for rid in unsent_ids:
-                        self._scheduler.remove_job_if_exists(f"reminder:{rid}")
-                    await self._schedule_event(event_id, title, start_time, event, now, is_update=True)
+                deleted_ids = await self._store.delete_unsent_for_event(event_id)
+                for rid in deleted_ids:
+                    self._scheduler.remove_job_if_exists(f"reminder:{rid}")
+                await self._schedule_event(event_id, title, start_time, event, now, is_update=True)
             return
 
         await self._schedule_event(event_id, title, start_time, event, now, is_update=False)
@@ -223,33 +197,25 @@ class CalendarReminderScheduler:
         prefix = "📅 Reminders updated" if is_update else "📅 Reminders set"
         confirmation_lines = [f'{prefix} for "{title}"']
 
-        async with self._pool.acquire() as conn:
-            for offset, fire_at in fire_ats:
-                label = (
-                    f"⏰ {title} — starting in {_human_offset(offset)}\n"
-                    f"{start_time.strftime('%a %d %b %Y at %H:%M UTC')}"
-                )
-                row = await conn.fetchrow(
-                    """
-                    INSERT INTO calendar_reminders (event_id, event_title, fire_at, label)
-                    VALUES ($1, $2, $3, $4) RETURNING id
-                    """,
-                    event_id, title, fire_at, label,
-                )
-                rid = row["id"]
-                self._scheduler.schedule_at(
-                    fn=self.fire_reminder,
-                    dt=fire_at,
-                    job_id=f"reminder:{rid}",
-                    args=(rid,),
-                )
-                confirmation_lines.append(
-                    f"  • {_human_offset(offset)} before — {fire_at.strftime('%a %d %b %H:%M UTC')}"
-                )
+        for offset, fire_at in fire_ats:
+            label = (
+                f"⏰ {title} — starting in {_human_offset(offset)}\n"
+                f"{start_time.strftime('%a %d %b %Y at %H:%M UTC')}"
+            )
+            rid = await self._store.create(event_id, title, fire_at, label)
+            self._scheduler.schedule_at(
+                fn=self.fire_reminder,
+                dt=fire_at,
+                job_id=f"reminder:{rid}",
+                args=(rid,),
+            )
+            confirmation_lines.append(
+                f"  • {_human_offset(offset)} before — {fire_at.strftime('%a %d %b %H:%M UTC')}"
+            )
 
         confirmation_lines.extend(["", "Tell me if you'd like to change these."])
         await self._notifier.push("\n".join(confirmation_lines))
-        self._log.info("event_reminders_scheduled", event_id=event_id, count=len(fire_ats))
+        log.info("event_reminders_scheduled", event_id=event_id, count=len(fire_ats))
 
     async def _assess_intervals(
         self,
@@ -260,12 +226,12 @@ class CalendarReminderScheduler:
         model = self._settings.config.get("models", {}).get(
             "reminders", "anthropic/claude-haiku-4-5"
         )
-
         end_time = _event_start({"start": event.get("end", {})})
-        if end_time and end_time > start_time:
-            duration_minutes = int((end_time - start_time).total_seconds() / 60)
-        else:
-            duration_minutes = 60
+        duration_minutes = (
+            int((end_time - start_time).total_seconds() / 60)
+            if end_time and end_time > start_time
+            else 60
+        )
 
         user_prompt = (
             f"Event: {event.get('summary') or 'Untitled'}\n"
@@ -285,7 +251,7 @@ class CalendarReminderScheduler:
             if isinstance(parsed.get("intervals"), list):
                 raw_intervals = [str(x) for x in parsed["intervals"]]
         except Exception as exc:
-            self._log.warning("interval_assessment_failed", error=str(exc))
+            log.warning("interval_assessment_failed", error=str(exc))
 
         result: list[tuple[timedelta, datetime]] = []
         for interval_str in raw_intervals:
@@ -296,5 +262,4 @@ class CalendarReminderScheduler:
             if fire_at <= now + _SOON_THRESHOLD:
                 continue
             result.append((td, fire_at))
-
         return result

@@ -1,6 +1,6 @@
 from ze_core.contacts.store import PersonStore
 from ze.logging import get_logger
-from ze.proactive.push_log_store import PushLogStore
+from ze_core.proactive.push_log_store import PushLogStore
 from ze.settings import Settings
 from ze_core.workflow.store import WorkflowStore
 from ze_core.memory.postgres import PostgresMemoryStore

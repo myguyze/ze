@@ -6,15 +6,16 @@ from uuid import uuid4
 import pytest
 
 from ze_core.proactive.notifier import ProactiveNotifier
-from ze.proactive.reminders import (
-    CalendarReminderScheduler,
+from ze.reminders.calendar import (
+    CalendarReminderService,
     _human_offset,
     _parse_interval,
 )
+from ze.reminders.calendar_store import CalendarReminderStore
 from ze.settings import Settings, get_settings
 from ze_core.workflow.scheduler import WorkflowScheduler
 from ze_core.workflow.types import Workflow
-from ze.proactive.push_log_store import PushLogStore
+from ze_core.proactive.push_log_store import PushLogStore
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -62,16 +63,22 @@ def make_workflow_scheduler():
     return sched
 
 
-def make_reminder_scheduler(
-    conn=None, notifier=None, client=None, credentials=None, settings=None
-):
+def make_reminder_service(conn=None, notifier=None, client=None, settings=None):
     pool, c = make_pool(conn)
-    return CalendarReminderScheduler(
+    store = MagicMock(spec=CalendarReminderStore)
+    store.list_for_event = AsyncMock(return_value=[])
+    store.list_unsent = AsyncMock(return_value=[])
+    store.create = AsyncMock(return_value=uuid4())
+    store.mark_sent = AsyncMock(return_value=None)
+    store.delete_unsent_for_event = AsyncMock(return_value=[])
+    push_log = MagicMock(spec=PushLogStore)
+    push_log.log = AsyncMock()
+    return CalendarReminderService(
         notifier=notifier or make_notifier(),
-        pool=pool,
+        store=store,
+        push_log_store=push_log,
         openrouter_client=client or AsyncMock(),
-        workflow_scheduler=make_workflow_scheduler(),
-        google_credentials=credentials,  # None by default
+        scheduler=make_workflow_scheduler(),
         settings=settings or make_settings(),
     ), c
 
@@ -155,12 +162,12 @@ def test_human_offset_weeks():
 async def test_assess_intervals_parses_json():
     client = AsyncMock()
     client.complete = AsyncMock(return_value='{"intervals": ["2 hours", "30 minutes"]}')
-    rs, _ = make_reminder_scheduler(client=client)
+    svc, _ = make_reminder_service(client=client)
 
     now = datetime.now(timezone.utc)
     event = _make_event(start_offset_hours=5)
     start_time = now + timedelta(hours=5)
-    result = await rs._assess_intervals(event, start_time, now)
+    result = await svc._assess_intervals(event, start_time, now)
 
     assert len(result) == 2
     offsets = [td for td, _ in result]
@@ -171,12 +178,12 @@ async def test_assess_intervals_parses_json():
 async def test_assess_intervals_fallback_on_haiku_error():
     client = AsyncMock()
     client.complete = AsyncMock(side_effect=Exception("API error"))
-    rs, _ = make_reminder_scheduler(client=client)
+    svc, _ = make_reminder_service(client=client)
 
     now = datetime.now(timezone.utc)
     event = _make_event(start_offset_hours=5)
     start_time = now + timedelta(hours=5)
-    result = await rs._assess_intervals(event, start_time, now)
+    result = await svc._assess_intervals(event, start_time, now)
 
     # Falls back to ["1 hour"]
     assert len(result) == 1
@@ -187,12 +194,12 @@ async def test_assess_intervals_discards_past():
     client = AsyncMock()
     # Event starts in 30 minutes; "1 hour" interval → fire_at = -30 min (past)
     client.complete = AsyncMock(return_value='{"intervals": ["1 hour"]}')
-    rs, _ = make_reminder_scheduler(client=client)
+    svc, _ = make_reminder_service(client=client)
 
     now = datetime.now(timezone.utc)
     start_time = now + timedelta(minutes=30)
     event = _make_event(start_offset_hours=0.5)
-    result = await rs._assess_intervals(event, start_time, now)
+    result = await svc._assess_intervals(event, start_time, now)
 
     assert result == []
 
@@ -200,58 +207,54 @@ async def test_assess_intervals_discards_past():
 # ── sync ──────────────────────────────────────────────────────────────────────
 
 async def test_sync_skips_when_no_credentials():
-    rs, conn = make_reminder_scheduler(credentials=None)
-    await rs.sync()
+    svc, conn = make_reminder_service()
+    await svc.sync(credentials=None)
     conn.fetch.assert_not_awaited()
     conn.fetchrow.assert_not_awaited()
 
 
 async def test_sync_schedules_new_event():
-    conn = make_conn()
-    conn.fetch = AsyncMock(return_value=[])  # no existing reminders for event
     reminder_id = uuid4()
-    conn.fetchrow = AsyncMock(return_value={"id": reminder_id})
+    store = MagicMock(spec=CalendarReminderStore)
+    store.list_for_event = AsyncMock(return_value=[])
+    store.create = AsyncMock(return_value=reminder_id)
 
     client = AsyncMock()
     client.complete = AsyncMock(return_value='{"intervals": ["1 hour"]}')
     notifier = make_notifier()
+    sched = make_workflow_scheduler()
 
     fake_creds = MagicMock()
     service_mock = MagicMock()
     fake_creds.calendar = MagicMock(return_value=service_mock)
     event = _make_event(start_offset_hours=5)
-    service_mock.events.return_value.list.return_value.execute.return_value = {
-        "items": [event]
-    }
+    service_mock.events.return_value.list.return_value.execute.return_value = {"items": [event]}
 
-    pool, _ = make_pool(conn)
-    sched = make_workflow_scheduler()
-
-    rs = CalendarReminderScheduler(
+    svc = CalendarReminderService(
         notifier=notifier,
-        pool=pool,
+        store=store,
+        push_log_store=MagicMock(spec=PushLogStore),
         openrouter_client=client,
-        workflow_scheduler=sched,
-        google_credentials=fake_creds,
+        scheduler=sched,
         settings=make_settings(),
     )
-    await rs.sync()
+    await svc.sync(fake_creds)
 
     sched.schedule_at.assert_called_once()
     notifier.push.assert_awaited_once()
-    confirmation = notifier.push.call_args[0][0]
-    assert "Reminders set" in confirmation
+    assert "Reminders set" in notifier.push.call_args[0][0]
 
 
 async def test_sync_skips_known_event():
-    conn = make_conn()
+    from ze.reminders.calendar_store import CalendarReminder
     assessed_at = datetime.now(timezone.utc)
-    # existing row — assessed after the event was last updated
-    conn.fetch = AsyncMock(return_value=[{
-        "id": uuid4(),
-        "assessed_at": assessed_at + timedelta(hours=1),  # assessed AFTER event update
-        "sent": False,
-    }])
+    existing = CalendarReminder(
+        id=uuid4(), event_id="evt_001", event_title="Meeting",
+        fire_at=_future(), label="label", sent=False,
+        assessed_at=assessed_at + timedelta(hours=1),  # assessed AFTER event update
+    )
+    store = MagicMock(spec=CalendarReminderStore)
+    store.list_for_event = AsyncMock(return_value=[existing])
 
     client = AsyncMock()
     notifier = make_notifier()
@@ -262,18 +265,16 @@ async def test_sync_skips_known_event():
     event = _make_event(start_offset_hours=5, updated_offset_hours=-2)
     service_mock.events.return_value.list.return_value.execute.return_value = {"items": [event]}
 
-    pool, _ = make_pool(conn)
-    rs = CalendarReminderScheduler(
+    svc = CalendarReminderService(
         notifier=notifier,
-        pool=pool,
+        store=store,
+        push_log_store=MagicMock(spec=PushLogStore),
         openrouter_client=client,
-        workflow_scheduler=make_workflow_scheduler(),
-        google_credentials=fake_creds,
+        scheduler=make_workflow_scheduler(),
         settings=make_settings(),
     )
-    await rs.sync()
+    await svc.sync(fake_creds)
 
-    # Event already known and not rescheduled — no LLM call, no push
     client.complete.assert_not_awaited()
     notifier.push.assert_not_awaited()
 
@@ -282,53 +283,57 @@ async def test_sync_skips_known_event():
 
 async def test_fire_reminder_pushes_and_logs():
     rid = uuid4()
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value={"label": "Meeting in 1 hour"})
+    store = MagicMock(spec=CalendarReminderStore)
+    store.mark_sent = AsyncMock(return_value="Meeting in 1 hour")
+    push_log = MagicMock(spec=PushLogStore)
+    push_log.log = AsyncMock()
     notifier = make_notifier()
 
-    rs, _ = make_reminder_scheduler(conn=conn, notifier=notifier)
-    await rs.fire_reminder(rid)
+    svc, _ = make_reminder_service(notifier=notifier)
+    svc._store = store
+    svc._push_log = push_log
+    await svc.fire_reminder(rid)
 
     notifier.push.assert_awaited_once_with("Meeting in 1 hour")
-    conn.execute.assert_awaited_once()  # INSERT push_log
+    push_log.log.assert_awaited_once()
 
 
 async def test_fire_reminder_noop_when_already_sent_or_missing():
     rid = uuid4()
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value=None)  # UPDATE returned no row — already sent
+    store = MagicMock(spec=CalendarReminderStore)
+    store.mark_sent = AsyncMock(return_value=None)
+    push_log = MagicMock(spec=PushLogStore)
+    push_log.log = AsyncMock()
     notifier = make_notifier()
 
-    rs, _ = make_reminder_scheduler(conn=conn, notifier=notifier)
-    await rs.fire_reminder(rid)
+    svc, _ = make_reminder_service(notifier=notifier)
+    svc._store = store
+    svc._push_log = push_log
+    await svc.fire_reminder(rid)
 
     notifier.push.assert_not_awaited()
-    conn.execute.assert_not_awaited()
+    push_log.log.assert_not_awaited()
 
 
-# ── start (replay) ────────────────────────────────────────────────────────────
+# ── replay_unsent ─────────────────────────────────────────────────────────────
 
 async def test_start_replays_unsent_reminders():
+    from ze.reminders.calendar_store import CalendarReminder
     fire_at = _future(minutes=60)
-    rows = [
-        {"id": uuid4(), "fire_at": fire_at, "label": "Reminder A"},
-        {"id": uuid4(), "fire_at": fire_at, "label": "Reminder B"},
+    reminders = [
+        CalendarReminder(id=uuid4(), event_id="e1", event_title="A", fire_at=fire_at,
+                         label="Reminder A", sent=False, assessed_at=fire_at),
+        CalendarReminder(id=uuid4(), event_id="e2", event_title="B", fire_at=fire_at,
+                         label="Reminder B", sent=False, assessed_at=fire_at),
     ]
-    conn = make_conn()
-    conn.fetch = AsyncMock(return_value=rows)
-
-    pool, _ = make_pool(conn)
+    store = MagicMock(spec=CalendarReminderStore)
+    store.list_unsent = AsyncMock(return_value=reminders)
     sched = make_workflow_scheduler()
 
-    rs = CalendarReminderScheduler(
-        notifier=make_notifier(),
-        pool=pool,
-        openrouter_client=AsyncMock(),
-        workflow_scheduler=sched,
-        google_credentials=None,
-        settings=make_settings(),
-    )
-    await rs.start()
+    svc, _ = make_reminder_service()
+    svc._store = store
+    svc._scheduler = sched
+    await svc.replay_unsent()
 
     assert sched.schedule_at.call_count == 2
 
