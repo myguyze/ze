@@ -11,7 +11,7 @@ from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze.reminders.store import ReminderStore
 from ze.settings import Settings
-from ze.workflow.scheduler import WorkflowScheduler
+from ze_core.workflow.scheduler import WorkflowScheduler
 
 _AGENT_INSTRUCTIONS = """\
 You manage the user's one-off reminders. Current UTC time: {now}. User timezone: {timezone}.

@@ -12,8 +12,9 @@ from ze.proactive.reminders import (
     _parse_interval,
 )
 from ze.settings import Settings, get_settings
-from ze.workflow.scheduler import WorkflowScheduler
-from ze.workflow.types import Workflow
+from ze_core.workflow.scheduler import WorkflowScheduler
+from ze_core.workflow.types import Workflow
+from ze.proactive.push_log_store import PushLogStore
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -341,28 +342,39 @@ def make_workflow(name="test_wf"):
     return wf
 
 
-def make_scheduler_with_notifier(conn=None, notifier=None):
-    pool, c = make_pool(conn)
-    sched = MagicMock(spec=AsyncMock)  # mock the APScheduler internals
-    ws = WorkflowScheduler(
-        workflow_store=AsyncMock(),
-        workflow_graph=AsyncMock(),
-        graph_config={},
-        settings=make_settings(),
-        pool=pool,
-        notifier=notifier or make_notifier(),
-    )
-    return ws, c
+def make_failure_handler(settings=None, push_log=None, notifier=None):
+    """Build the same on_failure closure the container wires into WorkflowScheduler."""
+    _settings = settings or make_settings()
+    _push_log = push_log or MagicMock(spec=PushLogStore)
+    _notifier = notifier or make_notifier()
+
+    async def on_failure(workflow, exc):
+        alerts_cfg = _settings.proactive_config.get("alerts", {})
+        if not alerts_cfg.get("workflow_failure_enabled", True):
+            return
+        cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
+        event_type = f"workflow_failure:{workflow.id}"
+        if await _push_log.was_sent_within_hours(event_type, cooldown):
+            return
+        await _notifier.push(
+            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
+            format="markdown",
+            urgency="high",
+        )
+        await _push_log.log(event_type, workflow.name)
+
+    return on_failure
 
 
 async def test_workflow_failure_alert_fires():
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value=None)  # no cooldown row
+    push_log = MagicMock(spec=PushLogStore)
+    push_log.was_sent_within_hours = AsyncMock(return_value=False)
+    push_log.log = AsyncMock()
     notifier = make_notifier()
-    ws, _ = make_scheduler_with_notifier(conn=conn, notifier=notifier)
+    handler = make_failure_handler(push_log=push_log, notifier=notifier)
 
     wf = make_workflow("my_workflow")
-    await ws._push_failure_alert(wf, Exception("boom"))
+    await handler(wf, Exception("boom"))
 
     notifier.push.assert_awaited_once()
     msg = notifier.push.call_args[0][0]
@@ -370,17 +382,16 @@ async def test_workflow_failure_alert_fires():
 
 
 async def test_workflow_failure_alert_respects_cooldown():
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value={"1": 1})  # cooldown row found
+    push_log = MagicMock(spec=PushLogStore)
+    push_log.was_sent_within_hours = AsyncMock(return_value=True)
     notifier = make_notifier()
-    ws, _ = make_scheduler_with_notifier(conn=conn, notifier=notifier)
+    handler = make_failure_handler(push_log=push_log, notifier=notifier)
 
-    await ws._push_failure_alert(make_workflow(), Exception("boom"))
+    await handler(make_workflow(), Exception("boom"))
     notifier.push.assert_not_awaited()
 
 
 async def test_workflow_failure_alert_disabled():
-    # Build settings where workflow_failure_alerts is false
     import yaml
     import tempfile, pathlib as pl
     tmp = pl.Path(tempfile.mkdtemp())
@@ -397,16 +408,8 @@ async def test_workflow_failure_alert_disabled():
     )
 
     notifier = make_notifier()
-    pool, _ = make_pool()
-    ws = WorkflowScheduler(
-        workflow_store=AsyncMock(),
-        workflow_graph=AsyncMock(),
-        graph_config={},
-        settings=settings,
-        pool=pool,
-        notifier=notifier,
-    )
-    await ws._push_failure_alert(make_workflow(), Exception("boom"))
+    handler = make_failure_handler(settings=settings, notifier=notifier)
+    await handler(make_workflow(), Exception("boom"))
     notifier.push.assert_not_awaited()
 
 
@@ -417,11 +420,8 @@ def test_schedule_at_uses_date_trigger():
 
     ws = WorkflowScheduler(
         workflow_store=MagicMock(),
-        workflow_graph=MagicMock(),
-        graph_config={},
-        settings=make_settings(),
+        executor=AsyncMock(),
     )
-    # Replace internal scheduler with a mock to capture the add_job call
     ws._scheduler = MagicMock()
     fire_at = _future(minutes=30)
     ws.schedule_at(fn=lambda: None, dt=fire_at, job_id="test_job")

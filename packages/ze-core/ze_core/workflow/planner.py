@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
 
-from ze.errors import WorkflowPlanError
-from ze.logging import get_logger
+from ze_core import defaults
+from ze_core.errors import WorkflowPlanError
+from ze_core.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
-from ze.settings import Settings
-from ze.workflow.types import WorkflowStep
+from ze_core.workflow.types import WorkflowStep
 
 log = get_logger(__name__)
 
@@ -40,14 +42,13 @@ Output ONLY a JSON object — no explanation, no markdown:
 
 
 class WorkflowPlanner:
-    def __init__(self, openrouter_client: OpenRouterClient, settings: Settings) -> None:
+    def __init__(self, openrouter_client: OpenRouterClient) -> None:
         self._client = openrouter_client
-        self._settings = settings
 
     async def plan(self, description: str) -> list[WorkflowStep]:
         raw = await self._client.complete(
             messages=[{"role": "user", "content": description}],
-            model=self._settings.workflow_plan_model,
+            model=defaults.MODEL_WORKFLOW_PLAN,
             system=_PLAN_SYSTEM,
         )
         try:
@@ -73,7 +74,7 @@ class WorkflowPlanner:
     async def extract_schedule(self, description: str) -> str | None:
         raw = await self._client.complete(
             messages=[{"role": "user", "content": description}],
-            model=self._settings.workflow_plan_model,
+            model=defaults.MODEL_WORKFLOW_PLAN,
             system=_SCHEDULE_SYSTEM,
         )
         try:

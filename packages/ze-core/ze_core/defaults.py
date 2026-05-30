@@ -75,6 +75,11 @@ MEMORY_EPISODE_ARCHIVE_BATCH: int = 20
 MEMORY_EPISODE_MIN_ARCHIVE_BATCH: int = 10
 """Minimum batch size required to trigger archival (avoid summarising tiny sets)."""
 
+# ── Workflow ──────────────────────────────────────────────────────────────────
+
+MODEL_WORKFLOW_PLAN: str = "anthropic/claude-haiku-4-5-20251001"
+"""Model used to decompose workflow descriptions into steps and extract schedules."""
+
 # ── Goals ─────────────────────────────────────────────────────────────────────
 
 MODEL_GOAL_PLAN: str = "anthropic/claude-haiku-4-5"

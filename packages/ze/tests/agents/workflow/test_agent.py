@@ -83,7 +83,7 @@ async def test_run_returns_response_from_agentic_loop():
 async def test_run_lists_workflows_via_tool():
     import ze.agents.workflow.tools  # noqa: ensure tools registered
 
-    from ze.workflow.types import Workflow, WorkflowStep
+    from ze_core.workflow.types import Workflow, WorkflowStep
     from uuid import uuid4
     from datetime import datetime
 
@@ -127,7 +127,7 @@ async def test_run_creates_workflow_via_tool():
     store.create = AsyncMock(return_value=uuid4())
     store.get_by_name = AsyncMock(return_value=None)
 
-    from ze.workflow.types import WorkflowStep
+    from ze_core.workflow.types import WorkflowStep
     planner = AsyncMock()
     planner.plan = AsyncMock(return_value=[WorkflowStep(task="Fetch headlines")])
     planner.extract_schedule = AsyncMock(return_value="0 8 * * *")
@@ -165,7 +165,7 @@ async def test_run_trigger_workflow_via_tool():
 
     from uuid import uuid4
     from datetime import datetime
-    from ze.workflow.types import Workflow
+    from ze_core.workflow.types import Workflow
 
     wf = Workflow(
         id=uuid4(), name="daily-digest", description="desc",

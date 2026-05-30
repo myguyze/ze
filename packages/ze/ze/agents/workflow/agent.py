@@ -8,9 +8,9 @@ from ze_core.capability.types import Mode
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
-from ze.workflow.planner import WorkflowPlanner
-from ze.workflow.scheduler import WorkflowScheduler
-from ze.workflow.store import WorkflowStore
+from ze_core.workflow.planner import WorkflowPlanner
+from ze_core.workflow.store import WorkflowStore
+from ze_core.workflow.scheduler import WorkflowScheduler
 
 _AGENT_INSTRUCTIONS = """\
 You manage Ze's stored workflows. A workflow is a named sequence of tasks that runs on

@@ -57,9 +57,10 @@ from ze_core.interface.validation import validate_interface
 from ze_core.telemetry.reconciler import CostReconciler
 from ze_core.telemetry.tracker import CostTracker
 from ze_core.telemetry.postgres import PostgresCostStore
-from ze.workflow.planner import WorkflowPlanner
-from ze.workflow.scheduler import WorkflowScheduler
-from ze.workflow.store import WorkflowStore
+from ze_core.workflow.planner import WorkflowPlanner
+from ze_core.workflow.postgres import PostgresWorkflowStore
+from ze_core.workflow.store import WorkflowStore
+from ze_core.workflow.scheduler import WorkflowScheduler
 from ze_core.container import Container as CoreContainer
 
 log = get_logger(__name__)
@@ -220,8 +221,8 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
 
     # ── Workflow ──────────────────────────────────────────────────────────────
-    workflow_store = WorkflowStore(db_pool=pool)
-    workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client, settings=settings)
+    workflow_store = PostgresWorkflowStore(db_pool=pool)
+    workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client)
 
     prepare_gate_registry(settings)
     estimator = ComplexityEstimator()
@@ -260,14 +261,64 @@ async def build_container(settings: Settings) -> ZeContainer:
         }
     }
 
-    proactive_cfg = settings.proactive_config
+    _wf_push_log = PushLogStore(pool=pool)
+
+    async def _workflow_executor(workflow, execution_id):
+        from ze_core.telemetry.context import set_flow_context
+        set_flow_context("workflow_execution", session_id=f"workflow:{workflow.id}")
+        initial_state = {
+            "prompt": f"[workflow] {workflow.name}",
+            "session_id": f"workflow:{workflow.id}",
+            "session_overrides": {},
+            "envelope": None,
+            "memory_context": None,
+            "agent_context": None,
+            "gate_decision": None,
+            "agent_result": None,
+            "subtask_results": [],
+            "pending_confirmation": False,
+            "messages": [],
+            "last_active_at": None,
+            "workflow_id": workflow.id,
+            "workflow_execution_id": execution_id,
+            "workflow_steps": workflow.steps,
+            "current_step_index": 0,
+            "workflow_step_results": [],
+            "final_response": None,
+            "error": None,
+        }
+        run_config = {
+            **workflow_graph_config,
+            "configurable": {
+                **workflow_graph_config.get("configurable", {}),
+                "thread_id": str(execution_id),
+                "workflow_store": workflow_store,
+            },
+        }
+        await workflow_graph.ainvoke(initial_state, run_config)
+
+    async def _workflow_failure_handler(workflow, exc):
+        alerts_cfg = settings.proactive_config.get("alerts", {})
+        if not alerts_cfg.get("workflow_failure_enabled", True):
+            return
+        cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
+        event_type = f"workflow_failure:{workflow.id}"
+        if await _wf_push_log.was_sent_within_hours(event_type, cooldown):
+            log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
+            return
+        await notifier.push(
+            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
+            format="markdown",
+            urgency="high",
+        )
+        await _wf_push_log.log(event_type, workflow.name)
+        log.info("failure_alert_sent", workflow=workflow.name)
+
     workflow_scheduler = WorkflowScheduler(
         workflow_store=workflow_store,
-        workflow_graph=workflow_graph,
-        graph_config=workflow_graph_config,
-        settings=settings,
-        pool=pool,
-        notifier=notifier if proactive_cfg.get("alerts", {}).get("workflow_failure_enabled", True) else None,
+        executor=_workflow_executor,
+        enabled=settings.scheduler_enabled,
+        on_failure=_workflow_failure_handler,
     )
 
     contact_channel_store = ContactChannelStore(pool=pool)

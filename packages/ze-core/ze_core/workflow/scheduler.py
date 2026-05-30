@@ -1,42 +1,39 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from uuid import UUID
 
-import asyncpg
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 
-from ze.logging import get_logger
-from ze.settings import Settings
-from ze_core.telemetry.context import set_flow_context
-from ze.workflow.store import WorkflowStore
-from ze.workflow.types import Workflow
+from ze_core.logging import get_logger
+from ze_core.workflow.store import WorkflowStore
+from ze_core.workflow.types import Workflow
 
 log = get_logger(__name__)
+
+WorkflowExecutor = Callable[[Workflow, UUID], Awaitable[None]]
+WorkflowFailureHandler = Callable[[Workflow, Exception], Awaitable[None]]
 
 
 class WorkflowScheduler:
     def __init__(
         self,
         workflow_store: WorkflowStore,
-        workflow_graph,
-        graph_config: dict,
-        settings: Settings,
-        pool: asyncpg.Pool | None = None,
-        notifier=None,  # ProactiveNotifier | None — avoids circular import
+        executor: WorkflowExecutor,
+        enabled: bool = True,
+        on_failure: WorkflowFailureHandler | None = None,
     ) -> None:
         self._store = workflow_store
-        self._graph = workflow_graph
-        self._graph_config = graph_config
-        self._settings = settings
-        self._pool = pool
-        self._notifier = notifier
+        self._executor = executor
+        self._enabled = enabled
+        self._on_failure = on_failure
         self._scheduler = AsyncIOScheduler()
 
     async def start(self) -> None:
-        if not self._settings.scheduler_enabled:
+        if not self._enabled:
             log.info("workflow_scheduler_disabled")
             return
 
@@ -107,86 +104,20 @@ class WorkflowScheduler:
         if workflow is None or not workflow.enabled:
             return
 
-        set_flow_context("workflow_execution", session_id=f"workflow:{workflow_id}")
         execution_id = await self._store.start_execution(workflow_id)
         log.info("workflow_execution_start", workflow=workflow.name, execution_id=str(execution_id))
 
-        initial_state = {
-            "prompt": f"[workflow] {workflow.name}",
-            "session_id": f"workflow:{workflow_id}",
-            "session_overrides": {},
-            "envelope": None,
-            "memory_context": None,
-            "agent_context": None,
-            "gate_decision": None,
-            "agent_result": None,
-            "subtask_results": [],
-            "pending_confirmation": False,
-            "messages": [],
-            "last_active_at": None,
-            "workflow_id": workflow_id,
-            "workflow_execution_id": execution_id,
-            "workflow_steps": workflow.steps,
-            "current_step_index": 0,
-            "workflow_step_results": [],
-            "final_response": None,
-            "error": None,
-        }
-
-        run_config = {
-            **self._graph_config,
-            "configurable": {
-                **self._graph_config.get("configurable", {}),
-                "thread_id": str(execution_id),
-                "workflow_store": self._store,
-            },
-        }
-
         try:
-            await self._graph.ainvoke(initial_state, run_config)
+            await self._executor(workflow, execution_id)
         except Exception as exc:
             log.exception("workflow_execution_error", workflow=workflow.name, error=str(exc))
             await self._store.finish_execution(execution_id, "failed", error=str(exc))
-            if self._notifier:
-                await self._push_failure_alert(workflow, exc)
+            if self._on_failure:
+                await self._on_failure(workflow, exc)
             return
 
         now = datetime.now(tz=timezone.utc)
         trigger = CronTrigger.from_crontab(workflow.schedule) if workflow.schedule else None
         next_run = trigger.get_next_fire_time(None, now) if trigger else None
         await self._store.update_run_timestamps(workflow_id, now, next_run)
-
         log.info("workflow_execution_done", workflow=workflow.name, execution_id=str(execution_id))
-
-    async def _push_failure_alert(self, workflow: Workflow, exc: Exception) -> None:
-        alerts_cfg = self._settings.proactive_config.get("alerts", {})
-        if not alerts_cfg.get("workflow_failure_enabled", True):
-            return
-
-        cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
-        event_type = f"workflow_failure:{workflow.id}"
-
-        if self._pool is not None:
-            async with self._pool.acquire() as conn:
-                existing = await conn.fetchrow(
-                    "SELECT 1 FROM push_log WHERE event_type = $1 "
-                    "AND sent_at > NOW() - ($2 * INTERVAL '1 hour')",
-                    event_type, cooldown,
-                )
-            if existing:
-                log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
-                return
-
-        await self._notifier.push(
-            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
-            format="markdown",
-            urgency="high",
-        )
-
-        if self._pool is not None:
-            async with self._pool.acquire() as conn:
-                await conn.execute(
-                    "INSERT INTO push_log (event_type, payload) VALUES ($1, $2)",
-                    event_type, workflow.name,
-                )
-        log.info("failure_alert_sent", workflow=workflow.name)

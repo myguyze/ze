@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from ze_core.orchestration.tool import ToolAccess, tool
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze.reminders.store import ReminderStore, fire_reminder
-from ze.workflow.scheduler import WorkflowScheduler
+from ze_core.workflow.scheduler import WorkflowScheduler
 
 
 @tool(access=ToolAccess.WRITE, description="Set a new reminder. fire_at must be an ISO-8601 UTC datetime string.")

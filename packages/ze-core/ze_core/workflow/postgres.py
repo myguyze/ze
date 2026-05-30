@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 
-from ze.logging import get_logger
-from ze.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_core.logging import get_logger
+from ze_core.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
 
 log = get_logger(__name__)
 
@@ -60,7 +62,7 @@ def _row_to_workflow(row) -> Workflow:
     )
 
 
-class WorkflowStore:
+class PostgresWorkflowStore:
     def __init__(self, db_pool: asyncpg.Pool) -> None:
         self._pool = db_pool
 

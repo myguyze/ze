@@ -62,6 +62,20 @@ class ToolBlockedError(AgentError):
     """Tool call rejected because the capability gate is BLOCKED."""
 
 
+# ── Workflow ──────────────────────────────────────────────────────────────────
+
+class WorkflowError(ZeCoreError):
+    """Base class for workflow errors."""
+
+
+class WorkflowPlanError(WorkflowError):
+    """Planner failed to produce a valid workflow plan."""
+
+
+class WorkflowExecutionError(WorkflowError):
+    """Step execution failed unrecoverably."""
+
+
 # ── Goals ─────────────────────────────────────────────────────────────────────
 
 class GoalError(ZeCoreError):

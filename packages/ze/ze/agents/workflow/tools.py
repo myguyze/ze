@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from ze_core.orchestration.tool import ToolAccess, tool
-from ze.errors import WorkflowPlanError
-from ze.workflow.planner import WorkflowPlanner
-from ze.workflow.scheduler import WorkflowScheduler
-from ze.workflow.store import WorkflowStore
-from ze.workflow.types import Workflow
+from ze_core.errors import WorkflowPlanError
+from ze_core.workflow.planner import WorkflowPlanner
+from ze_core.workflow.store import WorkflowStore
+from ze_core.workflow.types import Workflow
+from ze_core.workflow.scheduler import WorkflowScheduler
 
 
 @tool(access=ToolAccess.READ, description="List all stored workflows with their status and schedule.")

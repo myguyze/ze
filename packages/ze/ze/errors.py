@@ -19,20 +19,6 @@ class MemoryError(ZeError):
     """Memory store operation failed."""
 
 
-# ── Workflow ───────────────────────────────────────────────────────────────────
-
-class WorkflowError(ZeError):
-    """Base class for workflow errors."""
-
-
-class WorkflowPlanError(WorkflowError):
-    """Planner failed to produce a valid workflow plan."""
-
-
-class WorkflowExecutionError(WorkflowError):
-    """Step execution failed unrecoverably."""
-
-
 # ── Multimodal ─────────────────────────────────────────────────────────────────
 
 class TranscriptionError(ZeError):

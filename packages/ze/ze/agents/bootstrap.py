@@ -14,9 +14,9 @@ from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze.reminders.store import ReminderStore
 from ze.settings import Settings
-from ze.workflow.planner import WorkflowPlanner
-from ze.workflow.scheduler import WorkflowScheduler
-from ze.workflow.store import WorkflowStore
+from ze_core.workflow.planner import WorkflowPlanner
+from ze_core.workflow.store import WorkflowStore
+from ze_core.workflow.scheduler import WorkflowScheduler
 from ze_core.orchestration.registry import (
     get_registered_agents,
     register_instance,
