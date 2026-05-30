@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from ze_core.plugin import ZePlugin
 
 
 def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
@@ -61,7 +64,7 @@ def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
     return builder
 
 
-def build_graph(checkpointer: Any) -> Any:
+def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any:
     """Build and compile the standard conversation graph with plan_sequential routing."""
     from langgraph.constants import END
 
@@ -83,13 +86,18 @@ def build_graph(checkpointer: Any) -> Any:
     )
     builder.add_edge("plan_sequential", END)
 
+    for plugin in (plugins or []):
+        for name, fn in plugin.graph_nodes().items():
+            builder.add_node(name, fn)
+        plugin.graph_edges(builder)
+
     return builder.compile(
         checkpointer=checkpointer,
         interrupt_before=["await_confirmation"],
     )
 
 
-def build_workflow_graph(checkpointer: Any) -> Any:
+def build_workflow_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any:
     """Build and compile the workflow execution graph."""
     from langgraph.constants import END
 
@@ -126,5 +134,10 @@ def build_workflow_graph(checkpointer: Any) -> Any:
     )
     builder.add_edge("workflow_synthesize", END)
     builder.add_edge("workflow_failed",     END)
+
+    for plugin in (plugins or []):
+        for name, fn in plugin.graph_nodes().items():
+            builder.add_node(name, fn)
+        plugin.graph_edges(builder)
 
     return builder.compile(checkpointer=checkpointer)

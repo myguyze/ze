@@ -4,7 +4,7 @@ import asyncio
 import importlib
 import inspect
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, get_type_hints
 
@@ -28,9 +28,14 @@ class Container:
     graph: Any
     interface: Any = None
     preprocessor: Any = None  # InputPreprocessor | None
+    plugins: list = field(default_factory=list)  # list[ZePlugin]
 
     def _build_config(self, session_id: str, **extra: Any) -> dict:
         """Build the LangGraph configurable dict for a session."""
+        plugin_services: dict[str, Any] = {}
+        for plugin in self.plugins:
+            plugin_services.update(plugin.configurable_services())
+
         return {
             "configurable": {
                 "thread_id": session_id,
@@ -38,6 +43,7 @@ class Container:
                 "openrouter_client": self.openrouter_client,
                 "capability_gate": self.capability_gate,
                 "memory_store": self.memory_store,
+                **plugin_services,
                 **extra,
             }
         }
@@ -209,6 +215,7 @@ class Container:
         config_path: Path,
         deps: dict[type, Any] | None = None,
         interface: Any = None,
+        plugins: list | None = None,
     ) -> "Container":
         config_path = Path(config_path)
         app_root = config_path.parent
@@ -368,7 +375,8 @@ class Container:
             checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
             await checkpointer.setup()
 
-        graph = build_graph(checkpointer)
+        resolved_plugins = plugins or []
+        graph = build_graph(checkpointer, plugins=resolved_plugins)
 
         log.info("container_ready", agents=list(instances.keys()))
         return cls(
@@ -383,6 +391,7 @@ class Container:
             memory_consolidator=memory_consolidator,
             graph=graph,
             interface=interface,
+            plugins=resolved_plugins,
         )
 
 

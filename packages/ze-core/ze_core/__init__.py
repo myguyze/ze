@@ -55,6 +55,7 @@ from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration import BaseAgent, agent
 from ze_core.orchestration.graph import graph_builder
 from ze_core.orchestration.tool import ToolAccess, tool
+from ze_core.plugin import ZePlugin
 from ze_core.settings import Settings
 
 __all__ = [
@@ -126,5 +127,6 @@ __all__ = [
     "agent",
     "ToolAccess",
     "tool",
+    "ZePlugin",
     "Settings",
 ]
