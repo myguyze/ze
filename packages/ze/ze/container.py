@@ -18,7 +18,7 @@ from ze.google.gmail import GmailChannel
 from ze_core.channels.registry import ChannelRegistry
 from ze_core.contacts.channel_store import ContactChannelStore
 from ze.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
-from ze.embeddings import get_embedder
+from ze_core.embeddings import get_embedder
 from ze_core.orchestration.registry import get_agent
 from ze_core.goals.executor import GoalExecutor
 from ze_core.goals.planner import GoalPlanner

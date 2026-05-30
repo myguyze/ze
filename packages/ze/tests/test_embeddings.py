@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from ze.embeddings import get_embedder
+from ze_core.embeddings import get_embedder
 
 
 @pytest.fixture(autouse=True)

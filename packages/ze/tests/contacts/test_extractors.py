@@ -1,4 +1,4 @@
-from ze.contacts.extractors import extract_calendar_contacts, extract_email_contacts
+from ze_core.contacts.extractors import extract_calendar_contacts, extract_email_contacts
 from ze_core.contacts.types import SOURCE_WEIGHTS
 from ze_core.orchestration.types import ToolCall
 

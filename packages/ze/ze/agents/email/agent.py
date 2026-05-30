@@ -5,7 +5,7 @@ from ze_core.orchestration.registry import agent
 from ze_core.capability.types import Mode
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze.google.gmail import GmailChannel
-from ze.contacts.extractors import extract_email_contacts
+from ze_core.contacts.extractors import extract_email_contacts
 from ze.google.auth import GoogleCredentials
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
