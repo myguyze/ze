@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze.interface.telegram import TelegramInterface
+from ze.telegram.app_interface import TelegramAppInterface
 from ze_core.interface.types import ConfirmationRequest, Notification, OutboundMessage
 
 
@@ -15,10 +15,10 @@ def bot():
 
 @pytest.fixture
 def iface(bot):
-    return TelegramInterface(bot=bot, chat_id=42)
+    return TelegramAppInterface(bot=bot, chat_id=42)
 
 
-class TestTelegramInterface:
+class TestTelegramAppInterface:
     async def test_send_markdown(self, iface, bot):
         iface.set_chat(99)
         await iface.send(OutboundMessage(content="**hi**", format="markdown"))

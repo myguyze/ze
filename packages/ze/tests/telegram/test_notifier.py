@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
-from ze.interface.telegram import TelegramInterface
+from ze.telegram.app_interface import TelegramAppInterface
 from ze_core.proactive.notifier import ProactiveNotifier, _split
 from ze_core.interface.types import Action, Notification
 
@@ -8,7 +8,7 @@ from ze_core.interface.types import Action, Notification
 def make_interface():
     bot = MagicMock()
     bot.send_message = AsyncMock()
-    return TelegramInterface(bot=bot, chat_id=123)
+    return TelegramAppInterface(bot=bot, chat_id=123)
 
 
 async def test_notifier_push_sends_message():

@@ -34,7 +34,7 @@ ze/                           # monorepo root
 │   │   │   ├── agents/       # @agent classes + tools; all imports from ze_core
 │   │   │   ├── api/          # FastAPI app, Telegram webhook, REST routes
 │   │   │   ├── google/       # Google OAuth2 (Calendar + Gmail), GmailChannel
-│   │   │   ├── interface/    # TelegramInterface (ze_core AppInterface implementation)
+│   │   │   ├── telegram/     # ZeBot, TelegramAppInterface (ze_core AppInterface)
 │   │   │   ├── jobs/         # Proactive cron jobs: briefing, insights, calendar sync, contacts
 │   │   │   ├── reminders/    # ReminderStore, CalendarReminderService, CalendarReminderStore
 │   │   │   ├── telegram/     # ZeBot, session store, commands, formatting, keyboards

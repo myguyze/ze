@@ -19,7 +19,7 @@ from ze_core.interface.types import (
 log = get_logger(__name__)
 
 
-class TelegramInterface:
+class TelegramAppInterface:
     """Ze's AppInterface adapter for Telegram (async confirmation style)."""
 
     confirmation_style: ClassVar[Literal["inline", "async"]] = "async"

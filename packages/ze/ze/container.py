@@ -50,7 +50,7 @@ from ze_core.routing.store import PostgresRoutingStore
 from ze_core.routing.types import RouterConfig
 from ze.settings import Settings, get_settings
 from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
-from ze.interface.telegram import TelegramInterface
+from ze.telegram.app_interface import TelegramAppInterface
 from ze_core.interface.types import RawInput
 from ze.telegram.bot import ZeBot
 from ze.telegram.session import ActiveSessionStore
@@ -246,7 +246,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         if settings.telegram_allowed_chat_id
         else 0
     )
-    interface = TelegramInterface(bot=bot, chat_id=telegram_chat_id)
+    interface = TelegramAppInterface(bot=bot, chat_id=telegram_chat_id)
     validate_interface(interface)
     notifier = ProactiveNotifier(interface=interface)
 
