@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from ze_core.plugin import ZePlugin
 
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext
@@ -56,3 +59,21 @@ class AgentState(TypedDict):
     # ── Dynamic plan (plan_sequential node) ────────────────────────────────
     dynamic_plan_steps: list | None      # list[WorkflowStep]
     dynamic_plan_high_risk: list         # indices requiring approval
+
+
+def build_state_type(plugins: list[ZePlugin]) -> type:
+    """Return a TypedDict class that merges AgentState with all plugin state extensions.
+
+    Each plugin's state_extensions() should return a TypedDict subclass of AgentState
+    (or of a previous extension). The merged class inherits from all extensions so its
+    fields are accessible via the standard state["field"] syntax in graph nodes.
+
+    Returns AgentState unchanged when no plugins contribute state extensions.
+    """
+    extensions = [p.state_extensions() for p in plugins if p.state_extensions() is not None]
+    if not extensions:
+        return AgentState
+    # TypedDict supports multiple inheritance; Python resolves the metaclass from bases.
+    # Each extension is expected to subclass AgentState (forming a diamond with AgentState
+    # at the root), so the MRO is unambiguous.
+    return type("ExtendedAgentState", tuple(extensions), {"__annotations__": {}})

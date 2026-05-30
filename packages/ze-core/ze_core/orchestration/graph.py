@@ -6,7 +6,10 @@ if TYPE_CHECKING:
     from ze_core.plugin import ZePlugin
 
 
-def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
+def graph_builder(
+    node_overrides: dict[str, Callable] | None = None,
+    state_type: type | None = None,
+) -> Any:
     """Return a fully-wired but uncompiled StateGraph.
 
     All standard nodes and internal edges are added. The ``embed_route``
@@ -15,6 +18,9 @@ def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
 
     Pass ``node_overrides`` to replace specific nodes with application-specific
     implementations without touching LangGraph internals.
+
+    Pass ``state_type`` to use a merged TypedDict (e.g. from ``build_state_type``)
+    instead of the base ``AgentState``. Defaults to ``AgentState``.
 
     LangGraph imports are deferred so the rest of ze_core loads without
     langgraph present (useful in test environments).
@@ -27,7 +33,7 @@ def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
     from ze_core.orchestration.state import AgentState
 
     ov = node_overrides or {}
-    builder = StateGraph(AgentState)
+    builder = StateGraph(state_type or AgentState)
 
     builder.add_node("preprocess",         ov.get("preprocess",         nodes.preprocess))
     builder.add_node("embed_route",        ov.get("embed_route",        nodes.embed_route))
@@ -70,8 +76,10 @@ def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any
 
     from ze_core.orchestration import nodes
     from ze_core.orchestration.edges import after_decompose, after_embed_route
+    from ze_core.orchestration.state import build_state_type
 
-    builder = graph_builder()
+    state_type = build_state_type(plugins or [])
+    builder = graph_builder(state_type=state_type)
     builder.add_node("plan_sequential", nodes.plan_sequential)
 
     builder.add_conditional_edges(
@@ -103,8 +111,10 @@ def build_workflow_graph(checkpointer: Any, plugins: list[ZePlugin] | None = Non
 
     from ze_core.orchestration import nodes
     from ze_core.orchestration.edges import after_capability_check_workflow, after_verify_step
+    from ze_core.orchestration.state import build_state_type
 
-    builder = graph_builder()
+    state_type = build_state_type(plugins or [])
+    builder = graph_builder(state_type=state_type)
 
     builder.add_node("load_workflow_step", nodes.load_workflow_step)
     builder.add_node("verify_step",        nodes.verify_step)

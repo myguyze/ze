@@ -33,6 +33,7 @@ class AgentContext:
     persona: dict = field(default_factory=dict)
     model: str | None = None
     reporter: ProgressReporter | None = None
+    extensions: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -43,3 +44,4 @@ class AgentResult:
     tokens_used: int = 0
     memory_proposals: list = field(default_factory=list)
     contact_proposals: list[ContactProposal] = field(default_factory=list)
+    extensions: dict[str, Any] = field(default_factory=dict)
