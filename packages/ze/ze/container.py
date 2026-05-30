@@ -33,10 +33,9 @@ from ze_core.memory.consolidator import MemoryConsolidator
 from ze_core.memory.postgres import PostgresMemoryStore
 from ze_core.persona.postgres import PostgresPersonaStore
 from ze_core.openrouter.client import OpenRouterClient
-from ze.orchestration.graph import build_graph
+from ze_core.orchestration.graph import build_graph, build_workflow_graph
 from ze_core.progress import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
-from ze.orchestration.workflow_graph import build_workflow_graph
 from ze.jobs.briefing import MorningBriefing
 from ze_core.proactive.push_log_store import PushLogStore
 from ze.jobs.insights import InsightEngine
@@ -50,7 +49,7 @@ from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore
 from ze_core.routing.types import RouterConfig
 from ze.settings import Settings, get_settings
-from ze.conversation import TurnResult, invoke_raw_turn, resume_turn
+from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze.interface.telegram import TelegramInterface
 from ze_core.interface.types import RawInput
 from ze.telegram.bot import ZeBot
@@ -92,10 +91,9 @@ class ZeContainer(CoreContainer):
     goal_store: GoalStore
     goal_executor: GoalExecutor
 
-    def make_graph_config(self, chat_id: int | str, **configurable_extra: object) -> dict:
-        """LangGraph config for the main conversation graph."""
+    def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         configurable: dict = {
-            "thread_id": str(chat_id),
+            "thread_id": str(session_id),
             "router": self.router,
             "capability_gate": self.capability_gate,
             "memory_store": self.memory_store,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TypedDict
+from uuid import UUID
 
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext
@@ -44,3 +45,14 @@ class AgentState(TypedDict):
     # ── Output ─────────────────────────────────────────────────────────────
     final_response: str | None
     error: str | None
+
+    # ── Workflow execution (workflow_graph only) ────────────────────────────
+    workflow_id: UUID | None
+    workflow_execution_id: UUID | None
+    workflow_steps: list | None          # list[WorkflowStep]
+    current_step_index: int
+    workflow_step_results: list          # list[StepResult]
+
+    # ── Dynamic plan (plan_sequential node) ────────────────────────────────
+    dynamic_plan_steps: list | None      # list[WorkflowStep]
+    dynamic_plan_high_risk: list         # indices requiring approval

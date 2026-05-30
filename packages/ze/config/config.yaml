@@ -6,8 +6,9 @@ models:
   profile:        anthropic/claude-haiku-4-5
   reminders:      anthropic/claude-haiku-4-5
   insights:       anthropic/claude-haiku-4-5
-  whisper:        openai/gpt-audio
-  vision_caption: google/gemini-flash-1.5
+  whisper:          openai/gpt-audio
+  vision_caption:   google/gemini-flash-1.5
+  workflow_verify:  anthropic/claude-haiku-4-5-20251001
 
 contacts:
   consolidation:

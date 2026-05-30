@@ -10,7 +10,7 @@ from ze_core.errors import AgentTimeoutError
 from ze.logging import configure_logging
 from ze_core.memory.postgres import PostgresMemoryStore as MemoryStore
 from ze_core.memory.types import MemoryContext, UserFact
-from ze.orchestration.nodes import context, execution, memory, routing
+from ze_core.orchestration.nodes import context, execution, memory, routing
 from ze_core.orchestration.nodes.execution import await_confirmation, capability_check
 from ze_core.orchestration.nodes.memory import synthesize
 from ze_core.orchestration.nodes.routing import embed_route
@@ -234,19 +234,15 @@ async def test_execute_tool_raises_timeout(monkeypatch):
 
     mock_agent = MagicMock()
     mock_agent.run = slow_run
+    type(mock_agent).timeout = 0.01  # ze-core reads timeout from type(instance)
 
     import ze_core.orchestration.registry as reg
     monkeypatch.setitem(reg._instances, "research", mock_agent)
 
-    settings = make_settings()
-    mock_cls = type("FastTimeoutResearch", (), {"timeout": 0.01})
-
-    with patch("ze.orchestration.nodes.execution.get_agent_class", return_value=mock_cls):
-        ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
-        state = base_state(agent_context=ctx)
-        cfg = make_config(settings=settings)
-        with pytest.raises(AgentTimeoutError):
-            await execution.execute_tool(state, cfg)
+    ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
+    state = base_state(agent_context=ctx)
+    with pytest.raises(AgentTimeoutError):
+        await execution.execute_tool(state, make_config())
 
 
 # ── confirmation.await_confirmation ──────────────────────────────────────────
@@ -289,7 +285,7 @@ async def test_write_memory_no_crash_if_no_agent_context():
 async def test_write_contact_proposals_writes_email_to_channel_store():
     from ze_core.channels.types import ChannelType
     from ze_core.contacts.types import ContactProposal
-    from ze.orchestration.nodes.memory import _write_contact_proposals
+    from ze_core.orchestration.nodes.memory import _write_contact_proposals
 
     person_store = AsyncMock()
     person_store.get_by_name = AsyncMock(return_value=[])
@@ -324,7 +320,7 @@ async def test_write_contact_proposals_writes_email_to_channel_store():
 
 async def test_write_contact_proposals_skips_channel_write_when_no_email():
     from ze_core.contacts.types import ContactProposal
-    from ze.orchestration.nodes.memory import _write_contact_proposals
+    from ze_core.orchestration.nodes.memory import _write_contact_proposals
 
     person_store = AsyncMock()
     person_store.get_by_name = AsyncMock(return_value=[])
@@ -348,7 +344,7 @@ async def test_write_contact_proposals_skips_channel_write_when_no_email():
 
 async def test_write_contact_proposals_works_without_channel_store():
     from ze_core.contacts.types import ContactProposal
-    from ze.orchestration.nodes.memory import _write_contact_proposals
+    from ze_core.orchestration.nodes.memory import _write_contact_proposals
 
     person_store = AsyncMock()
     person_store.get_by_name = AsyncMock(return_value=[])
@@ -364,7 +360,7 @@ async def test_write_contact_proposals_works_without_channel_store():
 async def test_write_contact_proposals_writes_channel_for_existing_contact():
     from ze_core.channels.types import ChannelType
     from ze_core.contacts.types import ContactProposal, Person
-    from ze.orchestration.nodes.memory import _write_contact_proposals
+    from ze_core.orchestration.nodes.memory import _write_contact_proposals
     from datetime import datetime, timezone
 
     existing = Person(

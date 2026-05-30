@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ze_core.contacts.types import ContactProposal
+from ze_core.channels.types import ChannelHandle, ChannelType
+from ze_core.contacts.types import ContactProposal, Person, PersonSource
 from ze_core.logging import get_logger
 from ze_core.memory.extractor import gather_fact_proposals
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
@@ -59,9 +60,15 @@ async def write_memory(state: AgentState, config: dict) -> dict:
             await store.propose_facts(proposals)
 
         person_store = config["configurable"].get("person_store")
+        contact_channel_store = config["configurable"].get("contact_channel_store")
         if person_store and result.contact_proposals:
             asyncio.create_task(
-                _write_contact_proposals(person_store, result.contact_proposals, ctx.prompt)
+                _write_contact_proposals(
+                    person_store,
+                    result.contact_proposals,
+                    ctx.prompt,
+                    contact_channel_store=contact_channel_store,
+                )
             )
 
     log.debug(
@@ -120,11 +127,58 @@ async def synthesize(state: AgentState, config: dict) -> dict:
     return {"final_response": response}
 
 
-async def _write_contact_proposals(person_store: Any, proposals: list[ContactProposal], prompt: str) -> None:
+async def _write_contact_proposals(
+    person_store: Any,
+    proposals: list[ContactProposal],
+    prompt: str,
+    contact_channel_store: Any = None,
+) -> None:
     for proposal in proposals:
         if not proposal.name:
             continue
         try:
-            await person_store.upsert_from_proposal(proposal, prompt)
+            existing = await person_store.get_by_name(proposal.name)
+            source = PersonSource(
+                person_id=None,  # type: ignore[arg-type]  — replaced below
+                source_type=proposal.source_type,
+                weight=proposal.confidence,
+                raw_context=prompt[:300],
+            )
+            if existing:
+                best = existing[0]
+                source.person_id = best.id
+                await person_store.add_source(best.id, source)
+                contact_id = best.id
+            else:
+                person = Person(
+                    name=proposal.name,
+                    classification=proposal.classification,
+                    classification_confidence=proposal.confidence,
+                    relationship_to_user=proposal.relationship,
+                    contact_info=proposal.contact_info,
+                    confirmed=proposal.confirmed,
+                    dismissed=False,
+                    confidence=proposal.confidence,
+                )
+                stored = await person_store.upsert(person)
+                source.person_id = stored.id
+                await person_store.add_source(stored.id, source)
+                contact_id = stored.id
+
+            if contact_channel_store:
+                await _write_channel_handles(contact_channel_store, contact_id, proposal)
+
         except Exception as exc:
             log.warning("contact_proposal_write_failed", name=proposal.name, error=str(exc))
+
+
+async def _write_channel_handles(store: Any, contact_id: Any, proposal: ContactProposal) -> None:
+    email_addr = proposal.contact_info.get("email", "").strip().lower()
+    if email_addr:
+        try:
+            await store.upsert(contact_id, ChannelHandle(
+                channel_type=ChannelType.EMAIL,
+                handle=email_addr,
+            ))
+        except Exception as exc:
+            log.warning("contact_channel_write_failed", contact_id=str(contact_id), error=str(exc))

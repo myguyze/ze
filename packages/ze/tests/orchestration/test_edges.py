@@ -2,7 +2,7 @@ import pytest
 
 from ze_core.capability.types import GateDecision
 from ze.logging import configure_logging
-from ze.orchestration.edges import (
+from ze_core.orchestration.edges import (
     after_capability_check,
     after_decompose,
     after_embed_route,

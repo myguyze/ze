@@ -74,6 +74,7 @@ async def fetch_context(state: AgentState, config: dict) -> dict:
         prompt=prompt_for_ctx,
         intent=intent,
         memory=memory_context,
+        contacts=contact_context,
         messages=messages,
         persona=active_persona,
     )

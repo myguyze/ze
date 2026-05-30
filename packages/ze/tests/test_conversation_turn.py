@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze.conversation import TurnResult, invoke_raw_turn, resume_turn
+from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_core.interface.types import RawInput
 
 
@@ -25,7 +25,7 @@ def container():
 
     c = MagicMock()
     c.graph = graph
-    c.make_graph_config = MagicMock(
+    c._build_config = MagicMock(
         return_value={"configurable": {"thread_id": "42"}},
     )
     return c

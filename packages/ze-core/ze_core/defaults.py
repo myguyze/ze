@@ -80,6 +80,9 @@ MEMORY_EPISODE_MIN_ARCHIVE_BATCH: int = 10
 MODEL_WORKFLOW_PLAN: str = "anthropic/claude-haiku-4-5-20251001"
 """Model used to decompose workflow descriptions into steps and extract schedules."""
 
+MODEL_WORKFLOW_VERIFY: str = "anthropic/claude-haiku-4-5-20251001"
+"""Model used to verify step output and synthesize final workflow responses."""
+
 # ── Goals ─────────────────────────────────────────────────────────────────────
 
 MODEL_GOAL_PLAN: str = "anthropic/claude-haiku-4-5"

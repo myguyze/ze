@@ -1,4 +1,4 @@
-"""Graph turn helpers for Ze — builds state/config and interprets LangGraph outcomes."""
+"""Graph turn helpers — builds state/config and interprets LangGraph outcomes."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from ze_core.interface.types import RawInput
 
 if TYPE_CHECKING:
-    from ze.container import Container
+    from ze_core.container import Container
 
 
 def make_graph_input(
@@ -102,7 +102,7 @@ async def invoke_raw_turn(
 ) -> TurnResult:
     """Run the conversation graph once from raw transport input and interpret the outcome."""
     graph_input = make_graph_input(raw, session_id)
-    config = container.make_graph_config(session_id, **(config_extra or {}))
+    config = container._build_config(session_id, **(config_extra or {}))
 
     final_state = await container.graph.ainvoke(graph_input, config)
     graph_state = await container.graph.aget_state(config)
@@ -125,7 +125,6 @@ async def invoke_raw_turn(
 
 async def resume_turn(container: Container, config: dict) -> TurnResult:
     """Resume the graph after the user confirms (async confirmation path)."""
-    session_id = config["configurable"]["thread_id"]
     final_state = await container.graph.ainvoke(None, config)
     return TurnResult(
         final_state=final_state,

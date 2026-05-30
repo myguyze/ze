@@ -11,20 +11,7 @@ def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
     graph (e.g. add a ``plan_sequential`` node) before wiring routing.
 
     Pass ``node_overrides`` to replace specific nodes with application-specific
-    implementations without touching LangGraph internals:
-
-        builder = graph_builder(node_overrides={
-            "fetch_context": my_fetch_context,
-            "write_memory": my_write_memory,
-        })
-        builder.add_node("my_extra_node", my_fn)
-        builder.add_conditional_edges(
-            "embed_route",
-            after_embed_route,
-            {"decompose": "decompose", "fetch_context": "fetch_context"},
-        )
-        graph = builder.compile(checkpointer=checkpointer,
-                                interrupt_before=["await_confirmation"])
+    implementations without touching LangGraph internals.
 
     LangGraph imports are deferred so the rest of ze_core loads without
     langgraph present (useful in test environments).
@@ -75,21 +62,69 @@ def graph_builder(node_overrides: dict[str, Callable] | None = None) -> Any:
 
 
 def build_graph(checkpointer: Any) -> Any:
-    """Build and compile the standard Ze Core graph with default routing.
+    """Build and compile the standard conversation graph with plan_sequential routing."""
+    from langgraph.constants import END
 
-    For applications that extend the graph (e.g. add custom nodes or alter the
-    routing edge), call ``graph_builder()`` directly instead.
-    """
-    from ze_core.orchestration.edges import after_embed_route
+    from ze_core.orchestration import nodes
+    from ze_core.orchestration.edges import after_decompose, after_embed_route
 
     builder = graph_builder()
+    builder.add_node("plan_sequential", nodes.plan_sequential)
+
     builder.add_conditional_edges(
         "embed_route",
         after_embed_route,
-        {"decompose": "decompose", "fetch_context": "fetch_context"},
+        {"decompose": "decompose", "fetch_context": "fetch_context", "plan_sequential": "plan_sequential"},
     )
-    builder.add_edge("decompose", "fetch_context")
+    builder.add_conditional_edges(
+        "decompose",
+        after_decompose,
+        {"plan_sequential": "plan_sequential", "fetch_context": "fetch_context"},
+    )
+    builder.add_edge("plan_sequential", END)
+
     return builder.compile(
         checkpointer=checkpointer,
         interrupt_before=["await_confirmation"],
     )
+
+
+def build_workflow_graph(checkpointer: Any) -> Any:
+    """Build and compile the workflow execution graph."""
+    from langgraph.constants import END
+
+    from ze_core.orchestration import nodes
+    from ze_core.orchestration.edges import after_capability_check_workflow, after_verify_step
+
+    builder = graph_builder()
+
+    builder.add_node("load_workflow_step", nodes.load_workflow_step)
+    builder.add_node("verify_step",        nodes.verify_step)
+    builder.add_node("workflow_synthesize", nodes.workflow_synthesize)
+    builder.add_node("workflow_failed",    nodes.workflow_failed)
+
+    builder.set_entry_point("load_workflow_step")
+
+    builder.add_edge("load_workflow_step", "embed_route")
+    builder.add_edge("embed_route",        "fetch_context")
+    builder.add_edge("fetch_context",      "capability_check")
+    builder.add_conditional_edges(
+        "capability_check",
+        after_capability_check_workflow,
+        {"execute_tool": "execute_tool", "workflow_failed": "workflow_failed"},
+    )
+    builder.add_edge("execute_tool",  "write_memory")
+    builder.add_edge("write_memory",  "verify_step")
+    builder.add_conditional_edges(
+        "verify_step",
+        after_verify_step,
+        {
+            "load_workflow_step":  "load_workflow_step",
+            "workflow_synthesize": "workflow_synthesize",
+            "workflow_failed":     "workflow_failed",
+        },
+    )
+    builder.add_edge("workflow_synthesize", END)
+    builder.add_edge("workflow_failed",     END)
+
+    return builder.compile(checkpointer=checkpointer)

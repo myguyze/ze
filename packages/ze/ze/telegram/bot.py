@@ -6,7 +6,7 @@ from uuid import UUID
 from aiogram import Bot
 from aiogram.types import CallbackQuery, ForceReply, Message
 
-from ze.conversation import extract_response, make_graph_input_from_raw_text
+from ze_core.conversation import extract_response, make_graph_input_from_raw_text
 from ze.errors import ImageDownloadError
 from ze_core.errors import UnknownDialError, UnknownProfileError
 from ze.interface.telegram import TelegramInterface
@@ -750,7 +750,7 @@ class ZeBot:
 
     def _make_config(self, chat_id: int) -> dict:
         if self._container is not None:
-            return self._container.make_graph_config(chat_id)
+            return self._container._build_config(chat_id)
         return {
             "configurable": {
                 "thread_id": str(chat_id),

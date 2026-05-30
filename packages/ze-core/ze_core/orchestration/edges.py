@@ -11,6 +11,14 @@ def after_embed_route(state: AgentState) -> str:
     return "fetch_context"
 
 
+def after_decompose(state: AgentState) -> str:
+    """Sequential compound tasks need WorkflowPlanner before fetch_context."""
+    envelope = state.get("envelope")
+    if envelope and envelope.is_sequential:
+        return "plan_sequential"
+    return "fetch_context"
+
+
 def after_capability_check(state: AgentState) -> str:
     match state["gate_decision"]:
         case GateDecision.EXECUTE:
@@ -21,8 +29,26 @@ def after_capability_check(state: AgentState) -> str:
             return "end_blocked"
 
 
+def after_capability_check_workflow(state: AgentState) -> str:
+    """In workflow mode all steps execute directly — workflow creation was the gate."""
+    decision = state.get("gate_decision")
+    if decision == GateDecision.BLOCKED:
+        return "workflow_failed"
+    return "execute_tool"
+
+
 def after_execute_tool(state: AgentState) -> str:
     envelope = state.get("envelope")
     if envelope and envelope.is_compound and state.get("subtask_results"):
         return "synthesize"
     return "write_memory"
+
+
+def after_verify_step(state: AgentState) -> str:
+    step_results = state.get("workflow_step_results") or []
+    if step_results and not step_results[-1].success:
+        return "workflow_failed"
+    steps = state.get("workflow_steps") or []
+    if state.get("current_step_index", 0) >= len(steps):
+        return "workflow_synthesize"
+    return "load_workflow_step"
