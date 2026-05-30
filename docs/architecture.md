@@ -1,8 +1,5 @@
 # Ze — Architecture
 
-> **Migrating to ze-core?** See [ze-core-migration.md](./ze-core-migration.md) for the
-> phased plan, PR order, and progress tracker.
-
 ## Overview
 
 Ze is a single-user, self-hosted AI assistant. The only interface is a Telegram bot.
@@ -42,7 +39,7 @@ flowchart TD
 
 ## Routing
 
-**Module:** `ze_core.routing` (re-exported from `ze/routing/`)
+**Module:** `ze_core.routing`
 
 Routing runs on every message before any LLM is involved.
 
@@ -56,7 +53,7 @@ Routing runs on every message before any LLM is involved.
    - All scores below `confidence_threshold` → Haiku fallback for classification.
 5. Every decision is written to the `routing_log` Postgres table.
 
-**Cost-aware routing** (`ze/routing/complexity.py`, Ze-only): agents with a `model_simple`
+**Cost-aware routing** (`ze_core.routing.complexity`): agents with a `model_simple`
 class attribute receive a cheaper model when the in-process complexity classifier scores
 the request as simple (word count, question marks, conjunctions — no extra LLM call).
 
@@ -64,7 +61,7 @@ the request as simple (word count, question marks, conjunctions — no extra LLM
 
 ## Orchestration Graph
 
-**Module:** `ze/orchestration/` (built on `ze_core.orchestration.graph.graph_builder`)
+**Module:** `ze_core.orchestration`
 
 The graph is compiled once at startup in `ZeContainer` and bound to `ZeBot`. Each user
 message is a separate `graph.ainvoke()` call, keyed by `thread_id = chat_id`. Ze adds
@@ -86,7 +83,7 @@ message is a separate `graph.ainvoke()` call, keyed by `thread_id = chat_id`. Ze
 
 ### State
 
-`AgentState` (`ze/orchestration/state.py`) is a `TypedDict` that flows through the graph.
+`AgentState` (`ze_core/orchestration/state.py`) is a `TypedDict` that flows through the graph.
 It holds the prompt, routing envelope, memory context, gate decision, agent results,
 conversation history, and workflow state. It must remain JSON-serialisable at all times
 because `AsyncPostgresSaver` checkpoints it to Postgres on every pause.
@@ -104,11 +101,11 @@ the same `thread_id` to resume from the checkpoint.
 
 **Module:** `ze/agents/`
 
-All agents subclass `BaseAgent` and register via `@register`. Each agent owns:
+All agents subclass `BaseAgent` (`ze_core.orchestration.base_agent`) and register via `@agent` (`ze_core.orchestration.registry`). Each agent owns:
 
 - A system prompt (`_AGENT_INSTRUCTIONS` string at the top of `agent.py`).
-- A tool list (`tools.py`).
-- A YAML config (`config/agents/<name>.yaml`) specifying model, timeout, and description.
+- Class attributes: `description`, `model`, `capabilities`, `intent_map`, `tools`, `timeout`.
+- Optionally a `tools.py` with Python `@tool` functions for local tool execution.
 
 Agents cannot call each other directly. Compound coordination is handled by the
 orchestration graph.
@@ -132,7 +129,7 @@ See [docs/goals.md](goals.md) for conversational usage and gate behaviour.
 
 ## Memory
 
-**Module:** `ze/memory/`
+**Module:** `ze_core.memory`
 
 Two memory layers, both backed by Postgres + pgvector:
 
@@ -201,7 +198,7 @@ set the identity or inject memory themselves.
 sentence. Only extreme values (below 0.2 or above 0.8) emit a clause; the neutral band
 is silent. Four built-in dials: `humor`, `directness`, `formality`, `depth`.
 
-**Runtime switching** — `PersonaStore` (`ze/persona/store.py`) reads the active profile
+**Runtime switching** — `PostgresPersonaStore` (`ze_core/persona/store.py`) reads the active profile
 from the `persona_state` DB table and merges any per-session dial overrides. `fetch_context`
 calls `await persona_store.get_active()` once per graph invocation and sets the resolved
 profile on `AgentContext.persona`. All agents receive it through `_build_system_prompt`
@@ -219,10 +216,10 @@ always have contextual awareness of the user without needing to query memory the
 
 ## Capability Gate
 
-**Module:** `ze/capability/`
+**Module:** `ze_core.capability`
 
-Every agent action has an explicit permission mode in `config/capabilities.yaml`,
-keyed by `agent.intent`:
+Every agent action has an explicit permission mode defined as a class attribute on the
+`@agent` class, keyed by `agent.intent`:
 
 | Mode | Behaviour |
 |---|---|
@@ -231,13 +228,14 @@ keyed by `agent.intent`:
 | `draft_only` | Generate response, never execute without a config change |
 | `disabled` | Block, return error message |
 
-The config file hot-reloads on `SIGHUP` without restarting the process.
+Modes can be overridden at runtime via `PUT /capabilities` (persisted in DB via
+`PostgresCapabilityOverrideStore`). `config.yaml` hot-reloads on `SIGHUP`.
 
 ---
 
 ## Proactive Ze
 
-**Module:** `ze/proactive/`
+**Modules:** `ze_core.proactive` (scheduler, notifier) · `ze/jobs/` (job implementations)
 
 Ze pushes messages to Telegram on a schedule, without the user prompting anything:
 
@@ -259,7 +257,7 @@ See [docs/scheduled-jobs.md](scheduled-jobs.md) for the full lifecycle and confi
 
 ## Goal Engine
 
-**Module:** `ze/goals/` · **Agent:** `ze/agents/goals/`
+**Module:** `ze_core.goals` · **Agent:** `ze/agents/goals/`
 
 Goals address multi-week objectives that neither workflows nor per-action capability
 gates fit well: Ze works in the background and checks in at **verification gates**
@@ -278,9 +276,9 @@ gates fit well: Ze works in the background and checks in at **verification gates
 
 | Component | Module | Responsibility |
 |---|---|---|
-| `GoalStore` | `ze/goals/store.py` | Postgres CRUD for goals, milestones, gates, learnings |
-| `GoalPlanner` | `ze/goals/planner.py` | LLM decomposition into milestones + gate placement |
-| `GoalExecutor` | `ze/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch |
+| `GoalStore` | `ze_core/goals/store.py` | Postgres CRUD for goals, milestones, gates, learnings |
+| `GoalPlanner` | `ze_core/goals/planner.py` | LLM decomposition into milestones + gate placement |
+| `GoalExecutor` | `ze_core/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch |
 | `GoalAgent` | `ze/agents/goals/agent.py` | Conversational create / status / pause / abandon |
 
 Goals sit **above** workflows: a goal spans weeks; a workflow execution is what can
@@ -313,15 +311,15 @@ See [docs/goals.md](goals.md) for usage. Implementation detail: [specs/28-goal-e
 
 ## Multimodal input
 
-**Module:** `ze/transcription/`
+**Module:** `ze/interface/` (preprocessing) · `ze_core.openrouter` (transcription client)
 
 Ze accepts three input types from Telegram, all handled before the graph runs:
 
 | Input | Handler | Processing |
 |---|---|---|
 | Text | Existing path | Passed directly as `prompt` |
-| Voice note | `_handle_voice()` in `ZeBot` | Downloaded as OGG, transcribed to text by `TranscriptionClient` (Whisper via OpenRouter), result used as `prompt`. `input_modality = "voice"` |
-| Photo | `_handle_photo()` in `ZeBot` | Downloaded as raw bytes, stored in `AgentState.image_data`. `input_modality = "image"` |
+| Voice note | `TelegramInputPreprocessor` | Downloaded as OGG, transcribed to text by `TranscriptionClient` (Whisper via OpenRouter), result used as `prompt`. `input_modality = "voice"` |
+| Photo | `TelegramInputPreprocessor` | Downloaded as raw bytes, stored in `AgentState.image_data`. `input_modality = "image"` |
 
 **Vision captioning** — when a photo arrives with no text caption, `embed_route` calls
 a lightweight vision model (`models.vision_caption` in config, defaults to
@@ -378,7 +376,7 @@ injected into agents. Raises `ChannelNotFoundError` for unregistered types.
 
 `ContactChannelStore` stores per-contact channel handles in the `contact_channels`
 table. Agents use the `get_contact_channels` and `set_contact_channel` tools
-(in `ze/tools/contacts.py`) to read and write this data — they never query the
+(in `ze_core/contacts/tools.py`) to read and write this data — they never query the
 store directly.
 
 ### Currently implemented channels
@@ -393,7 +391,7 @@ See [docs/channels.md](channels.md) for the authoring guide for adding new chann
 
 ## Cost Telemetry
 
-**Module:** `ze/telemetry/`
+**Module:** `ze_core.telemetry`
 
 `CostTracker` is injected into `OpenRouterClient`. On every completion call, it records:
 
@@ -437,13 +435,13 @@ Voice notes and photos are supported — see the Multimodal input section below.
 
 | Module | Purpose |
 |---|---|
-| `ze/settings.py` | Pydantic `BaseSettings` — single source for all config and secrets |
-| `ze/errors.py` | Exception hierarchy — all modules raise typed subclasses of `ZeError` |
+| `ze/settings.py` | Pydantic `BaseSettings` — Ze secrets + `to_core_settings()` bridge |
+| `ze/errors.py` | Exception hierarchy — re-exports `ze_core.errors` typed exceptions |
 | `ze/logging.py` | structlog JSON logger — `chat_id` and agent bound at request time |
-| `ze/embeddings.py` | Shared `SentenceTransformer` singleton — loaded once at startup |
+| `ze_core/embeddings.py` | Shared `SentenceTransformer` singleton — loaded once at startup |
 | `ze/db.py` | asyncpg pool factory — lifespan-managed, injected via `Depends()` |
-| `ze/container.py` | Dependency wiring — constructs and connects all shared resources |
-| `ze/persona/` | `PersonaStore` — named profiles, dial overrides, DB persistence |
+| `ze/container.py` | `ZeContainer` — subclasses `ze_core.Container`, wires all Ze resources |
+| `ze_core/persona/` | `PostgresPersonaStore` — named profiles, dial overrides, DB persistence |
 | `ze/google/` | Google OAuth2 token management (Calendar + Gmail) |
 
 ---

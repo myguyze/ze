@@ -12,36 +12,42 @@ OpenRouter.
 ```
 ze/                           # monorepo root
 ├── packages/
-│   ├── ze-core/              # Framework — agents, routing, memory, orchestration graph, container
+│   ├── ze-core/              # Framework — routing, memory, orchestration, goals, telemetry, …
 │   │   └── ze_core/
-│   └── ze/                   # Ze application (Telegram, proactive, workflow, Google)
-│       ├── ze/
-│       │   ├── api/          # FastAPI app, Telegram webhook, REST routes
-│       │   ├── agents/       # @agent classes + tools (metadata on classes, not YAML)
-│       │   ├── capability/   # sync_gate_registry + testing helpers; import gate from ze_core
-│       │   ├── channels/     # EmailChannel, ChannelRegistry
-│       │   ├── contacts/     # PersonStore, consolidator
-│       │   ├── google/       # Google OAuth2 (Calendar + Gmail)
-│       │   ├── memory/       # MemoryConsolidator adapter; import store/types from ze_core
-│       │   ├── openrouter/   # OpenRouterClient with cost-tracker integration
-│       │   ├── orchestration/# graph_builder wiring + Ze-only nodes (plan_sequential, workflow)
-│       │   ├── proactive/    # Briefing, reminders, insights, ProactiveScheduler jobs
-│       │   ├── persona/      # PersonaStore adapter over ze_core PostgresPersonaStore
-│       │   ├── routing/      # haiku_fallback wiring; import router/types from ze_core
-│       │   ├── telegram/     # ZeBot, session store
-│       │   ├── telemetry/    # Import CostTracker/Reconciler from ze_core directly
-│       │   ├── tools/        # Shared @tool functions
-│       │   ├── transcription/# Voice → text (Whisper via OpenRouter)
-│       │   ├── workflow/     # WorkflowStore, planner, scheduler
-│       │   ├── container.py  # ZeContainer(subclasses ze_core Container)
-│       │   └── settings.py   # Pydantic Settings + to_core_settings()
-│       ├── config/
-│       │   ├── config.yaml   # Models, contacts, proactive (secrets in .env)
-│       │   └── persona.yaml  # Persona profiles and dials
-│       ├── migrations/       # Alembic SQL migrations
-│       └── tests/
+│   │       ├── capability/   # CapabilityGate, PostgresCapabilityOverrideStore, modes
+│   │       ├── channels/     # Channel ABC, ChannelRegistry, types
+│   │       ├── contacts/     # PersonStore, ContactChannelStore, consolidator, extractors, tools
+│   │       ├── goals/        # GoalStore, GoalPlanner, GoalExecutor, types
+│   │       ├── memory/       # PostgresMemoryStore, consolidator, extractor, types
+│   │       ├── openrouter/   # OpenRouterClient, types
+│   │       ├── orchestration/# graph_builder, BaseAgent, @agent, @tool, registry, nodes, state
+│   │       ├── persona/      # PostgresPersonaStore, identity builder, types
+│   │       ├── proactive/    # ProactiveScheduler, ProactiveNotifier, ProactiveJob
+│   │       ├── progress/     # ProgressReporter, translations
+│   │       ├── routing/      # EmbeddingRouter, ComplexityEstimator, fallback, store
+│   │       ├── telemetry/    # CostTracker, CostReconciler, PostgresCostStore, ContextVar
+│   │       ├── workflow/     # WorkflowStore, planner, scheduler, types
+│   │       ├── container.py  # Base Container with DI wiring and invoke/resume entry points
+│   │       └── embeddings.py # Shared all-MiniLM-L6-v2 singleton
+│   ├── ze/                   # Ze application (Telegram, Google, jobs, reminders)
+│   │   ├── ze/
+│   │   │   ├── agents/       # @agent classes + tools; all imports from ze_core
+│   │   │   ├── api/          # FastAPI app, Telegram webhook, REST routes
+│   │   │   ├── google/       # Google OAuth2 (Calendar + Gmail), GmailChannel
+│   │   │   ├── interface/    # TelegramInterface (ze_core AppInterface implementation)
+│   │   │   ├── jobs/         # Proactive cron jobs: briefing, insights, calendar sync, contacts
+│   │   │   ├── reminders/    # ReminderStore, CalendarReminderService, CalendarReminderStore
+│   │   │   ├── telegram/     # ZeBot, session store, commands, formatting, keyboards
+│   │   │   ├── container.py  # ZeContainer (subclasses ze_core Container)
+│   │   │   └── settings.py   # Pydantic Settings + to_core_settings()
+│   │   ├── config/
+│   │   │   ├── config.yaml   # Models, contacts, proactive schedules (secrets in .env)
+│   │   │   └── persona.yaml  # Persona profiles and dials
+│   │   ├── migrations/       # Alembic SQL migrations
+│   │   └── tests/
+│   └── ze-browser/           # Browser sidecar client (BrowserClient + tool)
 ├── specs/                    # Design specs (zc-* ze-core, numbered ze modules)
-├── docs/                     # architecture.md, configuration.md, ze-core-migration.md
+├── docs/                     # architecture.md, configuration.md, …
 └── Makefile                  # make test, make test-core, make dev-poll, …
 ```
 
@@ -138,25 +144,20 @@ CONFIRM_TIMEOUT_SECONDS=900
 ```
 
 ### `config/config.yaml`
-All structural config in one file: routing thresholds, model assignments, persona,
-memory consolidation, proactive schedules, and full per-agent config (description,
-model, `model_simple`, `vision_capable`, tools, timeout, intent_map, capabilities).
+Structural config: model assignments, contacts consolidation settings, proactive
+schedules. Agent config (description, model, capabilities, intent_map) lives on
+`@agent` class attributes in Python — not in YAML.
 
-Capability modes per `agent.intent`: `autonomous` | `confirm` | `draft_only` | `disabled`.
 Hot-reloaded on SIGHUP without restart.
 
 ## Adding a new agent
 
 1. Write a spec in `specs/` first.
-2. Add the agent block under `agents:` in `config/config.yaml` with `enabled: false`.
-   Include `description`, `model`, `tools`, `timeout_seconds`, `intent_map`, `capabilities`,
-   and optionally `model_simple` and `vision_capable`.
-3. Create `ze/agents/<name>/agent.py` — subclass `BaseAgent`, add `@register`.
-4. Add `ze/agents/<name>/tools.py` if the agent needs client-side Python tools. Define `_AGENT_INSTRUCTIONS` at the top of `agent.py`. Use `"openrouter:web_search"` in `tools` for web search — no Python tool needed.
-5. Write tests in `tests/agents/<name>/`.
-6. Wire the live instance in `ze/container.py` via `register_instance()`.
-7. Import the tools module at startup so `@tool` registration fires.
-8. Set `enabled: true` in `config/config.yaml` when ready.
+2. Create `ze/agents/<name>/agent.py` — decorate with `@agent` from `ze_core.orchestration.registry`, subclass `BaseAgent` from `ze_core.orchestration.base_agent`. Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class attributes. Define `_AGENT_INSTRUCTIONS` at the top.
+3. Add `ze/agents/<name>/tools.py` if the agent needs Python tools. Use `@tool` from `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search — no Python tool needed.
+4. Write tests in `tests/agents/<name>/`.
+5. Wire the live instance in `ze/container.py` via `register_instance()`.
+6. Import the tools module at startup so `@tool` registration fires.
 
 See `docs/adding-an-agent.md` for the full authoring guide.
 
@@ -171,7 +172,7 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
                  → END (blocked)
 ```
 
-- Graph state: `AgentState` in `ze/orchestration/state.py`.
+- Graph state: `AgentState` in `ze_core/orchestration/state.py`.
 - Dependencies injected via `config["configurable"]` at invocation time (not build time).
 - No token streaming to the client — the graph runs to completion, then the full
   response is sent via the Telegram Bot API. `graph.ainvoke()` is used (not `astream_events`).
