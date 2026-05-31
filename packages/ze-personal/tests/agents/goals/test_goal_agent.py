@@ -1,30 +1,16 @@
-import pathlib
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
-from ze.agents.goals.agent import GoalAgent
+from ze_personal.agents.goals.agent import GoalAgent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.capability.types import GateDecision
 from ze_personal.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus
 from ze_core.memory.types import MemoryContext
-from ze.logging import configure_logging
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def make_settings():
-    from ze.settings import Settings, get_settings
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
-
 
 def make_client(response: str = "Here are your goals.") -> AsyncMock:
     client = AsyncMock()
@@ -66,13 +52,7 @@ def make_agent(client=None, store=None) -> GoalAgent:
         goal_planner=AsyncMock(),
         goal_executor=AsyncMock(),
         notifier=AsyncMock(),
-        settings=make_settings(),
     )
-
-
-@pytest.fixture(autouse=True)
-def setup_logging():
-    configure_logging()
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────
@@ -99,7 +79,7 @@ async def test_run_returns_response_from_agentic_loop():
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
 async def test_run_lists_goals_via_tool():
-    import ze.agents.goals.tools  # noqa: ensure tools registered
+    import ze_personal.agents.goals.tools  # noqa: ensure tools registered
 
     gid = uuid4()
     store = make_store()
@@ -123,7 +103,7 @@ async def test_run_lists_goals_via_tool():
 
 
 async def test_run_gets_goal_status_via_tool():
-    import ze.agents.goals.tools  # noqa
+    import ze_personal.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
@@ -148,7 +128,7 @@ async def test_run_gets_goal_status_via_tool():
 
 
 async def test_run_creates_goal_via_tool():
-    import ze.agents.goals.tools  # noqa
+    import ze_personal.agents.goals.tools  # noqa
 
     gid = uuid4()
     created_goal = Goal(id=gid, title="Find leads", objective="Build a list",
@@ -186,7 +166,6 @@ async def test_run_creates_goal_via_tool():
         goal_planner=planner,
         goal_executor=AsyncMock(),
         notifier=notifier,
-        settings=make_settings(),
     )
     result = await agent.run(make_ctx("create a goal to find 20 leads in 2 weeks", intent="create"))
 
@@ -197,7 +176,7 @@ async def test_run_creates_goal_via_tool():
 
 
 async def test_run_pauses_goal_via_tool():
-    import ze.agents.goals.tools  # noqa
+    import ze_personal.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
@@ -220,7 +199,7 @@ async def test_run_pauses_goal_via_tool():
 
 
 async def test_run_resumes_goal_via_tool():
-    import ze.agents.goals.tools  # noqa
+    import ze_personal.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.PAUSED)
@@ -242,7 +221,6 @@ async def test_run_resumes_goal_via_tool():
         goal_planner=AsyncMock(),
         goal_executor=executor,
         notifier=AsyncMock(),
-        settings=make_settings(),
     )
     result = await agent.run(make_ctx("resume my goal", intent="update"))
 
@@ -251,7 +229,7 @@ async def test_run_resumes_goal_via_tool():
 
 
 async def test_run_abandons_goal_via_tool():
-    import ze.agents.goals.tools  # noqa
+    import ze_personal.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)

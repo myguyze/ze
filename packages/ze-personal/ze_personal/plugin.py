@@ -22,3 +22,9 @@ class PersonalPlugin(ZePlugin):
             "identity_builder": build_identity_block,
             "memory_hooks": [contact_proposal_hook],
         }
+
+    def agent_module_paths(self) -> list[str]:
+        return [
+            "ze_personal.agents.goals.agent",
+            "ze_personal.agents.workflow.agent",
+        ]

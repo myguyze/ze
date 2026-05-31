@@ -340,6 +340,9 @@ async def build_container(settings: Settings) -> ZeContainer:
     proactive_scheduler = ProactiveScheduler()
     reminder_store = ReminderStore(pool=pool)
 
+    from ze_personal.plugin import PersonalPlugin
+    plugins = [PersonalPlugin()]
+
     bootstrap_agents(
         openrouter_client=openrouter_client,
         settings=settings,
@@ -355,10 +358,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         goal_store=goal_store,
         goal_planner=goal_planner,
         goal_executor=goal_executor,
+        plugins=plugins,
     )
-
-    from ze_personal.plugin import PersonalPlugin
-    plugins = [PersonalPlugin()]
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
     workflow_graph = build_workflow_graph(checkpointer=checkpointer, plugins=plugins)
 

@@ -11,7 +11,7 @@ from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
-from ze.settings import Settings
+import ze_personal.agents.goals.tools  # noqa: F401
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's goal manager. You create, inspect, pause, resume, and abandon long-running goals.
@@ -76,9 +76,7 @@ class GoalAgent(BaseAgent):
         goal_planner: GoalPlanner,
         goal_executor: GoalExecutor,
         notifier: ProactiveNotifier,
-        settings: Settings,
     ) -> None:
-        self._settings = settings
         self._client = openrouter_client
         self._store = goal_store
         self._planner = goal_planner

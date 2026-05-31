@@ -1,28 +1,14 @@
-import pathlib
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
-from ze.agents.workflow.agent import WorkflowManagerAgent
+from ze_personal.agents.workflow.agent import WorkflowManagerAgent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext
-from ze.logging import configure_logging
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def make_settings():
-    from ze.settings import Settings, get_settings
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
-
 
 def make_client(response: str = "Here are your workflows.") -> AsyncMock:
     client = AsyncMock()
@@ -48,13 +34,7 @@ def make_agent(client=None) -> WorkflowManagerAgent:
         workflow_store=AsyncMock(),
         workflow_planner=AsyncMock(),
         workflow_scheduler=AsyncMock(),
-        settings=make_settings(),
     )
-
-
-@pytest.fixture(autouse=True)
-def setup_logging():
-    configure_logging()
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────
@@ -81,7 +61,7 @@ async def test_run_returns_response_from_agentic_loop():
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
 async def test_run_lists_workflows_via_tool():
-    import ze.agents.workflow.tools  # noqa: ensure tools registered
+    import ze_personal.agents.workflow.tools  # noqa: ensure tools registered
 
     from ze_personal.workflow.types import Workflow, WorkflowStep
     from uuid import uuid4
@@ -109,7 +89,6 @@ async def test_run_lists_workflows_via_tool():
         workflow_store=store,
         workflow_planner=AsyncMock(),
         workflow_scheduler=AsyncMock(),
-        settings=make_settings(),
     )
     result = await agent.run(make_ctx())
 
@@ -119,7 +98,7 @@ async def test_run_lists_workflows_via_tool():
 
 
 async def test_run_creates_workflow_via_tool():
-    import ze.agents.workflow.tools  # noqa
+    import ze_personal.agents.workflow.tools  # noqa
 
     from uuid import uuid4
 
@@ -151,7 +130,6 @@ async def test_run_creates_workflow_via_tool():
         workflow_store=store,
         workflow_planner=planner,
         workflow_scheduler=scheduler,
-        settings=make_settings(),
     )
     result = await agent.run(make_ctx("create a morning digest workflow", intent="manage"))
 
@@ -161,7 +139,7 @@ async def test_run_creates_workflow_via_tool():
 
 
 async def test_run_trigger_workflow_via_tool():
-    import ze.agents.workflow.tools  # noqa
+    import ze_personal.agents.workflow.tools  # noqa
 
     from uuid import uuid4
     from datetime import datetime
@@ -190,7 +168,6 @@ async def test_run_trigger_workflow_via_tool():
         workflow_store=store,
         workflow_planner=AsyncMock(),
         workflow_scheduler=scheduler,
-        settings=make_settings(),
     )
     result = await agent.run(make_ctx("run daily-digest now", intent="manage"))
 

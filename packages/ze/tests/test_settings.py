@@ -45,6 +45,10 @@ def test_agent_configs_empty_after_yaml_removal():
 
 
 def test_agents_registered_via_agent_decorator():
+    import importlib
+    from ze_personal.plugin import PersonalPlugin
+    for path in PersonalPlugin().agent_module_paths():
+        importlib.import_module(path)
     _import_agent_modules()
     agents = get_registered_agents()
     assert "research" in agents
@@ -52,6 +56,7 @@ def test_agents_registered_via_agent_decorator():
     assert "calendar" in agents
     assert "email" in agents
     assert "workflow" in agents
+    assert "goals" in agents
     research = agents["research"]
     assert getattr(research, "description", "").strip()
     assert getattr(research, "model", "")

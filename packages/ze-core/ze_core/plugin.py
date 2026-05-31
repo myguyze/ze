@@ -55,3 +55,11 @@ class ZePlugin(ABC):
     def configurable_services(self) -> dict[str, Any]:
         """Return services to inject into config["configurable"] for every turn."""
         return {}
+
+    def agent_module_paths(self) -> list[str]:
+        """Fully-qualified module paths to import at bootstrap to trigger @agent registration.
+
+        Modules are imported before ze/ agent discovery, so plugin agents are in the
+        @agent registry when bootstrap resolves instances.
+        """
+        return []

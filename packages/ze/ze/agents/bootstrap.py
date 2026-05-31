@@ -6,9 +6,6 @@ from typing import Any, get_type_hints
 import asyncpg
 
 from ze_core.errors import AgentConfigError
-from ze_personal.goals.executor import GoalExecutor
-from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
 from ze.google.auth import GoogleCredentials
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
@@ -45,10 +42,11 @@ def bootstrap_agents(
     person_store=None,
     browser_client=None,
     contact_channel_store=None,
-    goal_store: GoalStore | None = None,
-    goal_planner: GoalPlanner | None = None,
-    goal_executor: GoalExecutor | None = None,
+    goal_store=None,
+    goal_planner=None,
+    goal_executor=None,
     pool: asyncpg.Pool | None = None,
+    plugins: list | None = None,
 ) -> None:
     """Instantiate and register all enabled agents. Called once at app startup."""
     if google_credentials is None:
@@ -79,13 +77,21 @@ def bootstrap_agents(
         from ze_personal.contacts.channel_store import ContactChannelStore
         _dep_map[ContactChannelStore] = contact_channel_store
     if goal_store is not None:
+        from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
         _dep_map[GoalStore] = goal_store
     if goal_planner is not None:
+        from ze_personal.goals.planner import GoalPlanner
         _dep_map[GoalPlanner] = goal_planner
     if goal_executor is not None:
+        from ze_personal.goals.executor import GoalExecutor
         _dep_map[GoalExecutor] = goal_executor
     if pool is not None:
         _dep_map[asyncpg.Pool] = pool
+
+    # Import plugin agent modules first so their @agent decorators register before the ze/ scan.
+    for plugin in (plugins or []):
+        for module_path in plugin.agent_module_paths():
+            importlib.import_module(module_path)
 
     prepare_gate_registry(settings)
 
