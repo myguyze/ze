@@ -31,30 +31,21 @@ def make_person(**overrides):
     return Person(**defaults)
 
 
-def make_conn():
-    conn = AsyncMock()
-    conn.fetch = AsyncMock(return_value=[])
-    conn.fetchrow = AsyncMock(return_value={"id": uuid4()})
-    conn.execute = AsyncMock()
-    return conn
-
-
-def make_pool(conn=None):
-    if conn is None:
-        conn = make_conn()
-    pool = MagicMock()
-    cm = AsyncMock()
-    cm.__aenter__ = AsyncMock(return_value=conn)
-    cm.__aexit__ = AsyncMock(return_value=None)
-    pool.acquire = MagicMock(return_value=cm)
-    return pool
-
-
 def make_person_store(existing: list | None = None):
     store = AsyncMock()
     store.get_by_name = AsyncMock(return_value=existing or [])
     store.upsert = AsyncMock(return_value=make_person())
     store.add_source = AsyncMock()
+    return store
+
+
+def make_campaign_store(outreach_id=None, latest_outreach_id=None):
+    store = AsyncMock()
+    store.add_outreach = AsyncMock(return_value=outreach_id or uuid4())
+    store.increment_found = AsyncMock()
+    store.save_draft = AsyncMock()
+    store.get_latest_outreach_id = AsyncMock(return_value=latest_outreach_id or uuid4())
+    store.log_outreach_event = AsyncMock()
     return store
 
 
@@ -190,7 +181,7 @@ async def test_add_prospect_new_person():
     from ze.agents.prospecting.tools import add_prospect
 
     person_store = make_person_store(existing=[])
-    pool = make_pool()
+    cs = make_campaign_store()
     campaign_id = str(uuid4())
 
     result = await add_prospect(
@@ -204,12 +195,14 @@ async def test_add_prospect_new_person():
         campaign_id=campaign_id,
         channel="email",
         person_store=person_store,
-        pool=pool,
+        campaign_store=cs,
     )
 
     assert "Maria Santos" in result
     person_store.upsert.assert_called_once()
     person_store.add_source.assert_called()
+    cs.add_outreach.assert_called_once()
+    cs.increment_found.assert_called_once()
 
 
 async def test_add_prospect_duplicate_adds_source():
@@ -217,9 +210,8 @@ async def test_add_prospect_duplicate_adds_source():
 
     existing_person = make_person(name="Maria Santos")
     person_store = make_person_store(existing=[existing_person])
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value=None)  # ON CONFLICT DO NOTHING
-    pool = make_pool(conn)
+    cs = make_campaign_store(outreach_id=None)
+    cs.add_outreach = AsyncMock(return_value=None)  # ON CONFLICT DO NOTHING
     campaign_id = str(uuid4())
 
     result = await add_prospect(
@@ -233,12 +225,13 @@ async def test_add_prospect_duplicate_adds_source():
         campaign_id=campaign_id,
         channel="linkedin",
         person_store=person_store,
-        pool=pool,
+        campaign_store=cs,
     )
 
     assert "Maria Santos" in result
     person_store.upsert.assert_not_called()
     person_store.add_source.assert_called_once()
+    cs.increment_found.assert_not_called()
 
 
 async def test_add_prospect_stores_enrichment_notes():
@@ -252,7 +245,7 @@ async def test_add_prospect_stores_enrichment_notes():
         return make_person(notes=person.notes)
 
     person_store.upsert = capture_upsert
-    pool = make_pool()
+    cs = make_campaign_store()
 
     await add_prospect(
         name="Carlos Ferreira",
@@ -265,7 +258,7 @@ async def test_add_prospect_stores_enrichment_notes():
         campaign_id=str(uuid4()),
         channel="linkedin",
         person_store=person_store,
-        pool=pool,
+        campaign_store=cs,
     )
 
     assert upserted
@@ -279,7 +272,7 @@ async def test_draft_outreach_tool():
 
     person = make_person(name="João Silva")
     person_store = make_person_store(existing=[person])
-    pool = make_pool()
+    cs = make_campaign_store()
     campaign_id = str(uuid4())
 
     client = AsyncMock()
@@ -294,18 +287,19 @@ async def test_draft_outreach_tool():
         client=client,
         model="anthropic/claude-sonnet-4-5",
         person_store=person_store,
-        pool=pool,
+        campaign_store=cs,
     )
 
     assert "João" in result
     client.complete.assert_called_once()
+    cs.save_draft.assert_called_once()
 
 
 async def test_draft_outreach_no_contact_returns_error():
     from ze.agents.prospecting.tools import draft_outreach
 
     person_store = make_person_store(existing=[])
-    pool = make_pool()
+    cs = make_campaign_store()
 
     with pytest.raises(ValueError, match="No contact found"):
         await draft_outreach(
@@ -317,7 +311,7 @@ async def test_draft_outreach_no_contact_returns_error():
             client=AsyncMock(),
             model="test",
             person_store=person_store,
-            pool=pool,
+            campaign_store=cs,
         )
 
 
@@ -328,26 +322,20 @@ async def test_log_outreach_event_sent():
 
     person = make_person(name="Maria Santos")
     person_store = make_person_store(existing=[person])
-
     outreach_id = uuid4()
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value={"id": outreach_id})
-    pool = make_pool(conn)
+    cs = make_campaign_store(latest_outreach_id=outreach_id)
 
     result = await log_outreach_event(
         contact_name="Maria Santos",
         event_type="sent",
         channel="email",
         notes="Sent intro email",
-        pool=pool,
+        campaign_store=cs,
         person_store=person_store,
     )
 
     assert "Maria Santos" in result
-    conn.execute.assert_called_once()
-    call_sql = conn.execute.call_args[0][0]
-    assert "UPDATE prospect_outreach" in call_sql
-    assert "sent_at" in call_sql
+    cs.log_outreach_event.assert_called_once_with(outreach_id, "sent", "Sent intro email", "sent_at")
 
 
 async def test_log_outreach_event_no_campaign_row_returns_not_a_prospect():
@@ -355,10 +343,8 @@ async def test_log_outreach_event_no_campaign_row_returns_not_a_prospect():
 
     person = make_person(name="Unknown Contact")
     person_store = make_person_store(existing=[person])
-
-    conn = make_conn()
-    conn.fetchrow = AsyncMock(return_value=None)
-    pool = make_pool(conn)
+    cs = make_campaign_store()
+    cs.get_latest_outreach_id = AsyncMock(return_value=None)
 
     with pytest.raises(ValueError, match="not in any outreach campaign"):
         await log_outreach_event(
@@ -366,11 +352,11 @@ async def test_log_outreach_event_no_campaign_row_returns_not_a_prospect():
             event_type="sent",
             channel="email",
             notes="Sent intro email",
-            pool=pool,
+            campaign_store=cs,
             person_store=person_store,
         )
 
-    conn.execute.assert_not_called()
+    cs.log_outreach_event.assert_not_called()
 
 
 async def test_log_outreach_event_ambiguous_returns_clarification():
@@ -381,7 +367,7 @@ async def test_log_outreach_event_ambiguous_returns_clarification():
         make_person(name="João Santos"),
     ]
     person_store = make_person_store(existing=matches)
-    pool = make_pool()
+    cs = make_campaign_store()
 
     with pytest.raises(ValueError, match="Ambiguous"):
         await log_outreach_event(
@@ -389,18 +375,18 @@ async def test_log_outreach_event_ambiguous_returns_clarification():
             event_type="sent",
             channel="email",
             notes="Sent email",
-            pool=pool,
+            campaign_store=cs,
             person_store=person_store,
         )
 
-    pool.acquire.assert_not_called()
+    cs.get_latest_outreach_id.assert_not_called()
 
 
 async def test_log_outreach_event_invalid_event_type_rejected():
     from ze.agents.prospecting.tools import log_outreach_event
 
     person_store = make_person_store(existing=[make_person(name="Maria Santos")])
-    pool = make_pool()
+    cs = make_campaign_store()
 
     with pytest.raises(ValueError, match="Invalid event_type"):
         await log_outreach_event(
@@ -408,9 +394,8 @@ async def test_log_outreach_event_invalid_event_type_rejected():
             event_type="hacked",
             channel="email",
             notes="test",
-            pool=pool,
+            campaign_store=cs,
             person_store=person_store,
         )
 
-    pool.acquire.assert_not_called()
     person_store.get_by_name.assert_not_called()

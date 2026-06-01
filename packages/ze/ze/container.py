@@ -29,6 +29,7 @@ from ze_personal.contacts.consolidator import ContactsConsolidator
 from ze_personal.contacts.store import PersonStore
 from ze.jobs.contacts import ContactReviewNotifier
 from ze.jobs.prospecting import recover_stale_campaigns
+from ze.prospecting.store import ProspectCampaignStore
 from ze_core.memory.consolidator import MemoryConsolidator
 from ze_core.memory.postgres import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
@@ -91,6 +92,7 @@ class ZeContainer(CoreContainer):
     contact_channel_store: ContactChannelStore
     goal_store: GoalStore
     goal_executor: GoalExecutor
+    campaign_store: ProspectCampaignStore
 
     def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -134,11 +136,7 @@ class ZeContainer(CoreContainer):
         await self.workflow_scheduler.stop()
         await self.bot.session.close()
         await self.browser_client.close()
-        # Mark any in-progress campaigns as failed on graceful shutdown so they
-        # don't linger as 'running' until the next stale-recovery sweep.
-        await self.pool.execute(
-            "UPDATE prospect_campaigns SET status = 'failed', completed_at = NOW() WHERE status = 'running'"
-        )
+        await self.campaign_store.fail_all_running()
         await super().close()
 
     @classmethod
@@ -334,6 +332,7 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
 
     contact_channel_store = ContactChannelStore(pool=pool)
+    campaign_store = ProspectCampaignStore(pool=pool)
     goal_store = GoalStore(pool=pool)
     goal_planner = GoalPlanner(client=openrouter_client, model=settings.workflow_plan_model)
     goal_executor = GoalExecutor(
@@ -363,6 +362,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         goal_store=goal_store,
         goal_planner=goal_planner,
         goal_executor=goal_executor,
+        campaign_store=campaign_store,
         plugins=plugins,
     )
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
@@ -565,6 +565,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
+        campaign_store=campaign_store,
         plugins=plugins,
     )
     ze_bot.bind_container(container)

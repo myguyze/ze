@@ -46,6 +46,7 @@ def bootstrap_agents(
     goal_planner=None,
     goal_executor=None,
     pool: asyncpg.Pool | None = None,
+    campaign_store=None,
     plugins: list | None = None,
 ) -> None:
     """Instantiate and register all enabled agents. Called once at app startup."""
@@ -87,6 +88,9 @@ def bootstrap_agents(
         _dep_map[GoalExecutor] = goal_executor
     if pool is not None:
         _dep_map[asyncpg.Pool] = pool
+    if campaign_store is not None:
+        from ze.prospecting.store import ProspectCampaignStore
+        _dep_map[ProspectCampaignStore] = campaign_store
 
     # Import plugin agent modules first so their @agent decorators register before the ze/ scan.
     for plugin in (plugins or []):

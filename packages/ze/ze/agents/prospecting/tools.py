@@ -1,11 +1,10 @@
 from uuid import UUID
 
-import asyncpg
-
 from ze_core.orchestration.tool import ToolAccess, tool
 from ze_personal.contacts.store import PersonStore
 from ze_personal.contacts.types import Person, PersonSource
 from ze_core.openrouter.client import OpenRouterClient
+from ze.prospecting.store import ProspectCampaignStore
 
 _VALID_EVENT_TYPES = frozenset({"sent", "replied", "bounced"})
 
@@ -36,7 +35,7 @@ async def add_prospect(
     campaign_id: str,
     channel: str = "email",
     person_store: PersonStore = None,
-    pool: asyncpg.Pool = None,
+    campaign_store: ProspectCampaignStore = None,
 ) -> str:
     existing = await person_store.get_by_name(name)
     if existing:
@@ -81,23 +80,9 @@ async def add_prospect(
             ),
         )
 
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            INSERT INTO prospect_outreach (campaign_id, contact_id, channel, status)
-            VALUES ($1, $2, $3, 'pending')
-            ON CONFLICT (campaign_id, contact_id) DO NOTHING
-            RETURNING id
-            """,
-            UUID(campaign_id),
-            person.id,
-            channel,
-        )
-        if row is not None:
-            await conn.execute(
-                "UPDATE prospect_campaigns SET found_count = found_count + 1 WHERE id = $1",
-                UUID(campaign_id),
-            )
+    outreach_id = await campaign_store.add_outreach(UUID(campaign_id), person.id, channel)
+    if outreach_id is not None:
+        await campaign_store.increment_found(UUID(campaign_id))
 
     return f"Added {name} (id={person.id})"
 
@@ -115,7 +100,7 @@ async def draft_outreach(
     client: OpenRouterClient,
     model: str,
     person_store: PersonStore,
-    pool: asyncpg.Pool,
+    campaign_store: ProspectCampaignStore,
 ) -> str:
     matches = await person_store.get_by_name(name)
     if not matches:
@@ -137,17 +122,7 @@ async def draft_outreach(
         max_tokens=400,
     )
 
-    async with pool.acquire() as conn:
-        await conn.execute(
-            """
-            UPDATE prospect_outreach
-            SET draft = $3
-            WHERE campaign_id = $1 AND contact_id = $2
-            """,
-            UUID(campaign_id),
-            person.id,
-            draft,
-        )
+    await campaign_store.save_draft(UUID(campaign_id), person.id, draft)
 
     return draft
 
@@ -164,7 +139,7 @@ async def log_outreach_event(
     event_type: str,
     channel: str,
     notes: str,
-    pool: asyncpg.Pool,
+    campaign_store: ProspectCampaignStore,
     person_store: PersonStore,
 ) -> str:
     if event_type not in _VALID_EVENT_TYPES:
@@ -182,29 +157,12 @@ async def log_outreach_event(
         raise ValueError(f"Ambiguous: found {names_str} — please clarify")
 
     person = matches[0]
-    ts_col = _ts_column(event_type)
+    outreach_id = await campaign_store.get_latest_outreach_id(person.id)
 
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            SELECT id FROM prospect_outreach
-            WHERE contact_id = $1
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            person.id,
-        )
+    if outreach_id is None:
+        raise ValueError(f"{contact_name} is not in any outreach campaign")
 
-        if not row:
-            raise ValueError(f"{contact_name} is not in any outreach campaign")
-
-        ts_clause = f", {ts_col} = NOW()" if ts_col else ""
-        await conn.execute(
-            f"UPDATE prospect_outreach SET status = $2, notes = $3{ts_clause} WHERE id = $1",
-            row["id"],
-            event_type,
-            notes,
-        )
+    await campaign_store.log_outreach_event(outreach_id, event_type, notes, _ts_column(event_type))
 
     return f"Logged {event_type} for {person.name}"
 

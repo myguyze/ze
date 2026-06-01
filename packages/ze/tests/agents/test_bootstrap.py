@@ -49,6 +49,8 @@ def test_bootstrap_registers_companion_and_research(settings):
     from ze_personal.workflow.planner import WorkflowPlanner
     from ze_personal.workflow.scheduler import WorkflowScheduler
 
+    from ze.prospecting.store import ProspectCampaignStore
+
     client = AsyncMock()
     bootstrap_agents(
         openrouter_client=client,
@@ -64,6 +66,7 @@ def test_bootstrap_registers_companion_and_research(settings):
         goal_planner=MM(spec=GoalPlanner),
         goal_executor=MM(spec=GoalExecutor),
         pool=MagicMock(),
+        campaign_store=MM(spec=ProspectCampaignStore),
     )
 
     assert isinstance(get_agent("companion"), CompanionAgent)

@@ -1,7 +1,4 @@
 from typing import AsyncIterator
-from uuid import UUID
-
-import asyncpg
 
 import ze_browser.tool  # noqa: F401 — registers browser_extract @tool
 import ze.agents.prospecting.tools  # noqa: F401 — registers add_prospect, draft_outreach, log_outreach_event @tool
@@ -14,6 +11,7 @@ from ze_browser import BrowserClient
 from ze_personal.contacts.store import PersonStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze.settings import Settings
+from ze.prospecting.store import ProspectCampaignStore
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's prospecting engine. Given a brief, you autonomously:
@@ -76,27 +74,18 @@ class ProspectingAgent(BaseAgent):
         settings: Settings,
         browser_client: BrowserClient,
         person_store: PersonStore,
-        pool: asyncpg.Pool,
+        campaign_store: ProspectCampaignStore,
     ) -> None:
         self._settings = settings
         self._client = openrouter_client
         self._browser_client = browser_client
         self._person_store = person_store
-        self._pool = pool
+        self._campaign_store = campaign_store
 
     async def run(self, ctx: AgentContext) -> AgentResult:
         await self.emit(ctx, "prospecting.researching")
 
-        async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                """
-                INSERT INTO prospect_campaigns (brief, status)
-                VALUES ($1, 'running')
-                RETURNING id
-                """,
-                ctx.prompt,
-            )
-        campaign_id: UUID = row["id"]
+        campaign_id = await self._campaign_store.create(ctx.prompt)
 
         reachable = await self._browser_client.health()
         if not reachable:
@@ -114,7 +103,7 @@ class ProspectingAgent(BaseAgent):
             "browser_delay_ms": self._settings.browser_delay_ms,
             "browser_max_text_chars": self._settings.browser_max_text_chars,
             "person_store": self._person_store,
-            "pool": self._pool,
+            "campaign_store": self._campaign_store,
             "client": self._client,
             "model": self._model(ctx),
             "settings": self._settings,
@@ -134,16 +123,7 @@ class ProspectingAgent(BaseAgent):
                 max_tokens=4000,
             )
 
-            async with self._pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    UPDATE prospect_campaigns
-                    SET status = 'complete', output = $2, completed_at = NOW()
-                    WHERE id = $1
-                    """,
-                    campaign_id,
-                    response,
-                )
+            await self._campaign_store.complete(campaign_id, response)
 
             return AgentResult(
                 agent=self.name,
@@ -151,15 +131,7 @@ class ProspectingAgent(BaseAgent):
                 tool_calls=tool_calls,
             )
         except Exception:
-            async with self._pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    UPDATE prospect_campaigns
-                    SET status = 'failed', completed_at = NOW()
-                    WHERE id = $1
-                    """,
-                    campaign_id,
-                )
+            await self._campaign_store.fail(campaign_id)
             raise
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:

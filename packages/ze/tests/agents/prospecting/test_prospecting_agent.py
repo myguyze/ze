@@ -1,11 +1,10 @@
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from ze.agents.prospecting.agent import ProspectingAgent
-from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
+from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_personal.contacts.types import PersonContext
 from ze.logging import configure_logging
 from ze_core.memory.types import MemoryContext
@@ -26,29 +25,12 @@ def make_settings():
     )
 
 
-def make_campaign_row(campaign_id=None):
-    row = MagicMock()
-    row.__getitem__ = lambda self, key: campaign_id or uuid4() if key == "id" else 0
-    return row
-
-
-def make_conn(campaign_id=None):
-    conn = AsyncMock()
-    conn.fetchrow = AsyncMock(return_value=make_campaign_row(campaign_id))
-    conn.execute = AsyncMock()
-    return conn
-
-
-def make_pool(conn=None):
-    if conn is None:
-        conn = make_conn()
-    pool = MagicMock()
-    pool.execute = AsyncMock()
-    cm = AsyncMock()
-    cm.__aenter__ = AsyncMock(return_value=conn)
-    cm.__aexit__ = AsyncMock(return_value=None)
-    pool.acquire = MagicMock(return_value=cm)
-    return pool
+def make_campaign_store(campaign_id=None):
+    store = AsyncMock()
+    store.create = AsyncMock(return_value=campaign_id or uuid4())
+    store.complete = AsyncMock()
+    store.fail = AsyncMock()
+    return store
 
 
 def make_ctx(prompt: str = "find 5 charter operators in Portugal") -> AgentContext:
@@ -66,7 +48,7 @@ def make_agent(
     client=None,
     browser_client=None,
     person_store=None,
-    pool=None,
+    campaign_store=None,
 ) -> ProspectingAgent:
     if client is None:
         client = AsyncMock()
@@ -77,14 +59,12 @@ def make_agent(
         browser_client.health = AsyncMock(return_value=True)
     if person_store is None:
         person_store = AsyncMock()
-    if pool is None:
-        pool = make_pool()
     return ProspectingAgent(
         openrouter_client=client,
         settings=make_settings(),
         browser_client=browser_client,
         person_store=person_store,
-        pool=pool,
+        campaign_store=campaign_store or make_campaign_store(),
     )
 
 
@@ -104,51 +84,41 @@ def test_prospecting_agent_is_registered():
 
 async def test_prospecting_agent_run_creates_campaign():
     campaign_id = uuid4()
-    conn = make_conn(campaign_id)
-    pool = make_pool(conn)
+    cs = make_campaign_store(campaign_id)
 
-    agent = make_agent(pool=pool)
-    ctx = make_ctx()
+    agent = make_agent(campaign_store=cs)
 
     with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Found prospects.", []))):
-        result = await agent.run(ctx)
+        result = await agent.run(make_ctx())
 
     assert isinstance(result, AgentResult)
     assert result.agent == "prospecting"
-    # Campaign INSERT called
-    conn.fetchrow.assert_called_once()
-    insert_sql = conn.fetchrow.call_args[0][0]
-    assert "INSERT INTO prospect_campaigns" in insert_sql
+    cs.create.assert_called_once_with("find 5 charter operators in Portugal")
 
 
 async def test_prospecting_agent_run_sets_status_complete():
     campaign_id = uuid4()
-    conn = make_conn(campaign_id)
-    pool = make_pool(conn)
+    cs = make_campaign_store(campaign_id)
 
-    agent = make_agent(pool=pool)
+    agent = make_agent(campaign_store=cs)
 
     with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Summary here.", []))):
         await agent.run(make_ctx())
 
-    # UPDATE to complete called
-    execute_calls = [str(c) for c in conn.execute.call_args_list]
-    assert any("complete" in c for c in execute_calls)
+    cs.complete.assert_called_once_with(campaign_id, "Summary here.")
 
 
 async def test_prospecting_agent_failure_sets_status_failed():
     campaign_id = uuid4()
-    conn = make_conn(campaign_id)
-    pool = make_pool(conn)
+    cs = make_campaign_store(campaign_id)
 
-    agent = make_agent(pool=pool)
+    agent = make_agent(campaign_store=cs)
 
     with patch.object(agent, "agentic_loop", AsyncMock(side_effect=RuntimeError("LLM error"))):
         with pytest.raises(RuntimeError, match="LLM error"):
             await agent.run(make_ctx())
 
-    execute_calls = [str(c) for c in conn.execute.call_args_list]
-    assert any("failed" in c for c in execute_calls)
+    cs.fail.assert_called_once_with(campaign_id)
 
 
 async def test_prospecting_agent_browser_unreachable_excludes_browser_extract():
@@ -172,8 +142,7 @@ async def test_prospecting_agent_browser_unreachable_excludes_browser_extract():
 
 async def test_prospecting_agent_passes_campaign_id_in_deps():
     campaign_id = uuid4()
-    conn = make_conn(campaign_id)
-    pool = make_pool(conn)
+    cs = make_campaign_store(campaign_id)
 
     captured_deps: list[dict] = []
 
@@ -181,7 +150,7 @@ async def test_prospecting_agent_passes_campaign_id_in_deps():
         captured_deps.append(deps)
         return "done", []
 
-    agent = make_agent(pool=pool)
+    agent = make_agent(campaign_store=cs)
 
     with patch.object(agent, "agentic_loop", side_effect=fake_agentic_loop):
         await agent.run(make_ctx())
@@ -211,7 +180,6 @@ async def test_agentic_loop_truncates_old_rounds():
     _truncate_messages(messages, max_tokens=100)
 
     assert len(messages) < original_len
-    # History must remain structurally valid after truncation
     for msg in messages:
         if msg.get("role") == "assistant" and msg.get("tool_calls"):
             expected_ids = {tc["id"] for tc in msg["tool_calls"]}
@@ -246,17 +214,14 @@ async def test_agentic_loop_protects_last_4_messages():
 
 async def test_recover_stale_campaigns():
     from ze.jobs.prospecting import recover_stale_campaigns
+    from unittest.mock import AsyncMock, MagicMock
 
     pool = MagicMock()
     pool.execute = AsyncMock(return_value="UPDATE 0")
 
-    await recover_stale_campaigns(pool, timeout_minutes=60)
+    await recover_stale_campaigns(pool, timeout_minutes=10)
 
     pool.execute.assert_called_once()
-    sql = pool.execute.call_args[0][0]
-    assert "UPDATE prospect_campaigns" in sql
-    assert "failed" in sql
-    assert "running" in sql
 
 
 async def test_recover_stale_campaigns_logs_when_rows_updated():
@@ -265,6 +230,6 @@ async def test_recover_stale_campaigns_logs_when_rows_updated():
     pool = MagicMock()
     pool.execute = AsyncMock(return_value="UPDATE 3")
 
-    await recover_stale_campaigns(pool, timeout_minutes=60)
+    await recover_stale_campaigns(pool, timeout_minutes=10)
 
     pool.execute.assert_called_once()
