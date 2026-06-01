@@ -44,17 +44,20 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     gate_decision: GateDecision = state.get("gate_decision") or GateDecision.EXECUTE
     reporter = config["configurable"].get("reporter")
     token_queue: asyncio.Queue | None = config["configurable"].get("token_queue")
+    identity_builder = config["configurable"].get("identity_builder")
 
     if envelope.is_compound:
         return await _execute_compound(
             envelope.subtasks, base_ctx, gate_decision, state,
             is_sequential=envelope.is_sequential,
             reporter=reporter,
+            identity_builder=identity_builder,
         )
     return await _execute_single(
         envelope.subtasks[0], base_ctx, gate_decision, state,
         token_queue=token_queue,
         reporter=reporter,
+        identity_builder=identity_builder,
     )
 
 
@@ -66,14 +69,19 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
         return {"error": "Missing routing envelope or agent context"}
 
     subtask = envelope.subtasks[0]
+    identity_builder = config["configurable"].get("identity_builder")
+    extensions = {"identity_builder": identity_builder} if identity_builder is not None else {}
     ctx = AgentContext(
         session_id=base_ctx.session_id,
         prompt=subtask.prompt,
         intent=subtask.intent,
         gate_decision=GateDecision.DRAFT,
         memory=base_ctx.memory,
+        contacts=base_ctx.contacts,
+        persona=base_ctx.persona,
         model=subtask.model or None,
         messages=_build_messages(state, subtask.agent, base_ctx),
+        extensions=extensions,
     )
     result = await _run_with_timeout(subtask.agent, ctx)
     return {"agent_result": result, "pending_confirmation": True}
@@ -120,16 +128,21 @@ async def _execute_single(
     state: dict,
     token_queue: asyncio.Queue | None = None,
     reporter: Any = None,
+    identity_builder: Any = None,
 ) -> dict:
+    extensions = {"identity_builder": identity_builder} if identity_builder is not None else {}
     ctx = AgentContext(
         session_id=base_ctx.session_id,
         prompt=subtask.prompt,
         intent=subtask.intent,
         gate_decision=gate_decision,
         memory=base_ctx.memory,
+        contacts=base_ctx.contacts,
+        persona=base_ctx.persona,
         model=subtask.model or None,
         messages=_build_messages(state, subtask.agent, base_ctx),
         reporter=reporter,
+        extensions=extensions,
     )
     result = await _run_with_timeout(subtask.agent, ctx, token_queue=token_queue)
     return {"agent_result": result, "subtask_results": []}
@@ -142,7 +155,10 @@ async def _execute_compound(
     state: dict,
     is_sequential: bool = False,
     reporter: Any = None,
+    identity_builder: Any = None,
 ) -> dict:
+    extensions = {"identity_builder": identity_builder} if identity_builder is not None else {}
+
     def _make_ctx(subtask: Any) -> AgentContext:
         return AgentContext(
             session_id=base_ctx.session_id,
@@ -150,9 +166,12 @@ async def _execute_compound(
             intent=subtask.intent,
             gate_decision=gate_decision,
             memory=base_ctx.memory,
+            contacts=base_ctx.contacts,
+            persona=base_ctx.persona,
             model=subtask.model or None,
             messages=_build_messages(state, subtask.agent, base_ctx),
             reporter=reporter,
+            extensions=extensions,
         )
 
     if is_sequential:
