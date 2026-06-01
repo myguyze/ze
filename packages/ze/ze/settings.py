@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # ── Prospecting ───────────────────────────────────────────────────────────
     prospecting_max_iterations: int = 15
     prospecting_max_loop_tokens: int = 24_000
-    prospecting_stale_timeout_minutes: int = 60
+    prospecting_stale_timeout_minutes: int = 10
 
     # ── Logging ───────────────────────────────────────────────────────────────
     log_level: str = "INFO"

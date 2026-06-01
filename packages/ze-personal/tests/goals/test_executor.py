@@ -135,7 +135,7 @@ async def test_advance_executes_next_pending_milestone(executor, store, push, ag
     store.list_milestones = AsyncMock(return_value=[m1])
     store.get_pending_gate = AsyncMock(return_value=None)
 
-    with patch("ze_core.goals.executor.asyncio.create_task"):
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.update_milestone.assert_any_call(m1.id, MilestoneStatus.IN_PROGRESS)
@@ -150,7 +150,7 @@ async def test_advance_skips_milestone_on_execution_error(executor, store, push,
     store.get_pending_gate = AsyncMock(return_value=None)
     agent_mock.run = AsyncMock(side_effect=Exception("network error"))
 
-    with patch("ze_core.goals.executor.asyncio.create_task"):
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.update_milestone.assert_any_call(m1.id, MilestoneStatus.SKIPPED, output=pytest.approx("Failed: Milestone 1 (Step 1) failed: network error", abs=100))
@@ -188,7 +188,7 @@ async def test_gate_does_not_fire_if_prior_not_done(executor, store, push):
     ])
     store.get_pending_gate = AsyncMock(return_value=gate)
 
-    with patch("ze_core.goals.executor.asyncio.create_task"):
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.fire_gate.assert_not_called()
@@ -198,7 +198,7 @@ async def test_approve_plan_activates_goal(executor, store):
     goal = _goal(status=GoalStatus.PLANNING)
     store.get_goal = AsyncMock(return_value=goal)
 
-    with patch("ze_core.goals.executor.asyncio.create_task"):
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
         result = await executor.approve_plan(goal.id)
 
     assert result is True
@@ -225,7 +225,7 @@ async def test_handle_gate_approved(executor, store):
     gate = _gate(after_seq=1, goal_id=goal.id, status=GateStatus.AWAITING_APPROVAL)
     store.get_gate = AsyncMock(return_value=gate)
 
-    with patch("ze_core.goals.executor.asyncio.create_task"):
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
         await executor.handle_gate_approved(gate.id)
 
     store.resolve_gate.assert_called_with(gate.id, GateStatus.APPROVED)

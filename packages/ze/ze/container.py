@@ -134,6 +134,11 @@ class ZeContainer(CoreContainer):
         await self.workflow_scheduler.stop()
         await self.bot.session.close()
         await self.browser_client.close()
+        # Mark any in-progress campaigns as failed on graceful shutdown so they
+        # don't linger as 'running' until the next stale-recovery sweep.
+        await self.pool.execute(
+            "UPDATE prospect_campaigns SET status = 'failed', completed_at = NOW() WHERE status = 'running'"
+        )
         await super().close()
 
     @classmethod
@@ -438,7 +443,7 @@ async def build_container(settings: Settings) -> ZeContainer:
 
         proactive_scheduler.add_cron_job(
             fn=lambda: recover_stale_campaigns(pool, settings.prospecting_stale_timeout_minutes),
-            cron="0 3 * * *",
+            cron="*/15 * * * *",
             job_id="recover_stale_campaigns",
         )
         log.info("stale_campaign_recovery_scheduled")
