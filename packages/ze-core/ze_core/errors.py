@@ -118,6 +118,28 @@ class RateLimitError(OpenRouterError):
     """OpenRouter returned HTTP 429."""
 
 
+# ── Harness ───────────────────────────────────────────────────────────────────
+
+class AgentAbortedError(AgentError):
+    """Raised inside agentic_loop when an AbortToken fires or on_loop_start aborts."""
+
+    def __init__(self, reason: str | None = None) -> None:
+        super().__init__(reason or "aborted")
+        self.reason = reason
+
+
+class HookAbort(AgentError):
+    """Raised from HarnessHook.on_tool_start to skip a single tool call.
+
+    The loop records the skipped call and continues to the next LLM turn.
+    """
+
+    def __init__(self, tool_name: str, reason: str = "") -> None:
+        super().__init__(f"hook aborted {tool_name!r}: {reason}")
+        self.tool_name = tool_name
+        self.reason = reason
+
+
 # ── Channels ──────────────────────────────────────────────────────────────────
 
 class ChannelError(ZeCoreError):

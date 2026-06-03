@@ -1,4 +1,15 @@
 from ze_core.orchestration.base_agent import BaseAgent
+from ze_core.orchestration.hooks import (
+    BaseHarnessHook,
+    HarnessHook,
+    LoopEndEvent,
+    LoopStartEvent,
+    ToolEndEvent,
+    ToolStartEvent,
+    clear_hooks,
+    get_hooks,
+    register_hook,
+)
 from ze_core.orchestration.registry import (
     agent,
     clear_registry,
@@ -13,6 +24,15 @@ from ze_core.orchestration.registry import (
 
 __all__ = [
     "BaseAgent",
+    "BaseHarnessHook",
+    "HarnessHook",
+    "LoopEndEvent",
+    "LoopStartEvent",
+    "ToolEndEvent",
+    "ToolStartEvent",
+    "clear_hooks",
+    "get_hooks",
+    "register_hook",
     "agent",
     "clear_registry",
     "get_agent",
