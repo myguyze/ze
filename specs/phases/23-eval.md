@@ -19,6 +19,7 @@
 | Expanded scenario suite (calendar, email, goals, workflow, contacts, prospecting) | ✅ Done |
 | `make eval`, `eval-judge`, `eval-report`, `eval-diff` targets | ✅ Done |
 | Tool call assertions (`expected_tools` in scenarios, `tools_correct` metric) | ✅ Done |
+| Tool call **argument** assertions (`args` in `expected_tools`, operator syntax) | 🔲 Planned |
 | Outcome verification (`verify` blocks, DB checks via asyncpg, auto-cleanup) | ✅ Done |
 | Latency and token tracking (wall-clock timing, `llm_cost_log` metrics, p95/avg/max) | ✅ Done |
 
@@ -239,9 +240,11 @@ Default judge model: `anthropic/claude-haiku-4-5`. Override with `--judge-model`
 
 ## Tool Call Assertions
 
-Scenarios can declare `expected_tools` — a list of tool names that must be called
-**and succeed** for the scenario to pass the tool check. This is objective and free
-(no LLM required).
+Scenarios can declare `expected_tools` — a list of tool names (and optionally
+expected arguments) that must be called **and succeed** for the scenario to pass
+the tool check. This is objective and free (no LLM required).
+
+### Short form (name-only)
 
 ```yaml
 - id: calendar_read_today
@@ -250,16 +253,57 @@ Scenarios can declare `expected_tools` — a list of tool names that must be cal
   expected_tools: [list_events]    # Ze must call list_events successfully
 ```
 
-The runner collects tool calls from all turns (for multi-turn scenarios) and checks
-that every listed tool name appears in the successful calls. The result is stored as
-`tools_correct: true/false/null` per scenario and aggregated as `tools_correct` and
-`tools_wrong` in the run totals.
+### Long form (with argument assertions)
+
+```yaml
+- id: reminders_create_absolute
+  prompt: "Remind me to call the dentist on Friday at 10am."
+  expected_agent: reminders
+  expected_tools:
+    - name: set_reminder
+      args:
+        label__icontains: dentist   # label arg must contain "dentist" (case-insensitive)
+```
+
+Both forms can be mixed in the same scenario:
+
+```yaml
+expected_tools:
+  - list_reminders                  # name-only — just check it was called
+  - name: set_reminder
+    args:
+      label__icontains: dentist
+```
+
+The runner checks, for each declared tool:
+1. A successful call to that tool name exists (`success: true`)
+2. If `args` is declared, the args of the first matching successful call satisfy every
+   declared condition
+
+The result is stored as `tools_correct: true/false/null` per scenario and aggregated
+as `tools_correct` and `tools_wrong` in the run totals.
 
 **Semantics:**
 - All listed tools must appear in `tool_calls` with `success: true`
 - If a tool was called but failed (`success: false`), the assertion fails
+- Arg conditions are applied to the args of the first successful call to that tool
 - `null` = no `expected_tools` declared — tool check is skipped
 - Tool names match exactly (no wildcards) — use the Python function name
+
+### Arg condition operators
+
+| Suffix | Match rule | Example |
+|--------|-----------|---------|
+| *(none)* | Exact equality | `label: dentist` |
+| `__icontains` | Case-insensitive substring | `label__icontains: dentist` |
+| `__contains` | Case-sensitive substring | `label__contains: Dentist` |
+| `__gte` | Greater-than-or-equal (lexicographic) | `fire_at__gte: "2026-06-03"` |
+| `__lte` | Less-than-or-equal (lexicographic) | `fire_at__lte: "2026-12-31"` |
+
+`__gte` / `__lte` compare as strings. For ISO 8601 datetime strings this produces
+correct chronological order. Do not use for numeric comparisons.
+
+A condition fails if the arg key is absent from the actual call's args dict.
 
 **Current coverage:** 33 of 85 scenarios have `expected_tools`. Scenarios where
 the correct behaviour is to *not* call tools (e.g. graceful error handling,
