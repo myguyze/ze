@@ -215,3 +215,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 18 | Communication channel abstraction — `Channel` ABC, `EmailChannel`, contact channel handles | Done |
 | 19 | Goal Engine — autonomous multi-week goal execution, verification gates, milestone loop | Done |
 | 20 | Package architecture reorg — ze_core pure infra, ze-personal domain layer, ZePlugin ABC | Done |
+| 21 | Agent harness — hook points, step-level abort, multi-agent handoffs | Pending |

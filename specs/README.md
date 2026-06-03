@@ -57,6 +57,7 @@ explicitly deferred before implementation begins.
 | 27 | [Channels](phases/27-channels.md) | ✅ Done |
 | 28 | [Goal Engine](phases/28-goal-engine.md) | ✅ Done |
 | 29 | [Progress Messages](phases/29-progress-messages.md) | ✅ Done |
+| 30 | [Agent Harness](phases/30-agent-harness.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
