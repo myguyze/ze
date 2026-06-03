@@ -2,6 +2,7 @@
   prompt: "Remind me to call the dentist on Friday at 10am."
   description: Create a reminder with an absolute day-and-time reference
   expected_agent: reminders
+  expected_tools: [set_reminder]
   tags: [routing, reminders]
   criteria:
     - Should route to the reminders agent
@@ -13,6 +14,7 @@
   prompt: "Remind me in 3 hours to check the build pipeline."
   description: Create a reminder with a relative time reference
   expected_agent: reminders
+  expected_tools: [set_reminder]
   tags: [routing, reminders]
   criteria:
     - Should route to the reminders agent
@@ -35,6 +37,7 @@
   prompt: "What reminders do I have?"
   description: List pending reminders
   expected_agent: reminders
+  expected_tools: [list_reminders]
   tags: [routing, reminders]
   criteria:
     - Should route to the reminders agent
@@ -46,6 +49,7 @@
   prompt: "Cancel my reminder about the dentist."
   description: Cancel a specific reminder by label hint
   expected_agent: reminders
+  expected_tools: [list_reminders]
   tags: [routing, reminders]
   criteria:
     - Should route to the reminders agent
@@ -66,6 +70,7 @@
 
 - id: reminders_multi_turn_create_then_list
   description: "Multi-turn: create a reminder then ask to list reminders"
+  expected_tools: [set_reminder, list_reminders]
   turns:
     - prompt: "Remind me to take my vitamins tomorrow morning at 8am."
       description: "Turn 1: create a reminder"

@@ -2,6 +2,7 @@
   prompt: "Create a workflow: every Monday morning, summarise my unread emails and send me a digest."
   description: Create a recurring workflow — tests workflow planning and scheduling
   expected_agent: workflow
+  expected_tools: [create_workflow]
   tags: [routing, workflow]
   criteria:
     - Should route to the workflow agent
@@ -13,6 +14,7 @@
   prompt: "What workflows do I have running?"
   description: List active workflows — tests workflow retrieval
   expected_agent: workflow
+  expected_tools: [list_workflows]
   tags: [routing, workflow]
   criteria:
     - Should route to the workflow agent
@@ -24,6 +26,7 @@
   prompt: "Pause my email digest workflow."
   description: Pause a running workflow — tests state management
   expected_agent: workflow
+  expected_tools: [disable_workflow]
   tags: [routing, workflow]
   criteria:
     - Should route to the workflow agent
@@ -35,6 +38,7 @@
   prompt: "Run my weekly report workflow right now."
   description: Trigger a workflow on demand — tests manual execution
   expected_agent: workflow
+  expected_tools: [trigger_workflow]
   tags: [routing, workflow]
   criteria:
     - Should route to the workflow agent
@@ -44,6 +48,7 @@
 
 - id: workflow_multi_step_approval
   description: "Multi-turn: Ze proposes a workflow plan, user approves before execution"
+  expected_tools: [create_workflow]
   turns:
     - prompt: "Set up a workflow that checks my calendar each morning and sends me a briefing."
       description: "Turn 1: workflow creation request"

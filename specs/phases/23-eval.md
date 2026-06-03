@@ -18,6 +18,7 @@
 | Persistent results (`evals/results/`) | ✅ Done |
 | Expanded scenario suite (calendar, email, goals, workflow, contacts, prospecting) | ✅ Done |
 | `make eval`, `eval-judge`, `eval-report`, `eval-diff` targets | ✅ Done |
+| Tool call assertions (`expected_tools` in scenarios, `tools_correct` metric) | ✅ Done |
 
 ---
 
@@ -231,6 +232,36 @@ The judge calls OpenRouter with the scenario criteria and Ze's response:
 | `reasoning` | str | One or two sentence explanation |
 
 Default judge model: `anthropic/claude-haiku-4-5`. Override with `--judge-model`.
+
+---
+
+## Tool Call Assertions
+
+Scenarios can declare `expected_tools` — a list of tool names that must be called
+**and succeed** for the scenario to pass the tool check. This is objective and free
+(no LLM required).
+
+```yaml
+- id: calendar_read_today
+  prompt: "What's on my calendar today?"
+  expected_agent: calendar
+  expected_tools: [list_events]    # Ze must call list_events successfully
+```
+
+The runner collects tool calls from all turns (for multi-turn scenarios) and checks
+that every listed tool name appears in the successful calls. The result is stored as
+`tools_correct: true/false/null` per scenario and aggregated as `tools_correct` and
+`tools_wrong` in the run totals.
+
+**Semantics:**
+- All listed tools must appear in `tool_calls` with `success: true`
+- If a tool was called but failed (`success: false`), the assertion fails
+- `null` = no `expected_tools` declared — tool check is skipped
+- Tool names match exactly (no wildcards) — use the Python function name
+
+**Current coverage:** 33 of 85 scenarios have `expected_tools`. Scenarios where
+the correct behaviour is to *not* call tools (e.g. graceful error handling,
+ambiguous routing) intentionally omit `expected_tools`.
 
 ---
 

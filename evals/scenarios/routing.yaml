@@ -22,6 +22,7 @@
   prompt: "What's on my calendar tomorrow?"
   description: Calendar read query — should route to calendar agent
   expected_agent: calendar
+  expected_tools: [list_events]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -32,6 +33,7 @@
   prompt: "Do I have any unread emails?"
   description: Email read query — should route to email agent
   expected_agent: email
+  expected_tools: [list_emails]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -51,6 +53,7 @@
 - id: routing_compound
   prompt: "Search for Python async best practices and add a reminder for me to read it tonight."
   description: Compound task spanning research + reminders — should decompose
+  expected_tools: [set_reminder]
   tags: [routing, compound]
   criteria:
     - Ze should recognise this as a compound task

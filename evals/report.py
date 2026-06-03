@@ -39,11 +39,17 @@ def print_summary(run: dict) -> None:
 
     rt_total = t["routing_correct"] + t["routing_wrong"]
     rt_pct = f"{100*t['routing_correct']//rt_total}%" if rt_total > 0 else "n/a"
+    tl_total = t.get("tools_correct", 0) + t.get("tools_wrong", 0)
+    tl_pct = f"{100*t['tools_correct']//tl_total}%" if tl_total > 0 else "n/a"
 
     print(f"  Scenarios:           {t['total']}")
     print(f"  Errors:              {t['errors']}")
     print(f"  Routing accuracy:    {t['routing_correct']}/{rt_total} ({rt_pct})")
     print(f"  Routing unchecked:   {t['routing_unchecked']}")
+    if tl_total > 0:
+        print(f"  Tool call accuracy:  {t['tools_correct']}/{tl_total} ({tl_pct})")
+    if t.get("tools_unchecked", 0) > 0:
+        print(f"  Tools unchecked:     {t['tools_unchecked']}")
 
     if t.get("judged", 0) > 0:
         print()
@@ -64,13 +70,17 @@ def print_summary(run: dict) -> None:
             rt_c = stats.get("routing_correct", 0)
             rt_w = stats.get("routing_wrong", 0)
             rt_t = rt_c + rt_w
+            tl_c = stats.get("tools_correct", 0)
+            tl_w = stats.get("tools_wrong", 0)
+            tl_t = tl_c + tl_w
             rt_str = f"  route {rt_c}/{rt_t}" if rt_t > 0 else ""
+            tl_str = f"  tools {tl_c}/{tl_t}" if tl_t > 0 else ""
             judged = stats.get("judged", 0)
             passed = stats.get("passed", 0)
             judge_str = f"  passed {passed}/{judged}" if judged > 0 else ""
             q = stats.get("avg_quality")
             q_str = f"  quality {q:.1f}" if q else ""
-            print(f"    {agent:<16} {stats['total']:3}{rt_str}{judge_str}{q_str}")
+            print(f"    {agent:<16} {stats['total']:3}{rt_str}{tl_str}{judge_str}{q_str}")
 
     # Failures
     failures = [r for r in run.get("results", []) if r.get("routing_correct") is False or (r.get("judge") and not r["judge"].get("pass") and "error" not in r["judge"])]
@@ -125,6 +135,15 @@ def print_diff(old: dict, new: dict) -> None:
     print(f"  Routing accuracy:   {ot['routing_correct']}/{ort_t} → {nt['routing_correct']}/{nrt_t}{pct_delta(old_rt_pct, new_rt_pct)}")
     print(f"  Errors:             {ot['errors']} → {nt['errors']}")
 
+    ot_tl = ot.get("tools_correct", 0)
+    nt_tl = nt.get("tools_correct", 0)
+    ot_tl_t = ot_tl + ot.get("tools_wrong", 0)
+    nt_tl_t = nt_tl + nt.get("tools_wrong", 0)
+    if nt_tl_t > 0 or ot_tl_t > 0:
+        old_tl_pct = ot_tl / ot_tl_t if ot_tl_t > 0 else None
+        new_tl_pct = nt_tl / nt_tl_t if nt_tl_t > 0 else None
+        print(f"  Tool call accuracy: {ot_tl}/{ot_tl_t} → {nt_tl}/{nt_tl_t}{pct_delta(old_tl_pct, new_tl_pct)}")
+
     if nt.get("judged", 0) > 0 or ot.get("judged", 0) > 0:
         print(f"  Passed:             {ot.get('passed', '-')}/{ot.get('judged', '-')} → {nt.get('passed', '-')}/{nt.get('judged', '-')}")
         print(f"  Avg quality:        {ot.get('avg_quality') or '-'} → {nt.get('avg_quality') or '-'}{_delta(ot.get('avg_quality'), nt.get('avg_quality'))}")
@@ -142,8 +161,16 @@ def print_diff(old: dict, new: dict) -> None:
         if not or_:
             continue
 
-        old_pass = or_.get("routing_correct") is not False and (not or_.get("judge") or or_["judge"].get("pass", True))
-        new_pass = nr.get("routing_correct") is not False and (not nr.get("judge") or nr["judge"].get("pass", True))
+        old_pass = (
+            or_.get("routing_correct") is not False
+            and or_.get("tools_correct") is not False
+            and (not or_.get("judge") or or_["judge"].get("pass", True))
+        )
+        new_pass = (
+            nr.get("routing_correct") is not False
+            and nr.get("tools_correct") is not False
+            and (not nr.get("judge") or nr["judge"].get("pass", True))
+        )
 
         if old_pass and not new_pass:
             regressions.append(sid)

@@ -2,6 +2,7 @@
   prompt: "What's in my inbox?"
   description: Read unread emails — basic inbox retrieval
   expected_agent: email
+  expected_tools: [list_emails]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -13,6 +14,7 @@
   prompt: "Any emails from Ana this week?"
   description: Filtered email read by sender — tests contact-aware search
   expected_agent: email
+  expected_tools: [list_emails]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -24,6 +26,7 @@
   prompt: "Draft an email to pedro@example.com saying I'll be 10 minutes late to our meeting."
   description: Compose a simple email draft — tests email writing capability
   expected_agent: email
+  expected_tools: [draft_email]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -35,6 +38,7 @@
   prompt: "Write a professional follow-up email to a client asking for an update on the contract."
   description: Email composition with tone guidance — tests writing quality
   expected_agent: email
+  expected_tools: [draft_email]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -46,6 +50,7 @@
   prompt: "Reply to the last email from my manager and say I'll have the report ready by Friday."
   description: Reply to a specific email — requires reading then composing
   expected_agent: email
+  expected_tools: [list_emails, draft_email]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -57,6 +62,7 @@
   prompt: "Summarise the email thread about the Q3 review."
   description: Summarise a multi-email thread — tests comprehension capability
   expected_agent: email
+  expected_tools: [list_emails]
   tags: [routing, email]
   criteria:
     - Should route to the email agent
@@ -77,6 +83,7 @@
 
 - id: email_multi_turn_draft_revise
   description: "Multi-turn: draft an email, then revise it based on feedback"
+  expected_tools: [draft_email]
   turns:
     - prompt: "Draft a short email to my team announcing that tomorrow's sprint review is cancelled."
       description: "Turn 1: initial draft request"

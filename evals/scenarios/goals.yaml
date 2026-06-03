@@ -2,6 +2,7 @@
   prompt: "I want to read 12 books this year. Can you help me set that as a goal?"
   description: Create a new goal — Ze should initiate goal setup with milestones
   expected_agent: goals
+  expected_tools: [create_goal]
   tags: [routing, goals]
   criteria:
     - Should route to the goals agent
@@ -13,6 +14,7 @@
   prompt: "What goals am I currently working on?"
   description: List active goals — tests goal retrieval
   expected_agent: goals
+  expected_tools: [list_goals]
   tags: [routing, goals]
   criteria:
     - Should route to the goals agent
@@ -24,6 +26,7 @@
   prompt: "How am I doing on my fitness goal?"
   description: Progress check on a specific goal — requires goal lookup by label
   expected_agent: goals
+  expected_tools: [list_goals]
   tags: [routing, goals]
   criteria:
     - Should route to the goals agent
@@ -57,6 +60,7 @@
   prompt: "I finished my running challenge. Mark it as done."
   description: Close a completed goal — tests goal state transition
   expected_agent: goals
+  expected_tools: [list_goals, abandon_goal]
   tags: [routing, goals]
   criteria:
     - Should route to the goals agent
@@ -66,6 +70,7 @@
 
 - id: goals_multi_turn_define_and_confirm
   description: "Multi-turn: vague goal request → Ze asks clarifying questions → user confirms"
+  expected_tools: [create_goal]
   turns:
     - prompt: "Help me set a learning goal."
       description: "Turn 1: vague goal — Ze should ask what to learn"

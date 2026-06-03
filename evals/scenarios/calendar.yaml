@@ -2,6 +2,7 @@
   prompt: "What's on my calendar today?"
   description: Read today's events — should attempt calendar lookup
   expected_agent: calendar
+  expected_tools: [list_events]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -13,6 +14,7 @@
   prompt: "What does my week look like?"
   description: Read events for the current week — requires date-aware query
   expected_agent: calendar
+  expected_tools: [list_events]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -23,6 +25,7 @@
   prompt: "Add a team standup every day at 9am starting Monday."
   description: Create a recurring calendar event — requires writing to calendar
   expected_agent: calendar
+  expected_tools: [create_event]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -34,6 +37,7 @@
   prompt: "Schedule a 1:1 with Ana tomorrow at 3pm and invite ana@example.com."
   description: Create event with an attendee — tests contact and invite handling
   expected_agent: calendar
+  expected_tools: [create_event]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -45,6 +49,7 @@
   prompt: "When am I free tomorrow afternoon for a 30-minute call?"
   description: Free-slot query — requires reading calendar and reasoning about gaps
   expected_agent: calendar
+  expected_tools: [list_events]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -56,6 +61,7 @@
   prompt: "Cancel my dentist appointment on Thursday."
   description: Delete a calendar event by label hint
   expected_agent: calendar
+  expected_tools: [list_events, delete_event]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -67,6 +73,7 @@
   prompt: "What do I have next Friday?"
   description: Relative date reference — Ze must resolve "next Friday" correctly
   expected_agent: calendar
+  expected_tools: [list_events]
   tags: [routing, calendar]
   criteria:
     - Should route to the calendar agent
@@ -86,6 +93,7 @@
 
 - id: calendar_multi_turn_create_confirm
   description: "Multi-turn: create an event with partial info, Ze asks for missing detail"
+  expected_tools: [create_event]
   turns:
     - prompt: "Add a meeting with the design team."
       description: "Turn 1: vague event creation — no time specified"

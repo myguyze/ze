@@ -170,11 +170,18 @@ Create or edit YAML files in `evals/scenarios/`. No code changes required.
   prompt: "The message Ze will receive"
   description: "What this is testing"
   expected_agent: companion          # optional — enables routing accuracy check
+  expected_tools: [list_events]      # optional — tool names that must be called and succeed
   tags: [companion, persona]
   criteria:                          # optional rubric hints for the evaluating LLM
     - Should respond warmly
     - Should not use corporate language
 ```
+
+`expected_tools` is a list of Python tool function names (e.g. `list_events`,
+`create_event`, `set_reminder`, `draft_email`). All listed tools must appear in
+the response's `tool_calls` with `success: true`. This check is objective and
+free — no LLM judge needed. Omit it for scenarios where not calling tools is
+correct behaviour (graceful errors, companion responses, ambiguous routing).
 
 ### Multi-turn scenario
 
