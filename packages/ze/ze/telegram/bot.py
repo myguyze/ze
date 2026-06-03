@@ -98,6 +98,10 @@ class ZeBot:
                 await self._bot.send_message(chat_id, "Session reset. Starting fresh — I still remember what I know about you.")
                 return
 
+            if text == "/cancel":
+                await self._handle_cancel(chat_id)
+                return
+
             if text == "/costs":
                 summary = await costs_summary(self._pool)
                 await self._bot.send_message(chat_id, summary, parse_mode="HTML")
@@ -263,6 +267,14 @@ class ZeBot:
         await self._graph.aupdate_state(config, {"messages": [], "last_active_at": None})
         self._store.clear_all(chat_id)
         log.info("session_reset", chat_id=chat_id)
+
+    async def _handle_cancel(self, chat_id: int) -> None:
+        if self._container is None:
+            await self._bot.send_message(chat_id, "Nothing to cancel.")
+            return
+        await self._container.abort_invocation(str(chat_id), reason="user cancelled")
+        log.info("user_cancel", chat_id=chat_id)
+        await self._bot.send_message(chat_id, "Cancelling...")
 
     async def _handle_edit_reply(self, chat_id: int, text: str) -> None:
         self._store.clear_awaiting_edit(chat_id)

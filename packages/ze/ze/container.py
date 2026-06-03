@@ -65,6 +65,8 @@ from ze_personal.workflow.postgres import PostgresWorkflowStore
 from ze_personal.workflow.store import WorkflowStore
 from ze_personal.workflow.scheduler import WorkflowScheduler
 from ze_core.container import Container as CoreContainer
+from ze_core.orchestration.hooks import register_hook
+from ze.hooks import ToolCallCapHook
 
 log = get_logger(__name__)
 
@@ -365,6 +367,9 @@ async def build_container(settings: Settings) -> ZeContainer:
         campaign_store=campaign_store,
         plugins=plugins,
     )
+    register_hook(ToolCallCapHook(max_tool_calls=settings.max_tool_calls_per_turn))
+    log.info("tool_call_cap_hook_registered", max_tool_calls=settings.max_tool_calls_per_turn)
+
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
     workflow_graph = build_workflow_graph(checkpointer=checkpointer, plugins=plugins)
 

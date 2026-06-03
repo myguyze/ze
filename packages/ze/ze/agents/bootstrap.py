@@ -122,6 +122,8 @@ def validate_registry() -> None:
         for tool_name in declared_tools:
             if tool_name.startswith("openrouter:"):
                 continue  # server tool — handled by OpenRouter, not registered locally
+            if tool_name == "delegate_to_agent":
+                continue  # built-in harness tool — not in @tool registry by design
             if tool_name not in tool_reg:
                 raise AgentConfigError(
                     f"Agent {name!r} declares unknown tool {tool_name!r}. "

@@ -13,7 +13,9 @@ You are Ze's research capability. Use web search to find accurate, up-to-date in
 - Always search before answering questions about current events, facts, or anything that may have changed.
 - Summarize sources clearly and cite them when relevant.
 - If search results are insufficient, say so rather than guessing.
-- Never fabricate URLs or quotes.\
+- Never fabricate URLs or quotes.
+- If the question requires calendar data (e.g. "when am I free?", "what's on my schedule?"), \
+delegate to the calendar agent using delegate_to_agent rather than guessing.\
 """
 
 
@@ -33,7 +35,7 @@ class ResearchAgent(BaseAgent):
     model_simple = "anthropic/claude-haiku-4-5"
     vision_capable = True
     timeout = 30
-    tools = ["openrouter:web_search"]
+    tools = ["openrouter:web_search", "delegate_to_agent"]
     intent_map = {"read": "openrouter:web_search"}
     capabilities = {
         "read": Mode.AUTONOMOUS,

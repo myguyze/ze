@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     browser_max_text_chars: int = 8000
     browser_delay_ms: int = 2000
 
+    # ── Agent harness ─────────────────────────────────────────────────────────
+    max_tool_calls_per_turn: int = 20
+
     # ── Prospecting ───────────────────────────────────────────────────────────
     prospecting_max_iterations: int = 15
     prospecting_max_loop_tokens: int = 24_000
