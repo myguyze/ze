@@ -239,11 +239,18 @@ class BaseAgent(ABC):
                                 The last 4 messages are never removed.
             max_tokens:         Max tokens for each completion call.
         """
+        from ze_core.orchestration.delegate import (
+            DELEGATE_TOOL_NAME,
+            DELEGATE_TOOL_SCHEMA,
+            run_delegate,
+        )
         from ze_core.orchestration.tool import get_tool
 
         names = tool_names if tool_names is not None else self.tools
         tool_schemas = [
-            _OPENROUTER_TOOL_SCHEMAS[n] if n in _OPENROUTER_TOOL_SCHEMAS else get_tool(n).llm_schema()
+            _OPENROUTER_TOOL_SCHEMAS[n] if n in _OPENROUTER_TOOL_SCHEMAS
+            else DELEGATE_TOOL_SCHEMA if n == DELEGATE_TOOL_NAME
+            else get_tool(n).llm_schema()
             for n in names
         ]
         accumulated: list[ToolCall] = []
@@ -318,6 +325,14 @@ class BaseAgent(ABC):
                         "role": "tool",
                         "tool_call_id": tc["id"],
                         "content": "[search complete]",
+                    })
+                elif tc["name"] == DELEGATE_TOOL_NAME:
+                    tool_call = await run_delegate(tc["arguments"], ctx, iteration)
+                    accumulated.append(tool_call)
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": _serialise_result(tool_call),
                     })
                 else:
                     merged = _merge_deps(tc["name"], tc["arguments"], _deps)

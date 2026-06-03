@@ -17,10 +17,10 @@
 | `AbortToken` type | ✅ Done |
 | `AbortToken` wired into `AgentContext` | ✅ Done |
 | Abort check per loop iteration | ✅ Done |
-| `Container.abort_invocation()` | 🔲 Pending |
-| `delegate_to_agent` tool | 🔲 Pending |
-| Delegate dep injection in `agentic_loop` | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `Container.abort_invocation()` | ✅ Done |
+| `delegate_to_agent` tool | ✅ Done |
+| Delegate dep injection in `agentic_loop` | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 
@@ -451,12 +451,15 @@ register_hook(CostCapHook(max_tool_calls=settings.max_tool_calls_per_turn))
   `BaseHarnessHook` that users can optionally inherit from.
 - `AbortToken` wraps `asyncio.Event` rather than a plain bool so future code could
   `await` the token if needed (e.g. "wait for completion or abort").
-- Delegate depth is hard-capped at 2 levels. `agentic_loop` always injects `_depth: int`
-  into deps (starting at 0 for the top-level call, incremented by `delegate_to_agent`
-  before running the sub-agent). If `_depth >= 2`, `delegate_to_agent` raises
-  `ZeError("delegation depth limit exceeded")` before running the sub-agent. This cap
-  is intentionally not configurable; if deeper chains are ever needed, the spec should
-  be revisited explicitly rather than silently bumped via config.
+- Delegate depth is hard-capped at 2 levels. `delegate_to_agent` reads depth from
+  `ctx.extensions["_delegate_depth"]` (0 if absent) and sets `depth + 1` on the
+  sub-context's `extensions`. If depth >= 2, `run_delegate` returns a failed
+  `ToolCall` immediately. This cap is intentionally not configurable.
+- `delegate_to_agent` is NOT registered via `@tool` — it is handled specially in
+  `agentic_loop` alongside `_OPENROUTER_TOOL_SCHEMAS`. This avoids conflicts with
+  `clear_tool_registry()` in tests, since module-level `@tool` registrations cannot
+  be re-run after the registry is cleared. Its LLM schema lives in
+  `DELEGATE_TOOL_SCHEMA` in `delegate.py`.
 - Hooks self-filter by agent using `event.ctx.intent` — no per-agent hook registration
   is needed. The `HookRegistry` is global-only.
 - Hook exceptions (other than `HookAbort`) are caught and logged as warnings; they
