@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any, AsyncIterator
 
 from ze_core.capability.types import GateDecision, Mode
 from ze_core.defaults import MODEL_AGENT_DEFAULT, MODEL_AGENT_TIMEOUT
-from ze_core.errors import AgentError, ToolBlockedError
+from ze_core.errors import AgentError, HookAbort, ToolBlockedError
 from ze_core.logging import get_logger
+from ze_core.orchestration.hooks import ToolEndEvent, ToolStartEvent, get_hooks
 from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
@@ -115,12 +116,18 @@ class BaseAgent(ABC):
 
     # ── Tool execution ────────────────────────────────────────────────────────
 
-    async def call_tool(self, name: str, ctx: AgentContext, **kwargs: Any) -> ToolCall:
-        """Execute a registered tool with capability enforcement.
+    async def call_tool(
+        self, name: str, ctx: AgentContext, _iteration: int = -1, **kwargs: Any
+    ) -> ToolCall:
+        """Execute a registered tool with capability enforcement and hook dispatch.
 
         READ tools execute in any gate state.
         WRITE tools are suppressed and return a draft ToolCall when gate is DRAFT.
         Any tool raises ToolBlockedError when gate is BLOCKED.
+
+        Hooks fire only when the tool actually executes (gate allows it):
+        on_tool_start before, on_tool_end after (including on error).
+        Pass _iteration from agentic_loop; defaults to -1 for direct callers.
         """
         from ze_core.orchestration.tool import get_tool
 
@@ -141,31 +148,61 @@ class BaseAgent(ABC):
                 is_draft=True,
             )
 
+        # ── Hook: before ─────────────────────────────────────────────────────
+        hooks = get_hooks()
+        args: dict[str, Any] = dict(kwargs)
+        for hook in hooks:
+            try:
+                modified = await hook.on_tool_start(
+                    ToolStartEvent(name, args, ctx, _iteration)
+                )
+                if modified is not None:
+                    args = modified
+            except HookAbort as e:
+                log.info("tool_skipped_by_hook", tool=name, agent=self.name, reason=e.reason)
+                return ToolCall(
+                    tool_name=name,
+                    args=args,
+                    result=None,
+                    duration_ms=0,
+                    success=False,
+                    error=f"skipped: {e.reason}",
+                )
+            except Exception as exc:
+                log.warning("hook_error_on_tool_start", tool=name, agent=self.name, error=str(exc))
+
+        # ── Execute ───────────────────────────────────────────────────────────
         log.debug("tool_start", tool=name, agent=self.name, access=spec.access.value)
         start = time.monotonic()
         try:
-            result = await spec.func(**kwargs)
+            result = await spec.func(**args)
         except Exception as exc:
             duration_ms = int((time.monotonic() - start) * 1000)
             log.warning("tool_error", tool=name, agent=self.name, error=str(exc))
-            return ToolCall(
+            tool_call = ToolCall(
                 tool_name=name,
-                args=kwargs,
+                args=args,
                 result=None,
                 duration_ms=duration_ms,
                 success=False,
                 error=str(exc),
             )
+            await _dispatch_tool_end(hooks, name, tool_call, ctx, _iteration)
+            return tool_call
 
         duration_ms = int((time.monotonic() - start) * 1000)
         log.info("tool_complete", tool=name, agent=self.name, duration_ms=duration_ms)
-        return ToolCall(
+        tool_call = ToolCall(
             tool_name=name,
-            args=kwargs,
+            args=args,
             result=result,
             duration_ms=duration_ms,
             success=True,
         )
+
+        # ── Hook: after ───────────────────────────────────────────────────────
+        await _dispatch_tool_end(hooks, name, tool_call, ctx, _iteration)
+        return tool_call
 
     # ── Agentic loop ──────────────────────────────────────────────────────────
 
@@ -286,6 +323,19 @@ class BaseAgent(ABC):
 
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
+
+async def _dispatch_tool_end(
+    hooks: list,
+    name: str,
+    tool_call: ToolCall,
+    ctx: AgentContext,
+    iteration: int,
+) -> None:
+    for hook in hooks:
+        try:
+            await hook.on_tool_end(ToolEndEvent(name, tool_call, ctx, iteration))
+        except Exception as exc:
+            log.warning("hook_error_on_tool_end", tool=name, error=str(exc))
 
 def _merge_deps(tool_name: str, llm_args: dict, deps: dict[str, Any]) -> dict:
     """Inject internal deps into tool kwargs for params the LLM cannot provide."""

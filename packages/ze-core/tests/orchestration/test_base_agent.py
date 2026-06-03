@@ -4,13 +4,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentError, ToolBlockedError
+from ze_core.errors import AgentError, HookAbort, ToolBlockedError
 from ze_core.orchestration import agent, clear_registry
 from ze_core.orchestration.base_agent import (
     BaseAgent,
     _merge_deps,
     _serialise_result,
     _truncate_messages,
+)
+from ze_core.orchestration.hooks import (
+    BaseHarnessHook,
+    ToolEndEvent,
+    ToolStartEvent,
+    clear_hooks,
+    register_hook,
 )
 from ze_core.orchestration.tool import ToolAccess, clear_tool_registry, tool
 from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
@@ -20,9 +27,11 @@ from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 def clean():
     clear_registry()
     clear_tool_registry()
+    clear_hooks()
     yield
     clear_registry()
     clear_tool_registry()
+    clear_hooks()
 
 
 def _ctx(gate: GateDecision = GateDecision.EXECUTE, model: str | None = None) -> AgentContext:
@@ -125,6 +134,166 @@ class TestCallTool:
         a = _agent()
         with pytest.raises(UnknownToolError):
             await a.call_tool("does_not_exist", _ctx())
+
+
+# ── call_tool hooks ───────────────────────────────────────────────────────────
+
+class TestCallToolHooks:
+    async def test_on_tool_start_and_end_fire(self):
+        events = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                events.append(("start", e.tool_name, e.iteration))
+            async def on_tool_end(self, e: ToolEndEvent):
+                events.append(("end", e.tool_name, e.tool_call.success))
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def h_tool(x: str) -> str:
+            return x
+
+        tc = await _agent().call_tool("h_tool", _ctx(), x="v")
+
+        assert tc.success is True
+        assert events == [("start", "h_tool", -1), ("end", "h_tool", True)]
+
+    async def test_on_tool_start_modified_args_used(self):
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                return {**e.args, "x": "modified"}
+
+        register_hook(_H())
+
+        captured = {}
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def capture_tool(x: str) -> str:
+            captured["x"] = x
+            return x
+
+        await _agent().call_tool("capture_tool", _ctx(), x="original")
+
+        assert captured["x"] == "modified"
+
+    async def test_hook_abort_skips_tool(self):
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                raise HookAbort(e.tool_name, "quota exceeded")
+
+        register_hook(_H())
+        called = []
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def skip_me(x: str) -> str:
+            called.append(x)
+            return x
+
+        tc = await _agent().call_tool("skip_me", _ctx(), x="v")
+
+        assert tc.success is False
+        assert "skipped" in tc.error
+        assert "quota exceeded" in tc.error
+        assert called == []
+
+    async def test_on_tool_end_fires_on_tool_error(self):
+        end_events = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_end(self, e: ToolEndEvent):
+                end_events.append(e.tool_call.success)
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def fail_tool(x: str) -> str:
+            raise RuntimeError("boom")
+
+        tc = await _agent().call_tool("fail_tool", _ctx(), x="v")
+
+        assert tc.success is False
+        assert end_events == [False]
+
+    async def test_non_hook_abort_exception_from_start_is_swallowed(self):
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                raise ValueError("internal hook error")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def still_runs(x: str) -> str:
+            return f"ok:{x}"
+
+        tc = await _agent().call_tool("still_runs", _ctx(), x="hi")
+        assert tc.success is True
+        assert tc.result == "ok:hi"
+
+    async def test_non_hook_abort_exception_from_end_is_swallowed(self):
+        class _H(BaseHarnessHook):
+            async def on_tool_end(self, e: ToolEndEvent):
+                raise ValueError("hook crash")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def normal_tool(x: str) -> str:
+            return x
+
+        tc = await _agent().call_tool("normal_tool", _ctx(), x="hi")
+        assert tc.success is True
+
+    async def test_hooks_do_not_fire_for_blocked_gate(self):
+        events = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                events.append("start")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def blocked_tool(x: str) -> str:
+            return x
+
+        with pytest.raises(ToolBlockedError):
+            await _agent().call_tool("blocked_tool", _ctx(GateDecision.BLOCKED), x="hi")
+
+        assert events == []
+
+    async def test_hooks_do_not_fire_for_draft_suppressed_write(self):
+        events = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                events.append("start")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.WRITE, description="t")
+        async def draft_write_tool(x: str) -> str:
+            return x
+
+        tc = await _agent().call_tool("draft_write_tool", _ctx(GateDecision.DRAFT), x="v")
+        assert tc.is_draft is True
+        assert events == []
+
+    async def test_iteration_passed_to_events(self):
+        iterations = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                iterations.append(e.iteration)
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def iter_tool(x: str) -> str:
+            return x
+
+        await _agent().call_tool("iter_tool", _ctx(), _iteration=3, x="v")
+        assert iterations == [3]
 
 
 # ── agentic_loop ─────────────────────────────────────────────────────────────

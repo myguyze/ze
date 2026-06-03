@@ -12,7 +12,7 @@
 |---------|--------|
 | `HarnessHook` protocol + event types | ✅ Done |
 | `HookRegistry` — global singleton | ✅ Done |
-| Hook dispatch in `call_tool` | 🔲 Pending |
+| Hook dispatch in `call_tool` | ✅ Done |
 | Hook dispatch in `agentic_loop` | 🔲 Pending |
 | `AbortToken` type | 🔲 Pending |
 | `AbortToken` wired into `AgentContext` | 🔲 Pending |
