@@ -1,4 +1,5 @@
 from ze_core.orchestration.base_agent import BaseAgent
+from ze_core.orchestration.types import AbortToken
 from ze_core.orchestration.hooks import (
     BaseHarnessHook,
     HarnessHook,
@@ -23,6 +24,7 @@ from ze_core.orchestration.registry import (
 )
 
 __all__ = [
+    "AbortToken",
     "BaseAgent",
     "BaseHarnessHook",
     "HarnessHook",

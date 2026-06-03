@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentError, HookAbort, ToolBlockedError
+from ze_core.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
 from ze_core.orchestration import agent, clear_registry
 from ze_core.orchestration.base_agent import (
     BaseAgent,
@@ -14,13 +14,15 @@ from ze_core.orchestration.base_agent import (
 )
 from ze_core.orchestration.hooks import (
     BaseHarnessHook,
+    LoopEndEvent,
+    LoopStartEvent,
     ToolEndEvent,
     ToolStartEvent,
     clear_hooks,
     register_hook,
 )
 from ze_core.orchestration.tool import ToolAccess, clear_tool_registry, tool
-from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
+from ze_core.orchestration.types import AbortToken, AgentContext, AgentResult, ToolCall
 
 
 @pytest.fixture(autouse=True)
@@ -439,6 +441,174 @@ class TestAgenticLoop:
         assert len(calls) == 2
         assert calls[0].tool_name == "tool_a"
         assert calls[1].tool_name == "tool_b"
+
+
+# ── agentic_loop hooks ────────────────────────────────────────────────────────
+
+class TestAgenticLoopHooks:
+    def _client(self, responses):
+        client = MagicMock()
+        client.complete_with_tools = AsyncMock(side_effect=responses)
+        client.complete = AsyncMock(return_value="fallback")
+        return client
+
+    async def test_on_loop_start_and_end_fire(self):
+        events = []
+
+        class _H(BaseHarnessHook):
+            async def on_loop_start(self, e: LoopStartEvent):
+                events.append(("start", e.agent_name))
+            async def on_loop_end(self, e: LoopEndEvent):
+                events.append(("end", e.iterations_used, len(e.tool_calls)))
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def lh_tool(x: str) -> str:
+            return x
+
+        a = _agent()
+        a.tools = ["lh_tool"]
+        client = self._client([("answer", None)])
+        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+
+        assert events == [("start", "test"), ("end", 1, 0)]
+
+    async def test_on_loop_end_receives_tool_calls(self):
+        captured = {}
+
+        class _H(BaseHarnessHook):
+            async def on_loop_end(self, e: LoopEndEvent):
+                captured["calls"] = e.tool_calls
+                captured["iterations"] = e.iterations_used
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def le_tool(x: str) -> str:
+            return f"r:{x}"
+
+        a = _agent()
+        a.tools = ["le_tool"]
+        client = self._client([
+            (None, [{"id": "c1", "name": "le_tool", "arguments": {"x": "v"}}]),
+            ("done", None),
+        ])
+        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+
+        assert len(captured["calls"]) == 1
+        assert captured["calls"][0].tool_name == "le_tool"
+        assert captured["iterations"] == 2
+
+    async def test_on_loop_end_fires_on_max_iterations(self):
+        events = []
+
+        class _H(BaseHarnessHook):
+            async def on_loop_end(self, e: LoopEndEvent):
+                events.append(e.iterations_used)
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def mi_tool(x: str) -> str:
+            return x
+
+        a = _agent()
+        a.tools = ["mi_tool"]
+        tool_resp = (None, [{"id": "c1", "name": "mi_tool", "arguments": {"x": "v"}}])
+        client = self._client([tool_resp] * 2)
+        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s", max_iterations=2)
+
+        assert events == [2]
+
+    async def test_on_loop_start_abort_prevents_execution(self):
+        class _H(BaseHarnessHook):
+            async def on_loop_start(self, e: LoopStartEvent):
+                raise AgentAbortedError("rate limited")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def never_runs(x: str) -> str:
+            return x
+
+        a = _agent()
+        a.tools = ["never_runs"]
+        client = self._client([("answer", None)])
+
+        with pytest.raises(AgentAbortedError, match="rate limited"):
+            await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+
+        client.complete_with_tools.assert_not_awaited()
+
+    async def test_abort_token_stops_loop_between_iterations(self):
+        token = AbortToken()
+        call_count = 0
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def count_tool(x: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            token.abort("user cancelled")
+            return x
+
+        a = _agent()
+        a.tools = ["count_tool"]
+        client = self._client([
+            (None, [{"id": "c1", "name": "count_tool", "arguments": {"x": "v"}}]),
+            (None, [{"id": "c2", "name": "count_tool", "arguments": {"x": "v"}}]),
+            ("done", None),
+        ])
+
+        ctx = _ctx()
+        ctx.abort_token = token
+
+        with pytest.raises(AgentAbortedError, match="user cancelled"):
+            await a.agentic_loop(ctx, client, [{"role": "user", "content": "q"}], system="s")
+
+        assert call_count == 1  # second iteration never runs
+
+    async def test_loop_hook_exception_does_not_abort(self):
+        class _H(BaseHarnessHook):
+            async def on_loop_start(self, e: LoopStartEvent):
+                raise ValueError("hook crash")
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def safe_tool(x: str) -> str:
+            return x
+
+        a = _agent()
+        a.tools = ["safe_tool"]
+        client = self._client([("answer", None)])
+        text, _ = await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+
+        assert text == "answer"
+
+    async def test_iteration_index_passed_to_tool_hooks(self):
+        iterations_seen = []
+
+        class _H(BaseHarnessHook):
+            async def on_tool_start(self, e: ToolStartEvent):
+                iterations_seen.append(e.iteration)
+
+        register_hook(_H())
+
+        @tool(access=ToolAccess.READ, description="t")
+        async def idx_tool(x: str) -> str:
+            return x
+
+        a = _agent()
+        a.tools = ["idx_tool"]
+        client = self._client([
+            (None, [{"id": "c1", "name": "idx_tool", "arguments": {"x": "v"}}]),
+            (None, [{"id": "c2", "name": "idx_tool", "arguments": {"x": "v"}}]),
+            ("done", None),
+        ])
+        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+
+        assert iterations_seen == [0, 1]
 
 
 # ── _merge_deps ───────────────────────────────────────────────────────────────

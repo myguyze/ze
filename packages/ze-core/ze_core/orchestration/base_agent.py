@@ -8,9 +8,15 @@ from typing import TYPE_CHECKING, Any, AsyncIterator
 
 from ze_core.capability.types import GateDecision, Mode
 from ze_core.defaults import MODEL_AGENT_DEFAULT, MODEL_AGENT_TIMEOUT
-from ze_core.errors import AgentError, HookAbort, ToolBlockedError
+from ze_core.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
 from ze_core.logging import get_logger
-from ze_core.orchestration.hooks import ToolEndEvent, ToolStartEvent, get_hooks
+from ze_core.orchestration.hooks import (
+    LoopEndEvent,
+    LoopStartEvent,
+    ToolEndEvent,
+    ToolStartEvent,
+    get_hooks,
+)
 from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
@@ -242,8 +248,15 @@ class BaseAgent(ABC):
         ]
         accumulated: list[ToolCall] = []
         _deps = deps or {}
+        hooks = get_hooks()
+
+        # on_loop_start: AgentAbortedError propagates; other exceptions are warnings.
+        await _dispatch_loop_hooks(hooks, "on_loop_start", LoopStartEvent(self.name, ctx))
 
         for iteration in range(max_iterations):
+            if ctx.abort_token is not None and ctx.abort_token.is_set:
+                raise AgentAbortedError(ctx.abort_token.reason)
+
             if max_history_tokens is not None:
                 _truncate_messages(messages, max_history_tokens)
 
@@ -261,6 +274,10 @@ class BaseAgent(ABC):
                     agent=self.name,
                     iterations=iteration + 1,
                     tool_calls=len(accumulated),
+                )
+                await _dispatch_loop_hooks(
+                    hooks, "on_loop_end",
+                    LoopEndEvent(self.name, ctx, accumulated, iterations_used=iteration + 1),
                 )
                 return text, accumulated
 
@@ -304,7 +321,7 @@ class BaseAgent(ABC):
                     })
                 else:
                     merged = _merge_deps(tc["name"], tc["arguments"], _deps)
-                    tool_call = await self.call_tool(tc["name"], ctx, **merged)
+                    tool_call = await self.call_tool(tc["name"], ctx, _iteration=iteration, **merged)
                     accumulated.append(tool_call)
                     messages.append({
                         "role": "tool",
@@ -313,6 +330,10 @@ class BaseAgent(ABC):
                     })
 
         log.warning("agentic_loop_max_iterations", agent=self.name, max_iterations=max_iterations)
+        await _dispatch_loop_hooks(
+            hooks, "on_loop_end",
+            LoopEndEvent(self.name, ctx, accumulated, iterations_used=max_iterations),
+        )
         text = await client.complete(
             messages=messages,
             model=ctx.model or self.model,
@@ -323,6 +344,21 @@ class BaseAgent(ABC):
 
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
+
+async def _dispatch_loop_hooks(hooks: list, method: str, event: Any) -> None:
+    """Dispatch a loop lifecycle hook to all registered hooks.
+
+    AgentAbortedError propagates (allows on_loop_start to abort before first iteration).
+    All other exceptions are caught and logged as warnings.
+    """
+    for hook in hooks:
+        try:
+            await getattr(hook, method)(event)
+        except AgentAbortedError:
+            raise
+        except Exception as exc:
+            log.warning("hook_error", hook_method=method, error=str(exc))
+
 
 async def _dispatch_tool_end(
     hooks: list,

@@ -13,10 +13,10 @@
 | `HarnessHook` protocol + event types | ✅ Done |
 | `HookRegistry` — global singleton | ✅ Done |
 | Hook dispatch in `call_tool` | ✅ Done |
-| Hook dispatch in `agentic_loop` | 🔲 Pending |
-| `AbortToken` type | 🔲 Pending |
-| `AbortToken` wired into `AgentContext` | 🔲 Pending |
-| Abort check per loop iteration | 🔲 Pending |
+| Hook dispatch in `agentic_loop` | ✅ Done |
+| `AbortToken` type | ✅ Done |
+| `AbortToken` wired into `AgentContext` | ✅ Done |
+| Abort check per loop iteration | ✅ Done |
 | `Container.abort_invocation()` | 🔲 Pending |
 | `delegate_to_agent` tool | 🔲 Pending |
 | Delegate dep injection in `agentic_loop` | 🔲 Pending |

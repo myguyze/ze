@@ -1,11 +1,28 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from ze_core.capability.types import GateDecision
 from ze_core.memory.types import MemoryContext  # re-exported for AgentContext consumers
 from ze_core.progress.reporter import ProgressReporter
+
+
+@dataclass
+class AbortToken:
+    """Async abort signal for agentic loops. Set from outside; checked per iteration."""
+    _event: asyncio.Event = field(default_factory=asyncio.Event)
+    reason: str | None = None
+
+    def abort(self, reason: str | None = None) -> None:
+        """Signal the running loop to stop after the current tool call completes."""
+        self.reason = reason
+        self._event.set()
+
+    @property
+    def is_set(self) -> bool:
+        return self._event.is_set()
 
 
 class IdentityBuilder(Protocol):
@@ -48,6 +65,8 @@ class AgentContext:
     # identity_builder is runtime-only (a callable); always None in stored state.
     # Never checkpoint a context where this is set — the serde test enforces that.
     identity_builder: IdentityBuilder | None = field(default=None, repr=False)
+    # abort_token is runtime-only; never checkpoint a context where this is set.
+    abort_token: AbortToken | None = field(default=None, repr=False)
     # extensions must hold only msgpack-serializable primitives so stored contexts
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)
