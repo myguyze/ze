@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_core.capability.types import GateDecision
+from ze_core.errors import AgentAbortedError
 from ze_core.orchestration import agent, clear_registry, register_instance
 from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.delegate import (
@@ -255,6 +256,68 @@ class TestRunDelegate:
 
         assert tc.success is False
         assert "agent exploded" in tc.error
+
+    async def test_agent_aborted_error_propagates(self):
+        # AgentAbortedError must not be swallowed — it must propagate so the
+        # parent loop also aborts immediately rather than waiting for the next
+        # iteration's abort-token check.
+        @agent
+        class _A(BaseAgent):
+            name = "aborting_agent"
+            description = "aborts"
+            tools = []
+            async def run(self, ctx: AgentContext) -> AgentResult:
+                raise AgentAbortedError("sub aborted")
+
+        register_instance("aborting_agent", _A())
+
+        with pytest.raises(AgentAbortedError, match="sub aborted"):
+            await run_delegate(
+                {"agent_name": "aborting_agent", "task": "t"},
+                _ctx(),
+                iteration=0,
+            )
+
+    async def test_shared_abort_token_propagates_through_loop(self):
+        # When a shared abort token fires inside the sub-agent's run(),
+        # AgentAbortedError propagates back through run_delegate and up through
+        # the parent agentic_loop — the parent loop does not continue.
+        token = AbortToken()
+
+        @agent
+        class _Sub(BaseAgent):
+            name = "token_aborting_agent"
+            description = "aborts via token"
+            tools = []
+            async def run(self, ctx: AgentContext) -> AgentResult:
+                raise AgentAbortedError("token fired")
+
+        register_instance("token_aborting_agent", _Sub())
+
+        @agent
+        class _Parent(BaseAgent):
+            name = "parent_agent"
+            description = "delegates"
+            tools = [DELEGATE_TOOL_NAME]
+            async def run(self, ctx: AgentContext) -> AgentResult:
+                return AgentResult(agent="parent_agent", response="ok")
+
+        register_instance("parent_agent", _Parent())
+
+        client = MagicMock()
+        client.complete_with_tools = AsyncMock(side_effect=[
+            (None, [{"id": "d1", "name": DELEGATE_TOOL_NAME,
+                     "arguments": {"agent_name": "token_aborting_agent", "task": "t"}}]),
+        ])
+        client.complete = AsyncMock(return_value="fallback")
+
+        parent = _Parent()
+        ctx = AgentContext(
+            session_id="s1", prompt="q", intent="parent_agent", abort_token=token
+        )
+
+        with pytest.raises(AgentAbortedError):
+            await parent.agentic_loop(ctx, client, [{"role": "user", "content": "q"}], system="s")
 
 
 # ── delegate in agentic_loop ─────────────────────────────────────────────────

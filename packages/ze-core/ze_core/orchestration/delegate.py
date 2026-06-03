@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from ze_core.errors import ZeCoreError
+from ze_core.errors import AgentAbortedError, ZeCoreError
 from ze_core.logging import get_logger
 from ze_core.orchestration.types import AgentContext, ToolCall
 
@@ -110,6 +110,10 @@ async def run_delegate(
     log.info("delegate_start", from_agent=ctx.intent, to_agent=agent_name, depth=depth)
     try:
         result = await instance.run(sub_ctx)
+    except AgentAbortedError:
+        # Propagate abort signals so the parent loop also stops immediately,
+        # rather than waiting until the next iteration's abort-token check.
+        raise
     except Exception as exc:
         duration_ms = int((time.monotonic() - start) * 1000)
         log.warning("delegate_error", to_agent=agent_name, error=str(exc))

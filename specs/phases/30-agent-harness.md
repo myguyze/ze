@@ -465,7 +465,22 @@ register_hook(CostCapHook(max_tool_calls=settings.max_tool_calls_per_turn))
 - Hook exceptions (other than `HookAbort`) are caught and logged as warnings; they
   do not abort the tool call. Hooks must not raise to signal non-abort errors.
 - `delegate_to_agent` inherits the parent's `abort_token` so a top-level abort
-  propagates through the delegation chain.
+  propagates through the delegation chain. `AgentAbortedError` raised inside a
+  sub-agent MUST re-raise out of `run_delegate` — it must not be caught by the
+  broad `except Exception` handler. This is required because the parent loop does
+  not re-check the abort token after each tool call; it only checks at the top of
+  the next iteration. Without re-raise, an abort fired inside a delegation would
+  not stop the parent loop until the next iteration boundary.
+- Sub-agent message history is a fresh single-message list (`[{"role": "user",
+  "content": task}]`). The parent's accumulated conversation is intentionally not
+  shared — sub-agents operate in a different domain and passing an unrelated message
+  history would confuse them. Pass relevant background via the `context` parameter
+  (a text string prepended to the task) instead.
+- Sub-agent side effects are not merged into the parent result: `tool_calls`,
+  `memory_proposals`, and `contact_proposals` from the sub-agent are discarded.
+  Only the text response is returned. This is a documented limitation. Merging
+  sub-agent tool calls would require either nesting `ToolCall` (breaking the
+  checkpoint serde) or a separate propagation channel — deferred to a future phase.
 
 ---
 
