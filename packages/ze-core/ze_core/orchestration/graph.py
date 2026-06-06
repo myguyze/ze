@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 def graph_builder(
     node_overrides: dict[str, Callable] | None = None,
     state_type: type | None = None,
+    pre_route_node: Callable | None = None,
 ) -> Any:
     """Return a fully-wired but uncompiled StateGraph.
 
@@ -47,7 +48,12 @@ def graph_builder(
     builder.add_node("write_memory",       ov.get("write_memory",       nodes.write_memory))
 
     builder.set_entry_point("preprocess")
-    builder.add_edge("preprocess", "embed_route")
+    if pre_route_node is not None:
+        builder.add_node("inject_routing_context", pre_route_node)
+        builder.add_edge("preprocess", "inject_routing_context")
+        builder.add_edge("inject_routing_context", "embed_route")
+    else:
+        builder.add_edge("preprocess", "embed_route")
 
     # embed_route and decompose routing conditionals are NOT wired here — see docstring.
 
@@ -79,7 +85,11 @@ def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any
     from ze_core.orchestration.state import build_state_type
 
     state_type = build_state_type(plugins or [])
-    builder = graph_builder(state_type=state_type)
+    pre_route = next(
+        (fn for p in (plugins or []) for fn in [p.pre_route_node()] if fn is not None),
+        None,
+    )
+    builder = graph_builder(state_type=state_type, pre_route_node=pre_route)
     builder.add_node("plan_sequential", nodes.plan_sequential)
 
     builder.add_conditional_edges(

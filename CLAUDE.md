@@ -217,3 +217,5 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 20 | Package architecture reorg — ze_core pure infra, ze-personal domain layer, ZePlugin ABC | Done |
 | 21 | Agent harness — hook points, step-level abort, multi-agent handoffs | Done |
 | 22 | Harness adoption — tool-call cap hook, research delegation, `/cancel` command | Done |
+| 23 | Goal engine v2 — milestone context injection, execution traces, adaptive replanning, enriched gate narrative | Done |
+| 24 | Goal collaboration — goal-aware routing, conversational steering, post-goal retrospective, weekly narrative job | Done |

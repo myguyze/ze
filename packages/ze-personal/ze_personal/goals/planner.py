@@ -5,7 +5,7 @@ from uuid import UUID
 
 from ze_core import defaults
 from ze_core.errors import GoalPlanError
-from ze_personal.goals.types import Goal, GateStatus, Milestone, MilestoneStatus, VerificationGate
+from ze_personal.goals.types import Goal, GateStatus, GoalLearning, Milestone, MilestoneStatus, VerificationGate
 from ze_core.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
 
@@ -76,6 +76,21 @@ def _normalize_and_validate(
     gates.sort(key=lambda g: g.after_sequence)
     return milestones, gates
 
+
+_RETROSPECTIVE_SYSTEM = """\
+You write a concise retrospective for a completed goal. Cover three things:
+1. What was accomplished (be specific — reference actual outputs, not just milestone titles).
+2. Key learnings or insights surfaced during execution.
+3. Suggested next steps or follow-on goals, if any.
+
+Write in plain language, 3-5 short paragraphs. No headers. Address the user directly.\
+"""
+
+_WEEKLY_NARRATIVE_SYSTEM = """\
+You write one paragraph summarizing progress on a goal over the past week.
+Be specific about what was accomplished. If there's a pending gate, call it out.
+Mention what comes next. Write in plain language, 3-5 sentences maximum.\
+"""
 
 _GATE_NARRATIVE_SYSTEM = """\
 You summarize completed work at a goal checkpoint. Be concise and specific.
@@ -192,6 +207,60 @@ class GoalPlanner:
             milestones, gates, min_sequence=next_sequence,
         )
         return milestones, gates
+
+    async def synthesize_retrospective(
+        self,
+        goal: Goal,
+        milestones: list[Milestone],
+        learnings: list[GoalLearning],
+    ) -> str:
+        """Produce a goal completion retrospective."""
+        milestone_lines = "\n".join(
+            f"  {m.sequence}. {m.title}: {(m.output or '')[:300]}"
+            for m in milestones
+        ) or "  (none)"
+        learnings_text = "\n".join(
+            f"  - {l.content}" for l in learnings[-5:]
+        ) or "  (none)"
+        prompt = (
+            f"Goal: {goal.title}\n"
+            f"Objective: {goal.objective}\n"
+            f"Success condition: {goal.success_condition}\n\n"
+            f"Completed milestones:\n{milestone_lines}\n\n"
+            f"Key learnings:\n{learnings_text}"
+        )
+        return await self._client.complete(
+            messages=[{"role": "user", "content": prompt}],
+            model=self._model,
+            system=_RETROSPECTIVE_SYSTEM,
+        )
+
+    async def synthesize_weekly_narrative(
+        self,
+        goal: Goal,
+        completed_this_week: list[Milestone],
+        pending_gate: VerificationGate | None,
+        next_milestones: list[Milestone],
+    ) -> str:
+        """One paragraph: what Ze did this week on this goal, and what comes next."""
+        completed_text = "\n".join(
+            f"  - {m.title}: {(m.output or '')[:200]}"
+            for m in completed_this_week
+        ) or "  (none this week)"
+        gate_text = f"\nAwaiting gate: {pending_gate.title}" if pending_gate else ""
+        next_text = "\n".join(f"  - {m.title}" for m in next_milestones[:3]) or "  (none)"
+        prompt = (
+            f"Goal: {goal.title}\n"
+            f"Objective: {goal.objective}\n\n"
+            f"Completed this week:\n{completed_text}"
+            f"{gate_text}\n\n"
+            f"Coming next:\n{next_text}"
+        )
+        return await self._client.complete(
+            messages=[{"role": "user", "content": prompt}],
+            model=self._model,
+            system=_WEEKLY_NARRATIVE_SYSTEM,
+        )
 
     async def synthesize_gate_narrative(
         self,

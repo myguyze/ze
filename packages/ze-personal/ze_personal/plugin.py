@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 from ze_core.plugin import ZePlugin
 
@@ -13,6 +13,8 @@ class PersonalPlugin(ZePlugin):
       system prompts (via AgentContext.extensions).
     - memory_hooks: post-write callables; currently runs contact proposal extraction
       after every memory write.
+    - inject_goal_routing_context: pre-route node that enriches routing state with
+      active goal context so goal-related messages route correctly.
     """
 
     def configurable_services(self) -> dict[str, Any]:
@@ -22,6 +24,10 @@ class PersonalPlugin(ZePlugin):
             "identity_builder": build_identity_block,
             "memory_hooks": [contact_proposal_hook],
         }
+
+    def pre_route_node(self) -> Callable | None:
+        from ze_personal.graph.routing_context import inject_goal_routing_context
+        return inject_goal_routing_context
 
     def agent_module_paths(self) -> list[str]:
         return [

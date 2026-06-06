@@ -114,15 +114,31 @@ class GoalExecutor:
         self._push = push
         self._get_agent = agent_getter
         self._advance_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._steer_queues: dict[UUID, asyncio.Queue] = defaultdict(asyncio.Queue)
 
     async def advance(self, goal_id: UUID) -> None:
         """Advance execution of a goal by one step. Serialized per goal_id."""
         async with self._advance_locks[goal_id]:
             await self._advance_unlocked(goal_id)
 
+    async def steer(self, goal_id: UUID, instruction: str) -> bool:
+        """Enqueue a steering instruction. Returns False if goal is not active."""
+        goal = await self._store.get_goal(goal_id)
+        if goal is None or goal.status != GoalStatus.ACTIVE:
+            return False
+        await self._steer_queues[goal_id].put(instruction)
+        log.info("goal_steer_queued", goal_id=str(goal_id))
+        return True
+
     async def _advance_unlocked(self, goal_id: UUID) -> None:
         goal = await self._store.get_goal(goal_id)
         if goal is None or goal.status != GoalStatus.ACTIVE:
+            return
+
+        # Apply any pending steer before picking the next milestone
+        if not self._steer_queues[goal_id].empty():
+            instruction = self._steer_queues[goal_id].get_nowait()
+            await self._apply_steer(goal_id, goal, instruction)
             return
 
         milestones = await self._store.list_milestones(goal_id)
@@ -140,11 +156,7 @@ class GoalExecutor:
 
         if not pending:
             await self._store.update_status(goal_id, GoalStatus.COMPLETED)
-            await self._push(Notification(
-                content=f"Goal <b>{_html.escape(goal.title)}</b> is complete!\n\n<i>{_html.escape(goal.success_condition)}</i>",
-                format="html",
-                urgency="high",
-            ))
+            await self._push_retrospective(goal, goal_id)
             log.info("goal_completed", goal_id=str(goal_id))
             return
 
@@ -310,6 +322,59 @@ class GoalExecutor:
         asyncio.create_task(self.advance(gate.goal_id))
 
     # ── Private ────────────────────────────────────────────────────────────────
+
+    async def _push_retrospective(self, goal: Goal, goal_id: UUID) -> None:
+        milestones = await self._store.list_milestones(goal_id)
+        learnings = await self._store.list_learnings(goal_id)
+        try:
+            narrative = await self._planner.synthesize_retrospective(goal, milestones, learnings)
+        except Exception as exc:
+            log.warning("retrospective_failed", error=str(exc))
+            narrative = goal.success_condition
+        await self._push(Notification(
+            content=(
+                f"<b>{_html.escape(goal.title)}</b> — completed\n\n"
+                f"{_html.escape(narrative)}"
+            ),
+            format="html",
+            urgency="high",
+        ))
+
+    async def _apply_steer(self, goal_id: UUID, goal: Goal, instruction: str) -> None:
+        await self._push(Notification(
+            content="Applying your direction — replanning remaining steps...",
+            urgency="high",
+        ))
+
+        milestones = await self._store.list_milestones(goal_id)
+        completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
+        next_seq = max((m.sequence for m in completed), default=0) + 1
+
+        try:
+            new_milestones, new_gates = await self._planner.replan_remaining(
+                goal, completed, instruction, next_seq
+            )
+        except Exception as exc:
+            log.warning("steer_replan_failed", goal_id=str(goal_id), error=str(exc))
+            await self._push(Notification(
+                content=f"Could not apply direction: {_html.escape(str(exc))}. The goal is paused.",
+                format="html",
+                urgency="high",
+            ))
+            await self._store.update_status(goal_id, GoalStatus.PAUSED)
+            return
+
+        for m in new_milestones:
+            m.goal_id = goal_id
+        for g in new_gates:
+            g.goal_id = goal_id
+
+        await self._store.replace_pending_milestones(goal_id, new_milestones)
+        await self._store.replace_pending_gates(goal_id, new_gates)
+        await self._store.reset_consecutive_failures(goal_id)
+
+        log.info("steer_applied", goal_id=str(goal_id), new_milestones=len(new_milestones))
+        asyncio.create_task(self.advance(goal_id))
 
     @staticmethod
     def _gate_should_fire(

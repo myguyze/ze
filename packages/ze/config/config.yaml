@@ -39,3 +39,6 @@ proactive:
     min_evidence: 3
     max_per_run: 3
     category_cooldown_days: 7
+  goal_narrative:
+    enabled: true
+    cron: "0 18 * * 0"

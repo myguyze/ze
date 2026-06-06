@@ -444,3 +444,102 @@ async def test_gate_falls_back_to_bullet_list_on_narrative_error(executor, store
 
     notif = push.call_args.args[0]
     assert "Step 1" in notif.content
+
+
+# ── Steer ─────────────────────────────────────────────────────────────────────
+
+async def test_steer_enqueues_instruction_for_active_goal(executor, store):
+    goal = _goal(status=GoalStatus.ACTIVE)
+    store.get_goal = AsyncMock(return_value=goal)
+
+    result = await executor.steer(goal.id, "Skip the LinkedIn step")
+
+    assert result is True
+    assert not executor._steer_queues[goal.id].empty()
+
+
+async def test_steer_returns_false_for_non_active_goal(executor, store):
+    goal = _goal(status=GoalStatus.PAUSED)
+    store.get_goal = AsyncMock(return_value=goal)
+
+    result = await executor.steer(goal.id, "some instruction")
+
+    assert result is False
+
+
+async def test_steer_returns_false_for_awaiting_gate_goal(executor, store):
+    goal = _goal(status=GoalStatus.AWAITING_GATE)
+    store.get_goal = AsyncMock(return_value=goal)
+
+    result = await executor.steer(goal.id, "steer me")
+
+    assert result is False
+
+
+async def test_advance_drains_steer_before_milestone(executor, store, push, planner):
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1])
+    store.get_pending_gate = AsyncMock(return_value=None)
+    planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
+
+    # Pre-load a steer instruction
+    await executor._steer_queues[goal.id].put("focus on email only")
+
+    with patch("ze_personal.goals.executor.asyncio.create_task"):
+        await executor.advance(goal.id)
+
+    planner.replan_remaining.assert_called_once()
+    store.replace_pending_milestones.assert_called_once()
+    # Queue should be empty after draining
+    assert executor._steer_queues[goal.id].empty()
+
+
+async def test_apply_steer_pauses_on_replan_failure(executor, store, push, planner):
+    goal = _goal()
+    store.list_milestones = AsyncMock(return_value=[])
+    planner.replan_remaining = AsyncMock(side_effect=RuntimeError("LLM error"))
+
+    await executor._apply_steer(goal.id, goal, "new direction")
+
+    store.update_status.assert_called_with(goal.id, GoalStatus.PAUSED)
+    notif = push.call_args.args[0]
+    assert "paused" in notif.content.lower()
+
+
+# ── Retrospective ─────────────────────────────────────────────────────────────
+
+async def test_completion_pushes_retrospective(executor, store, push, planner):
+    goal = _goal()
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(side_effect=[
+        [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # pending check → none
+        [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # retrospective fetch
+    ])
+    store.list_learnings = AsyncMock(return_value=[])
+    store.get_pending_gate = AsyncMock(return_value=None)
+    planner.synthesize_retrospective = AsyncMock(return_value="You accomplished the objective.")
+
+    await executor.advance(goal.id)
+
+    planner.synthesize_retrospective.assert_called_once()
+    notif = push.call_args.args[0]
+    assert "completed" in notif.content.lower()
+    assert "You accomplished the objective." in notif.content
+
+
+async def test_retrospective_failure_falls_back_to_success_condition(executor, store, push, planner):
+    goal = _goal()
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[
+        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+    ])
+    store.list_learnings = AsyncMock(return_value=[])
+    store.get_pending_gate = AsyncMock(return_value=None)
+    planner.synthesize_retrospective = AsyncMock(side_effect=RuntimeError("LLM down"))
+
+    await executor.advance(goal.id)
+
+    notif = push.call_args.args[0]
+    assert goal.success_condition in notif.content

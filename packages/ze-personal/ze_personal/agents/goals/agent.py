@@ -14,7 +14,7 @@ from ze_core.proactive.notifier import ProactiveNotifier
 import ze_personal.agents.goals.tools  # noqa: F401
 
 _AGENT_INSTRUCTIONS = """\
-You are Ze's goal manager. You create, inspect, pause, resume, and abandon long-running goals.
+You are Ze's goal manager. You create, inspect, steer, pause, resume, and abandon long-running goals.
 
 A goal is a multi-week objective Ze executes autonomously, pausing at verification gates for
 human approval before continuing.
@@ -26,15 +26,20 @@ Available tools:
   (requires goal_id and milestone_sequence)
 - create_goal: propose a new goal plan for user approval (goal_title, objective,
   success_condition; optionally time_horizon and goal_type: custom|outreach|research)
+- steer_goal: redirect a running goal with new instructions (goal_id, instruction).
+  Use when the user wants to change direction mid-execution without stopping entirely.
+  Ze will finish its current step then replan. Only works while goal is ACTIVE.
 - pause_goal: pause an active goal (goal_id)
 - resume_goal: resume a paused goal and continue execution (goal_id)
 - abandon_goal: permanently abandon a goal (goal_id)
 
 Guidelines:
-- For status, pause, resume, or abandon: call list_goals first if the user hasn't provided
+- For status, pause, resume, steer, or abandon: call list_goals first if the user hasn't provided
   a goal ID, so you can identify the correct goal.
 - create_goal sends an approval notification to Telegram — tell the user to confirm there.
 - Use get_milestone_trace when the user asks what Ze did during a specific step.
+- steer_goal only works while the goal is ACTIVE (not AWAITING_GATE). If the goal is awaiting a
+  gate, tell the user to resolve the gate first (approve/stop/redirect), then steer.
 - Report errors returned by tools clearly.\
 """
 
@@ -56,14 +61,15 @@ class GoalAgent(BaseAgent):
         "get_goal_status",
         "get_milestone_trace",
         "create_goal",
+        "steer_goal",
         "pause_goal",
         "resume_goal",
         "abandon_goal",
     ]
     intent_map = {
         "create": "Create a new multi-week goal and decompose it into milestones.",
-        "read": "Inspect goal status, list active goals, or review learnings.",
-        "update": "Pause, resume, or redirect an active goal.",
+        "read": "Inspect goal status, list active goals, or review progress and traces.",
+        "update": "Pause, resume, or redirect (steer) an active goal mid-execution.",
         "delete": "Abandon a goal.",
     }
     capabilities = {

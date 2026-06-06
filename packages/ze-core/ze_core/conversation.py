@@ -47,6 +47,7 @@ def make_graph_input(
         "workflow_step_results": [],
         "dynamic_plan_steps": None,
         "dynamic_plan_high_risk": [],
+        "routing_hints": None,
     }
 
 

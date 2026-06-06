@@ -41,6 +41,15 @@ class ZePlugin(ABC):
         """
         return None
 
+    def pre_route_node(self) -> Callable | None:
+        """Return an async node to insert between preprocess and embed_route.
+
+        Used to inject runtime routing context (e.g. active goal hints) into
+        state before the embedding router runs. Return None to add no pre-route step.
+        At most one plugin may provide a pre-route node.
+        """
+        return None
+
     def graph_nodes(self) -> dict[str, Callable]:
         """Return additional graph nodes keyed by node name."""
         return {}

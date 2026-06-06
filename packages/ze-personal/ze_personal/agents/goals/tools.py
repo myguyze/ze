@@ -14,6 +14,18 @@ from ze_core.interface.types import Action, Notification
 from ze_core.proactive.notifier import ProactiveNotifier
 
 
+@tool(access=ToolAccess.WRITE, description="Redirect a running goal with new instructions. Ze will finish its current step and then replan the remaining milestones incorporating your direction.")
+async def steer_goal(executor: GoalExecutor, goal_id: str, instruction: str) -> str:
+    try:
+        uid = UUID(goal_id)
+    except ValueError:
+        return f"Invalid goal ID: {goal_id!r}"
+    ok = await executor.steer(uid, instruction)
+    if not ok:
+        return "That goal is not currently active. Use list_goals to check status."
+    return "Got it — I'll apply that direction after the current step finishes."
+
+
 @tool(access=ToolAccess.READ, description="List all goals with their current status.")
 async def list_goals(store: GoalStore) -> list:
     goals = await store.list_all()

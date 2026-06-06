@@ -98,6 +98,7 @@ class Container:
             "last_active_at": None,
             "final_response": None,
             "error": None,
+            "routing_hints": None,
         }
         abort_token = AbortToken()
         self._abort_tokens[session_id] = abort_token

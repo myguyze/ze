@@ -344,6 +344,37 @@ async def test_get_milestone_trace_handles_invalid_goal_id():
     assert "Invalid goal ID" in result
 
 
+async def test_steer_goal_returns_error_for_non_active_goal():
+    import ze_personal.agents.goals.tools  # noqa
+    from ze_personal.agents.goals.tools import steer_goal
+
+    executor = AsyncMock()
+    executor.steer = AsyncMock(return_value=False)
+
+    result = await steer_goal(executor=executor, goal_id=str(uuid4()), instruction="change direction")
+    assert "not currently active" in result
+
+
+async def test_steer_goal_returns_confirmation_for_active_goal():
+    import ze_personal.agents.goals.tools  # noqa
+    from ze_personal.agents.goals.tools import steer_goal
+
+    executor = AsyncMock()
+    executor.steer = AsyncMock(return_value=True)
+
+    result = await steer_goal(executor=executor, goal_id=str(uuid4()), instruction="focus on email")
+    assert "after the current step" in result.lower() or "applying" in result.lower()
+
+
+async def test_steer_goal_handles_invalid_goal_id():
+    import ze_personal.agents.goals.tools  # noqa
+    from ze_personal.agents.goals.tools import steer_goal
+
+    executor = AsyncMock()
+    result = await steer_goal(executor=executor, goal_id="bad-id", instruction="something")
+    assert "Invalid goal ID" in result
+
+
 async def test_get_milestone_trace_handles_missing_sequence():
     import ze_personal.agents.goals.tools  # noqa
     from ze_personal.agents.goals.tools import get_milestone_trace

@@ -60,6 +60,9 @@ class AgentState(TypedDict):
     dynamic_plan_steps: list | None      # list[WorkflowStep]
     dynamic_plan_high_risk: list         # indices requiring approval
 
+    # ── Routing context (populated by pre-route plugin nodes) ────────────────
+    routing_hints: str | None            # injected by inject_goal_routing_context
+
 
 def build_state_type(plugins: list[ZePlugin]) -> type:
     """Return a TypedDict class that merges AgentState with all plugin state extensions.

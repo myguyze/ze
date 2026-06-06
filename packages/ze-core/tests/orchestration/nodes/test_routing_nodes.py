@@ -5,7 +5,7 @@ import pytest
 
 from ze_core.orchestration import agent, clear_registry
 from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.nodes.routing import decompose
+from ze_core.orchestration.nodes.routing import decompose, embed_route
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
@@ -176,3 +176,56 @@ class TestDecomposeNode:
         client.complete.assert_awaited_once()
         call_kwargs = client.complete.call_args[1]
         assert call_kwargs["model"] == "anthropic/claude-haiku-4-5"
+
+
+class TestEmbedRouteNode:
+    def _router(self):
+        envelope = RoutingEnvelope(
+            primary_agent="goals",
+            confidence=0.9,
+            score_gap=0.3,
+            routing_method="embedding",
+            is_compound=False,
+            subtasks=[SubTask(agent="goals", intent="update", prompt="steer")],
+            requires_synthesis=False,
+            raw_scores={"goals": 0.9},
+        )
+        router = AsyncMock()
+        router.route = AsyncMock(return_value=envelope)
+        return router
+
+    async def test_appends_routing_hints_when_present(self):
+        router = self._router()
+        state = {
+            "session_id": "s1",
+            "prompt": "skip the LinkedIn step",
+            "image_caption": None,
+            "routing_hints": '[Active goals: "Job search" — step 3: LinkedIn outreach]',
+        }
+        config = {"configurable": {"router": router}}
+
+        await embed_route(state, config)
+
+        call_args = router.route.call_args
+        routing_text = call_args.kwargs.get("prompt") or call_args.args[0] if call_args.args else call_args.kwargs["prompt"]
+        assert "skip the LinkedIn step" in routing_text
+        assert "[Active goals:" in routing_text
+        # Hints appended AFTER the message, not prepended
+        assert routing_text.index("skip") < routing_text.index("[Active goals:")
+
+    async def test_routing_unchanged_when_hints_is_none(self):
+        router = self._router()
+        state = {
+            "session_id": "s1",
+            "prompt": "what's the weather?",
+            "image_caption": None,
+            "routing_hints": None,
+        }
+        config = {"configurable": {"router": router}}
+
+        await embed_route(state, config)
+
+        call_args = router.route.call_args
+        routing_text = call_args.kwargs.get("prompt") or call_args.kwargs["prompt"]
+        assert routing_text == "what's the weather?"
+        assert "[Active goals:" not in routing_text

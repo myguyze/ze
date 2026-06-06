@@ -39,6 +39,7 @@ from ze_personal.graph.workflow import build_workflow_graph
 from ze_core.progress import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
 from ze.jobs.briefing import MorningBriefing
+from ze.jobs.goal_narrative import GoalNarrativeJob
 from ze_core.proactive.push_log_store import PushLogStore
 from ze.jobs.insights import InsightEngine
 from ze_core.proactive.notifier import ProactiveNotifier
@@ -89,6 +90,7 @@ class ZeContainer(CoreContainer):
     morning_briefing: MorningBriefing
     calendar_reminders: CalendarReminderJob
     insight_engine: InsightEngine
+    goal_narrative: GoalNarrativeJob
     browser_client: BrowserClient
     channel_registry: ChannelRegistry
     contact_channel_store: ContactChannelStore
@@ -113,6 +115,7 @@ class ZeContainer(CoreContainer):
             "settings": self.settings,
             "workflow_planner": self.workflow_planner,
             "contact_channel_store": self.contact_channel_store,
+            "goal_store": self.goal_store,
             "interface": self.interface,
             **plugin_services,
         }
@@ -504,6 +507,17 @@ async def build_container(settings: Settings) -> ZeContainer:
         proactive_scheduler.register(insight_engine, cron=insights_proactive_cfg.get("cron", "0 7 * * 0"))
         log.info("insights_scheduled")
 
+    goal_narrative = GoalNarrativeJob(
+        notifier=notifier,
+        push_log_store=push_log_store,
+        goal_store=goal_store,
+        goal_planner=goal_planner,
+    )
+    goal_narrative_cfg = proactive_cfg.get("goal_narrative", {})
+    if goal_narrative_cfg.get("enabled", True):
+        proactive_scheduler.register(goal_narrative, cron=goal_narrative_cfg.get("cron", "0 18 * * 0"))
+        log.info("goal_narrative_scheduled", cron=goal_narrative_cfg.get("cron", "0 18 * * 0"))
+
     await proactive_scheduler.start()
 
     if settings.telegram_bot_token and settings.public_url:
@@ -565,6 +579,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         morning_briefing=morning_briefing,
         calendar_reminders=calendar_reminders,
         insight_engine=insight_engine,
+        goal_narrative=goal_narrative,
         browser_client=browser_client,
         channel_registry=channel_registry,
         contact_channel_store=contact_channel_store,

@@ -18,6 +18,11 @@ async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
     # preprocess has already set image_caption for image turns; use it for routing
     routing_text = state.get("image_caption") or state["prompt"]
 
+    hints = state.get("routing_hints")
+    if hints:
+        # Append after the message so the actual message content dominates the embedding
+        routing_text = f"{routing_text}\n\n{hints}"
+
     envelope = await router.route(prompt=routing_text, session_id=state["session_id"])
     log.info(
         "orchestration_routed",
