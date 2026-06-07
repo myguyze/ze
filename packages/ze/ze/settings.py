@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     prospecting_max_loop_tokens: int = 24_000
     prospecting_stale_timeout_minutes: int = 10
 
+    # ── Ntfy push notifications ───────────────────────────────────────────────
+    ntfy_base_url: str = "https://ntfy.sh"
+    ntfy_topic: str = ""
+    ntfy_token: str = ""
+
     # ── Logging ───────────────────────────────────────────────────────────────
     log_level: str = "INFO"
     log_file: str = ""

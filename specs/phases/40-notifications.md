@@ -2,7 +2,7 @@
 
 > **Package:** `ze-notifications` (new package, no ze deps)
 > **Phase:** 40
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 40 ([40-native-ui-foundation.md](40-native-ui-foundation.md))
 
 ---
@@ -11,13 +11,13 @@
 
 | Feature | Status |
 |---------|--------|
-| `Notification` type | 🔲 Pending |
-| `Notifier` Protocol | 🔲 Pending |
-| `NtfyNotifier` | 🔲 Pending |
-| Deep link encoding | 🔲 Pending |
-| Startup token validation | 🔲 Pending |
-| `ze/` wiring update (replace inline ntfy from Phase 40) | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `Notification` type | ✅ Done |
+| `Notifier` Protocol | ✅ Done |
+| `NtfyNotifier` | ✅ Done |
+| Deep link encoding | ✅ Done |
+| Startup token validation | ✅ Done |
+| `ze/` wiring update (replace inline ntfy from Phase 40) | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

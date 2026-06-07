@@ -12,6 +12,8 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from ze.agents.bootstrap import bootstrap_agents, prepare_gate_registry
 from ze_browser import BrowserClient
+from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
+from ze_notifications.notifier import Notifier as PushNotifier
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze.google.gmail import GmailChannel
@@ -103,6 +105,7 @@ class ZeContainer(CoreContainer):
     goal_store: GoalStore
     goal_executor: GoalExecutor
     campaign_store: ProspectCampaignStore
+    push_notifier: NtfyNotifier | None
 
     def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -148,6 +151,8 @@ class ZeContainer(CoreContainer):
         await self.bot.session.close()
         await self.browser_client.close()
         await self.campaign_store.fail_all_running()
+        if self.push_notifier is not None:
+            await self.push_notifier._session.close()
         await super().close()
 
     @classmethod
@@ -219,6 +224,18 @@ async def build_container(settings: Settings) -> ZeContainer:
         base_url=settings.browser_service_url,
         timeout=settings.browser_timeout_seconds,
     )
+
+    push_notifier: NtfyNotifier | None = None
+    if settings.ntfy_topic:
+        import aiohttp as _aiohttp
+        _ntfy_config = NtfyConfig(
+            base_url=settings.ntfy_base_url,
+            topic=settings.ntfy_topic,
+            token=settings.ntfy_token or None,
+        )
+        _ntfy_session = _aiohttp.ClientSession()
+        push_notifier = NtfyNotifier(config=_ntfy_config, session=_ntfy_session)
+        log.info("ntfy_notifier_registered", topic=settings.ntfy_topic)
 
     persona_cfg = settings.persona_config
     persona_store = PostgresPersonaStore(
@@ -658,6 +675,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         goal_store=goal_store,
         goal_executor=goal_executor,
         campaign_store=campaign_store,
+        push_notifier=push_notifier,
         plugins=plugins,
     )
     ze_bot.bind_container(container)

@@ -8,6 +8,7 @@ dependencies = [
     "ze-personal",
     "ze-browser",
     "ze-news",
+    "ze-notifications",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "httpx[http2]>=0.28",
@@ -49,6 +50,7 @@ ze-core = { workspace = true }
 ze-personal = { workspace = true }
 ze-browser = { workspace = true }
 ze-news = { workspace = true }
+ze-notifications = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
