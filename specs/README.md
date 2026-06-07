@@ -65,6 +65,7 @@ explicitly deferred before implementation begins.
 | 35 | [Cross-Goal Output Reuse](phases/35-cross-goal-output-reuse.md) | ✅ Done |
 | 36 | [Cross-Goal Learning Promotion](phases/36-cross-goal-learning-promotion.md) | ✅ Done |
 | 37 | [News Package](phases/37-news-package.md) | ✅ Done |
+| 38 | [News Personalization](phases/38-news-personalization.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
