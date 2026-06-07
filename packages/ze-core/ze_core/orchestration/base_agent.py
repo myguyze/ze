@@ -113,7 +113,12 @@ class BaseAgent(ABC):
     # ── Tool execution ────────────────────────────────────────────────────────
 
     async def call_tool(
-        self, name: str, ctx: AgentContext, _iteration: int = -1, **kwargs: Any
+        self,
+        name: str,
+        ctx: AgentContext,
+        _iteration: int = -1,
+        _lm_args: dict | None = None,
+        **kwargs: Any,
     ) -> ToolCall:
         """Execute a registered tool with capability enforcement and hook dispatch.
 
@@ -124,6 +129,8 @@ class BaseAgent(ABC):
         Hooks fire only when the tool actually executes (gate allows it):
         on_tool_start before, on_tool_end after (including on error).
         Pass _iteration from agentic_loop; defaults to -1 for direct callers.
+        _lm_args: LLM-provided args only (no injected deps). Stored in ToolCall.args so
+        the checkpoint stays serializable. Defaults to all kwargs when not provided.
         """
         from ze_core.orchestration.tool import get_tool
 
@@ -132,11 +139,13 @@ class BaseAgent(ABC):
         if ctx.gate_decision == GateDecision.BLOCKED:
             raise ToolBlockedError(f"Tool {name!r} is blocked by the capability gate")
 
+        stored_args = _lm_args if _lm_args is not None else kwargs
+
         if spec.access.value == "write" and ctx.gate_decision == GateDecision.DRAFT:
             log.info("tool_suppressed_draft", tool=name, agent=self.name)
             return ToolCall(
                 tool_name=name,
-                args=kwargs,
+                args=stored_args,
                 result=None,
                 duration_ms=0,
                 success=False,
@@ -158,7 +167,7 @@ class BaseAgent(ABC):
                 log.info("tool_skipped_by_hook", tool=name, agent=self.name, reason=e.reason)
                 return ToolCall(
                     tool_name=name,
-                    args=args,
+                    args=stored_args,
                     result=None,
                     duration_ms=0,
                     success=False,
@@ -177,7 +186,7 @@ class BaseAgent(ABC):
             log.warning("tool_error", tool=name, agent=self.name, error=str(exc))
             tool_call = ToolCall(
                 tool_name=name,
-                args=args,
+                args=stored_args,
                 result=None,
                 duration_ms=duration_ms,
                 success=False,
@@ -190,7 +199,7 @@ class BaseAgent(ABC):
         log.info("tool_complete", tool=name, agent=self.name, duration_ms=duration_ms)
         tool_call = ToolCall(
             tool_name=name,
-            args=args,
+            args=stored_args,
             result=result,
             duration_ms=duration_ms,
             success=True,
@@ -326,7 +335,10 @@ class BaseAgent(ABC):
                     })
                 else:
                     merged = _merge_deps(tc["name"], tc["arguments"], _deps)
-                    tool_call = await self.call_tool(tc["name"], ctx, _iteration=iteration, **merged)
+                    tool_call = await self.call_tool(
+                        tc["name"], ctx, _iteration=iteration,
+                        _lm_args=tc["arguments"], **merged,
+                    )
                     accumulated.append(tool_call)
                     messages.append({
                         "role": "tool",
