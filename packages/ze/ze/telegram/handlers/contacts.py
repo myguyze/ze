@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import html as _html
 from uuid import UUID
 
 from aiogram.types import CallbackQuery
 
 from ze.telegram.commands import contacts_search, contacts_summary
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import send_html
+from ze.telegram.formatting import bold
 
 
 async def handle_contacts_command(ctx: BotContext, chat_id: int, text: str) -> None:
@@ -15,7 +16,7 @@ async def handle_contacts_command(ctx: BotContext, chat_id: int, text: str) -> N
         summary = await contacts_search(ctx.person_store, query)
     else:
         summary = await contacts_summary(ctx.person_store)
-    await ctx.bot.send_message(chat_id, summary, parse_mode="HTML")
+    await send_html(ctx, chat_id, summary)
 
 
 async def handle_contact_callback(ctx: BotContext, query: CallbackQuery) -> None:
@@ -37,12 +38,12 @@ async def handle_contact_callback(ctx: BotContext, query: CallbackQuery) -> None
     if action == "confirm":
         try:
             person = await ctx.person_store.confirm(person_id)
-            await ctx.bot.send_message(
+            await send_html(
+                ctx,
                 chat_id,
-                f"✅ Added <b>{_html.escape(person.name)}</b> to your contacts.",
-                parse_mode="HTML",
+                f"✅ Added {bold(person.name)} to your contacts.",
             )
         except ValueError:
-            await ctx.bot.send_message(chat_id, "Contact not found.")
+            await send_html(ctx, chat_id, "Contact not found.")
     elif action == "dismiss":
         await ctx.person_store.dismiss(person_id)

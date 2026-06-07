@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import html as _html
 from uuid import UUID
 
 from aiogram.types import CallbackQuery, ForceReply
 
 from ze.logging import get_logger
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import answer_html, send_html
+from ze.telegram.formatting import bold
 
 log = get_logger(__name__)
 
@@ -31,9 +32,9 @@ async def approve_gate(
     asyncio.create_task(ctx.goal_executor.handle_gate_approved(gate_id))
 
     if goal_title is not None and query is not None:
-        await query.message.answer(
-            f"Approved — Ze will continue <b>{_html.escape(goal_title)}</b>.",
-            parse_mode="HTML",
+        await answer_html(
+            query.message,
+            f"Approved — Ze will continue {bold(goal_title)}.",
         )
 
 
@@ -56,10 +57,7 @@ async def stop_gate(
     asyncio.create_task(ctx.goal_executor.handle_gate_stopped(gate_id))
 
     if goal_title is not None and query is not None:
-        await query.message.answer(
-            f"Stopped <b>{_html.escape(goal_title)}</b>.",
-            parse_mode="HTML",
-        )
+        await answer_html(query.message, f"Stopped {bold(goal_title)}.")
 
 
 async def redirect_gate(
@@ -117,7 +115,7 @@ async def handle_goal_redirect_reply(
     if not ctx.goal_executor:
         return
     asyncio.create_task(ctx.goal_executor.handle_gate_redirected(UUID(gate_id_str), text))
-    await ctx.bot.send_message(chat_id, "Got it — replanning and continuing.")
+    await send_html(ctx, chat_id, "Got it — replanning and continuing.")
 
 
 async def approve_gate_for_goal(ctx: BotContext, query: CallbackQuery, goal) -> None:

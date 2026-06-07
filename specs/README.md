@@ -62,6 +62,8 @@ explicitly deferred before implementation begins.
 | 32 | [Goal Collaboration](phases/32-goal-collaboration.md) | ✅ Done |
 | 33 | [Proactive Goal Suggestions](phases/33-goal-suggestions.md) | ✅ Done |
 | 34 | [Stuck Goal Detection](phases/34-stuck-goal-detection.md) | ✅ Done |
+| 35 | [Cross-Goal Output Reuse](phases/35-cross-goal-output-reuse.md) | ✅ Done |
+| 36 | [Cross-Goal Learning Promotion](phases/36-cross-goal-learning-promotion.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 

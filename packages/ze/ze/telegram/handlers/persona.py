@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import html as _html
-
 from aiogram.types import CallbackQuery
 
 from ze_core.errors import UnknownDialError, UnknownProfileError
 from ze.telegram.commands import parse_persona_command, persona_summary
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import edit_html, send_html
+from ze.telegram.formatting import code, esc
 from ze.telegram.keyboards import persona_keyboard
 
 
@@ -14,7 +14,7 @@ async def handle_persona_command(ctx: BotContext, chat_id: int, text: str) -> No
     subcommand, args = parse_persona_command(text)
 
     if subcommand == "error":
-        await ctx.bot.send_message(chat_id, args[0], parse_mode="HTML")
+        await send_html(ctx, chat_id, args[0])
         return
 
     if subcommand == "profile":
@@ -23,10 +23,10 @@ async def handle_persona_command(ctx: BotContext, chat_id: int, text: str) -> No
             await ctx.persona_store.set_profile(name)
         except UnknownProfileError:
             profiles = ctx.persona_store.available_profiles()
-            await ctx.bot.send_message(
+            await send_html(
+                ctx,
                 chat_id,
-                f"Unknown profile <code>{_html.escape(name)}</code>. Available: {', '.join(profiles)}",
-                parse_mode="HTML",
+                f"Unknown profile {code(name)}. Available: {', '.join(profiles)}",
             )
             return
 
@@ -35,7 +35,7 @@ async def handle_persona_command(ctx: BotContext, chat_id: int, text: str) -> No
         try:
             await ctx.persona_store.set_dial(dial_name, float(value_str))
         except (UnknownDialError, ValueError) as exc:
-            await ctx.bot.send_message(chat_id, _html.escape(str(exc)), parse_mode="HTML")
+            await send_html(ctx, chat_id, esc(str(exc)))
             return
 
     elif subcommand == "reset":
@@ -45,7 +45,7 @@ async def handle_persona_command(ctx: BotContext, chat_id: int, text: str) -> No
     state = await ctx.persona_store.get_state()
     profiles = ctx.persona_store.available_profiles()
     keyboard = persona_keyboard(profiles, active=state.profile)
-    await ctx.bot.send_message(chat_id, summary, parse_mode="HTML", reply_markup=keyboard)
+    await send_html(ctx, chat_id, summary, reply_markup=keyboard)
 
 
 async def handle_persona_callback(ctx: BotContext, query: CallbackQuery) -> None:
@@ -64,4 +64,4 @@ async def handle_persona_callback(ctx: BotContext, query: CallbackQuery) -> None
     state = await ctx.persona_store.get_state()
     profiles = ctx.persona_store.available_profiles()
     keyboard = persona_keyboard(profiles, active=state.profile)
-    await query.message.edit_text(summary, parse_mode="HTML", reply_markup=keyboard)
+    await edit_html(query.message, summary, reply_markup=keyboard)

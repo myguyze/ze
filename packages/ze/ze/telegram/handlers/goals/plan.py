@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import html as _html
 from uuid import UUID
 
 from aiogram.types import CallbackQuery
 
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import send_html
+from ze.telegram.formatting import bold
 
 
 async def handle_goal_plan(ctx: BotContext, query: CallbackQuery) -> None:
@@ -25,20 +26,12 @@ async def handle_goal_plan(ctx: BotContext, query: CallbackQuery) -> None:
     if action == "yes":
         ok = await ctx.goal_executor.approve_plan(goal_id)
         if ok and goal:
-            await ctx.bot.send_message(
-                chat_id,
-                f"✅ Goal <b>{_html.escape(goal.title)}</b> started.",
-                parse_mode="HTML",
-            )
+            await send_html(ctx, chat_id, f"✅ Goal {bold(goal.title)} started.")
         else:
-            await ctx.bot.send_message(chat_id, "That goal is no longer awaiting approval.")
+            await send_html(ctx, chat_id, "That goal is no longer awaiting approval.")
     elif action == "no":
         ok = await ctx.goal_executor.reject_plan(goal_id)
         if ok and goal:
-            await ctx.bot.send_message(
-                chat_id,
-                f"❌ Goal <b>{_html.escape(goal.title)}</b> cancelled.",
-                parse_mode="HTML",
-            )
+            await send_html(ctx, chat_id, f"❌ Goal {bold(goal.title)} cancelled.")
         else:
-            await ctx.bot.send_message(chat_id, "That goal is no longer awaiting approval.")
+            await send_html(ctx, chat_id, "That goal is no longer awaiting approval.")

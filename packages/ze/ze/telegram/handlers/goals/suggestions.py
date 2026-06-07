@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import html as _html
 
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from ze.logging import get_logger
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import answer_html
+from ze.telegram.formatting import bold, esc
 from ze_personal.goals.types import SuggestionStatus
 
 log = get_logger(__name__)
@@ -50,10 +51,10 @@ async def accept_suggestion(ctx: BotContext, query: CallbackQuery, suggestion) -
             await query.answer("Already accepted.", show_alert=False)
             return
         await query.message.edit_reply_markup(reply_markup=None)
-        await query.message.answer(
-            f"Done — <b>{_html.escape(goal.title)}</b> is now an active goal. "
+        await answer_html(
+            query.message,
+            f"Done — {bold(goal.title)} is now an active goal. "
             f"Ze will begin planning milestones shortly.",
-            parse_mode="HTML",
         )
         if ctx.goal_executor:
             task = asyncio.create_task(ctx.goal_executor.advance(goal.id))
@@ -85,9 +86,9 @@ async def expand_suggestion(
 ) -> None:
     await query.answer()
     text = (
-        f"Here's more context on why I suggested <b>{_html.escape(suggestion.title)}</b>:\n\n"
-        f"{_html.escape(suggestion.rationale)}\n\n"
-        f"The goal would be: {_html.escape(suggestion.objective)}"
+        f"Here's more context on why I suggested {bold(suggestion.title)}:\n\n"
+        f"{esc(suggestion.rationale)}\n\n"
+        f"The goal would be: {esc(suggestion.objective)}"
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -101,4 +102,4 @@ async def expand_suggestion(
             ),
         ],
     ])
-    await query.message.answer(text, parse_mode="HTML", reply_markup=keyboard)
+    await answer_html(query.message, text, reply_markup=keyboard)

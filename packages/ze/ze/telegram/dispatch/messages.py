@@ -5,6 +5,7 @@ from aiogram.types import Message
 from ze.logging import get_logger
 from ze.telegram.commands import costs_summary, memory_summary
 from ze.telegram.context import BotContext
+from ze.telegram.core.delivery import send_html
 from ze.telegram.core.graph import handle_cancel, handle_edit_reply, reset_session
 from ze.telegram.core.turn import ingest_raw
 from ze.telegram.handlers.contacts import handle_contacts_command
@@ -47,12 +48,12 @@ async def dispatch_message(ctx: BotContext, message: Message) -> None:
 
     if text == "/costs":
         summary = await costs_summary(ctx.pool)
-        await ctx.bot.send_message(chat_id, summary, parse_mode="HTML")
+        await send_html(ctx, chat_id, summary)
         return
 
     if text == "/memory":
         summary = await memory_summary(ctx.pool)
-        await ctx.bot.send_message(chat_id, summary, parse_mode="HTML")
+        await send_html(ctx, chat_id, summary)
         return
 
     if text == "/persona" or text.startswith("/persona "):

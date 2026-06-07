@@ -1,7 +1,8 @@
-import html
 from datetime import timezone
 from datetime import datetime as dt
 from typing import TYPE_CHECKING
+
+from ze.telegram.formatting import bold, code, esc, italic
 
 if TYPE_CHECKING:
     from ze_personal.contacts.store import PersonStore
@@ -52,7 +53,7 @@ async def costs_summary(pool) -> str:
     total_tokens = sum(int(r["tokens"]) for r in month_rows)
 
     label = dt.now(tz=timezone.utc).strftime("%B %Y")
-    lines = [f"\U0001f4b0 <b>Costs — {html.escape(label)}</b>", ""]
+    lines = [f"\U0001f4b0 {bold(f'Costs — {label}')}", ""]
     lines.append(f"Today        {_fmt_usd(today_cost)}")
     lines.append(f"This month   {_fmt_usd(month_total)}")
     lines.append("")
@@ -69,7 +70,7 @@ async def costs_summary(pool) -> str:
             other_cost += cost
 
     for agent, cost in sorted(named.items(), key=lambda x: -x[1]):
-        lines.append(f"  {html.escape(agent):<12} {_fmt_usd(cost)}")
+        lines.append(f"  {esc(agent):<12} {_fmt_usd(cost)}")
     if other_cost > 0:
         lines.append(f"  {'other':<12} {_fmt_usd(other_cost)}")
 
@@ -92,13 +93,13 @@ async def memory_summary(pool) -> str:
             "SELECT preferences, habits, topics, relationships, goals FROM user_profile LIMIT 1"
         )
 
-    sections: list[str] = ["\U0001f9e0 <b>What Ze knows about you</b>"]
+    sections: list[str] = [f"\U0001f9e0 {bold('What Ze knows about you')}"]
 
     if facts:
         sections.append("")
-        sections.append(f"<b>Facts</b> ({len(facts)})")
+        sections.append(f"{bold('Facts')} ({len(facts)})")
         for row in facts:
-            sections.append(f"• {html.escape(row['key'])}: {html.escape(row['value'])}")
+            sections.append(f"• {esc(row['key'])}: {esc(row['value'])}")
     else:
         sections.append("")
         sections.append("No facts recorded yet.")
@@ -115,10 +116,10 @@ async def memory_summary(pool) -> str:
         for field, label in _PROFILE_LABELS:
             val = (profile[field] or "").strip()
             if val:
-                profile_lines.append(f"<i>{html.escape(label)}:</i> {html.escape(val)}")
+                profile_lines.append(f"{italic(label + ':')} {esc(val)}")
         if profile_lines:
             sections.append("")
-            sections.append("<b>Profile</b>")
+            sections.append(bold("Profile"))
             sections.extend(profile_lines)
 
     return "\n".join(sections)
@@ -127,11 +128,11 @@ async def memory_summary(pool) -> str:
 def _fmt_contact(person) -> str:
     parts = []
     if person.classification and person.classification != "unknown":
-        parts.append(html.escape(person.classification))
+        parts.append(esc(person.classification))
     if person.relationship_to_user:
-        parts.append(html.escape(person.relationship_to_user))
-    sub = " · ".join(parts) if parts else "<i>no relationship noted</i>"
-    return f"<b>{html.escape(person.name)}</b>\n  {sub}"
+        parts.append(esc(person.relationship_to_user))
+    sub = " · ".join(parts) if parts else italic("no relationship noted")
+    return f"{bold(person.name)}\n  {sub}"
 
 
 async def contacts_summary(person_store: "PersonStore") -> str:
@@ -150,27 +151,26 @@ async def contacts_summary(person_store: "PersonStore") -> str:
 
     from ze_personal.contacts.store import _person_from_row
     people = [_person_from_row(r) for r in rows]
-    lines = [f"\U0001f4c7 <b>Your contacts</b> ({len(people)})"]
+    lines = [f"\U0001f4c7 {bold('Your contacts')} ({len(people)})"]
     for person in people:
         lines.append("")
         lines.append(_fmt_contact(person))
     lines.append("")
-    lines.append("<i>Search: /contacts &lt;name or keyword&gt;</i>")
+    lines.append(f"{italic('Search: /contacts <name or keyword>')}")
     return "\n".join(lines)
 
 
 async def contacts_search(person_store: "PersonStore", query: str) -> str:
     people = await person_store.search(query, confirmed_only=False)
-    escaped_q = html.escape(query)
     if not people:
-        return f"No contacts matching <i>{escaped_q}</i>."
+        return f"No contacts matching {italic(query)}."
 
-    lines = [f"\U0001f50d <b>Contacts matching \"{escaped_q}\"</b> ({len(people)})"]
+    lines = [f"\U0001f50d {bold(f'Contacts matching \"{query}\"')} ({len(people)})"]
     for person in people:
         lines.append("")
         lines.append(_fmt_contact(person))
         if not person.confirmed:
-            lines[-1] += " <i>(unconfirmed)</i>"
+            lines[-1] += f" {italic('(unconfirmed)')}"
     return "\n".join(lines)
 
 
@@ -187,21 +187,21 @@ async def persona_summary(persona_store: "PersonaStore") -> str:
     dials = active.get("dials") or {}
     dial_names = ["humor", "directness", "formality", "depth"]
 
-    lines = [f"🎭 <b>Ze persona</b> — active: <b>{html.escape(state.profile)}</b>", ""]
+    lines = [f"🎭 {bold('Ze persona')} — active: {bold(state.profile)}", ""]
     for name in dial_names:
         value = dials.get(name, 0.5)
         bar = _dial_bar(value)
-        override = " <i>(override)</i>" if name in state.dials else ""
-        lines.append(f"{html.escape(name):<12} {bar}  {value:.1f}{override}")
+        override = f" {italic('(override)')}" if name in state.dials else ""
+        lines.append(f"{esc(name):<12} {bar}  {value:.1f}{override}")
 
     if len(profiles) > 1:
         lines.append("")
-        lines.append(f"Profiles: {' · '.join(html.escape(p) for p in profiles)}")
+        lines.append(f"Profiles: {' · '.join(esc(p) for p in profiles)}")
 
     lines.append("")
-    lines.append("<i>Switch:  /persona &lt;profile&gt;</i>")
-    lines.append("<i>Tune:    /persona &lt;dial&gt; &lt;0.0–1.0&gt;</i>")
-    lines.append("<i>Reset:   /persona reset</i>")
+    lines.append(italic("Switch:  /persona <profile>"))
+    lines.append(italic("Tune:    /persona <dial> <0.0–1.0>"))
+    lines.append(italic("Reset:   /persona reset"))
 
     return "\n".join(lines)
 
@@ -233,7 +233,7 @@ def parse_persona_command(text: str) -> tuple[str, list[str]]:
         try:
             float(args[1])
         except ValueError:
-            return ("error", [f"Invalid dial value <code>{html.escape(args[1])}</code> — must be a number between 0.0 and 1.0."])
+            return ("error", [f"Invalid dial value {code(args[1])} — must be a number between 0.0 and 1.0."])
         return ("dial", [args[0], args[1]])
 
-    return ("error", ["Usage: /persona · /persona &lt;profile&gt; · /persona &lt;dial&gt; &lt;0.0–1.0&gt; · /persona reset"])
+    return ("error", [f"Usage: {italic('/persona · /persona <profile> · /persona <dial> <0.0–1.0> · /persona reset')}"])

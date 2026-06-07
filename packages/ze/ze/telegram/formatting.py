@@ -35,6 +35,23 @@ _PLACEHOLDER_BLOCK = '\x00B{}\x00'
 _PLACEHOLDER_INLINE = '\x00I{}\x00'
 
 
+def esc(text: str) -> str:
+    """Escape text for Telegram HTML parse mode."""
+    return _html.escape(text)
+
+
+def bold(text: str) -> str:
+    return f"<b>{esc(text)}</b>"
+
+
+def italic(text: str) -> str:
+    return f"<i>{esc(text)}</i>"
+
+
+def code(text: str) -> str:
+    return f"<code>{esc(text)}</code>"
+
+
 def md_to_html(text: str) -> str:
     """Convert LLM markdown to Telegram-compatible HTML.
 

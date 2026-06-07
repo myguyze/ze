@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import html as _html
 from typing import ClassVar, Literal
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from ze.logging import get_logger
-from ze.telegram.formatting import md_to_html, split_html
+from ze.telegram.formatting import bold, esc, md_to_html, split_html
 from ze.telegram.keyboards import confirmation_keyboard
 from ze_core.interface.types import (
     Action,
@@ -41,7 +40,7 @@ class TelegramAppInterface:
             if message.format == "markdown":
                 html = md_to_html(message.content)
             else:
-                html = _html.escape(message.content)
+                html = esc(message.content)
             for chunk in split_html(html):
                 await self._bot.send_message(self._chat_id(), chunk, parse_mode="HTML")
         except Exception as exc:
@@ -56,10 +55,10 @@ class TelegramAppInterface:
     ) -> None:
         draft = request.content or ""
         text = (
-            f"⚠️ <b>Confirmation required</b>\n\n"
-            f"<b>Agent:</b> {_html.escape(agent)}\n"
-            f"<b>Action:</b> {_html.escape(action)}\n\n"
-            f"<b>Draft:</b>\n{md_to_html(draft)}"
+            f"⚠️ {bold('Confirmation required')}\n\n"
+            f"{bold('Agent:')} {esc(agent)}\n"
+            f"{bold('Action:')} {esc(action)}\n\n"
+            f"{bold('Draft:')}\n{md_to_html(draft)}"
         )
         try:
             await self._bot.send_message(

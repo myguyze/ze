@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import html as _html
 from uuid import UUID
 
 from aiogram.types import CallbackQuery
 
 from ze.telegram.context import BotContext
 from ze.telegram.handlers.goals.gates import approve_gate_for_goal, stop_gate_for_goal
+from ze.telegram.core.delivery import answer_html
+from ze.telegram.formatting import bold
 from ze_personal.goals.types import GoalStatus
 
 
@@ -50,10 +51,10 @@ async def handle_stuck(ctx: BotContext, query: CallbackQuery) -> None:
 async def stuck_redirect(query: CallbackQuery, goal) -> None:
     await query.answer()
     await query.message.edit_reply_markup(reply_markup=None)
-    await query.message.answer(
-        f"Send me your instructions for <b>{_html.escape(goal.title)}</b> "
+    await answer_html(
+        query.message,
+        f"Send me your instructions for {bold(goal.title)} "
         f"and I'll redirect it right away.",
-        parse_mode="HTML",
     )
 
 
@@ -64,10 +65,9 @@ async def stuck_pause(ctx: BotContext, query: CallbackQuery, goal) -> None:
     await ctx.goal_store.update_status(goal.id, GoalStatus.PAUSED)
     await query.answer()
     await query.message.edit_reply_markup(reply_markup=None)
-    await query.message.answer(
-        f"Paused <b>{_html.escape(goal.title)}</b>. "
-        f"Resume it any time by telling me.",
-        parse_mode="HTML",
+    await answer_html(
+        query.message,
+        f"Paused {bold(goal.title)}. Resume it any time by telling me.",
     )
 
 
@@ -78,7 +78,5 @@ async def stuck_abandon(ctx: BotContext, query: CallbackQuery, goal) -> None:
     await ctx.goal_store.update_status(goal.id, GoalStatus.ABANDONED)
     await query.answer()
     await query.message.edit_reply_markup(reply_markup=None)
-    await query.message.answer(
-        f"Abandoned <b>{_html.escape(goal.title)}</b>.",
-        parse_mode="HTML",
-    )
+    await answer_html(query.message, f"Abandoned {bold(goal.title)}.")
+
