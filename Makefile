@@ -165,6 +165,12 @@ test-core:
 test-all:
 	uv run pytest $(ZE)/tests $(ZE_CORE)/tests -q
 
+# ── Code generation ───────────────────────────────────────────────────────────
+.PHONY: generate-components
+
+generate-components:
+	uv run scripts/generate_components.py
+
 # ── Code quality ──────────────────────────────────────────────────────────────
 .PHONY: lint
 

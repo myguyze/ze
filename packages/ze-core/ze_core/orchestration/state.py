@@ -48,6 +48,7 @@ class AgentState(TypedDict):
     # ── Output ─────────────────────────────────────────────────────────────
     final_response: str | None
     error: str | None
+    components: list[dict]
 
     # ── Workflow execution (workflow_graph only) ────────────────────────────
     workflow_id: UUID | None

@@ -38,6 +38,7 @@ def make_graph_input(
         "pending_confirmation": False,
         "final_response": None,
         "error": None,
+        "components": [],
         "messages": [],
         "last_active_at": None,
         "workflow_id": None,

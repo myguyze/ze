@@ -33,34 +33,39 @@ class ToolSpec:
     access: ToolAccess
     description: str
     func: Callable
+    _schema_override: dict | None = None
 
     def llm_schema(self) -> dict:
-        sig = inspect.signature(self.func)
-        try:
-            hints = get_type_hints(self.func)
-        except Exception:
-            hints = {}
+        if self._schema_override is not None:
+            params = self._schema_override
+        else:
+            sig = inspect.signature(self.func)
+            try:
+                hints = get_type_hints(self.func)
+            except Exception:
+                hints = {}
 
-        properties: dict[str, Any] = {}
-        required: list[str] = []
-        for param_name, param in sig.parameters.items():
-            annotation = hints.get(param_name)
-            if annotation not in _JSON_PRIMITIVE_TYPES:
-                continue
-            properties[param_name] = {"type": _PY_TO_JSON[annotation]}
-            if param.default is inspect.Parameter.empty:
-                required.append(param_name)
+            properties: dict[str, Any] = {}
+            required: list[str] = []
+            for param_name, param in sig.parameters.items():
+                annotation = hints.get(param_name)
+                if annotation not in _JSON_PRIMITIVE_TYPES:
+                    continue
+                properties[param_name] = {"type": _PY_TO_JSON[annotation]}
+                if param.default is inspect.Parameter.empty:
+                    required.append(param_name)
+            params = {
+                "type": "object",
+                "properties": properties,
+                "required": required,
+            }
 
         return {
             "type": "function",
             "function": {
                 "name": self.name,
                 "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": properties,
-                    "required": required,
-                },
+                "parameters": params,
             },
         }
 

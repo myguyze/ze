@@ -210,10 +210,11 @@ async def _handle_message(
         return outcome.config
 
     if outcome.response:
-        from ze_core.interface.types import OutboundMessage
+        components = outcome.final_state.get("components", [])
         await container.interface.send_with_thread(
             outcome.response,
             thread_id=_extract_thread_id(outcome.config),
+            components=components or None,
         )
 
     return None

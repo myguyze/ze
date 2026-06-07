@@ -2,6 +2,7 @@ import pytest
 
 import ze_personal.contacts.tools  # noqa: F401 — registers get_contact_channels, set_contact_channel
 import ze_browser.tool  # noqa: F401 — registers browser_extract
+import ze_components.tools  # noqa: F401 — registers all render tools
 
 
 def _registry_has_real_agents() -> bool:

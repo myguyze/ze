@@ -143,3 +143,36 @@ class TestToolSpecLlmSchema:
 
         schema = get_tool("obj_tool").llm_schema()
         assert schema["function"]["parameters"]["type"] == "object"
+
+    def test_schema_override_used_when_set(self):
+        override = {
+            "type": "object",
+            "properties": {"items": {"type": "array", "items": {"type": "object"}}},
+            "required": ["items"],
+        }
+
+        async def _inner(items: list) -> str: ...
+
+        spec = ToolSpec(
+            name="render_test",
+            access=ToolAccess.READ,
+            description="render test",
+            func=_inner,
+            _schema_override=override,
+        )
+        schema = spec.llm_schema()
+        assert schema["function"]["parameters"] is override
+        assert "items" in schema["function"]["parameters"]["properties"]
+
+    def test_auto_schema_when_override_is_none(self):
+        async def _inner(query: str) -> str: ...
+
+        spec = ToolSpec(
+            name="auto_test",
+            access=ToolAccess.READ,
+            description="auto",
+            func=_inner,
+            _schema_override=None,
+        )
+        schema = spec.llm_schema()
+        assert schema["function"]["parameters"]["properties"]["query"] == {"type": "string"}

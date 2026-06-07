@@ -72,6 +72,8 @@ from ze_personal.workflow.scheduler import WorkflowScheduler
 from ze_core.container import Container as CoreContainer
 from ze_core.orchestration.hooks import register_hook
 from ze.hooks import ToolCallCapHook
+from ze.components.hook import ComponentCollectionHook
+import ze_components.tools  # noqa: F401 — registers all render tools at import time
 
 log = get_logger(__name__)
 
@@ -105,6 +107,7 @@ class ZeContainer(CoreContainer):
     push_notifier: NtfyNotifier | None
     message_store: PostgresMessageStore
     connection_manager: ConnectionManager
+    component_hook: ComponentCollectionHook
 
     def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -125,6 +128,7 @@ class ZeContainer(CoreContainer):
             "contact_channel_store": self.contact_channel_store,
             "goal_store": self.goal_store,
             "interface": self.interface,
+            "component_hook": self.component_hook,
             **plugin_services,
         }
         configurable.update(configurable_extra)
@@ -424,6 +428,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         memory_store=memory_store,
         news_store=news_store,
     )
+    component_hook = ComponentCollectionHook()
+    register_hook(component_hook)
+    log.info("component_collection_hook_registered")
+
     register_hook(ToolCallCapHook(max_tool_calls=settings.max_tool_calls_per_turn))
     log.info("tool_call_cap_hook_registered", max_tool_calls=settings.max_tool_calls_per_turn)
 
@@ -640,6 +648,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         push_notifier=push_notifier,
         message_store=message_store,
         connection_manager=connection_manager,
+        component_hook=component_hook,
         plugins=plugins,
     )
     return container

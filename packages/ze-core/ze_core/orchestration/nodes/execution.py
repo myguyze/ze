@@ -46,6 +46,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     token_queue: asyncio.Queue | None = config["configurable"].get("token_queue")
     identity_builder = config["configurable"].get("identity_builder")
     abort_token = config["configurable"].get("abort_token")
+    component_hook = config["configurable"].get("component_hook")
 
     if envelope.is_compound:
         return await _execute_compound(
@@ -54,6 +55,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
             reporter=reporter,
             identity_builder=identity_builder,
             abort_token=abort_token,
+            component_hook=component_hook,
         )
     return await _execute_single(
         envelope.subtasks[0], base_ctx, gate_decision, state,
@@ -61,6 +63,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
         reporter=reporter,
         identity_builder=identity_builder,
         abort_token=abort_token,
+        component_hook=component_hook,
     )
 
 
@@ -132,6 +135,7 @@ async def _execute_single(
     reporter: Any = None,
     identity_builder: Any = None,
     abort_token: Any = None,
+    component_hook: Any = None,
 ) -> dict:
     ctx = AgentContext(
         session_id=base_ctx.session_id,
@@ -148,7 +152,10 @@ async def _execute_single(
         abort_token=abort_token,
     )
     result = await _run_with_timeout(subtask.agent, ctx, token_queue=token_queue)
-    return {"agent_result": result, "subtask_results": []}
+    components: list = []
+    if component_hook is not None:
+        components = component_hook.pop_components(ctx.session_id)
+    return {"agent_result": result, "subtask_results": [], "components": components}
 
 
 async def _execute_compound(
@@ -160,6 +167,7 @@ async def _execute_compound(
     reporter: Any = None,
     identity_builder: Any = None,
     abort_token: Any = None,
+    component_hook: Any = None,
 ) -> dict:
     def _make_ctx(subtask: Any) -> AgentContext:
         return AgentContext(
