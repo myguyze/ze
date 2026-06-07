@@ -222,3 +222,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 25 | Proactive goal suggestions — weekly LLM-generated goal proposals via Telegram | Done |
 | 26 | Stuck goal detection — idle milestone/gate alerts, Telegram recovery actions | Done |
 | 27 | Cross-goal output reuse — prior milestone summaries injected into planner and executor prompts | Done |
+| 28 | Cross-goal learning promotion — generalizable facts extracted from goal learnings and promoted to user memory on completion | Done |
