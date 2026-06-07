@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ze-news"
+version = "0.1.0"
+description = "Ze news package — extensible news sources, persistent article store, NewsAgent"
+requires-python = ">=3.11"
+dependencies = [
+    "ze-core",
+    "feedparser>=6.0",
+    "httpx>=0.28",
+]
+
+[tool.uv.sources]
+ze-core = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["ze_news"]
