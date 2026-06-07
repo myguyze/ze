@@ -359,6 +359,30 @@ async def build_container(settings: Settings) -> ZeContainer:
     from ze_personal.plugin import PersonalPlugin
     plugins = [PersonalPlugin()]
 
+    news_cfg = settings.config.get("news", {})
+    news_store = None
+    if news_cfg.get("enabled", True) and news_cfg.get("sources"):
+        from ze_news.jobs.fetch import NewsFetchJob
+        from ze_news.plugin import NewsPlugin
+        from ze_news.registry import build_registry
+        from ze_news.store import NewsStore
+        from ze_news.types import SourceConfig
+
+        news_source_configs = [
+            SourceConfig(key=s["key"], type=s["type"], url=s["url"], tags=s.get("tags", []))
+            for s in news_cfg["sources"]
+        ]
+        news_registry = build_registry(news_source_configs)
+        news_store = NewsStore(pool=pool, embedder=embedder)
+        news_fetch_job = NewsFetchJob(
+            registry=news_registry,
+            store=news_store,
+            retention_days=int(news_cfg.get("retention_days", 7)),
+        )
+        news_plugin = NewsPlugin(registry=news_registry, store=news_store, fetch_job=news_fetch_job)
+        plugins.append(news_plugin)
+        log.info("news_plugin_registered", sources=len(news_source_configs))
+
     bootstrap_agents(
         openrouter_client=openrouter_client,
         settings=settings,
@@ -473,6 +497,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         workflow_store=workflow_store,
         person_store=person_store,
         settings=settings,
+        news_store=news_store,
     )
     briefing_cfg = proactive_cfg.get("briefing", {})
     if briefing_cfg.get("enabled", True):
@@ -546,6 +571,11 @@ async def build_container(settings: Settings) -> ZeContainer:
     if stuck_goals_cfg.get("enabled", True):
         proactive_scheduler.register(stuck_goals, cron=stuck_goals_cfg.get("cron", "0 9 * * 2"))
         log.info("stuck_goals_scheduled", cron=stuck_goals_cfg.get("cron", "0 9 * * 2"))
+
+    if news_store is not None:
+        fetch_cron = news_cfg.get("fetch_schedule", "*/30 * * * *")
+        proactive_scheduler.register(news_fetch_job, cron=fetch_cron)
+        log.info("news_fetch_scheduled", cron=fetch_cron, sources=len(news_source_configs))
 
     await proactive_scheduler.start()
 

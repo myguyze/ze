@@ -48,3 +48,23 @@ proactive:
   stuck_goals:
     enabled: true
     cron: "0 9 * * 2"
+
+news:
+  enabled: true
+  fetch_schedule: "*/30 * * * *"
+  retention_days: 7
+  model: "openai/gpt-4o-mini"
+  briefing_limit: 5
+  sources:
+    - key: bbc_world
+      type: rss
+      url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+      tags: [global, general]
+    - key: bbc_tech
+      type: rss
+      url: "https://feeds.bbci.co.uk/news/technology/rss.xml"
+      tags: [global, tech]
+    - key: hn
+      type: rss
+      url: "https://hnrss.org/frontpage"
+      tags: [global, tech, hacker-news]

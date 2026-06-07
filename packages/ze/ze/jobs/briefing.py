@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ze_personal.contacts.store import PersonStore
 from ze.logging import get_logger
 from ze_core.proactive.push_log_store import PushLogStore
@@ -20,6 +22,7 @@ class MorningBriefing:
         workflow_store: WorkflowStore,
         person_store: PersonStore,
         settings: Settings,
+        news_store=None,
     ) -> None:
         self._notifier = notifier
         self._push_log = push_log_store
@@ -27,10 +30,13 @@ class MorningBriefing:
         self._workflows = workflow_store
         self._persons = person_store
         self._settings = settings
+        self._news = news_store
         self._log = get_logger(__name__)
         follow_up_cfg = settings.contacts_config.get("follow_up", {})
         self._stale_days = int(follow_up_cfg.get("stale_days", 7))
         self._max_nudges = int(follow_up_cfg.get("max_nudges", 3))
+        news_cfg = settings.config.get("news", {})
+        self._briefing_news_limit = int(news_cfg.get("briefing_limit", 5))
 
     async def run(self) -> None:
         set_flow_context("morning_briefing")
@@ -78,6 +84,14 @@ class MorningBriefing:
                 lines.append(
                     f"  • {nudge.name} — last mentioned {days} day{'s' if days != 1 else ''} ago"
                 )
+
+        if self._news is not None:
+            headlines = await self._news.get_recent(limit=self._briefing_news_limit, tags=["global"])
+            if headlines:
+                lines.append("")
+                lines.append("📰 Headlines:")
+                for article in headlines:
+                    lines.append(f"  • {article.title} ({article.source_key})")
 
         await self._notifier.push("\n".join(lines))
         self._log.info("briefing_sent", unreviewed=unreviewed)

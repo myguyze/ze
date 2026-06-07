@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import AsyncIterator
 
+import ze_news.agents.tools  # noqa: F401 — registers @tool decorators
+
 from ze_core.capability.types import Mode
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.base_agent import BaseAgent
