@@ -128,6 +128,7 @@ User message (Telegram Bot API)
 | 23    | Goal engine v2 — milestone context, execution traces, adaptive replanning, gate narrative.  | ✅ Done |
 | 24    | Goal collaboration — goal-aware routing, steering, retrospective, weekly narrative.         | ✅ Done |
 | 25    | Proactive goal suggestions — weekly LLM-generated goal proposals via Telegram.              | ✅ Done |
+| 26    | Stuck goal detection — idle milestone/gate alerts, Telegram recovery actions.               | ✅ Done |
 
 ## Spec Index
 
@@ -169,6 +170,7 @@ User message (Telegram Bot API)
 | `31-goal-engine-v2.md` | Milestone context, traces, replanning, gate narrative | 23 |
 | `32-goal-collaboration.md` | Goal-aware routing, steering, retrospective, weekly narrative | 24 |
 | `33-goal-suggestions.md` | Proactive weekly goal suggestions via Telegram | 25 |
+| `34-stuck-goal-detection.md` | Idle milestone/gate detection, stuck alerts, recovery callbacks | 26 |
 
 ### Ze Core specs (`core/`)
 

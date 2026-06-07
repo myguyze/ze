@@ -2,8 +2,8 @@
 
 > **Package:** `ze_personal` (store, types), `ze` (job, Telegram callbacks)
 > **Phase:** 26
-> **Status:** Pending
-> **Depends on:** Phase 19 (28-goal-engine.md), Phase 23 (31-goal-engine-v2.md), Phase 24 (32-goal-collaboration.md)
+> **Status:** Done
+> **Depends on:** Phase 19 ([28-goal-engine.md](28-goal-engine.md)), Phase 23 ([31-goal-engine-v2.md](31-goal-engine-v2.md)), Phase 24 ([32-goal-collaboration.md](32-goal-collaboration.md))
 
 ---
 
@@ -11,12 +11,12 @@
 
 | Feature | Status |
 |---------|--------|
-| `StuckGoal` type | 🔲 Pending |
-| `GoalStore.list_stuck()` + `mark_stuck_alerted()` | 🔲 Pending |
-| Migration: `last_stuck_alert_at` on `goals` | 🔲 Pending |
-| `StuckGoalJob` (weekly cron, no LLM) | 🔲 Pending |
-| Telegram callback handler (`goal_stuck:*`) | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `StuckGoal` type | ✅ Done |
+| `GoalStore.list_stuck()` + `mark_stuck_alerted()` | ✅ Done |
+| Migration: `last_stuck_alert_at` on `goals` | ✅ Done |
+| `StuckGoalJob` (weekly cron, no LLM) | ✅ Done |
+| Telegram callback handler (`goal_stuck:*`) | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

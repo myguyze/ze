@@ -219,3 +219,5 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 22 | Harness adoption — tool-call cap hook, research delegation, `/cancel` command | Done |
 | 23 | Goal engine v2 — milestone context injection, execution traces, adaptive replanning, enriched gate narrative | Done |
 | 24 | Goal collaboration — goal-aware routing, conversational steering, post-goal retrospective, weekly narrative job | Done |
+| 25 | Proactive goal suggestions — weekly LLM-generated goal proposals via Telegram | Done |
+| 26 | Stuck goal detection — idle milestone/gate alerts, Telegram recovery actions | Done |
