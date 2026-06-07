@@ -2,9 +2,9 @@
 
 # Ze
 
-**A self-hosted personal AI assistant that works like a trustworthy human one — not a chatbot.**
+**Not a chatbot. An autonomous AI that works for you.**
 
-You talk to it through a native Flutter app. It routes every message to the right specialist, remembers you across conversations, asks before doing anything risky, runs multi-week goals on its own, and reaches out when there's something worth saying. All inference goes through [OpenRouter](https://openrouter.ai) — bring your own keys, run it yourself, own your data.
+Ze doesn't wait to be asked. It knows you, acts on your behalf, and operates in the background for days or weeks at a time — researching, planning, executing, and checking in only when it matters. Self-hosted, single-user, yours entirely.
 
 <p>
   <a href="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml"><img src="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
