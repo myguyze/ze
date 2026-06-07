@@ -15,8 +15,9 @@ Personal-assistant domain layer for Ze. Implements the user-facing features that
 
 ## Dependencies
 
-```
-ze-personal → ze-core
+```mermaid
+graph LR
+    personal[ze-personal] --> core[ze-core]
 ```
 
 ## Extension point

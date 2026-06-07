@@ -20,8 +20,16 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 
 ## Dependencies
 
-```
-ze-api → ze-core, ze-personal, ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components
+```mermaid
+graph LR
+    api[ze-api] --> core[ze-core]
+    api --> personal[ze-personal]
+    api --> calendar[ze-calendar]
+    api --> google[ze-google]
+    api --> browser[ze-browser]
+    api --> news[ze-news]
+    api --> notif[ze-notifications]
+    api --> comp[ze-components]
 ```
 
 ## Running

@@ -14,8 +14,11 @@ Calendar, reminders, and timezone domain for Ze. Provides the `CalendarAgent`, `
 
 ## Dependencies
 
-```
-ze-calendar → ze-core, ze-google, ze-personal
+```mermaid
+graph LR
+    calendar[ze-calendar] --> core[ze-core]
+    calendar --> google[ze-google]
+    calendar --> personal[ze-personal]
 ```
 
 ## Extension point

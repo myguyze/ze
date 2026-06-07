@@ -247,17 +247,33 @@ ze/
 └── Makefile
 ```
 
-```
-ze-browser      (no ze deps)
-ze-core         (no ze deps)
-ze-notifications(no ze deps)
-ze-components   (no ze deps)
-ze-google       (no ze deps)
-ze-personal   → ze-core
-ze-calendar   → ze-core, ze-google, ze-personal
-ze-news       → ze-core
-ze-api        → ze-core, ze-personal, ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components
-ze-app          (Flutter — connects to ze-api over WebSocket)
+```mermaid
+graph TD
+    browser[ze-browser]
+    core[ze-core]
+    notif[ze-notifications]
+    comp[ze-components]
+    google[ze-google]
+    personal[ze-personal]
+    calendar[ze-calendar]
+    news[ze-news]
+    api[ze-api]
+    app[ze-app<br/><i>Flutter</i>]
+
+    personal --> core
+    calendar --> core
+    calendar --> google
+    calendar --> personal
+    news --> core
+    api --> core
+    api --> personal
+    api --> calendar
+    api --> google
+    api --> browser
+    api --> news
+    api --> notif
+    api --> comp
+    app -->|WebSocket| api
 ```
 
 `ze-core` knows nothing about the personal-assistant domain; `ze-personal`, `ze-calendar`, and `ze-news` contribute agents, graph nodes, and scheduled jobs through the `ZePlugin` ABC without the core ever depending on them. See [docs/package-architecture.md](docs/package-architecture.md).

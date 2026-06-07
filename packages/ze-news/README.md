@@ -17,8 +17,9 @@ News fetching and personalised headlines for Ze. Fetches articles from curated R
 
 ## Dependencies
 
-```
-ze-news → ze-core
+```mermaid
+graph LR
+    news[ze-news] --> core[ze-core]
 ```
 
 ## Extension point
