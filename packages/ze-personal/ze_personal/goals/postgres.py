@@ -31,6 +31,7 @@ def _goal_from_row(row) -> Goal:
         status=GoalStatus(row["status"]),
         type=row["type"],
         learnings=row["learnings"],
+        retrospective_text=row["retrospective_text"] if "retrospective_text" in row.keys() else None,
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -398,3 +399,36 @@ class PostgresGoalStore:
                 goal_id,
             )
         return row["replan_count"] if row else 0
+
+    # ── Retrospectives ─────────────────────────────────────────────────────────
+
+    async def save_retrospective(self, goal_id: UUID, text: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE goals SET retrospective_text = $2, updated_at = NOW() WHERE id = $1",
+                goal_id,
+                text,
+            )
+
+    async def list_retrospectives(self, days: int) -> list[Goal]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, title, objective, success_condition, time_horizon, status,
+                       type, learnings, retrospective_text, created_at, updated_at
+                FROM goals
+                WHERE status = 'completed'
+                  AND retrospective_text IS NOT NULL
+                  AND updated_at >= now() - ($1 || ' days')::interval
+                ORDER BY updated_at DESC
+                """,
+                str(days),
+            )
+        return [_goal_from_row(r) for r in rows]
+
+    async def list_active_goal_titles(self) -> list[str]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT title FROM goals WHERE status IN ('active', 'planning', 'awaiting_gate', 'paused')"
+            )
+        return [r["title"] for r in rows]

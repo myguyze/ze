@@ -60,6 +60,7 @@ class Goal:
     type: str = "custom"
     time_horizon: str = ""
     learnings: str = ""
+    retrospective_text: str | None = None
     id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

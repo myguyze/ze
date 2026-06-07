@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -100,3 +101,13 @@ class GoalStore(Protocol):
     async def reset_consecutive_failures(self, goal_id: UUID) -> None: ...
 
     async def increment_replan_count(self, goal_id: UUID) -> int: ...
+
+    # ── Retrospectives ─────────────────────────────────────────────────────────
+
+    async def save_retrospective(self, goal_id: UUID, text: str) -> None: ...
+
+    async def list_retrospectives(self, days: int) -> list[Goal]:
+        """Return completed goals with retrospective_text set, within the last `days` days."""
+        ...
+
+    async def list_active_goal_titles(self) -> list[str]: ...

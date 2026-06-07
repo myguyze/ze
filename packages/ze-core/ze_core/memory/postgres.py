@@ -157,6 +157,48 @@ class PostgresMemoryStore:
             )
         return _profile_from_row(row)
 
+    async def list_recent_facts(self, days: int, limit: int) -> list[UserFact]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, key, value, agent, confidence, reviewed, contradicted, updated_at
+                FROM user_facts
+                WHERE contradicted = false
+                  AND updated_at >= now() - ($1 || ' days')::interval
+                ORDER BY confidence DESC, updated_at DESC
+                LIMIT $2
+                """,
+                str(days),
+                limit,
+            )
+        return [_fact_from_row(r) for r in rows]
+
+    async def list_recent_episodes(self, days: int, limit: int) -> list[Episode]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, agent, prompt, response, summary, is_archive, created_at
+                FROM episodes
+                WHERE created_at >= now() - ($1 || ' days')::interval
+                ORDER BY created_at DESC
+                LIMIT $2
+                """,
+                str(days),
+                limit,
+            )
+        return [
+            Episode(
+                agent=r["agent"],
+                prompt=r["prompt"],
+                response=r["response"],
+                summary=r["summary"],
+                is_archive=r["is_archive"],
+                id=r["id"],
+                created_at=r["created_at"],
+            )
+            for r in rows
+        ]
+
     # ── internal ──────────────────────────────────────────────────────────────
 
     async def _write_fact_with_contradiction_check(self, fact: UserFact) -> None:

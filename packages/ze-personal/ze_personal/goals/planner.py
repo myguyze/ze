@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import json
-from uuid import UUID
+import re
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 from ze_core import defaults
 from ze_core.errors import GoalPlanError
-from ze_personal.goals.types import Goal, GateStatus, GoalLearning, Milestone, MilestoneStatus, VerificationGate
+from ze_core.memory.types import Episode, UserFact
+from ze_personal.goals.types import (
+    Goal,
+    GateStatus,
+    GoalLearning,
+    GoalStatus,
+    GoalSuggestion,
+    Milestone,
+    MilestoneStatus,
+    SuggestionStatus,
+    VerificationGate,
+)
 from ze_core.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
 
@@ -100,6 +113,31 @@ Output only the narrative — no headers, no bullet points.\
 """
 
 _SENTINEL_GOAL_ID = UUID("00000000-0000-0000-0000-000000000000")
+
+_SUGGESTION_SYSTEM = """\
+You are analysing a user's memory, past goals, and retrospectives to identify one specific,
+high-value goal they haven't yet set.
+
+CONSTRAINTS:
+- You must cite a concrete source: a specific retrospective, a cluster of related facts, or a
+  repeated theme across multiple episodes. Vague observations ("the user seems interested in…")
+  are not acceptable.
+- The proposed goal must not duplicate any active goal listed below.
+- If you cannot identify a clear, grounded opportunity, respond with {"suggestion": null}.
+
+Respond ONLY in JSON — no explanation, no markdown:
+{
+  "suggestion": {
+    "title": "...",
+    "objective": "...",
+    "rationale": "...",
+    "source_type": "retrospective" | "memory_facts" | "weekly_narrative",
+    "source_ref": "..."
+  } | null
+}\
+"""
+
+_PROPER_NOUN_RE = re.compile(r"[A-Z][a-z]+|\d{4}|\bQ[1-4]\b")
 
 
 def _parse_plan(raw: str, goal_id: UUID) -> tuple[list[Milestone], list[VerificationGate]]:
@@ -296,4 +334,92 @@ class GoalPlanner:
             messages=[{"role": "user", "content": prompt}],
             model=self._model,
             system="You extract one-sentence learnings from task outputs. Output only the sentence — no quotes, no explanation.",
+        )
+
+    async def generate_suggestion(
+        self,
+        memory_facts: list[UserFact],
+        episodes: list[Episode],
+        retrospectives: list[Goal],
+        active_goal_titles: list[str],
+    ) -> GoalSuggestion | None:
+        """
+        Synthesise signal into a goal suggestion. Returns None if signal is insufficient
+        or the confidence gate rejects the LLM output.
+        """
+        facts_text = "\n".join(f"  - [{f.key}] {f.value}" for f in memory_facts) or "  (none)"
+        episodes_text = "\n".join(
+            f"  - [{e.created_at.strftime('%Y-%m-%d') if e.created_at else '?'}] "
+            f"{(e.summary or e.response[:200])}"
+            for e in episodes
+        ) or "  (none)"
+        retros_text = "\n".join(
+            f"  - Goal '{g.title}': {(g.retrospective_text or '')[:400]}"
+            for g in retrospectives
+            if g.retrospective_text
+        ) or "  (none)"
+        active_text = "\n".join(f"  - {t}" for t in active_goal_titles) or "  (none)"
+
+        prompt = (
+            f"ACTIVE GOALS (do not duplicate):\n{active_text}\n\n"
+            f"RECENT SIGNAL:\n"
+            f"Retrospectives (last 60 days):\n{retros_text}\n\n"
+            f"Memory facts (last 90 days, highest-confidence):\n{facts_text}\n\n"
+            f"Recent episodes (last 30 days):\n{episodes_text}"
+        )
+
+        try:
+            raw = await self._client.complete(
+                messages=[{"role": "user", "content": prompt}],
+                model=self._model,
+                system=_SUGGESTION_SYSTEM,
+            )
+            data = json.loads(raw)
+            s = data.get("suggestion")
+            if not s:
+                return None
+
+            title = s["title"]
+            objective = s["objective"]
+            rationale = s["rationale"]
+            source_type = s["source_type"]
+            source_ref = s["source_ref"]
+        except Exception as exc:
+            log.warning("goal_suggestion_llm_failed", error=str(exc))
+            return None
+
+        # Confidence gate
+        if len(rationale.split()) < 15:
+            log.info("goal_suggestion_gate_rejected", reason="rationale_too_short")
+            return None
+        if not _PROPER_NOUN_RE.search(rationale):
+            log.info("goal_suggestion_gate_rejected", reason="rationale_generic")
+            return None
+        if len(objective.split()) < 10:
+            log.info("goal_suggestion_gate_rejected", reason="objective_too_short")
+            return None
+        title_lower = title.lower()
+        if any(title_lower in t.lower() or t.lower() in title_lower for t in active_goal_titles):
+            log.info("goal_suggestion_gate_rejected", reason="duplicates_active_goal")
+            return None
+
+        return GoalSuggestion(
+            id=uuid4(),
+            title=title,
+            objective=objective,
+            rationale=rationale,
+            source_type=source_type,
+            source_ref=source_ref,
+            status=SuggestionStatus.PENDING,
+            suggested_at=datetime.now(timezone.utc),
+        )
+
+    def create_goal_from_suggestion(self, suggestion: GoalSuggestion) -> Goal:
+        """Pure mapping — no LLM call. Maps suggestion fields into an active Goal."""
+        return Goal(
+            title=suggestion.title,
+            objective=suggestion.objective,
+            success_condition=suggestion.objective,
+            status=GoalStatus.ACTIVE,
+            type="suggested",
         )
