@@ -267,9 +267,9 @@ class Container:
                 log.info("container_auto_migrate_done")
 
         # 3. Load embedder (sentence_transformers)
-        from sentence_transformers import SentenceTransformer  # type: ignore[import]
+        from ze_core.embeddings import get_embedder
 
-        embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        embedder = get_embedder()
 
         # 4. Build OpenRouterClient
         from ze_core.openrouter.client import OpenRouterClient
