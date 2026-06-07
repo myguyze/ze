@@ -16,6 +16,7 @@ from ze_personal.goals.types import (
     GoalSuggestion,
     Milestone,
     MilestoneStatus,
+    PriorMilestoneOutput,
     SuggestionStatus,
     VerificationGate,
 )
@@ -38,7 +39,8 @@ Output ONLY a JSON object with two keys — no explanation, no markdown:
       "description": "Detailed task instruction for the agent",
       "agent_hint": "research | companion | null",
       "intent": "read | create | update | delete | execute | reason",
-      "sequence": 1
+      "sequence": 1,
+      "reuse_hint": ""
     }
   ],
   "gates": [
@@ -61,7 +63,18 @@ Intent guidelines:
   modify existing items → "update"
   remove items → "delete"
   run or trigger an external action → "execute"
-  reason, summarise, or plan → "reason"\
+  reason, summarise, or plan → "reason"
+
+When a PRIOR WORK FROM OTHER GOALS section is present:
+- If a prior milestone's output is directly relevant to a planned milestone (same research
+  domain, same data source, same type of document), set "reuse_hint" on that milestone.
+- Hint format: "Prior goal '[title]' already produced [brief description] ([N] days ago).
+  Retrieve trace before re-running — reuse if still current."
+- If the prior work is likely stale for this domain (job listings, company headcounts,
+  market prices), add: "Note: may be outdated."
+- Only set reuse_hint when there is clear, specific overlap. Do not force hints for vague
+  thematic similarity.
+- If nothing is reusable, omit reuse_hint or set it to null.\
 """
 
 
@@ -159,6 +172,7 @@ def _parse_plan(raw: str, goal_id: UUID) -> tuple[list[Milestone], list[Verifica
                 agent_hint=item.get("agent_hint"),
                 intent=item.get("intent", "execute"),
                 status=MilestoneStatus.PENDING,
+                reuse_hint=(item.get("reuse_hint") or "")[:300],
             )
             for item in raw_milestones
         ]
@@ -190,6 +204,7 @@ class GoalPlanner:
     async def plan(
         self,
         goal: Goal,
+        prior_work: list[PriorMilestoneOutput] | None = None,
     ) -> tuple[list[Milestone], list[VerificationGate]]:
         """Decompose a goal into milestones and gates. Returns unsaved instances."""
         prompt = (
@@ -200,6 +215,13 @@ class GoalPlanner:
         )
         if goal.learnings:
             prompt += f"\nLearnings so far:\n{goal.learnings}"
+        if prior_work:
+            lines = [
+                f"  - \"{p.goal_title}\" → \"{p.milestone_title}\" "
+                f"({p.completed_days_ago}d ago): {p.output_snippet}"
+                for p in prior_work
+            ]
+            prompt += "\n\nPRIOR WORK FROM OTHER GOALS:\n" + "\n".join(lines)
 
         raw = await self._client.complete(
             messages=[{"role": "user", "content": prompt}],
@@ -218,6 +240,7 @@ class GoalPlanner:
         completed_milestones: list[Milestone],
         feedback: str,
         next_sequence: int,
+        prior_work: list[PriorMilestoneOutput] | None = None,
     ) -> tuple[list[Milestone], list[VerificationGate]]:
         """Re-plan remaining milestones after a redirect gate, incorporating user feedback."""
         completed_summary = "\n".join(
@@ -233,6 +256,13 @@ class GoalPlanner:
             f"User redirect instructions: {feedback}\n\n"
             f"Generate only the REMAINING milestones starting at sequence {next_sequence}."
         )
+        if prior_work:
+            lines = [
+                f"  - \"{p.goal_title}\" → \"{p.milestone_title}\" "
+                f"({p.completed_days_ago}d ago): {p.output_snippet}"
+                for p in prior_work
+            ]
+            prompt += "\n\nPRIOR WORK FROM OTHER GOALS:\n" + "\n".join(lines)
 
         raw = await self._client.complete(
             messages=[{"role": "user", "content": prompt}],
