@@ -68,6 +68,7 @@ explicitly deferred before implementation begins.
 | 38 | [News Personalization](phases/38-news-personalization.md) | 🔲 Pending |
 | 39 | [News Credibility](phases/39-news-credibility.md) | 🔲 Pending |
 | 40 | [Native UI Foundation](phases/40-native-ui-foundation.md) | 🔲 Pending |
+| 41 | [Component Descriptors](phases/41-component-descriptors.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
