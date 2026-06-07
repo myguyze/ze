@@ -102,7 +102,7 @@ class TestToolSpecLlmSchema:
         async def schema_tool(query: str, count: int, active: bool, ratio: float) -> str: ...
 
         schema = get_tool("schema_tool").llm_schema()
-        props = schema["parameters"]["properties"]
+        props = schema["function"]["parameters"]["properties"]
         assert props["query"] == {"type": "string"}
         assert props["count"] == {"type": "integer"}
         assert props["active"] == {"type": "boolean"}
@@ -116,7 +116,7 @@ class TestToolSpecLlmSchema:
         async def mixed_tool(query: str, client: _InternalClient) -> str: ...
 
         schema = get_tool("mixed_tool").llm_schema()
-        props = schema["parameters"]["properties"]
+        props = schema["function"]["parameters"]["properties"]
         assert "query" in props
         assert "client" not in props
 
@@ -125,20 +125,21 @@ class TestToolSpecLlmSchema:
         async def optional_tool(query: str, limit: int = 10) -> str: ...
 
         schema = get_tool("optional_tool").llm_schema()
-        assert "query" in schema["parameters"]["required"]
-        assert "limit" not in schema["parameters"]["required"]
+        assert "query" in schema["function"]["parameters"]["required"]
+        assert "limit" not in schema["function"]["parameters"]["required"]
 
     def test_schema_name_and_description(self):
         @tool(access=ToolAccess.WRITE, description="send an email")
         async def send_email(to: str, body: str) -> str: ...
 
         schema = get_tool("send_email").llm_schema()
-        assert schema["name"] == "send_email"
-        assert schema["description"] == "send an email"
+        assert schema["type"] == "function"
+        assert schema["function"]["name"] == "send_email"
+        assert schema["function"]["description"] == "send an email"
 
     def test_schema_parameters_type_is_object(self):
         @tool(access=ToolAccess.READ, description="t")
         async def obj_tool(q: str) -> str: ...
 
         schema = get_tool("obj_tool").llm_schema()
-        assert schema["parameters"]["type"] == "object"
+        assert schema["function"]["parameters"]["type"] == "object"

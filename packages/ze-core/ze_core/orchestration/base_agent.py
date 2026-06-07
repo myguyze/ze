@@ -21,17 +21,7 @@ from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
-    "openrouter:web_search": {
-        "name": "openrouter:web_search",
-        "description": "Search the web for current, up-to-date information.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string"},
-            },
-            "required": ["query"],
-        },
-    },
+    "openrouter:web_search": {"type": "openrouter:web_search"},
 }
 
 if TYPE_CHECKING:

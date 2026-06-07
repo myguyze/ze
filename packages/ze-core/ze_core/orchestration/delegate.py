@@ -22,30 +22,33 @@ DELEGATE_TOOL_NAME = "delegate_to_agent"
 _DELEGATE_MAX_DEPTH = 2
 
 DELEGATE_TOOL_SCHEMA: dict = {
-    "name": DELEGATE_TOOL_NAME,
-    "description": (
-        "Delegate a subtask to a specialised agent and return its complete response. "
-        "Use when the current task is better handled by a different agent — for example, "
-        "delegating calendar lookups to the calendar agent while the research agent "
-        "focuses on web search."
-    ),
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "agent_name": {
-                "type": "string",
-                "description": "Name of the agent to delegate to.",
+    "type": "function",
+    "function": {
+        "name": DELEGATE_TOOL_NAME,
+        "description": (
+            "Delegate a subtask to a specialised agent and return its complete response. "
+            "Use when the current task is better handled by a different agent — for example, "
+            "delegating calendar lookups to the calendar agent while the research agent "
+            "focuses on web search."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "agent_name": {
+                    "type": "string",
+                    "description": "Name of the agent to delegate to.",
+                },
+                "task": {
+                    "type": "string",
+                    "description": "The subtask to hand off.",
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Optional extra context to prepend to the task.",
+                },
             },
-            "task": {
-                "type": "string",
-                "description": "The subtask to hand off.",
-            },
-            "context": {
-                "type": "string",
-                "description": "Optional extra context to prepend to the task.",
-            },
+            "required": ["agent_name", "task"],
         },
-        "required": ["agent_name", "task"],
     },
 }
 

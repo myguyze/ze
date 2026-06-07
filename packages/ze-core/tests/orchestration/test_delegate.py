@@ -71,19 +71,19 @@ def _make_agent(agent_name: str, response: str = "agent response") -> BaseAgent:
 
 class TestDelegateToolSchema:
     def test_schema_has_correct_name(self):
-        assert DELEGATE_TOOL_SCHEMA["name"] == DELEGATE_TOOL_NAME
+        assert DELEGATE_TOOL_SCHEMA["function"]["name"] == DELEGATE_TOOL_NAME
 
     def test_schema_requires_agent_name_and_task(self):
-        required = DELEGATE_TOOL_SCHEMA["parameters"]["required"]
+        required = DELEGATE_TOOL_SCHEMA["function"]["parameters"]["required"]
         assert "agent_name" in required
         assert "task" in required
 
     def test_schema_context_is_optional(self):
-        required = DELEGATE_TOOL_SCHEMA["parameters"]["required"]
+        required = DELEGATE_TOOL_SCHEMA["function"]["parameters"]["required"]
         assert "context" not in required
 
     def test_schema_has_description(self):
-        assert len(DELEGATE_TOOL_SCHEMA["description"]) > 10
+        assert len(DELEGATE_TOOL_SCHEMA["function"]["description"]) > 10
 
 
 # ── run_delegate ──────────────────────────────────────────────────────────────
