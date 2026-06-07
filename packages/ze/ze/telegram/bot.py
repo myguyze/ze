@@ -44,6 +44,7 @@ class ZeBot:
         contact_channel_store=None,
         goal_store=None,
         goal_executor=None,
+        goal_suggestion_store=None,
         interface: TelegramAppInterface | None = None,
     ) -> None:
         self._bot = bot
@@ -67,6 +68,7 @@ class ZeBot:
         self._contact_channel_store = contact_channel_store
         self._goal_store = goal_store
         self._goal_executor = goal_executor
+        self._goal_suggestion_store = goal_suggestion_store
 
     def bind_container(self, container) -> None:
         """Attach the app container after construction (avoids a circular import)."""

@@ -40,6 +40,8 @@ from ze_core.progress import ProgressTranslations
 from ze.reminders.store import ReminderStore, fire_reminder
 from ze.jobs.briefing import MorningBriefing
 from ze.jobs.goal_narrative import GoalNarrativeJob
+from ze.jobs.goal_suggestion import GoalSuggestionJob
+from ze_personal.goals.suggestion_store import GoalSuggestionStore
 from ze_core.proactive.push_log_store import PushLogStore
 from ze.jobs.insights import InsightEngine
 from ze_core.proactive.notifier import ProactiveNotifier
@@ -91,6 +93,8 @@ class ZeContainer(CoreContainer):
     calendar_reminders: CalendarReminderJob
     insight_engine: InsightEngine
     goal_narrative: GoalNarrativeJob
+    goal_suggestion: GoalSuggestionJob
+    goal_suggestion_store: GoalSuggestionStore
     browser_client: BrowserClient
     channel_registry: ChannelRegistry
     contact_channel_store: ContactChannelStore
@@ -518,6 +522,19 @@ async def build_container(settings: Settings) -> ZeContainer:
         proactive_scheduler.register(goal_narrative, cron=goal_narrative_cfg.get("cron", "0 18 * * 0"))
         log.info("goal_narrative_scheduled", cron=goal_narrative_cfg.get("cron", "0 18 * * 0"))
 
+    goal_suggestion_store = GoalSuggestionStore(pool=pool)
+    goal_suggestion = GoalSuggestionJob(
+        notifier=notifier,
+        goal_store=goal_store,
+        suggestion_store=goal_suggestion_store,
+        planner=goal_planner,
+        memory_store=memory_store,
+    )
+    goal_suggestion_cfg = proactive_cfg.get("goal_suggestion", {})
+    if goal_suggestion_cfg.get("enabled", True):
+        proactive_scheduler.register(goal_suggestion, cron=goal_suggestion_cfg.get("cron", "0 19 * * 0"))
+        log.info("goal_suggestion_scheduled", cron=goal_suggestion_cfg.get("cron", "0 19 * * 0"))
+
     await proactive_scheduler.start()
 
     if settings.telegram_bot_token and settings.public_url:
@@ -551,6 +568,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
+        goal_suggestion_store=goal_suggestion_store,
         interface=interface,
     )
 
@@ -580,6 +598,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         calendar_reminders=calendar_reminders,
         insight_engine=insight_engine,
         goal_narrative=goal_narrative,
+        goal_suggestion=goal_suggestion,
+        goal_suggestion_store=goal_suggestion_store,
         browser_client=browser_client,
         channel_registry=channel_registry,
         contact_channel_store=contact_channel_store,

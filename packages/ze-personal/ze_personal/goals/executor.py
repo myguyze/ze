@@ -331,6 +331,10 @@ class GoalExecutor:
         except Exception as exc:
             log.warning("retrospective_failed", error=str(exc))
             narrative = goal.success_condition
+        try:
+            await self._store.save_retrospective(goal_id, narrative)
+        except Exception as exc:
+            log.warning("retrospective_save_failed", error=str(exc))
         await self._push(Notification(
             content=(
                 f"<b>{_html.escape(goal.title)}</b> — completed\n\n"

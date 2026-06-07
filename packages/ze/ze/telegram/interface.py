@@ -106,11 +106,10 @@ class TelegramAppInterface:
 def _actions_keyboard(actions: list[Action]) -> InlineKeyboardMarkup | None:
     if not actions:
         return None
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=a.label, callback_data=a.payload) for a in actions]
-        ]
-    )
+    rows: dict[int, list[InlineKeyboardButton]] = {}
+    for a in actions:
+        rows.setdefault(a.row, []).append(InlineKeyboardButton(text=a.label, callback_data=a.payload))
+    return InlineKeyboardMarkup(inline_keyboard=[rows[k] for k in sorted(rows)])
 
 
 def _split_plain(text: str, limit: int = 4096) -> list[str]:

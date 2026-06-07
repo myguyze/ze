@@ -49,6 +49,7 @@ class Action:
     """A labelled button the user can tap in a notification."""
     label: str
     payload: str  # opaque string passed back by the transport layer
+    row: int = 0  # buttons sharing the same row value appear in the same keyboard row
 
 
 @dataclass
