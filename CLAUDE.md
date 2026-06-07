@@ -35,15 +35,23 @@ ze/                           # monorepo root
 │   │       ├── persona/      # PostgresPersonaStore, identity builder, types
 │   │       ├── workflow/     # WorkflowStore, planner, scheduler, types
 │   │       └── plugin.py     # PersonalPlugin(ZePlugin) — wires domain services into graphs
-│   ├── ze/                   # Ze application (Telegram, Google, jobs, reminders)
-│   │   ├── ze/
-│   │   │   ├── agents/       # @agent classes + tools; imports from ze_core + ze_personal
-│   │   │   ├── api/          # FastAPI app, Telegram webhook, REST routes
-│   │   │   ├── google/       # Google OAuth2 (Calendar + Gmail), GmailChannel
-│   │   │   ├── jobs/         # Proactive cron jobs: briefing, insights, calendar sync, contacts
-│   │   │   ├── reminders/    # ReminderStore, CalendarReminderService, CalendarReminderStore
-│   │   │   ├── telegram/     # ZeBot, TelegramAppInterface (ze_core AppInterface), commands
-│   │   │   ├── container.py  # ZeContainer (subclasses ze_core Container, registers PersonalPlugin)
+│   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
+│   │   └── ze_google/
+│   │       └── auth.py       # GoogleCredentials, SCOPES, service client factories
+│   ├── ze-calendar/          # Calendar, reminders, and timezone domain (ZePlugin)
+│   │   └── ze_calendar/
+│   │       ├── agents/       # CalendarAgent, RemindersAgent + tools
+│   │       ├── reminders/    # ReminderStore, CalendarReminderService, CalendarReminderStore
+│   │       ├── jobs/         # CalendarReminderJob
+│   │       ├── timezone/     # TimezoneService, world_time @tool
+│   │       └── plugin.py     # CalendarPlugin(ZePlugin) — registers agents
+│   ├── ze-api/               # Deployment unit — HTTP/WebSocket API, Telegram bot, wires all plugins
+│   │   ├── ze_api/
+│   │   │   ├── agents/       # email, companion, research, prospecting agents + bootstrap
+│   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
+│   │   │   ├── google/       # GmailChannel (imports GoogleCredentials from ze_google)
+│   │   │   ├── jobs/         # Proactive cron jobs: briefing, insights, contacts, goal jobs
+│   │   │   ├── container.py  # ZeContainer (registers PersonalPlugin + CalendarPlugin)
 │   │   │   └── settings.py   # Pydantic Settings
 │   │   ├── config/
 │   │   │   ├── config.yaml   # Models, contacts, proactive schedules (secrets in .env)
@@ -59,10 +67,12 @@ ze/                           # monorepo root
 ### Package dependency graph
 
 ```
-ze-browser  (no ze deps)
-ze-core     (no ze deps)
+ze-browser    (no ze deps)
+ze-core       (no ze deps)
 ze-personal → ze-core
-ze          → ze-core, ze-personal, ze-browser
+ze-google     (no ze deps)
+ze-calendar → ze-core, ze-google, ze-personal
+ze-api      → ze-core, ze-personal, ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components
 ```
 
 ## Essential commands
@@ -114,7 +124,8 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
 - **Comments**: Default to none. Only add a comment when the *why* is non-obvious.
 - **Imports**: Infrastructure types from `ze_core.*` (orchestration, routing, memory,
   telemetry). Domain types from `ze_personal.*` (contacts, goals, workflow, persona).
-  Ze-specific behaviour (Telegram, Google, jobs) stays in `ze/`.
+  Calendar/reminder domain from `ze_calendar.*`. Google credentials from `ze_google.*`.
+  Ze-specific behaviour (Telegram, API, jobs) stays in `ze_api/`.
 
 ### Testing
 
@@ -166,10 +177,10 @@ Hot-reloaded on SIGHUP without restart.
 ## Adding a new agent
 
 1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`; see `specs/README.md` for the index).
-2. Create `ze/agents/<name>/agent.py` — decorate with `@agent` from `ze_core.orchestration.registry`, subclass `BaseAgent` from `ze_core.orchestration.base_agent`. Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class attributes. Define `_AGENT_INSTRUCTIONS` at the top.
-3. Add `ze/agents/<name>/tools.py` if the agent needs Python tools. Use `@tool` from `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search — no Python tool needed.
+2. Create `ze_api/agents/<name>/agent.py` — decorate with `@agent` from `ze_core.orchestration.registry`, subclass `BaseAgent` from `ze_core.orchestration.base_agent`. Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class attributes. Define `_AGENT_INSTRUCTIONS` at the top.
+3. Add `ze_api/agents/<name>/tools.py` if the agent needs Python tools. Use `@tool` from `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search — no Python tool needed.
 4. Write tests in `tests/agents/<name>/`.
-5. Wire the live instance in `ze/container.py` via `register_instance()`.
+5. Wire the live instance in `ze_api/container.py` via `register_instance()`.
 6. Import the tools module at startup so `@tool` registration fires.
 
 See `docs/adding-an-agent.md` for the full authoring guide.
@@ -223,3 +234,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 26 | Stuck goal detection — idle milestone/gate alerts, Telegram recovery actions | Done |
 | 27 | Cross-goal output reuse — prior milestone summaries injected into planner and executor prompts | Done |
 | 28 | Cross-goal learning promotion — generalizable facts extracted from goal learnings and promoted to user memory on completion | Done |
+| 44 | Calendar package split — ze-google (credentials), ze-calendar (agents, reminders, timezone), ze renamed to ze-api | Done |

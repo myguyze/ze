@@ -166,7 +166,7 @@ test-calendar:
 	uv run pytest packages/ze-calendar/tests -q
 
 test-all:
-	uv run pytest $(ZE)/tests $(ZE_CORE)/tests packages/ze-calendar/tests -q
+	uv run pytest $(ZE)/tests $(ZE_CORE)/tests -q && uv run pytest packages/ze-calendar/tests -q
 
 # ── Code generation ───────────────────────────────────────────────────────────
 .PHONY: generate-components

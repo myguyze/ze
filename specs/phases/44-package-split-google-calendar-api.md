@@ -2,7 +2,7 @@
 
 > **Packages:** `ze-google` (new), `ze-calendar` (new), `ze-api` (renamed from `ze`)
 > **Phase:** 44
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 20 ([20-package-reorg.md](20-package-reorg.md))
 
 ---
@@ -11,21 +11,21 @@
 
 | Feature | Status |
 |---------|--------|
-| `ze-google` package scaffold | 🔲 Pending |
-| `GoogleCredentials` moved to `ze-google` | 🔲 Pending |
-| `ze-calendar` package scaffold | 🔲 Pending |
-| `CalendarAgent` + tools moved | 🔲 Pending |
-| `RemindersAgent` + tools moved | 🔲 Pending |
-| `ReminderStore` + `fire_reminder` moved | 🔲 Pending |
-| `CalendarReminderService` + `CalendarReminderStore` moved | 🔲 Pending |
-| `CalendarReminderJob` moved | 🔲 Pending |
-| `CalendarPlugin(ZePlugin)` created | 🔲 Pending |
-| `ze_calendar/timezone/` module (new) | 🔲 Pending |
-| `ze` directory renamed → `ze_api` | 🔲 Pending |
-| `ze-api` package name + pyproject.toml updated | 🔲 Pending |
-| All internal imports updated | 🔲 Pending |
-| Migrations path unchanged | 🔲 Pending |
-| Tests updated + passing | 🔲 Pending |
+| `ze-google` package scaffold | ✅ Done |
+| `GoogleCredentials` moved to `ze-google` | ✅ Done |
+| `ze-calendar` package scaffold | ✅ Done |
+| `CalendarAgent` + tools moved | ✅ Done |
+| `RemindersAgent` + tools moved | ✅ Done |
+| `ReminderStore` + `fire_reminder` moved | ✅ Done |
+| `CalendarReminderService` + `CalendarReminderStore` moved | ✅ Done |
+| `CalendarReminderJob` moved | ✅ Done |
+| `CalendarPlugin(ZePlugin)` created | ✅ Done |
+| `ze_calendar/timezone/` module (new) | ✅ Done |
+| `ze` directory renamed → `ze_api` | ✅ Done |
+| `ze-api` package name + pyproject.toml updated | ✅ Done |
+| All internal imports updated | ✅ Done |
+| Migrations path unchanged | ✅ Done |
+| Tests updated + passing | ✅ Done |
 
 ---
 

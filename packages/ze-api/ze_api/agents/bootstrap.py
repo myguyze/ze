@@ -172,13 +172,18 @@ def reload_agent_modules() -> None:
     import sys
 
     from ze_core.orchestration.registry import _instances, _registry
+    from ze_calendar.plugin import CalendarPlugin
 
     _registry.clear()
     _instances.clear()
     for path in sorted(_AGENTS_DIR.iterdir()):
         if path.is_dir() and (path / "agent.py").exists():
             sys.modules.pop(f"ze_api.agents.{path.name}.agent", None)
+    for module_path in CalendarPlugin().agent_module_paths():
+        sys.modules.pop(module_path, None)
     _import_agent_modules()
+    for module_path in CalendarPlugin().agent_module_paths():
+        importlib.import_module(module_path)
 
 
 def _resolve(cls: type) -> object:
