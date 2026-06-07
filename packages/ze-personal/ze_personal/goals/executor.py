@@ -18,6 +18,7 @@ from ze_personal.goals.types import (
     GateStatus,
     Milestone,
     MilestoneStatus,
+    PriorMilestoneOutput,
 )
 from ze_core.interface.types import Action, Notification
 from ze_core.logging import get_logger
@@ -60,7 +61,7 @@ def _build_milestone_prompt(
     else:
         prior_outputs_block = "(no prior steps)"
 
-    return (
+    prompt = (
         f"[GOAL CONTEXT]\n"
         f"Goal: {goal.title}\n"
         f"Objective: {goal.objective}\n"
@@ -73,6 +74,14 @@ def _build_milestone_prompt(
         f"[YOUR TASK]\n"
         f"{milestone.description}"
     )
+    if milestone.reuse_hint:
+        prompt += f"\n\n[PRIOR WORK FROM OTHER GOALS]\n{milestone.reuse_hint}"
+        log.info(
+            "goal_reuse_hint_used",
+            goal_id=str(milestone.goal_id),
+            milestone_title=milestone.title,
+        )
+    return prompt
 
 
 def _to_traces(milestone: Milestone, tool_calls: list[ToolCall]) -> list[ExecutionTrace]:
@@ -295,9 +304,10 @@ class GoalExecutor:
         completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
         next_seq = max((m.sequence for m in completed), default=0) + 1
 
+        prior_work = await self._fetch_prior_work(gate.goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback, next_seq
+                goal, completed, feedback, next_seq, prior_work=prior_work or None
             )
         except Exception as exc:
             log.warning("replan_failed", error=str(exc))
@@ -344,6 +354,15 @@ class GoalExecutor:
             urgency="high",
         ))
 
+    async def _fetch_prior_work(self, exclude_goal_id: UUID) -> list[PriorMilestoneOutput]:
+        try:
+            return await self._store.list_completed_milestone_summaries(
+                days=90, limit=20, exclude_goal_id=exclude_goal_id,
+            )
+        except Exception as exc:
+            log.warning("goal_prior_work_query_failed", error=str(exc))
+            return []
+
     async def _apply_steer(self, goal_id: UUID, goal: Goal, instruction: str) -> None:
         await self._push(Notification(
             content="Applying your direction — replanning remaining steps...",
@@ -354,9 +373,10 @@ class GoalExecutor:
         completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
         next_seq = max((m.sequence for m in completed), default=0) + 1
 
+        prior_work = await self._fetch_prior_work(goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, instruction, next_seq
+                goal, completed, instruction, next_seq, prior_work=prior_work or None
             )
         except Exception as exc:
             log.warning("steer_replan_failed", goal_id=str(goal_id), error=str(exc))
@@ -444,9 +464,10 @@ class GoalExecutor:
         completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
         next_seq = max((m.sequence for m in completed), default=0) + 1
 
+        prior_work = await self._fetch_prior_work(goal.id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback="", next_seq=next_seq
+                goal, completed, feedback="", next_seq=next_seq, prior_work=prior_work or None
             )
         except Exception as exc:
             log.warning("adaptive_replan_failed", goal_id=str(goal_id), error=str(exc))
