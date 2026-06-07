@@ -53,6 +53,28 @@ You can also manage goals conversationally:
 `GoalAgent` handles create / inspect / pause / resume / abandon. It does **not**
 execute milestones — that is `GoalExecutor`'s job.
 
+### `/goals` command
+
+`/goals` gives a quick at-a-glance view without routing through an agent:
+
+```
+🎯 Goals
+
+🟢 Build a B2B SaaS product
+   ▓▓▓▓░░░░  4/10 milestones (40%)
+   ↳ Next: Set up landing page
+
+⏸ Research new career paths
+   ▓▓▓▓▓▓▓▓  8/10 milestones (80%)
+   ⏳ Gate: Review research findings
+
+✅ Completed (2)
+  • Prospect outreach campaign
+  • Market sizing analysis
+```
+
+Active and awaiting-gate goals show milestone progress and what Ze is working on next. Completed goals are listed at the bottom (most recent 5).
+
 ---
 
 ## Verification gates

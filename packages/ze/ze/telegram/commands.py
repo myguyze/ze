@@ -206,6 +206,73 @@ async def persona_summary(persona_store: "PersonaStore") -> str:
     return "\n".join(lines)
 
 
+_STATUS_EMOJI = {
+    "active":        "🟢",
+    "awaiting_gate": "⏸",
+    "paused":        "⏸",
+    "planning":      "🗂",
+    "completed":     "✅",
+    "abandoned":     "🚫",
+}
+
+_STATUS_ORDER = ["active", "awaiting_gate", "paused", "planning", "completed", "abandoned"]
+
+
+def _milestone_bar(done: int, total: int, width: int = 8) -> str:
+    if total == 0:
+        return "░" * width
+    filled = round(done / total * width)
+    return "▓" * filled + "░" * (width - filled)
+
+
+async def goals_summary(goal_store) -> str:
+    goals = await goal_store.list_all()
+    if not goals:
+        return "No goals yet. Describe a multi-week objective to get started."
+
+    goals = [g for g in goals if g.status != "abandoned"]
+    goals.sort(key=lambda g: _STATUS_ORDER.index(g.status) if g.status in _STATUS_ORDER else 99)
+
+    active_statuses = {"active", "awaiting_gate", "paused", "planning"}
+    active_goals = [g for g in goals if g.status in active_statuses]
+    done_goals   = [g for g in goals if g.status == "completed"]
+
+    lines = [f"🎯 {bold('Goals')}"]
+
+    if active_goals:
+        for goal in active_goals:
+            milestones = await goal_store.list_milestones(goal.id)
+            total = len(milestones)
+            done  = sum(1 for m in milestones if m.status in ("completed", "skipped"))
+            pct   = int(done / total * 100) if total else 0
+            bar   = _milestone_bar(done, total)
+
+            emoji = _STATUS_EMOJI.get(goal.status, "•")
+            lines.append("")
+            lines.append(f"{emoji} {bold(esc(goal.title))}")
+            lines.append(f"   {bar}  {done}/{total} milestones ({pct}%)")
+
+            if goal.status == "awaiting_gate":
+                gate = await goal_store.get_pending_gate(goal.id)
+                if gate:
+                    lines.append(f"   ⏳ Gate: {italic(esc(gate.title))}")
+            elif goal.status in ("active", "planning"):
+                pending = [m for m in milestones if m.status == "pending"]
+                if pending:
+                    lines.append(f"   ↳ Next: {italic(esc(pending[0].title))}")
+    else:
+        lines.append("")
+        lines.append("No active goals.")
+
+    if done_goals:
+        lines.append("")
+        lines.append(bold(f"Completed ({len(done_goals)})"))
+        for goal in done_goals[-5:]:
+            lines.append(f"  • {esc(goal.title)}")
+
+    return "\n".join(lines)
+
+
 def parse_persona_command(text: str) -> tuple[str, list[str]]:
     """Parse '/persona [args...]' → (subcommand, rest).
 

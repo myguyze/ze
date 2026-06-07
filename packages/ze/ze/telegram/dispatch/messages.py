@@ -3,7 +3,7 @@ from __future__ import annotations
 from aiogram.types import Message
 
 from ze.logging import get_logger
-from ze.telegram.commands import costs_summary, memory_summary
+from ze.telegram.commands import costs_summary, goals_summary, memory_summary
 from ze.telegram.context import BotContext
 from ze.telegram.core.delivery import send_html
 from ze.telegram.core.graph import handle_cancel, handle_edit_reply, reset_session
@@ -62,6 +62,11 @@ async def dispatch_message(ctx: BotContext, message: Message) -> None:
 
     if text == "/contacts" or text.startswith("/contacts "):
         await handle_contacts_command(ctx, chat_id, text)
+        return
+
+    if text == "/goals":
+        summary = await goals_summary(ctx.goal_store)
+        await send_html(ctx, chat_id, summary)
         return
 
     ctx.store.mark_active(chat_id)

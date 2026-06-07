@@ -432,6 +432,16 @@ The bot uses aiogram 3.x in webhook mode (production) or long-polling (local dev
 
 Voice notes and photos are supported — see the Multimodal input section below.
 
+**Introspection commands** — handled directly in `dispatch/messages.py` without routing through an agent:
+
+| Command | Output |
+|---|---|
+| `/costs` | Token usage and cost breakdown by agent for the current month |
+| `/memory` | Recent user facts and the synthesised user profile |
+| `/contacts` | Confirmed contacts; `/contacts <query>` for search |
+| `/goals` | Active goals with milestone progress bars and next step; completed goals listed below |
+| `/persona` | Active persona profile and dial values; `/persona <profile>` to switch |
+
 ---
 
 See [docs/package-architecture.md](package-architecture.md) for a full breakdown of the
