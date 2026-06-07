@@ -69,6 +69,16 @@ class Goal:
 
 
 @dataclass
+class PriorMilestoneOutput:
+    goal_id: UUID
+    goal_title: str
+    milestone_id: UUID
+    milestone_title: str
+    output_snippet: str      # first 200 chars of milestone output
+    completed_days_ago: int
+
+
+@dataclass
 class Milestone:
     goal_id: UUID
     title: str
@@ -78,6 +88,7 @@ class Milestone:
     intent: str = "execute"
     status: MilestoneStatus = MilestoneStatus.PENDING
     output: str = ""
+    reuse_hint: str = ""
     id: UUID | None = None
     completed_at: datetime | None = None
     created_at: datetime | None = None
