@@ -568,6 +568,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         contact_channel_store=contact_channel_store,
         goal_store=goal_store,
         goal_executor=goal_executor,
+        goal_planner=goal_planner,
         goal_suggestion_store=goal_suggestion_store,
         interface=interface,
     )

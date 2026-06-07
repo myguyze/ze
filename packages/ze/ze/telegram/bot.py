@@ -4,7 +4,8 @@ from io import BytesIO
 from uuid import UUID
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, ForceReply, Message
+from aiogram.types import CallbackQuery, ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from ze_personal.goals.types import SuggestionStatus
 
 from ze_core.conversation import extract_response, make_graph_input_from_raw_text
 from ze.errors import ImageDownloadError
@@ -44,6 +45,7 @@ class ZeBot:
         contact_channel_store=None,
         goal_store=None,
         goal_executor=None,
+        goal_planner=None,
         goal_suggestion_store=None,
         interface: TelegramAppInterface | None = None,
     ) -> None:
@@ -68,6 +70,7 @@ class ZeBot:
         self._contact_channel_store = contact_channel_store
         self._goal_store = goal_store
         self._goal_executor = goal_executor
+        self._goal_planner = goal_planner
         self._goal_suggestion_store = goal_suggestion_store
 
     def bind_container(self, container) -> None:
@@ -220,6 +223,10 @@ class ZeBot:
 
             if data.startswith("goal_plan:"):
                 await self._handle_goal_plan_callback(chat_id, query)
+                return
+
+            if data.startswith("goal_suggest:"):
+                await self._handle_suggestion_callback(query, data)
                 return
 
             if data.startswith("goal:"):
@@ -579,6 +586,88 @@ class ZeBot:
                 await self._bot.send_message(chat_id, "Contact not found.")
         elif action == "dismiss":
             await self._person_store.dismiss(person_id)
+
+    async def _handle_suggestion_callback(self, query: CallbackQuery, data: str) -> None:
+        parts = data.split(":", 2)
+        if len(parts) != 3 or not self._goal_suggestion_store:
+            await query.answer()
+            return
+
+        _, action, short_id = parts
+        suggestion = await self._goal_suggestion_store.resolve_short_id(short_id)
+
+        if suggestion is None or suggestion.status != SuggestionStatus.PENDING:
+            await query.answer("This suggestion is no longer active.")
+            return
+
+        if action == "accept":
+            await self._accept_suggestion(query, suggestion)
+        elif action == "dismiss":
+            await self._dismiss_suggestion(query, suggestion)
+        elif action == "more":
+            await self._expand_suggestion(query, suggestion, short_id)
+        else:
+            await query.answer()
+
+    async def _accept_suggestion(self, query: CallbackQuery, suggestion) -> None:
+        await query.answer()
+        if not self._goal_planner or not self._goal_store or not self._goal_suggestion_store:
+            await query.message.answer("Something went wrong — please try again.")
+            return
+
+        try:
+            goal = self._goal_planner.create_goal_from_suggestion(suggestion)
+            goal = await self._goal_store.create_goal(goal)
+            accepted = await self._goal_suggestion_store.mark_accepted(suggestion.id, goal.id)
+            if not accepted:
+                await query.answer("Already accepted.", show_alert=False)
+                return
+            await query.message.edit_reply_markup(reply_markup=None)
+            await query.message.answer(
+                f"Done — <b>{_html.escape(goal.title)}</b> is now an active goal. "
+                f"Ze will begin planning milestones shortly.",
+                parse_mode="HTML",
+            )
+            if self._goal_executor:
+                task = asyncio.create_task(self._goal_executor.advance(goal.id))
+                task.add_done_callback(
+                    lambda t: log.error("goal_suggestion_advance_failed", error=str(t.exception()))
+                    if t.exception() else None
+                )
+        except Exception as exc:
+            log.error("goal_suggestion_accept_failed", error=str(exc))
+            await query.message.answer(
+                "Something went wrong creating the goal — the option above is still available."
+            )
+
+    async def _dismiss_suggestion(self, query: CallbackQuery, suggestion) -> None:
+        dismissed = await self._goal_suggestion_store.mark_dismissed(suggestion.id)
+        if not dismissed:
+            await query.answer("Already resolved.", show_alert=False)
+            return
+        await query.answer("Dismissed.")
+        await query.message.edit_reply_markup(reply_markup=None)
+
+    async def _expand_suggestion(self, query: CallbackQuery, suggestion, short_id: str) -> None:
+        await query.answer()
+        text = (
+            f"Here's more context on why I suggested <b>{_html.escape(suggestion.title)}</b>:\n\n"
+            f"{_html.escape(suggestion.rationale)}\n\n"
+            f"The goal would be: {_html.escape(suggestion.objective)}"
+        )
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Yes, create it",
+                    callback_data=f"goal_suggest:accept:{short_id}",
+                ),
+                InlineKeyboardButton(
+                    text="Dismiss",
+                    callback_data=f"goal_suggest:dismiss:{short_id}",
+                ),
+            ],
+        ])
+        await query.message.answer(text, parse_mode="HTML", reply_markup=keyboard)
 
     async def _handle_goal_plan_callback(self, chat_id: int, query: CallbackQuery) -> None:
         data = query.data or ""
