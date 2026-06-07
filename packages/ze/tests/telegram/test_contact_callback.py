@@ -1,13 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
-
 from ze_personal.contacts.types import Person
+from ze.telegram.handlers.contacts import handle_contact_callback
 from ze.telegram.keyboards import contact_confirmation_keyboard
+from tests.telegram.conftest import make_ctx, make_query
 
-
-# ── keyboard ──────────────────────────────────────────────────────────────────
 
 def test_contact_confirmation_keyboard_callback_data():
     pid = uuid4()
@@ -26,27 +24,10 @@ def test_contact_confirmation_keyboard_fits_telegram_limit():
             assert len(btn.callback_data.encode()) <= 64
 
 
-# ── ZeBot contact callback ────────────────────────────────────────────────────
-
-def _make_bot(person_store):
-    """Build a minimal ZeBot instance with only the fields contact callback needs."""
-    from ze.telegram.bot import ZeBot
+def _make_contact_ctx(person_store):
     bot = MagicMock()
     bot.send_message = AsyncMock()
-
-    instance = object.__new__(ZeBot)
-    instance._bot = bot
-    instance._person_store = person_store
-    return instance
-
-
-def _make_query(data: str, chat_id: int = 1234):
-    query = MagicMock()
-    query.data = data
-    query.answer = AsyncMock()
-    query.message.edit_reply_markup = AsyncMock()
-    query.message.chat.id = chat_id
-    return query
+    return make_ctx(bot=bot, person_store=person_store), bot
 
 
 async def test_confirm_callback_confirms_and_acks():
@@ -56,14 +37,14 @@ async def test_confirm_callback_confirms_and_acks():
     store = AsyncMock()
     store.confirm = AsyncMock(return_value=person)
 
-    bot = _make_bot(store)
-    query = _make_query(f"contact:confirm:{pid}")
+    ctx, bot = _make_contact_ctx(store)
+    query = make_query(f"contact:confirm:{pid}")
 
-    await bot._handle_contact_callback(1234, query)
+    await handle_contact_callback(ctx, query)
 
     store.confirm.assert_awaited_once_with(pid)
-    bot._bot.send_message.assert_awaited_once()
-    text = bot._bot.send_message.call_args[0][1]
+    bot.send_message.assert_awaited_once()
+    text = bot.send_message.call_args[0][1]
     assert "João Silva" in text
 
 
@@ -73,13 +54,13 @@ async def test_dismiss_callback_dismisses_silently():
     store = AsyncMock()
     store.dismiss = AsyncMock()
 
-    bot = _make_bot(store)
-    query = _make_query(f"contact:dismiss:{pid}")
+    ctx, bot = _make_contact_ctx(store)
+    query = make_query(f"contact:dismiss:{pid}")
 
-    await bot._handle_contact_callback(1234, query)
+    await handle_contact_callback(ctx, query)
 
     store.dismiss.assert_awaited_once_with(pid)
-    bot._bot.send_message.assert_not_awaited()
+    bot.send_message.assert_not_awaited()
 
 
 async def test_confirm_callback_handles_not_found():
@@ -88,34 +69,34 @@ async def test_confirm_callback_handles_not_found():
     store = AsyncMock()
     store.confirm = AsyncMock(side_effect=ValueError("not found"))
 
-    bot = _make_bot(store)
-    query = _make_query(f"contact:confirm:{pid}")
+    ctx, bot = _make_contact_ctx(store)
+    query = make_query(f"contact:confirm:{pid}")
 
-    await bot._handle_contact_callback(1234, query)
+    await handle_contact_callback(ctx, query)
 
-    bot._bot.send_message.assert_awaited_once()
-    text = bot._bot.send_message.call_args[0][1]
+    bot.send_message.assert_awaited_once()
+    text = bot.send_message.call_args[0][1]
     assert "not found" in text.lower()
 
 
 async def test_invalid_uuid_is_ignored():
     store = AsyncMock()
-    bot = _make_bot(store)
-    query = _make_query("contact:confirm:not-a-uuid")
+    ctx, bot = _make_contact_ctx(store)
+    query = make_query("contact:confirm:not-a-uuid")
 
-    await bot._handle_contact_callback(1234, query)
+    await handle_contact_callback(ctx, query)
 
     store.confirm.assert_not_awaited()
-    bot._bot.send_message.assert_not_awaited()
+    bot.send_message.assert_not_awaited()
 
 
 async def test_unknown_action_is_ignored():
     pid = uuid4()
     store = AsyncMock()
-    bot = _make_bot(store)
-    query = _make_query(f"contact:merge:{pid}")
+    ctx, bot = _make_contact_ctx(store)
+    query = make_query(f"contact:merge:{pid}")
 
-    await bot._handle_contact_callback(1234, query)
+    await handle_contact_callback(ctx, query)
 
     store.confirm.assert_not_awaited()
     store.dismiss.assert_not_awaited()

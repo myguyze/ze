@@ -5,13 +5,10 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
-
-from ze.telegram.bot import ZeBot
+from ze.telegram.handlers.goals.suggestions import handle_suggestion
 from ze_personal.goals.types import Goal, GoalStatus, GoalSuggestion, SuggestionStatus
+from tests.telegram.conftest import make_ctx, make_query
 
-
-# ── helpers ───────────────────────────────────────────────────────────────────
 
 def _suggestion(status=SuggestionStatus.PENDING) -> GoalSuggestion:
     return GoalSuggestion(
@@ -37,21 +34,10 @@ def _created_goal(suggestion: GoalSuggestion) -> Goal:
     )
 
 
-def _make_query(data: str) -> MagicMock:
-    query = MagicMock()
-    query.data = data
-    query.answer = AsyncMock()
-    query.message = MagicMock()
-    query.message.edit_reply_markup = AsyncMock()
-    query.message.answer = AsyncMock()
-    query.message.chat.id = 1234
-    return query
-
-
 _UNSET = object()
 
 
-def _make_bot(
+def _make_suggestion_ctx(
     *,
     suggestion: GoalSuggestion | None = None,
     resolve_returns=_UNSET,
@@ -85,24 +71,22 @@ def _make_bot(
     executor = AsyncMock()
     executor.advance = AsyncMock(return_value=None)
 
-    instance = object.__new__(ZeBot)
-    instance._bot = bot_mock
-    instance._goal_suggestion_store = suggestion_store
-    instance._goal_store = goal_store
-    instance._goal_planner = planner
-    instance._goal_executor = executor
+    ctx = make_ctx(
+        bot=bot_mock,
+        goal_suggestion_store=suggestion_store,
+        goal_store=goal_store,
+        goal_planner=planner,
+        goal_executor=executor,
+    )
+    return ctx, suggestion_store, goal_store, planner, executor
 
-    return instance, suggestion_store, goal_store, planner, executor
-
-
-# ── accept flow ───────────────────────────────────────────────────────────────
 
 async def test_accept_creates_goal_and_removes_keyboard():
     s = _suggestion()
-    bot, suggestion_store, goal_store, planner, executor = _make_bot(suggestion=s)
+    ctx, suggestion_store, goal_store, planner, _ = _make_suggestion_ctx(suggestion=s)
 
-    query = _make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     planner.create_goal_from_suggestion.assert_called_once_with(s)
     goal_store.create_goal.assert_called_once()
@@ -114,22 +98,23 @@ async def test_accept_creates_goal_and_removes_keyboard():
 
 async def test_accept_starts_executor_advance():
     s = _suggestion()
-    bot, _, _, _, executor = _make_bot(suggestion=s)
+    ctx, _, _, _, executor = _make_suggestion_ctx(suggestion=s)
 
-    query = _make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
-    # Give the background task a chance to run
     await asyncio.sleep(0)
     executor.advance.assert_called_once()
 
 
 async def test_accept_leaves_keyboard_intact_when_goal_creation_fails():
     s = _suggestion()
-    bot, suggestion_store, _, _, _ = _make_bot(suggestion=s, create_goal_raises=True)
+    ctx, suggestion_store, _, _, _ = _make_suggestion_ctx(
+        suggestion=s, create_goal_raises=True
+    )
 
-    query = _make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     query.message.edit_reply_markup.assert_not_called()
     suggestion_store.mark_accepted.assert_not_called()
@@ -139,36 +124,33 @@ async def test_accept_leaves_keyboard_intact_when_goal_creation_fails():
 
 async def test_accept_is_idempotent_on_double_tap():
     s = _suggestion()
-    bot, suggestion_store, _, _, _ = _make_bot(suggestion=s, mark_accepted_returns=False)
+    ctx, _, _, _, _ = _make_suggestion_ctx(suggestion=s, mark_accepted_returns=False)
 
-    query = _make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
-    # When mark_accepted returns False: keyboard not removed, no confirmation message
     query.message.edit_reply_markup.assert_not_called()
     query.message.answer.assert_not_called()
 
 
 async def test_accept_on_already_resolved_suggestion_answered_silently():
     s = _suggestion(status=SuggestionStatus.ACCEPTED)
-    bot, _, _, _, _ = _make_bot(suggestion=s, resolve_returns=s)
+    ctx, _, _, _, _ = _make_suggestion_ctx(suggestion=s, resolve_returns=s)
 
-    query = _make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:accept:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     query.answer.assert_called_once()
     assert "no longer active" in query.answer.call_args.args[0]
     query.message.edit_reply_markup.assert_not_called()
 
 
-# ── dismiss flow ──────────────────────────────────────────────────────────────
-
 async def test_dismiss_uses_atomic_conditional_update():
     s = _suggestion()
-    bot, suggestion_store, _, _, _ = _make_bot(suggestion=s)
+    ctx, suggestion_store, _, _, _ = _make_suggestion_ctx(suggestion=s)
 
-    query = _make_query(f"goal_suggest:dismiss:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:dismiss:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     suggestion_store.mark_dismissed.assert_called_once_with(s.id)
     query.message.edit_reply_markup.assert_called_once_with(reply_markup=None)
@@ -176,37 +158,32 @@ async def test_dismiss_uses_atomic_conditional_update():
 
 async def test_dismiss_is_noop_if_accept_already_won():
     s = _suggestion()
-    bot, suggestion_store, _, _, _ = _make_bot(suggestion=s, mark_dismissed_returns=False)
+    ctx, _, _, _, _ = _make_suggestion_ctx(suggestion=s, mark_dismissed_returns=False)
 
-    query = _make_query(f"goal_suggest:dismiss:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:dismiss:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     query.message.edit_reply_markup.assert_not_called()
     query.answer.assert_called()
 
 
-# ── tell me more flow ─────────────────────────────────────────────────────────
-
 async def test_tell_me_more_sends_expanded_message_no_llm_call():
     s = _suggestion()
-    bot, _, _, planner, _ = _make_bot(suggestion=s)
+    ctx, _, _, planner, _ = _make_suggestion_ctx(suggestion=s)
 
-    query = _make_query(f"goal_suggest:more:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:more:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
-    # No LLM call
     planner.create_goal_from_suggestion.assert_not_called()
 
     query.message.answer.assert_called_once()
     text = query.message.answer.call_args.args[0]
     kwargs = query.message.answer.call_args.kwargs
     assert "Learn Spanish" in text
-    # Rationale and objective are HTML-escaped in the output
     assert "Travel to South America" in text
     assert "conversational fluency" in text
     assert kwargs.get("parse_mode") == "HTML"
 
-    # New keyboard re-offers accept/dismiss
     keyboard = kwargs.get("reply_markup")
     assert keyboard is not None
     payloads = [btn.callback_data for row in keyboard.inline_keyboard for btn in row]
@@ -217,25 +194,22 @@ async def test_tell_me_more_sends_expanded_message_no_llm_call():
 
 async def test_tell_me_more_leaves_original_keyboard_intact():
     s = _suggestion()
-    bot, _, _, _, _ = _make_bot(suggestion=s)
+    ctx, _, _, _, _ = _make_suggestion_ctx(suggestion=s)
 
-    query = _make_query(f"goal_suggest:more:{s.id.hex[:8]}")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query(f"goal_suggest:more:{s.id.hex[:8]}")
+    await handle_suggestion(ctx, query)
 
     query.message.edit_reply_markup.assert_not_called()
 
 
-# ── short ID not found ────────────────────────────────────────────────────────
-
 async def test_unknown_short_id_answers_silently():
     s = _suggestion()
-    bot, _, _, _, _ = _make_bot(suggestion=s, resolve_returns=None)
+    ctx, _, _, _, _ = _make_suggestion_ctx(suggestion=s, resolve_returns=None)
 
-    query = _make_query("goal_suggest:accept:deadbeef")
-    await bot._handle_suggestion_callback(query, query.data)
+    query = make_query("goal_suggest:accept:deadbeef")
+    await handle_suggestion(ctx, query)
 
     query.answer.assert_called_once()
-    # answer() may be called positionally or as a keyword arg
     call = query.answer.call_args
     text = call.args[0] if call.args else call.kwargs.get("text", "")
     assert "no longer active" in text
