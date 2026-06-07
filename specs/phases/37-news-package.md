@@ -2,7 +2,7 @@
 
 > **Package:** `ze-news` (new standalone package, peer to `ze-personal`)
 > **Phase:** 37
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 20 ([28-goal-engine.md](28-goal-engine.md) package reorg), ZePlugin ABC ([arch/plugin-agents.md](../arch/plugin-agents.md))
 
 ---
@@ -11,17 +11,17 @@
 
 | Feature | Status |
 |---------|--------|
-| `ze-news` package scaffold | 🔲 Pending |
-| `NewsSource` ABC + registry | 🔲 Pending |
-| `RSSSource` implementation | 🔲 Pending |
-| `NewsStore` (Postgres + embeddings) | 🔲 Pending |
-| `NewsAgent` + tools | 🔲 Pending |
-| `NewsPlugin(ZePlugin)` | 🔲 Pending |
-| `NewsFetchJob` (proactive refresh) | 🔲 Pending |
-| DB migration | 🔲 Pending |
-| Config schema | 🔲 Pending |
-| `MorningBriefing` news wiring (`ze/jobs/briefing.py`) | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `ze-news` package scaffold | ✅ Done |
+| `NewsSource` ABC + registry | ✅ Done |
+| `RSSSource` implementation | ✅ Done |
+| `NewsStore` (Postgres + embeddings) | ✅ Done |
+| `NewsAgent` + tools | ✅ Done |
+| `NewsPlugin(ZePlugin)` | ✅ Done |
+| `NewsFetchJob` (proactive refresh) | ✅ Done |
+| DB migration | ✅ Done |
+| Config schema | ✅ Done |
+| `MorningBriefing` news wiring (`ze/jobs/briefing.py`) | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

@@ -7,6 +7,7 @@ from ze.jobs.briefing import MorningBriefing
 from ze_core.proactive.push_log_store import PushLogEntry
 from ze.settings import Settings, get_settings
 from ze_core.proactive.notifier import ProactiveNotifier
+from ze_news.types import Article
 
 
 def make_settings():
@@ -35,6 +36,7 @@ def make_briefing(
     stale_contacts=None,
     notifier=None,
     settings=None,
+    news_store=None,
 ):
     push_log = MagicMock()
     push_log.was_sent_within_hours = AsyncMock(return_value=dedup)
@@ -57,6 +59,7 @@ def make_briefing(
         workflow_store=workflow_store,
         person_store=person_store,
         settings=settings or make_settings(),
+        news_store=news_store,
     )
     return b, push_log
 
@@ -157,3 +160,58 @@ async def test_briefing_singular_day_in_nudge():
     text = notifier.push.call_args[0][0]
     assert "1 day ago" in text
     assert "1 days ago" not in text
+
+
+async def test_briefing_includes_headlines_when_news_store_present():
+    notifier = make_notifier()
+    articles = [
+        Article(
+            url="https://bbc.com/1",
+            source_key="bbc_world",
+            title="Global Summit Concludes",
+            summary="Leaders reached an agreement.",
+            published_at=datetime(2026, 6, 7, 8, 0, tzinfo=timezone.utc),
+            tags=["global"],
+        ),
+        Article(
+            url="https://bbc.com/2",
+            source_key="bbc_tech",
+            title="AI Chip Breakthrough",
+            summary="New chip doubles performance.",
+            published_at=datetime(2026, 6, 7, 7, 0, tzinfo=timezone.utc),
+            tags=["global", "tech"],
+        ),
+    ]
+    news_store = MagicMock()
+    news_store.get_recent = AsyncMock(return_value=articles)
+
+    b, _ = make_briefing(notifier=notifier, news_store=news_store)
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "Headlines" in text
+    assert "Global Summit Concludes" in text
+    assert "AI Chip Breakthrough" in text
+    assert "bbc_world" in text
+    news_store.get_recent.assert_awaited_once()
+
+
+async def test_briefing_omits_headlines_when_news_store_absent():
+    notifier = make_notifier()
+    b, _ = make_briefing(notifier=notifier, news_store=None)
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "Headlines" not in text
+
+
+async def test_briefing_omits_headlines_when_store_returns_empty():
+    notifier = make_notifier()
+    news_store = MagicMock()
+    news_store.get_recent = AsyncMock(return_value=[])
+
+    b, _ = make_briefing(notifier=notifier, news_store=news_store)
+    await b.run()
+
+    text = notifier.push.call_args[0][0]
+    assert "Headlines" not in text

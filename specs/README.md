@@ -64,7 +64,7 @@ explicitly deferred before implementation begins.
 | 34 | [Stuck Goal Detection](phases/34-stuck-goal-detection.md) | ✅ Done |
 | 35 | [Cross-Goal Output Reuse](phases/35-cross-goal-output-reuse.md) | ✅ Done |
 | 36 | [Cross-Goal Learning Promotion](phases/36-cross-goal-learning-promotion.md) | ✅ Done |
-| 37 | [News Package](phases/37-news-package.md) | 🔲 Pending |
+| 37 | [News Package](phases/37-news-package.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 
