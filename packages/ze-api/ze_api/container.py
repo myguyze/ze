@@ -33,6 +33,7 @@ from ze_api.jobs.contacts import ContactReviewNotifier
 from ze_api.jobs.prospecting import recover_stale_campaigns
 from ze_api.prospecting.store import ProspectCampaignStore
 from ze_memory.consolidator import MemoryConsolidator
+from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
 from ze_core.openrouter.client import OpenRouterClient
@@ -217,11 +218,13 @@ async def build_container(settings: Settings) -> ZeContainer:
         cost_tracker=cost_tracker,
     )
 
+    graph_store = PostgresGraphStore(pool=pool)
     memory_store = PostgresMemoryStore(
         pool=pool,
         embedder=embedder,
         openrouter_client=openrouter_client,
         settings=settings,
+        graph_store=graph_store,
     )
 
     browser_client = BrowserClient(

@@ -2,7 +2,7 @@
 
 > **Package:** `ze_memory`
 > **Phase:** N/A
-> **Status:** Pending
+> **Status:** Done
 
 ---
 
