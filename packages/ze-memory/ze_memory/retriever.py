@@ -216,6 +216,9 @@ class PostgresMemoryStore:
     async def propose_events(self, events: list[Event]) -> None:
         for event in events:
             try:
+                resolved = await self._resolve_participant_names(event.participant_names)
+                participants = list({*event.participants, *resolved})
+
                 emb_list = (
                     _to_list(self._embedder.encode(event.title))
                     if self._embedder is not None else None
@@ -234,14 +237,14 @@ class PostgresMemoryStore:
                         event.start_at,
                         event.end_at,
                         json.dumps(event.participant_names),
-                        json.dumps([str(p) for p in event.participants]),
+                        json.dumps([str(p) for p in participants]),
                         event.summary,
                         event.outcome,
                         emb_list,
                     )
-                if self._graph_store is not None and event.participants:
+                if self._graph_store is not None and participants:
                     asyncio.create_task(
-                        self._link_event_participants(row["id"], event.participants)
+                        self._link_event_participants(row["id"], participants)
                     )
                 if self._graph_store is not None and event.outcome:
                     asyncio.create_task(
@@ -555,6 +558,55 @@ class PostgresMemoryStore:
             ))
         except Exception as exc:
             log.warning("graph_link_task_state_failed", task_state_id=str(task_state_id), error=str(exc))
+
+    async def _resolve_participant_names(self, names: list[str]) -> list[UUID]:
+        """Resolve participant name strings to entity UUIDs, auto-creating when unmatched."""
+        if not names:
+            return []
+        _GENERIC = frozenset({"the", "a", "an", "all", "everyone", "team", "group", "us", "we", "they", "them"})
+
+        async with self._pool.acquire() as conn:
+            entity_rows = await conn.fetch(
+                "SELECT id, canonical_name, aliases FROM memory_entities"
+            )
+
+        existing: dict[str, UUID] = {}
+        for row in entity_rows:
+            existing[row["canonical_name"].lower()] = row["id"]
+            for alias in (row["aliases"] or []):
+                if alias:
+                    existing[alias.lower()] = row["id"]
+
+        resolved: list[UUID] = []
+        for name in names:
+            name = name.strip()
+            if not name:
+                continue
+            lower = name.lower()
+            if lower in existing:
+                resolved.append(existing[lower])
+                continue
+            words = name.split()
+            if (
+                len(words) < 1
+                or len(name) < 2
+                or lower in _GENERIC
+                or any(w.lower() in _GENERIC for w in words)
+            ):
+                continue
+            try:
+                entity_id = await self.upsert_entity(Entity(
+                    id=None,
+                    entity_type="person",
+                    canonical_name=name,
+                    aliases=[],
+                    attrs={},
+                ))
+                resolved.append(entity_id)
+                existing[lower] = entity_id
+            except Exception as exc:
+                log.warning("participant_entity_upsert_failed", name=name, error=str(exc))
+        return resolved
 
     async def _promote_event_outcome(self, event_id: UUID, outcome: str) -> None:
         """Extract generalizable facts from an event outcome and link them via PROMOTES_TO edges."""

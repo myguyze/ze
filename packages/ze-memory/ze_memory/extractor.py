@@ -136,10 +136,12 @@ def _coerce_fact(item: Any) -> Fact | None:
 
 _EVENT_SYSTEM = (
     "You extract events from AI assistant conversations. "
-    "An event is something that happened or will happen: meetings, calls, trips, appointments, meals, etc. "
+    "An event is anything that happened (or will happen) at a point in time that is worth remembering: "
+    "meetings, calls, trips, appointments, meals, decisions made, accomplishments achieved, "
+    "milestones reached, experiences had, or any other significant occurrence. "
     "Only extract events the user explicitly mentioned — do not infer. "
     "Return a JSON array — no markdown, just the array. "
-    'Each item: {"event_type": "meeting|call|trip|appointment|meal|other", '
+    'Each item: {"event_type": "meeting|call|trip|appointment|meal|decision|accomplishment|experience|milestone|other", '
     '"title": "concise description", '
     '"start_at": "ISO8601 datetime or null", "end_at": "ISO8601 datetime or null", '
     '"participants": ["name1", "name2"], '
@@ -237,6 +239,92 @@ async def gather_event_proposals(
     )
     model = fact_extraction_model(settings_dict)
     return await extract_events(client, prompt=prompt, response=response, model=model)
+
+
+_ENTITY_SYSTEM = (
+    "You extract named entities from AI assistant conversations. "
+    "Only extract proper nouns explicitly mentioned: people, organisations, places, products, projects, or concepts. "
+    "Do not extract generic terms, pronouns, or inferred entities. "
+    "Return a JSON array — no markdown, just the array. "
+    'Each item: {"name": "canonical name", "entity_type": "person|organisation|place|product|project|concept", '
+    '"aliases": ["alt name 1"]}. '
+    "If no named entities are present, return []."
+)
+
+
+def raw_to_entities(raw: list[dict]) -> list["Entity"]:
+    from ze_memory.types import Entity
+    return [
+        Entity(
+            id=None,
+            entity_type=e.get("entity_type", "concept"),
+            canonical_name=str(e["name"]),
+            aliases=[str(a) for a in e.get("aliases", []) if a],
+            attrs={},
+        )
+        for e in raw
+        if isinstance(e, dict) and e.get("name") and e.get("entity_type")
+    ]
+
+
+async def extract_entities(
+    client: Any,
+    *,
+    prompt: str,
+    response: str,
+    model: str,
+) -> list["Entity"]:
+    if response.startswith("[ERROR]"):
+        return []
+    try:
+        raw_text = await client.complete(
+            messages=[{
+                "role": "user",
+                "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
+            }],
+            model=model,
+            system=_ENTITY_SYSTEM,
+            max_tokens=300,
+        )
+        text = raw_text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        text = text.strip()
+        try:
+            import json as _json
+            parsed = _json.loads(text)
+            if not isinstance(parsed, list):
+                return []
+            return raw_to_entities([
+                e for e in parsed
+                if isinstance(e, dict) and e.get("name") and e.get("entity_type")
+            ])
+        except (_json.JSONDecodeError, ValueError):
+            return []
+    except Exception as exc:
+        log.warning("memory_entity_extraction_failed", error=str(exc))
+        return []
+
+
+async def gather_entity_proposals(
+    configurable: dict,
+    *,
+    prompt: str,
+    response: str,
+) -> list["Entity"]:
+    """Extract named entities from a conversation turn."""
+    client = configurable.get("openrouter_client")
+    if client is None:
+        return []
+
+    settings = configurable.get("settings")
+    settings_dict = (
+        settings.config if settings is not None and hasattr(settings, "config") else settings
+    )
+    model = fact_extraction_model(settings_dict)
+    return await extract_entities(client, prompt=prompt, response=response, model=model)
 
 
 async def gather_fact_proposals(

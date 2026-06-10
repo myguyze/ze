@@ -72,6 +72,21 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
             if events:
                 asyncio.create_task(store.propose_events(events))
 
+        entity_extractor = config["configurable"].get("entity_extractor")
+        if entity_extractor is not None:
+            entities = await entity_extractor(
+                config["configurable"],
+                prompt=ctx.prompt,
+                response=result.response,
+            )
+            for entity in entities:
+                async def _upsert(e=entity):
+                    try:
+                        await store.upsert_entity(e)
+                    except Exception as exc:
+                        log.warning("memory_entity_upsert_failed", name=e.canonical_name, error=str(exc))
+                asyncio.create_task(_upsert())
+
         for hook in config["configurable"].get("memory_hooks", []):
             asyncio.create_task(hook(result, ctx, config))
 

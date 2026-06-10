@@ -20,6 +20,7 @@ from typing import Any
 
 from ze_memory.defaults import (
     DEFAULT_EPISODE_BUDGET_TOKENS,
+    DEFAULT_EVENT_BUDGET_TOKENS,
     DEFAULT_FACT_BUDGET_TOKENS,
     DEFAULT_PROCEDURE_BUDGET_TOKENS,
     DEFAULT_PROFILE_BUDGET_TOKENS,
@@ -35,10 +36,25 @@ def _to_list(embedding: Any) -> str:
     return "[" + ",".join(str(v) for v in vals) + "]"
 
 
+async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> list:
+    return await conn.fetch(
+        """
+        SELECT id, event_type, title, start_at, end_at,
+               participant_names, participants, roles, summary, outcome, source_episode_id
+        FROM memory_events
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        """,
+        emb,
+        limit,
+    )
+
+
 # ── orchestration-level policies ──────────────────────────────────────────────
 
 class CompanionPolicy:
-    """Companion agent: facts + recent episodes + profile facets + entities."""
+    """Companion agent: facts + recent episodes + profile facets + entities + events."""
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
@@ -86,22 +102,25 @@ class CompanionPolicy:
                 """,
                 emb,
             )
+            event_rows = await _fetch_events_by_similarity(conn, emb)
 
         from ze_memory.projection import (
-            budget_episodes, budget_facts, entities_from_rows, facets_from_rows, token_estimate,
+            budget_episodes, budget_facts, entities_from_rows, events_from_rows,
+            facets_from_rows, token_estimate,
         )
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile, entities=entities)
+        events = events_from_rows(event_rows)
+        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile, entities=entities, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
 
 class ResearchPolicy:
-    """Research agent: facts + broader episode window. No profile — research is topic-specific."""
+    """Research agent: facts + broader episode window + events. No profile — research is topic-specific."""
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
@@ -130,18 +149,20 @@ class ResearchPolicy:
                 emb,
                 EPISODES_FETCH_LIMIT,
             )
+            event_rows = await _fetch_events_by_similarity(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, token_estimate
+        from ze_memory.projection import budget_episodes, budget_facts, events_from_rows, token_estimate
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        ctx = MemoryContext(facts=facts, episodes=episodes)
+        events = events_from_rows(event_rows)
+        ctx = MemoryContext(facts=facts, episodes=episodes, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
 
 class GoalsPolicy:
-    """Goals agent: facts + profile facets + task state for the current goal."""
+    """Goals agent: facts + profile facets + task state + events for the current goal."""
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
@@ -162,14 +183,16 @@ class GoalsPolicy:
                 "SELECT key, value, stability, confidence, source_refs, updated_at"
                 " FROM memory_profile_facets ORDER BY confidence DESC LIMIT 30"
             )
+            event_rows = await _fetch_events_by_similarity(conn, emb)
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
 
-        from ze_memory.projection import budget_facts, facets_from_rows, token_estimate
+        from ze_memory.projection import budget_facts, events_from_rows, facets_from_rows, token_estimate
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
-        ctx = MemoryContext(facts=facts, profile=profile, task_state=task_state)
+        events = events_from_rows(event_rows)
+        ctx = MemoryContext(facts=facts, profile=profile, task_state=task_state, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -224,7 +247,7 @@ class CalendarPolicy:
             event_rows = await conn.fetch(
                 """
                 SELECT id, event_type, title, start_at, end_at,
-                       participants, roles, summary, outcome, source_episode_id
+                       participant_names, participants, roles, summary, outcome, source_episode_id
                 FROM memory_events
                 ORDER BY
                   CASE WHEN embedding IS NOT NULL
@@ -272,7 +295,7 @@ class RemindersPolicy:
 
 
 class EmailPolicy:
-    """Email agent: facts + recent episodes + entities for correspondence context."""
+    """Email agent: facts + recent episodes + entities + events for correspondence context."""
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
@@ -304,7 +327,6 @@ class EmailPolicy:
                 """
                 SELECT id, entity_type, canonical_name, aliases, attrs
                 FROM memory_entities
-                WHERE entity_type = 'person'
                 ORDER BY
                   CASE WHEN embedding IS NOT NULL
                        THEN embedding <=> $1::vector ELSE 1 END ASC,
@@ -313,13 +335,17 @@ class EmailPolicy:
                 """,
                 emb,
             )
+            event_rows = await _fetch_events_by_similarity(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, entities_from_rows, token_estimate
+        from ze_memory.projection import (
+            budget_episodes, budget_facts, entities_from_rows, events_from_rows, token_estimate,
+        )
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, entities=entities)
+        events = events_from_rows(event_rows)
+        ctx = MemoryContext(facts=facts, episodes=episodes, entities=entities, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
