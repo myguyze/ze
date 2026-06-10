@@ -1,13 +1,13 @@
 """LLM-based extraction of user facts from a completed conversation turn."""
-
 from __future__ import annotations
 
 import json
 from typing import Any
 
-from ze_core.defaults import MODEL_SYNTHESIS
 from ze_core.logging import get_logger
-from ze_core.memory.types import UserFact
+
+from ze_memory.defaults import MODEL_SYNTHESIS
+from ze_memory.types import Fact
 
 log = get_logger(__name__)
 
@@ -16,13 +16,12 @@ _SYSTEM = (
     "Only extract facts the user explicitly revealed about themselves "
     "(name, preferences, job, location, habits, goals, etc.). "
     "Return a JSON array — no markdown, no explanation, just the array. "
-    'Each item: {"key": "snake_case_label", "value": "what was revealed", "confidence": 0.0-1.0}. '
+    'Each item: {"predicate": "snake_case_label", "value": "what was revealed", "confidence": 0.0-1.0}. '
     "If no user facts are present, return []."
 )
 
 
 def fact_extraction_model(settings: Any = None) -> str:
-    """Model used for post-turn fact extraction (defaults to synthesis / Haiku)."""
     if settings is None:
         return MODEL_SYNTHESIS
     if isinstance(settings, dict):
@@ -54,46 +53,49 @@ def parse_fact_response(raw: str) -> list[dict]:
             return []
         return [
             {
-                "key": str(f["key"]),
+                "predicate": str(f.get("predicate") or f.get("key", "")),
                 "value": str(f["value"]),
                 "confidence": float(f.get("confidence", 0.8)),
             }
             for f in parsed
-            if isinstance(f, dict) and "key" in f and "value" in f
+            if isinstance(f, dict) and f.get("value")
+            and (f.get("predicate") or f.get("key"))
         ]
     except (json.JSONDecodeError, KeyError, ValueError):
         return []
 
 
-def raw_to_user_facts(raw: list[dict], *, agent: str = "global") -> list[UserFact]:
+def raw_to_facts(raw: list[dict]) -> list[Fact]:
     return [
-        UserFact(
-            key=f["key"],
+        Fact(
+            id=None,
+            subject_id=None,
+            predicate=f["predicate"],
+            object_text=None,
+            object_id=None,
             value=f["value"],
-            agent=agent,
             confidence=float(f.get("confidence", 0.8)),
         )
         for f in raw
-        if isinstance(f, dict) and f.get("key") and f.get("value")
+        if isinstance(f, dict) and f.get("predicate") and f.get("value")
     ]
 
 
-def merge_fact_proposals(explicit: list[UserFact], extracted: list[UserFact]) -> list[UserFact]:
-    """Agent-supplied proposals override extracted facts with the same key."""
-    by_key = {f.key: f for f in extracted}
+def merge_fact_proposals(explicit: list[Fact], extracted: list[Fact]) -> list[Fact]:
+    """Agent-supplied proposals override extracted facts with the same predicate."""
+    by_predicate = {f.predicate: f for f in extracted}
     for fact in explicit:
-        by_key[fact.key] = fact
-    return list(by_key.values())
+        by_predicate[fact.predicate] = fact
+    return list(by_predicate.values())
 
 
-async def extract_user_facts(
+async def extract_facts(
     client: Any,
     *,
     prompt: str,
     response: str,
     model: str,
-    agent: str = "global",
-) -> list[UserFact]:
+) -> list[Fact]:
     if response.startswith("[ERROR]"):
         return []
     try:
@@ -106,10 +108,29 @@ async def extract_user_facts(
             system=_SYSTEM,
             max_tokens=300,
         )
-        return raw_to_user_facts(parse_fact_response(raw), agent=agent)
+        return raw_to_facts(parse_fact_response(raw))
     except Exception as exc:
         log.warning("memory_fact_extraction_failed", error=str(exc))
         return []
+
+
+def _coerce_fact(item: Any) -> Fact | None:
+    if isinstance(item, Fact):
+        return item
+    if isinstance(item, dict) and item.get("value"):
+        predicate = item.get("predicate") or item.get("key")
+        if not predicate:
+            return None
+        return Fact(
+            id=None,
+            subject_id=None,
+            predicate=str(predicate),
+            object_text=None,
+            object_id=None,
+            value=str(item["value"]),
+            confidence=float(item.get("confidence", 0.8)),
+        )
+    return None
 
 
 async def gather_fact_proposals(
@@ -119,9 +140,9 @@ async def gather_fact_proposals(
     prompt: str,
     response: str,
     explicit: list,
-) -> list[UserFact]:
+) -> list[Fact]:
     """Merge agent-supplied proposals with LLM-extracted facts from the turn."""
-    explicit_facts = [_coerce_user_fact(f, agent) for f in explicit]
+    explicit_facts = [_coerce_fact(f) for f in explicit]
     explicit_facts = [f for f in explicit_facts if f is not None]
 
     client = configurable.get("openrouter_client")
@@ -129,26 +150,14 @@ async def gather_fact_proposals(
         return explicit_facts
 
     settings = configurable.get("settings")
-    settings_dict = settings.config if settings is not None and hasattr(settings, "config") else settings
+    settings_dict = (
+        settings.config if settings is not None and hasattr(settings, "config") else settings
+    )
     model = fact_extraction_model(settings_dict)
-    extracted = await extract_user_facts(
+    extracted = await extract_facts(
         client,
         prompt=prompt,
         response=response,
         model=model,
-        agent=agent,
     )
     return merge_fact_proposals(explicit_facts, extracted)
-
-
-def _coerce_user_fact(item: Any, agent: str) -> UserFact | None:
-    if isinstance(item, UserFact):
-        return item
-    if isinstance(item, dict) and item.get("key") and item.get("value"):
-        return UserFact(
-            key=str(item["key"]),
-            value=str(item["value"]),
-            agent=item.get("agent", agent),
-            confidence=float(item.get("confidence", 0.8)),
-        )
-    return None

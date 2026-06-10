@@ -333,7 +333,7 @@ async def test_briefing_personalized_shows_only_relevant_when_no_discovery():
 
 
 async def test_briefing_personalized_header_when_sufficient_facts():
-    from ze_core.memory.types import UserFact
+    from ze_memory.types import Fact
 
     notifier = make_notifier()
     relevant_articles = [
@@ -350,7 +350,7 @@ async def test_briefing_personalized_header_when_sufficient_facts():
     news_store.get_personalized = AsyncMock(return_value=(relevant_articles, []))
 
     facts = [
-        UserFact(key=f"interest_{i}", value=f"topic_{i}")
+        Fact(predicate=f"interest_{i}", value=f"topic_{i}")
         for i in range(6)
     ]
     memory_store = MagicMock()

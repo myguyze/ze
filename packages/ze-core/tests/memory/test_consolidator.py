@@ -3,9 +3,9 @@ from uuid import uuid4
 
 import pytest
 
-from ze_core.memory.consolidator import MemoryConsolidator
-from ze_core.memory.postgres import PostgresMemoryStore
-from ze_core.memory.types import ConsolidationReport
+from ze_memory.consolidator import MemoryConsolidator
+from ze_memory.retriever import PostgresMemoryStore
+from ze_memory.types import ConsolidationReport
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ def _store(**overrides):
     s.delete_episodes_by_ids = AsyncMock()
     s.fetch_active_fact_summaries = AsyncMock(return_value=[])
     s.fetch_recent_episode_summaries = AsyncMock(return_value=[])
-    s.upsert_profile = AsyncMock()
+    s.upsert_profile_facets = AsyncMock()
     for k, v in overrides.items():
         setattr(s, k, v)
     return s
@@ -53,7 +53,7 @@ def _consolidator(store=None, client=None, settings=None, embedder=None):
 
 
 def _fact_row(key="k", value="v", confidence=1.0):
-    return {"id": uuid4(), "key": key, "value": value, "agent": "global", "confidence": confidence}
+    return {"id": uuid4(), "predicate": key, "value": value, "agent": "global", "confidence": confidence}
 
 
 # ── TestRun ───────────────────────────────────────────────────────────────────
@@ -207,25 +207,26 @@ class TestUpdateProfile:
 
     async def test_upserts_valid_profile(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"key": "name", "value": "Alice"}]),
+            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
             fetch_recent_episode_summaries=AsyncMock(return_value=[{"summary": "discussed tech"}]),
         )
-        profile_json = '{"preferences":"p","habits":"h","topics":"t","relationships":"r","goals":"g"}'
-        client = _client(response=profile_json)
+        facets_json = '[{"key":"name","value":"Alice","stability":"stable","confidence":0.9}]'
+        client = _client(response=facets_json)
         result = await _consolidator(store=store, client=client).update_profile()
         assert result is True
-        store.upsert_profile.assert_awaited_once_with("p", "h", "t", "r", "g")
+        store.upsert_profile_facets.assert_awaited_once()
 
     async def test_invalid_json_returns_false(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"key": "name", "value": "Alice"}]),
+            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
             fetch_recent_episode_summaries=AsyncMock(return_value=[]),
         )
         assert await _consolidator(store=store, client=_client(response="not json")).update_profile() is False
 
     async def test_missing_keys_returns_false(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"key": "name", "value": "Alice"}]),
+            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
             fetch_recent_episode_summaries=AsyncMock(return_value=[]),
         )
-        assert await _consolidator(store=store, client=_client(response='{"preferences":"p"}')).update_profile() is False
+        # Object instead of array → invalid
+        assert await _consolidator(store=store, client=_client(response='{"key":"p"}')).update_profile() is False

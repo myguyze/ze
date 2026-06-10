@@ -7,7 +7,6 @@ if TYPE_CHECKING:
     from ze_core.plugin import ZePlugin
 
 from ze_core.capability.types import GateDecision
-from ze_core.memory.types import MemoryContext
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.routing.types import RoutingEnvelope
 
@@ -30,7 +29,7 @@ class AgentState(TypedDict):
     envelope: RoutingEnvelope | None
 
     # ── Context ────────────────────────────────────────────────────────────
-    memory_context: MemoryContext | None
+    memory_context: Any | None
     agent_context: AgentContext | None
 
     # ── Capability ─────────────────────────────────────────────────────────

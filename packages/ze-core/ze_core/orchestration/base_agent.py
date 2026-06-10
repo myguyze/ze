@@ -76,7 +76,11 @@ class BaseAgent(ABC):
         return int(self.timeout)
 
     def _format_memory(self, ctx: AgentContext) -> str:
-        lines = [f"- {f.key}: {f.value}" for f in ctx.memory.facts]
+        memory = ctx.memory
+        if memory is None:
+            return "(none)"
+        facts = getattr(memory, "facts", []) or []
+        lines = [f"- {getattr(f, 'predicate', getattr(f, 'key', '?'))}: {f.value}" for f in facts]
         return "\n".join(lines) if lines else "(none)"
 
     def _format_contacts(self, ctx: AgentContext) -> str:
@@ -101,7 +105,7 @@ class BaseAgent(ABC):
             identity = identity_builder(
                 ctx.persona,
                 self._format_memory(ctx),
-                profile=ctx.memory.profile,
+                profile=getattr(ctx.memory, "profile", None) if ctx.memory is not None else None,
                 contacts_context=self._format_contacts(ctx),
             )
             prefix = f"{identity}\n\n"

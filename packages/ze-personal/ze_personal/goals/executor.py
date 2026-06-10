@@ -7,7 +7,7 @@ from typing import Callable
 from uuid import UUID
 
 from ze_core.errors import GoalExecutionError
-from ze_core.memory.store import MemoryStore
+from ze_memory.store import MemoryStore
 from ze_core.orchestration.types import ToolCall
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.store import GoalStore

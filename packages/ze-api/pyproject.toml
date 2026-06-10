@@ -5,6 +5,7 @@ description = "Ze personal AI assistant — HTTP/WebSocket API deployment unit"
 requires-python = ">=3.12"
 dependencies = [
     "ze-core",
+    "ze-memory",
     "ze-personal",
     "ze-browser",
     "ze-news",
@@ -46,6 +47,7 @@ dev = [
 
 [tool.uv.sources]
 ze-core          = { workspace = true }
+ze-memory        = { workspace = true }
 ze-personal      = { workspace = true }
 ze-browser       = { workspace = true }
 ze-news          = { workspace = true }

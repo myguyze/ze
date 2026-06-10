@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from ze_core import defaults
 from ze_core.errors import GoalPlanError
-from ze_core.memory.types import Episode, UserFact
+from ze_memory.types import Episode, Fact
 from ze_personal.goals.types import (
     Goal,
     GateStatus,
@@ -390,7 +390,7 @@ class GoalPlanner:
         self,
         goal: Goal,
         learnings: list[GoalLearning],
-    ) -> list[UserFact]:
+    ) -> list[Fact]:
         """Extract generalizable user facts from goal learnings. Returns [] on any error."""
         learnings_text = "\n".join(
             f"  - [{l.source}] {l.content}" for l in learnings
@@ -408,7 +408,15 @@ class GoalPlanner:
         try:
             data = json.loads(raw)
             return [
-                UserFact(key=f["key"], value=f["value"], agent="goals", reviewed=False)
+                Fact(
+                    id=None,
+                    subject_id=None,
+                    predicate=f["key"],
+                    object_text=None,
+                    object_id=None,
+                    value=f["value"],
+                    reviewed=False,
+                )
                 for f in data.get("facts", [])
                 if isinstance(f.get("key"), str) and isinstance(f.get("value"), str)
             ][:5]
@@ -430,7 +438,7 @@ class GoalPlanner:
 
     async def generate_suggestion(
         self,
-        memory_facts: list[UserFact],
+        memory_facts: list[Fact],
         episodes: list[Episode],
         retrospectives: list[Goal],
         active_goal_titles: list[str],
@@ -439,7 +447,7 @@ class GoalPlanner:
         Synthesise signal into a goal suggestion. Returns None if signal is insufficient
         or the confidence gate rejects the LLM output.
         """
-        facts_text = "\n".join(f"  - [{f.key}] {f.value}" for f in memory_facts) or "  (none)"
+        facts_text = "\n".join(f"  - [{f.predicate}] {f.value}" for f in memory_facts) or "  (none)"
         episodes_text = "\n".join(
             f"  - [{e.created_at.strftime('%Y-%m-%d') if e.created_at else '?'}] "
             f"{(e.summary or e.response[:200])}"

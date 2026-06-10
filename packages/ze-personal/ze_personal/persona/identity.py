@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ze_core.memory.types import UserProfile
+from typing import TYPE_CHECKING, Any
 
 _VERBOSITY_CLAUSES = {
     "concise": " Keep responses brief — one to two paragraphs unless the user asks for more.",
@@ -67,12 +64,20 @@ def _render_dial_clauses(dials: dict[str, float]) -> str:
     return (" " + " ".join(clauses)) if clauses else ""
 
 
-def _render_profile_block(profile: UserProfile) -> str:
+def _render_profile_block(profile: Any) -> str:
     lines = []
-    for key, label in _PROFILE_LABELS.items():
-        value = getattr(profile, key, "")
-        if value:
-            lines.append(f"**{label}:** {value}")
+    if isinstance(profile, list):
+        # list[ProfileFacet] from ze_memory
+        for facet in profile:
+            label = facet.key.replace("_", " ").title()
+            if facet.value:
+                lines.append(f"**{label}:** {facet.value}")
+    elif profile is not None:
+        # legacy UserProfile object
+        for key, label in _PROFILE_LABELS.items():
+            value = getattr(profile, key, "")
+            if value:
+                lines.append(f"**{label}:** {value}")
     if not lines:
         return ""
     return "## Who this user is\n" + "\n".join(lines) + "\n\n"
@@ -81,7 +86,7 @@ def _render_profile_block(profile: UserProfile) -> str:
 def build_identity_block(
     persona: dict,
     memory_context: str,
-    profile: UserProfile | None = None,
+    profile: Any = None,
     contacts_context: str = "",
 ) -> str:
     traits = persona.get("traits") or ["helpful"]

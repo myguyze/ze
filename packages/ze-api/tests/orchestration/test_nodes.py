@@ -8,8 +8,8 @@ from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.types import GateDecision
 from ze_core.errors import AgentTimeoutError
 from ze_api.logging import configure_logging
-from ze_core.memory.postgres import PostgresMemoryStore as MemoryStore
-from ze_core.memory.types import MemoryContext, UserFact
+from ze_memory.retriever import PostgresMemoryStore as MemoryStore
+from ze_memory.types import Fact, MemoryContext
 from ze_core.orchestration.nodes import context, execution, memory, routing
 from ze_core.orchestration.nodes.execution import await_confirmation, capability_check
 from ze_core.orchestration.nodes.memory import synthesize
@@ -132,7 +132,7 @@ async def test_embed_route_calls_router_with_prompt_and_session():
 
 async def test_fetch_context_returns_memory_context():
     store = AsyncMock(spec=MemoryStore)
-    store.get_context = AsyncMock(return_value=MemoryContext())
+    store.retrieve = AsyncMock(return_value=MemoryContext())
     cfg = make_config(memory_store=store)
     result = await context.fetch_context(base_state(), cfg)
     assert result["memory_context"] is not None
@@ -141,7 +141,7 @@ async def test_fetch_context_returns_memory_context():
 
 async def test_fetch_context_returns_agent_context():
     store = AsyncMock(spec=MemoryStore)
-    store.get_context = AsyncMock(return_value=MemoryContext())
+    store.retrieve = AsyncMock(return_value=MemoryContext())
     cfg = make_config(memory_store=store)
     result = await context.fetch_context(base_state(prompt="hello"), cfg)
     assert result["agent_context"].prompt == "hello"
@@ -149,9 +149,11 @@ async def test_fetch_context_returns_agent_context():
 
 
 async def test_fetch_context_passes_memory_to_agent_context():
-    memory_ctx = MemoryContext(facts=[UserFact(key="name", value="Alice")])
+    memory_ctx = MemoryContext(facts=[
+        Fact(predicate="name", object_text=None, object_id=None, value="Alice")
+    ])
     store = AsyncMock(spec=MemoryStore)
-    store.get_context = AsyncMock(return_value=memory_ctx)
+    store.retrieve = AsyncMock(return_value=memory_ctx)
     cfg = make_config(memory_store=store)
     result = await context.fetch_context(base_state(), cfg)
     assert result["agent_context"].memory.facts[0].value == "Alice"

@@ -6,7 +6,7 @@ import pytest
 from ze_api.agents.email.agent import EmailAgent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_api.logging import configure_logging
-from ze_core.memory.types import MemoryContext
+from ze_memory.types import MemoryContext
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ from typing import AsyncIterator
 import ze_news.agents.tools  # noqa: F401 — registers @tool decorators
 
 from ze_core.capability.types import Mode
-from ze_core.memory.postgres import PostgresMemoryStore
+from ze_memory.retriever import PostgresMemoryStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.base_agent import BaseAgent
 from ze_core.orchestration.registry import agent
@@ -121,10 +121,10 @@ class NewsAgent(BaseAgent):
 
         exclusions = [
             f.value for f in facts
-            if any(kw in f.key.lower() for kw in _EXCLUSION_KEYS)
+            if any(kw in f.predicate.lower() for kw in _EXCLUSION_KEYS)
         ]
         topic_facts = [f for f in facts if f.value not in exclusions]
-        interest_parts = [f"{f.key}: {f.value}" for f in topic_facts]
+        interest_parts = [f"{f.predicate}: {f.value}" for f in topic_facts]
         interest_parts += goals
 
         return PersonalizationContext(

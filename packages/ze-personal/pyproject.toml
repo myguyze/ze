@@ -9,6 +9,7 @@ description = "Ze personal assistant domain layer — contacts, goals, workflow,
 requires-python = ">=3.11"
 dependencies = [
     "ze-core",
+    "ze-memory",
 ]
 
 [dependency-groups]
@@ -21,7 +22,8 @@ dev = [
 ]
 
 [tool.uv.sources]
-ze-core = { workspace = true }
+ze-core   = { workspace = true }
+ze-memory = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

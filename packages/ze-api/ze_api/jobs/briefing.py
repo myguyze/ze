@@ -5,7 +5,7 @@ from ze_api.logging import get_logger
 from ze_core.proactive.push_log_store import PushLogStore
 from ze_api.settings import Settings
 from ze_personal.workflow.store import WorkflowStore
-from ze_core.memory.postgres import PostgresMemoryStore
+from ze_memory.retriever import PostgresMemoryStore
 from ze_core.proactive.job import proactive_job
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_core.telemetry.context import set_flow_context
@@ -177,10 +177,10 @@ class MorningBriefing:
 
         exclusions = [
             f.value for f in facts
-            if any(kw in f.key.lower() for kw in _EXCLUSION_KEYS)
+            if any(kw in f.predicate.lower() for kw in _EXCLUSION_KEYS)
         ]
         topic_facts = [f for f in facts if f.value not in exclusions]
-        interest_parts = [f"{f.key}: {f.value}" for f in topic_facts]
+        interest_parts = [f"{f.predicate}: {f.value}" for f in topic_facts]
         interest_parts += goals
 
         return PersonalizationContext(

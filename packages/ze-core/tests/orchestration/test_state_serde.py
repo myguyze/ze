@@ -20,7 +20,7 @@ import pytest
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer  # type: ignore[import]
 
 from ze_core.capability.types import GateDecision
-from ze_core.memory.types import Episode, MemoryContext, UserFact, UserProfile
+from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
 from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
@@ -34,10 +34,10 @@ ALLOWED_MODULES = [
     ("ze_core.orchestration.types", "AgentResult"),
     ("ze_core.orchestration.types", "AgentContext"),
     ("ze_core.capability.types", "GateDecision"),
-    ("ze_core.memory.types", "MemoryContext"),
-    ("ze_core.memory.types", "UserFact"),
-    ("ze_core.memory.types", "Episode"),
-    ("ze_core.memory.types", "UserProfile"),
+    ("ze_memory.types", "MemoryContext"),
+    ("ze_memory.types", "Fact"),
+    ("ze_memory.types", "Episode"),
+    ("ze_memory.types", "ProfileFacet"),
 ]
 
 
@@ -51,38 +51,41 @@ def serde() -> JsonPlusSerializer:
 def _make_memory_context() -> MemoryContext:
     return MemoryContext(
         facts=[
-            UserFact(
-                key="name",
+            Fact(
+                id=UUID("12345678-1234-5678-1234-567812345678"),
+                subject_id=None,
+                predicate="name",
+                object_text=None,
+                object_id=None,
                 value="João",
-                agent="companion",
                 confidence=0.9,
                 reviewed=True,
-                id=UUID("12345678-1234-5678-1234-567812345678"),
-                updated_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                embedding=None,
             )
         ],
         episodes=[
             Episode(
+                id=UUID("87654321-4321-8765-4321-876543218765"),
+                session_id="test-session",
                 agent="research",
                 prompt="what is the weather?",
                 response="It is sunny.",
                 summary="Weather query",
                 relevance=0.7,
-                id=UUID("87654321-4321-8765-4321-876543218765"),
                 created_at=datetime(2024, 1, 2, tzinfo=timezone.utc),
                 embedding=None,  # must be None in stored state
             )
         ],
         token_estimate=120,
-        profile=UserProfile(
-            preferences="concise replies",
-            habits="checks calendar in the morning",
-            topics="AI, aviation",
-            relationships="Alice: colleague",
-            goals="learn Go",
-            updated_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
-            version=2,
-        ),
+        profile=[
+            ProfileFacet(
+                key="preferences",
+                value="concise replies",
+                stability="stable",
+                confidence=0.9,
+                updated_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+            )
+        ],
     )
 
 

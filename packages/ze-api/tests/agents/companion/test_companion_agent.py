@@ -5,7 +5,7 @@ import pytest
 from ze_api.agents.companion.agent import CompanionAgent, _detect_outreach_event
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_api.logging import configure_logging
-from ze_core.memory.types import MemoryContext, UserFact
+from ze_memory.types import MemoryContext, Fact
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ async def test_run_sends_prompt_as_user_message():
 
 
 async def test_run_injects_memory_facts_into_system_prompt():
-    memory = MemoryContext(facts=[UserFact(key="name", value="João")])
+    memory = MemoryContext(facts=[Fact(predicate="name", value="João")])
     captured_system: list[str] = []
 
     client = AsyncMock()
@@ -227,5 +227,4 @@ def test_detect_outreach_event_no_name():
 def test_agent_context_defaults():
     ctx = AgentContext(session_id="x", prompt="hi", intent="reason")
     assert ctx.tool_calls == []
-    assert ctx.memory.facts == []
-    assert ctx.memory.episodes == []
+    assert ctx.memory is None

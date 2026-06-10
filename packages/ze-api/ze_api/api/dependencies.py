@@ -2,8 +2,8 @@ from fastapi import Request
 from sentence_transformers import SentenceTransformer
 
 from ze_core.capability.gate import CapabilityGate
-from ze_core.memory.consolidator import MemoryConsolidator
-from ze_core.memory.postgres import PostgresMemoryStore as MemoryStore
+from ze_memory.consolidator import MemoryConsolidator
+from ze_memory.retriever import PostgresMemoryStore as MemoryStore
 from ze_core.messages.store import PostgresMessageStore as MessageStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.routing.router import EmbeddingRouter

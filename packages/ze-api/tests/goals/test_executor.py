@@ -265,7 +265,7 @@ async def test_handle_gate_redirected_passes_none_when_no_prior_work():
 
 # ── _promote_learnings ────────────────────────────────────────────────────────
 
-from ze_core.memory.types import UserFact
+from ze_memory.types import Fact
 from ze_personal.goals.types import GoalLearning
 
 
@@ -311,7 +311,7 @@ async def test_promote_learnings_skips_when_no_learnings():
 
 
 async def test_promote_learnings_calls_propose_facts_on_happy_path():
-    fact = UserFact(key="style", value="prefers bullets", agent="goals", reviewed=False)
+    fact = Fact(predicate="style", value="prefers bullets")
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[fact])
     executor, _, _, memory = _make_executor_with_memory(planner=planner)
@@ -323,7 +323,7 @@ async def test_promote_learnings_calls_propose_facts_on_happy_path():
 
 async def test_promote_learnings_logs_count_on_success():
     import structlog.testing
-    fact = UserFact(key="k", value="v", agent="goals", reviewed=False)
+    fact = Fact(predicate="k", value="v")
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[fact])
     executor, _, _, _ = _make_executor_with_memory(planner=planner)
@@ -361,7 +361,7 @@ async def test_promote_learnings_swallows_planner_exception():
 
 async def test_promote_learnings_swallows_propose_facts_exception():
     import structlog.testing
-    fact = UserFact(key="k", value="v", agent="goals", reviewed=False)
+    fact = Fact(predicate="k", value="v")
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[fact])
     memory = AsyncMock()

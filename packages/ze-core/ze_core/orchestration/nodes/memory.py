@@ -6,7 +6,6 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from ze_core.logging import get_logger
-from ze_core.memory.extractor import gather_fact_proposals
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.state import AgentState
 from ze_core.orchestration.types import AgentResult
@@ -43,19 +42,23 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
         embedding = embedder.encode(ctx.prompt)
         asyncio.create_task(
             store.write_episode(
+                session_id=ctx.session_id,
                 agent=result.agent,
                 prompt=ctx.prompt,
                 response=result.response,
                 embedding=embedding,
             )
         )
-        proposals = await gather_fact_proposals(
-            config["configurable"],
-            agent=result.agent,
-            prompt=ctx.prompt,
-            response=result.response,
-            explicit=result.memory_proposals,
-        )
+        fact_extractor = config["configurable"].get("fact_extractor")
+        proposals = []
+        if fact_extractor is not None:
+            proposals = await fact_extractor(
+                config["configurable"],
+                agent=result.agent,
+                prompt=ctx.prompt,
+                response=result.response,
+                explicit=result.memory_proposals,
+            )
         if proposals:
             await store.propose_facts(proposals)
 

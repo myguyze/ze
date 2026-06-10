@@ -32,8 +32,8 @@ from ze_personal.contacts.store import PersonStore
 from ze_api.jobs.contacts import ContactReviewNotifier
 from ze_api.jobs.prospecting import recover_stale_campaigns
 from ze_api.prospecting.store import ProspectCampaignStore
-from ze_core.memory.consolidator import MemoryConsolidator
-from ze_core.memory.postgres import PostgresMemoryStore
+from ze_memory.consolidator import MemoryConsolidator
+from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.graph import build_graph
@@ -114,11 +114,14 @@ class ZeContainer(CoreContainer):
         for plugin in self.plugins:
             plugin_services.update(plugin.configurable_services())
 
+        from ze_memory.extractor import gather_fact_proposals
+
         configurable: dict = {
             "thread_id": str(session_id),
             "router": self.router,
             "capability_gate": self.capability_gate,
             "memory_store": self.memory_store,
+            "fact_extractor": gather_fact_proposals,
             "persona_store": self.persona_store,
             "person_store": self.person_store,
             "openrouter_client": self.openrouter_client,
@@ -190,10 +193,10 @@ async def build_container(settings: Settings) -> ZeContainer:
             ("ze_core.orchestration.types", "AgentResult"),
             ("ze_core.orchestration.types", "AgentContext"),
             ("ze_core.capability.types", "GateDecision"),
-            ("ze_core.memory.types", "MemoryContext"),
-            ("ze_core.memory.types", "UserFact"),
-            ("ze_core.memory.types", "Episode"),
-            ("ze_core.memory.types", "UserProfile"),
+            ("ze_memory.types", "MemoryContext"),
+            ("ze_memory.types", "Fact"),
+            ("ze_memory.types", "Episode"),
+            ("ze_memory.types", "ProfileFacet"),
             ("ze_personal.contacts.types", "Person"),
             ("ze_personal.contacts.types", "PersonContext"),
             ("asyncpg.pgproto.pgproto", "UUID"),

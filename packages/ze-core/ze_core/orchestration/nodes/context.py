@@ -6,7 +6,6 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from ze_core.logging import get_logger
-from ze_core.memory.types import MemoryContext
 from ze_core.orchestration.state import AgentState
 from ze_core.orchestration.types import AgentContext
 
@@ -42,10 +41,18 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     embed_text = state.get("image_caption") or state["prompt"]
     prompt_embedding = embedder.encode(embed_text)
 
-    memory_context: MemoryContext = await store.get_context(
-        prompt_embedding=prompt_embedding,
+    import types as _types
+    _request = _types.SimpleNamespace(
+        module=agent_name,
         agent=agent_name,
+        query_text=embed_text,
+        query_embedding=prompt_embedding,
+        intent=intent,
+        task_id=None,
+        goal_id=None,
+        max_tokens=2000,
     )
+    memory_context = await store.retrieve(_request)
 
     active_persona: dict = {}
     if persona_store is not None:

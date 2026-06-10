@@ -31,6 +31,7 @@ class Container:
     preprocessor: Any = None  # InputPreprocessor | None
     plugins: list = field(default_factory=list)  # list[ZePlugin]
     _abort_tokens: dict = field(default_factory=dict)  # thread_id → AbortToken
+    _fact_extractor: Any = None  # ze_memory.extractor.gather_fact_proposals or None
 
     def _build_config(self, session_id: str, **extra: Any) -> dict:
         """Build the LangGraph configurable dict for a session."""
@@ -45,6 +46,7 @@ class Container:
                 "openrouter_client": self.openrouter_client,
                 "capability_gate": self.capability_gate,
                 "memory_store": self.memory_store,
+                "fact_extractor": self._fact_extractor,
                 **plugin_services,
                 **extra,
             }
@@ -333,21 +335,20 @@ class Container:
         capability_gate = CapabilityGate()
 
         # 11. Build MemoryStore and MemoryConsolidator
-        if is_sqlite:
-            from ze_core.memory.sqlite import SQLiteMemoryStore
+        from ze_memory.extractor import gather_fact_proposals
+        from ze_memory.retriever import PostgresMemoryStore
 
+        if is_sqlite:
             db_path = _sqlite_db_path(settings.database_url)
-            memory_store = SQLiteMemoryStore(
-                db_path=db_path,
+            memory_store = PostgresMemoryStore(
+                pool=pool,
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,
             )
-            await memory_store.setup()
-            memory_consolidator = None  # consolidation not supported for SQLite yet
+            memory_consolidator = None
         else:
-            from ze_core.memory.consolidator import MemoryConsolidator
-            from ze_core.memory.postgres import PostgresMemoryStore
+            from ze_memory.consolidator import MemoryConsolidator
 
             memory_store = PostgresMemoryStore(
                 pool=pool,
@@ -381,10 +382,10 @@ class Container:
                     ("ze_core.orchestration.types", "AgentResult"),
                     ("ze_core.orchestration.types", "AgentContext"),
                     ("ze_core.capability.types", "GateDecision"),
-                    ("ze_core.memory.types", "MemoryContext"),
-                    ("ze_core.memory.types", "UserFact"),
-                    ("ze_core.memory.types", "Episode"),
-                    ("ze_core.memory.types", "UserProfile"),
+                    ("ze_memory.types", "MemoryContext"),
+                    ("ze_memory.types", "Fact"),
+                    ("ze_memory.types", "Episode"),
+                    ("ze_memory.types", "ProfileFacet"),
                 ]
             )
             checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
@@ -407,6 +408,7 @@ class Container:
             graph=graph,
             interface=interface,
             plugins=resolved_plugins,
+            _fact_extractor=gather_fact_proposals,
         )
 
 

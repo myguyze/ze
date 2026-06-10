@@ -7,7 +7,7 @@ from ze_api.agents.prospecting.agent import ProspectingAgent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_personal.contacts.types import PersonContext
 from ze_api.logging import configure_logging
-from ze_core.memory.types import MemoryContext
+from ze_memory.types import MemoryContext
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

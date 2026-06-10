@@ -14,7 +14,6 @@ from ze_core.errors import (
 )
 from ze_core.interface.base import InputPreprocessor
 from ze_core.interface.types import Action, Notification, ProcessedInput, RawInput
-from ze_core.memory import MemoryConsolidator, MemoryStore
 from ze_core.proactive import ProactiveNotifier, ProactiveScheduler
 from ze_core.telemetry import (
     CostContext,
@@ -29,8 +28,6 @@ from ze_core.telemetry import (
     set_agent_context,
     set_flow_context,
 )
-from ze_core.memory.postgres import PostgresMemoryStore
-from ze_core.memory.sqlite import SQLiteMemoryStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration import BaseAgent, agent
 from ze_core.orchestration.graph import graph_builder
@@ -60,8 +57,6 @@ __all__ = [
     # Proactive
     "ProactiveNotifier",
     "ProactiveScheduler",
-    # Memory
-    "MemoryConsolidator",
     "Message",
     "SentMessage",
     "Thread",
@@ -77,9 +72,6 @@ __all__ = [
     "get_cost_context",
     "set_agent_context",
     "set_flow_context",
-    "MemoryStore",
-    "PostgresMemoryStore",
-    "SQLiteMemoryStore",
     "OpenRouterClient",
     "BaseAgent",
     "agent",

@@ -1,12 +1,12 @@
-"""Tests for SQLiteMemoryStore."""
+"""Tests for SQLiteMemoryStore — SKIPPED: SQLite memory removed in ze_memory migration."""
+import pytest
+
+pytestmark = pytest.mark.skip(reason="SQLiteMemoryStore removed; ze_memory uses Postgres only")
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from ze_core.container import _sqlite_db_path
-from ze_core.memory.types import UserFact
-from ze_core.memory.sqlite import SQLiteMemoryStore, _cosine
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────

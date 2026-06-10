@@ -1,0 +1,520 @@
+"""Module-specific retrieval policies.
+
+Each policy decides which memory types to fetch and at what token budgets
+for a given module. Policies are explicit code objects — not ad hoc branching
+inside the store implementation.
+
+Two tiers:
+
+  Orchestration-level policies (dispatched via agent name in fetch_context node):
+    companion, research, email, prospecting, goals, workflow, calendar, reminders
+    + profile and memory_ui for introspection commands
+
+  Domain-service-level policies (called directly by domain services mid-execution):
+    planner — called by GoalPlanner before generating a milestone plan
+    tool_executor — called by BaseAgent.agentic_loop() before each tool call
+"""
+from __future__ import annotations
+
+from typing import Any
+
+from ze_memory.defaults import (
+    DEFAULT_EPISODE_BUDGET_TOKENS,
+    DEFAULT_FACT_BUDGET_TOKENS,
+    DEFAULT_PROCEDURE_BUDGET_TOKENS,
+    DEFAULT_PROFILE_BUDGET_TOKENS,
+    EPISODES_FETCH_LIMIT,
+)
+from ze_memory.types import MemoryContext, RetrievalRequest
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+def _to_list(embedding: Any) -> str:
+    vals = embedding.tolist() if hasattr(embedding, "tolist") else list(embedding)
+    return "[" + ",".join(str(v) for v in vals) + "]"
+
+
+# ── orchestration-level policies ──────────────────────────────────────────────
+
+class CompanionPolicy:
+    """Companion agent: facts + recent episodes + profile facets."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY
+                  CASE WHEN embedding IS NOT NULL
+                       THEN embedding <=> $1::vector ELSE 1 END ASC,
+                  updated_at DESC
+                LIMIT 50
+                """,
+                emb,
+            )
+            episode_rows = await conn.fetch(
+                """
+                SELECT id, session_id, agent, prompt, response, summary,
+                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                FROM memory_episodes
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT $2
+                """,
+                emb,
+                EPISODES_FETCH_LIMIT,
+            )
+            profile_rows = await conn.fetch(
+                "SELECT key, value, stability, confidence, source_refs, updated_at"
+                " FROM memory_profile_facets ORDER BY confidence DESC LIMIT 30"
+            )
+
+        from ze_memory.projection import budget_episodes, budget_facts, facets_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class ResearchPolicy:
+    """Research agent: facts + broader episode window. No profile — research is topic-specific."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 30
+                """,
+                emb,
+            )
+            episode_rows = await conn.fetch(
+                """
+                SELECT id, session_id, agent, prompt, response, summary,
+                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                FROM memory_episodes
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT $2
+                """,
+                emb,
+                EPISODES_FETCH_LIMIT,
+            )
+
+        from ze_memory.projection import budget_episodes, budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class GoalsPolicy:
+    """Goals agent: facts + profile facets + task state for the current goal."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 30
+                """,
+                emb,
+            )
+            profile_rows = await conn.fetch(
+                "SELECT key, value, stability, confidence, source_refs, updated_at"
+                " FROM memory_profile_facets ORDER BY confidence DESC LIMIT 30"
+            )
+
+        task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
+
+        from ze_memory.projection import budget_facts, facets_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, profile=profile, task_state=task_state)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class WorkflowPolicy:
+    """Workflow agent: minimal facts + task state for the current task."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+
+        task_state = await store.get_task_state(task_id=request.task_id, goal_id=None)
+
+        from ze_memory.projection import budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, task_state=task_state)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class CalendarPolicy:
+    """Calendar agent: minimal facts + conversation-extracted events."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+            event_rows = await conn.fetch(
+                """
+                SELECT id, event_type, title, start_at, end_at,
+                       participants, roles, summary, outcome, source_episode_id
+                FROM memory_events
+                ORDER BY
+                  CASE WHEN embedding IS NOT NULL
+                       THEN embedding <=> $1::vector ELSE 1 END ASC,
+                  COALESCE(start_at, created_at) DESC
+                LIMIT 20
+                """,
+                emb,
+            )
+
+        from ze_memory.projection import budget_facts, events_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        events = events_from_rows(event_rows)
+        ctx = MemoryContext(facts=facts, events=events)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class RemindersPolicy:
+    """Reminders agent: minimal facts only — reminder state lives in its own store."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+
+        from ze_memory.projection import budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class EmailPolicy:
+    """Email agent: facts + recent episodes for conversation context."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+            episode_rows = await conn.fetch(
+                """
+                SELECT id, session_id, agent, prompt, response, summary,
+                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                FROM memory_episodes
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT 10
+                """,
+                emb,
+            )
+
+        from ze_memory.projection import budget_episodes, budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class ProspectingPolicy:
+    """Prospecting agent: facts + recent episodes. Profile excluded — prospecting is outbound-focused."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 30
+                """,
+                emb,
+            )
+            episode_rows = await conn.fetch(
+                """
+                SELECT id, session_id, agent, prompt, response, summary,
+                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                FROM memory_episodes
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT 10
+                """,
+                emb,
+            )
+
+        from ze_memory.projection import budget_episodes, budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+# ── domain-service-level policies (called directly, not via fetch_context) ────
+
+class PlannerPolicy:
+    """Called directly by GoalPlanner before generating a milestone plan.
+
+    Fetches facts + procedures (reusable patterns from past workflows) + task state
+    for the current goal. Not dispatched via agent name.
+    """
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 30
+                """,
+                emb,
+            )
+            proc_rows = await conn.fetch(
+                """
+                SELECT id, name, trigger, preconditions, steps, success_criteria,
+                       version, source_refs
+                FROM memory_procedures
+                ORDER BY embedding <=> $1::vector
+                LIMIT 10
+                """,
+                emb,
+            )
+
+        task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
+
+        from ze_memory.projection import budget_facts, procedures_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        procedures = procedures_from_rows(proc_rows, DEFAULT_PROCEDURE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, procedures=procedures, task_state=task_state)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class ToolExecutorPolicy:
+    """Called directly by BaseAgent.agentic_loop() before each tool call.
+
+    Minimal fetch: only facts + task state. No episodes to keep context tight.
+    Not dispatched via agent name.
+    """
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+
+        task_state = await store.get_task_state(
+            task_id=request.task_id, goal_id=request.goal_id
+        )
+
+        from ze_memory.projection import budget_facts, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, task_state=task_state)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+# ── introspection policies ────────────────────────────────────────────────────
+
+class ProfilePolicy:
+    """Memory profile introspection (/memory profile): all profile facets + top facts."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                "SELECT id, subject_id, predicate, object_text, object_id, value,"
+                " confidence, reviewed, contradicted, source_episode_id, source_refs"
+                " FROM memory_facts WHERE contradicted = false"
+                " ORDER BY confidence DESC, updated_at DESC LIMIT 50"
+            )
+            profile_rows = await conn.fetch(
+                "SELECT key, value, stability, confidence, source_refs, updated_at"
+                " FROM memory_profile_facets ORDER BY confidence DESC"
+            )
+
+        from ze_memory.projection import budget_facts, facets_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+        profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, profile=profile)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+class MemoryUIPolicy:
+    """Full memory UI display: all types at wider budgets."""
+
+    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+        emb = _to_list(request.query_embedding)
+
+        async with store._pool.acquire() as conn:
+            fact_rows = await conn.fetch(
+                """
+                SELECT id, subject_id, predicate, object_text, object_id, value,
+                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                FROM memory_facts
+                WHERE contradicted = false
+                ORDER BY updated_at DESC LIMIT 100
+                """
+            )
+            episode_rows = await conn.fetch(
+                """
+                SELECT id, session_id, agent, prompt, response, summary,
+                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                FROM memory_episodes
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT 20
+                """,
+                emb,
+            )
+            profile_rows = await conn.fetch(
+                "SELECT key, value, stability, confidence, source_refs, updated_at"
+                " FROM memory_profile_facets ORDER BY confidence DESC"
+            )
+
+        from ze_memory.projection import budget_episodes, budget_facts, facets_from_rows, token_estimate
+
+        facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS * 3)
+        episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile)
+        ctx.token_estimate = token_estimate(ctx)
+        return ctx
+
+
+# ── registry ──────────────────────────────────────────────────────────────────
+
+_POLICY_MAP: dict[str, Any] = {
+    # orchestration-level (dispatched by agent name)
+    "companion":    CompanionPolicy(),
+    "research":     ResearchPolicy(),
+    "goals":        GoalsPolicy(),
+    "workflow":     WorkflowPolicy(),
+    "calendar":     CalendarPolicy(),
+    "reminders":    RemindersPolicy(),
+    "email":        EmailPolicy(),
+    "prospecting":  ProspectingPolicy(),
+    # introspection
+    "profile":      ProfilePolicy(),
+    "memory_ui":    MemoryUIPolicy(),
+    # domain-service-level (called directly, also accessible via registry)
+    "planner":      PlannerPolicy(),
+    "tool_executor": ToolExecutorPolicy(),
+}
+
+
+class DefaultPolicyRegistry:
+    def __init__(self, extra: dict[str, Any] | None = None) -> None:
+        self._policies = {**_POLICY_MAP, **(extra or {})}
+
+    def register(self, module: str, policy: Any) -> None:
+        self._policies[module] = policy
+
+    def for_module(self, module: str) -> Any:
+        if module not in self._policies:
+            from ze_core.logging import get_logger
+            get_logger(__name__).warning("unknown_memory_module_fallback", module=module)
+            return _POLICY_MAP["companion"]
+        return self._policies[module]

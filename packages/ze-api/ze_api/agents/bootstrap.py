@@ -96,7 +96,7 @@ def bootstrap_agents(
         from ze_api.prospecting.store import ProspectCampaignStore
         _dep_map[ProspectCampaignStore] = campaign_store
     if memory_store is not None:
-        from ze_core.memory.postgres import PostgresMemoryStore
+        from ze_memory.retriever import PostgresMemoryStore
         _dep_map[PostgresMemoryStore] = memory_store
     if goal_store is not None and news_store is not None:
         try:

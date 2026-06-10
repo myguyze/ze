@@ -5,7 +5,7 @@ import pytest
 
 from ze_core.capability.types import GateDecision
 from ze_core.errors import AgentTimeoutError
-from ze_core.memory.types import MemoryContext
+from ze_memory.types import MemoryContext
 from ze_core.orchestration import agent, clear_registry, register_instance
 from ze_core.orchestration.nodes.execution import (
     await_confirmation,

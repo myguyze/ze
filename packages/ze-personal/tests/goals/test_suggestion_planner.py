@@ -9,7 +9,7 @@ import pytest
 
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.types import Goal, GoalStatus, GoalSuggestion, SuggestionStatus
-from ze_core.memory.types import Episode, UserFact
+from ze_memory.types import Episode, Fact
 
 
 def _client(response: str = "{}"):
@@ -22,8 +22,8 @@ def _planner(client):
     return GoalPlanner(client=client, model="test-model")
 
 
-def _fact(key="language", value="User studies Spanish every morning before work") -> UserFact:
-    return UserFact(key=key, value=value, agent="companion", confidence=0.9)
+def _fact(key="language", value="User studies Spanish every morning before work") -> Fact:
+    return Fact(predicate=key, value=value, confidence=0.9)
 
 
 def _episode(summary="User mentioned wanting to visit Argentina in 2027") -> Episode:

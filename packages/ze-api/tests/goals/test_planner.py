@@ -179,7 +179,7 @@ async def test_replan_with_empty_prior_work_omits_prior_work_block():
 
 import json as _json
 
-from ze_core.memory.types import UserFact
+from ze_memory.types import Fact
 from ze_personal.goals.types import GoalLearning
 
 
@@ -192,7 +192,7 @@ async def test_promote_learnings_returns_generalizable_facts():
     planner = _make_planner(response)
     facts = await planner.promote_learnings(_goal(), [_learning()])
     assert len(facts) == 1
-    assert facts[0].key == "output_style"
+    assert facts[0].predicate == "output_style"
     assert facts[0].value == "prefers bullet-point summaries"
 
 
@@ -200,7 +200,6 @@ async def test_promote_learnings_sets_agent_and_reviewed():
     response = _json.dumps({"facts": [{"key": "k", "value": "v"}]})
     planner = _make_planner(response)
     facts = await planner.promote_learnings(_goal(), [_learning()])
-    assert facts[0].agent == "goals"
     assert facts[0].reviewed is False
 
 

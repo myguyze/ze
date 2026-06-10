@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 from ze_api.agents.research.agent import ResearchAgent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_api.logging import configure_logging
-from ze_core.memory.types import MemoryContext, UserFact
+from ze_memory.types import MemoryContext, Fact
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ async def test_run_no_search_when_llm_answers_directly():
 
 
 async def test_run_with_memory_facts_injects_into_system_prompt():
-    memory = MemoryContext(facts=[UserFact(key="name", value="Alice")])
+    memory = MemoryContext(facts=[Fact(predicate="name", value="Alice")])
     captured: list[str] = []
 
     client = AsyncMock()

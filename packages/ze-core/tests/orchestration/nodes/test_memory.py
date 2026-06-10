@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.memory.types import MemoryContext
+from ze_memory.types import MemoryContext
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.nodes.memory import synthesize, write_memory
 from ze_core.orchestration.types import AgentContext, AgentResult
