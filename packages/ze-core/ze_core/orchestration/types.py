@@ -66,6 +66,9 @@ class AgentContext:
     identity_builder: IdentityBuilder | None = field(default=None, repr=False)
     # abort_token is runtime-only; never checkpoint a context where this is set.
     abort_token: AbortToken | None = field(default=None, repr=False)
+    # memory_store is runtime-only; set by GoalExecutor for direct agent invocations
+    # that bypass the fetch_context graph node. Never checkpoint.
+    memory_store: Any = field(default=None, repr=False)
     # extensions must hold only msgpack-serializable primitives so stored contexts
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)

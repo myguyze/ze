@@ -263,6 +263,12 @@ class BaseAgent(ABC):
         # on_loop_start: AgentAbortedError propagates; other exceptions are warnings.
         await _dispatch_loop_hooks(hooks, "on_loop_start", LoopStartEvent(self.name, ctx))
 
+        # Fetch tool-executor memory context for direct invocations (e.g. from GoalExecutor)
+        # that bypass the fetch_context graph node. Prepend as a context block to system.
+        tool_ctx_block = await _fetch_tool_executor_context(ctx)
+        if tool_ctx_block:
+            system = f"{system}\n\n{tool_ctx_block}"
+
         for iteration in range(max_iterations):
             if ctx.abort_token is not None and ctx.abort_token.is_set:
                 raise AgentAbortedError(ctx.abort_token.reason)
@@ -418,6 +424,58 @@ def _serialise_result(tc: ToolCall) -> str:
         return json.dumps(tc.result)
     except (TypeError, ValueError):
         return str(tc.result)
+
+
+async def _fetch_tool_executor_context(ctx: Any) -> str:
+    """Fetch facts + task state via ToolExecutorPolicy for direct agent invocations.
+
+    Only runs when ctx.memory_store is set (goal executor path). Returns a formatted
+    context block for prepending to the system prompt, or an empty string if nothing
+    is available.
+    """
+    store = getattr(ctx, "memory_store", None)
+    if store is None:
+        return ""
+    try:
+        from ze_core.embeddings import get_embedder
+        import types as _types
+        from uuid import UUID
+
+        goal_id_str = ctx.extensions.get("goal_id") if ctx.extensions else None
+        goal_id = UUID(goal_id_str) if goal_id_str else None
+
+        embedding = get_embedder().encode(ctx.prompt)
+        request = _types.SimpleNamespace(
+            module="tool_executor",
+            agent="tool_executor",
+            query_text=ctx.prompt,
+            query_embedding=embedding,
+            intent=ctx.intent,
+            task_id=None,
+            goal_id=goal_id,
+            max_tokens=800,
+        )
+        memory_ctx = await store.retrieve(request)
+    except Exception as exc:
+        log.warning("tool_executor_context_fetch_failed", error=str(exc))
+        return ""
+
+    lines: list[str] = []
+    facts = getattr(memory_ctx, "facts", [])
+    if facts:
+        lines.append("## Relevant facts")
+        lines.extend(f"- {f.predicate}: {f.value}" for f in facts)
+    task_state = getattr(memory_ctx, "task_state", None)
+    if task_state is not None:
+        lines.append("## Current task state")
+        lines.append(f"Status: {task_state.status}")
+        if task_state.open_steps:
+            lines.append("Open steps: " + ", ".join(task_state.open_steps))
+        if task_state.blocked_by:
+            lines.append("Blocked by: " + ", ".join(task_state.blocked_by))
+        if task_state.next_action:
+            lines.append(f"Next action: {task_state.next_action}")
+    return "\n".join(lines)
 
 
 def _truncate_messages(messages: list[dict], max_tokens: int) -> None:

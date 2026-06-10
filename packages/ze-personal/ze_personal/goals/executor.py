@@ -483,6 +483,8 @@ class GoalExecutor:
             prompt=prompt,
             intent=milestone.intent,
             gate_decision=GateDecision.EXECUTE,
+            memory_store=self._memory,
+            extensions={"goal_id": str(milestone.goal_id)},
         )
 
         try:
