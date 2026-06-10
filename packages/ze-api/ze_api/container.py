@@ -261,7 +261,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         profiles=persona_cfg.get("profiles", {}),
         default_profile=persona_cfg.get("profile", "default"),
     )
-    person_store = PersonStore(pool=pool)
+    person_store = PersonStore(pool=pool, memory_store=memory_store)
     contacts_consolidator = ContactsConsolidator(
         pool=pool,
         person_store=person_store,

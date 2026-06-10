@@ -31,7 +31,8 @@ class Container:
     preprocessor: Any = None  # InputPreprocessor | None
     plugins: list = field(default_factory=list)  # list[ZePlugin]
     _abort_tokens: dict = field(default_factory=dict)  # thread_id → AbortToken
-    _fact_extractor: Any = None  # ze_memory.extractor.gather_fact_proposals or None
+    _fact_extractor: Any = None   # ze_memory.extractor.gather_fact_proposals or None
+    _event_extractor: Any = None  # ze_memory.extractor.gather_event_proposals or None
 
     def _build_config(self, session_id: str, **extra: Any) -> dict:
         """Build the LangGraph configurable dict for a session."""
@@ -47,6 +48,7 @@ class Container:
                 "capability_gate": self.capability_gate,
                 "memory_store": self.memory_store,
                 "fact_extractor": self._fact_extractor,
+                "event_extractor": self._event_extractor,
                 **plugin_services,
                 **extra,
             }
@@ -335,7 +337,7 @@ class Container:
         capability_gate = CapabilityGate()
 
         # 11. Build MemoryStore and MemoryConsolidator
-        from ze_memory.extractor import gather_fact_proposals
+        from ze_memory.extractor import gather_event_proposals, gather_fact_proposals
         from ze_memory.retriever import PostgresMemoryStore
 
         if is_sqlite:
@@ -409,6 +411,7 @@ class Container:
             interface=interface,
             plugins=resolved_plugins,
             _fact_extractor=gather_fact_proposals,
+            _event_extractor=gather_event_proposals,
         )
 
 

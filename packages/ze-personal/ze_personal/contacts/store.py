@@ -1,4 +1,5 @@
 import json
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -49,8 +50,9 @@ def _source_from_row(row: asyncpg.Record) -> PersonSource:
 
 
 class PersonStore:
-    def __init__(self, pool: asyncpg.Pool) -> None:
+    def __init__(self, pool: asyncpg.Pool, memory_store: Any = None) -> None:
         self._pool = pool
+        self._memory = memory_store
         self._log = get_logger(__name__)
 
     async def upsert(self, person: Person) -> Person:
@@ -215,8 +217,30 @@ class PersonStore:
             )
         if row is None:
             raise ValueError(f"Person {person_id} not found")
+        person = _person_from_row(row)
         self._log.info("person_confirmed", person_id=str(person_id))
-        return _person_from_row(row)
+        if self._memory is not None:
+            await self._write_entity(person)
+        return person
+
+    async def _write_entity(self, person: Person) -> None:
+        from ze_memory.types import Entity
+        attrs: dict[str, str] = {}
+        if person.relationship_to_user:
+            attrs["relationship"] = person.relationship_to_user
+        if person.contact_info:
+            attrs.update({k: str(v) for k, v in person.contact_info.items()})
+        entity = Entity(
+            id=None,
+            entity_type="person",
+            canonical_name=person.name,
+            aliases=person.aliases or [],
+            attrs=attrs,
+        )
+        try:
+            await self._memory.upsert_entity(entity)
+        except Exception as exc:
+            self._log.warning("person_entity_sync_failed", person_id=str(person.id), error=str(exc))
 
     async def dismiss(self, person_id: UUID) -> None:
         async with self._pool.acquire() as conn:

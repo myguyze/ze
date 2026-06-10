@@ -24,6 +24,8 @@ from ze_memory.projection import (
     token_estimate,
 )
 from ze_memory.types import (
+    Entity,
+    Event,
     Fact,
     MemoryContext,
     ProfileFacet,
@@ -149,6 +151,60 @@ class PostgresMemoryStore:
                 state.next_action,
                 json.dumps(state.tool_cursors),
             )
+
+    async def propose_events(self, events: list[Event]) -> None:
+        for event in events:
+            try:
+                emb_list = (
+                    _to_list(self._embedder.encode(event.title))
+                    if self._embedder is not None else None
+                )
+                async with self._pool.acquire() as conn:
+                    await conn.execute(
+                        """
+                        INSERT INTO memory_events
+                          (event_type, title, start_at, end_at,
+                           participant_names, participants, summary, outcome, embedding)
+                        VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9::vector)
+                        """,
+                        event.event_type,
+                        event.title,
+                        event.start_at,
+                        event.end_at,
+                        json.dumps(event.participant_names),
+                        json.dumps([str(p) for p in event.participants]),
+                        event.summary,
+                        event.outcome,
+                        emb_list,
+                    )
+            except Exception as exc:
+                log.warning("memory_propose_event_failed", title=event.title, error=str(exc))
+
+    async def upsert_entity(self, entity: Entity) -> UUID:
+        emb_list = (
+            _to_list(self._embedder.encode(entity.canonical_name))
+            if self._embedder is not None else None
+        )
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO memory_entities
+                  (entity_type, canonical_name, aliases, attrs, embedding)
+                VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::vector)
+                ON CONFLICT (canonical_name) DO UPDATE SET
+                  aliases = EXCLUDED.aliases,
+                  attrs = EXCLUDED.attrs,
+                  embedding = COALESCE(EXCLUDED.embedding, memory_entities.embedding),
+                  updated_at = NOW()
+                RETURNING id
+                """,
+                entity.entity_type,
+                entity.canonical_name,
+                json.dumps(entity.aliases),
+                json.dumps(entity.attrs),
+                emb_list,
+            )
+        return row["id"]
 
     async def get_task_state(
         self,

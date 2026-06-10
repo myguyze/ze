@@ -54,7 +54,8 @@ class Event:
     title: str
     start_at: datetime | None = None
     end_at: datetime | None = None
-    participants: list[UUID] = field(default_factory=list)
+    participant_names: list[str] = field(default_factory=list)   # unresolved names from extraction
+    participants: list[UUID] = field(default_factory=list)        # resolved Entity ids
     roles: dict[str, UUID] = field(default_factory=dict)
     summary: str | None = None
     outcome: str | None = None

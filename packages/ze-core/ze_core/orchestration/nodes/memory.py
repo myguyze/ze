@@ -62,6 +62,16 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
         if proposals:
             await store.propose_facts(proposals)
 
+        event_extractor = config["configurable"].get("event_extractor")
+        if event_extractor is not None:
+            events = await event_extractor(
+                config["configurable"],
+                prompt=ctx.prompt,
+                response=result.response,
+            )
+            if events:
+                asyncio.create_task(store.propose_events(events))
+
         for hook in config["configurable"].get("memory_hooks", []):
             asyncio.create_task(hook(result, ctx, config))
 

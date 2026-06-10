@@ -1,0 +1,21 @@
+
+  Push notifications: ntfy is the obvious fit. Open-source, self-hostable (or free tier at ntfy.sh), iOS + Android apps, and the API is a
+  single HTTP POST. Ze would get a ze-notifications package wrapping ntfy, and agents call it instead of (or alongside) the Telegram bot. The
+  tradeoff vs. Telegram is that ntfy is fire-and-forget — no reply, no inline keyboards, no confirmation flows. You'd keep Telegram for
+  interactive flows and ntfy for ambient alerts.
+
+  Agent-rendered UI ("draw on screen"): This is the bigger lift, but the architecture is clean — agents return component descriptors
+  (structured JSON) alongside or instead of plain text, and a web frontend interprets them. The model picks the component type (table, chart,
+  confirm_modal, calendar_view, etc.), fills in the data, and the UI renders it. Exactly what Claude does with artifacts. The key design
+  question is where the schema lives: you'd want a shared ze-components package with the component type definitions so agents and the frontend
+  speak the same language.
+
+  The natural package split would be:
+  - ze-notifications — ntfy client, thin wrapper
+  - ze-ui — React/Next.js app, component registry, renders descriptors
+  - ze-components — shared component type definitions (used by agents + ui)
+
+  The hard part isn't the frontend — it's getting agents to emit well-structured descriptors reliably. You'd need a structured output layer in
+  BaseAgent and probably a component-selection step in the graph.
+
+  Want to start with a spec for one of these, or do you want to think through the component descriptor schema first?

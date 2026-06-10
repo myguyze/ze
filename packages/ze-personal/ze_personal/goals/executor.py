@@ -8,6 +8,7 @@ from uuid import UUID
 
 from ze_core.errors import GoalExecutionError
 from ze_memory.store import MemoryStore
+from ze_memory.types import TaskState
 from ze_core.orchestration.types import ToolCall
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.store import GoalStore
@@ -171,6 +172,7 @@ class GoalExecutor:
 
         if not pending:
             await self._store.update_status(goal_id, GoalStatus.COMPLETED)
+            await self._sync_task_state(goal_id, "completed", milestones)
             await self._push_retrospective(goal, goal_id)
             log.info("goal_completed", goal_id=str(goal_id))
             return
@@ -184,6 +186,7 @@ class GoalExecutor:
             return
 
         await self._store.update_milestone(next_milestone.id, MilestoneStatus.IN_PROGRESS)
+        await self._sync_task_state(goal_id, "in_progress", milestones, next_action=next_milestone.title)
         log.info("milestone_started", goal_id=str(goal_id), sequence=next_milestone.sequence, title=next_milestone.title)
 
         try:
@@ -207,6 +210,7 @@ class GoalExecutor:
                 replan_count = await self._store.increment_replan_count(goal_id)
                 if replan_count > 1:
                     await self._store.update_status(goal_id, GoalStatus.PAUSED)
+                    await self._sync_task_state(goal_id, "blocked", milestones, blocked_by=[error_msg])
                     await self._push(Notification(
                         content="Multiple steps have failed after replanning. The goal is paused — send new instructions or abandon it.",
                         urgency="high",
@@ -566,3 +570,31 @@ class GoalExecutor:
             ],
         ))
         log.info("gate_fired", gate_id=str(gate.id), goal_id=str(goal.id))
+
+    async def _sync_task_state(
+        self,
+        goal_id: UUID,
+        status: str,
+        milestones: list[Milestone],
+        next_action: str | None = None,
+        blocked_by: list[str] | None = None,
+    ) -> None:
+        if self._memory is None:
+            return
+        open_steps = [
+            m.title for m in milestones
+            if m.status == MilestoneStatus.PENDING
+        ]
+        try:
+            await self._memory.upsert_task_state(TaskState(
+                id=None,
+                task_id=None,
+                goal_id=goal_id,
+                status=status,
+                open_steps=open_steps,
+                blocked_by=blocked_by or [],
+                last_action=next_action,
+                next_action=open_steps[0] if open_steps else None,
+            ))
+        except Exception as exc:
+            log.warning("goal_task_state_sync_failed", goal_id=str(goal_id), error=str(exc))
