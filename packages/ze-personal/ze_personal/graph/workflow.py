@@ -141,6 +141,7 @@ async def workflow_synthesize(state: AgentState, config: RunnableConfig) -> dict
         asyncio.create_task(store.finish_execution(execution_id, "completed"))
 
     asyncio.create_task(_sync_workflow_task_state(config, state, state.get("workflow_steps") or [], len(step_results), "completed"))
+    asyncio.create_task(_extract_and_store_workflow_procedure(config, state, step_results))
     log.info("workflow_complete", execution_id=str(execution_id), steps=len(step_results))
     return {"final_response": response}
 
@@ -248,6 +249,36 @@ def _resolve_verify_model(config: RunnableConfig) -> str:
         else getattr(cfg, "config", {}).get("models", {})
     )
     return models.get("workflow_verify", MODEL_WORKFLOW_VERIFY)
+
+
+async def _extract_and_store_workflow_procedure(
+    config: RunnableConfig,
+    state: AgentState,
+    step_results: list[StepResult],
+) -> None:
+    """Extract a reusable procedure from a completed workflow and store it with a graph link."""
+    memory_store = config["configurable"].get("memory_store")
+    workflow_planner = config["configurable"].get("workflow_planner")
+    if memory_store is None or workflow_planner is None:
+        return
+    workflow_id = state.get("workflow_id")
+    workflow_name = state.get("prompt") or "Unnamed workflow"
+    try:
+        procedure = await workflow_planner.extract_procedure(workflow_name, step_results)
+    except Exception as exc:
+        log.warning("workflow_procedure_extraction_failed", workflow_id=str(workflow_id), error=str(exc))
+        return
+    if procedure is None:
+        return
+    try:
+        await memory_store.propose_procedure(
+            procedure,
+            linked_task_id=workflow_id,
+            linked_task_type="workflow",
+        )
+        log.info("workflow_procedure_stored", workflow_id=str(workflow_id), name=procedure.name)
+    except Exception as exc:
+        log.warning("workflow_procedure_store_failed", workflow_id=str(workflow_id), error=str(exc))
 
 
 async def _sync_workflow_task_state(

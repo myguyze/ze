@@ -377,7 +377,11 @@ class GoalExecutor:
         if procedure is None:
             return
         try:
-            await self._memory.propose_procedure(procedure)
+            await self._memory.propose_procedure(
+                procedure,
+                linked_task_id=goal.id,
+                linked_task_type="goal",
+            )
             log.info("goal_procedure_stored", goal_id=str(goal.id), name=procedure.name)
         except Exception as exc:
             log.warning("goal_procedure_store_failed", goal_id=str(goal.id), error=str(exc))

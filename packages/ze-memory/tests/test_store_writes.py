@@ -95,7 +95,8 @@ async def test_propose_events_continues_on_single_failure():
 async def test_propose_procedure_inserts_record():
     pool, conn = _make_pool()
     store, conn = _make_store(pool)
-    conn.execute = AsyncMock()
+    proc_id = uuid4()
+    conn.fetchrow = AsyncMock(return_value={"id": proc_id})
 
     proc = Procedure(
         id=None,
@@ -105,20 +106,55 @@ async def test_propose_procedure_inserts_record():
         steps=["Draft email", "Review", "Send"],
         success_criteria=["All emails sent"],
     )
-    await store.propose_procedure(proc)
+    result = await store.propose_procedure(proc)
 
-    conn.execute.assert_called_once()
-    call_args = conn.execute.call_args[0]
-    assert "memory_procedures" in call_args[0]
+    assert result == proc_id
+    conn.fetchrow.assert_called_once()
+    sql = conn.fetchrow.call_args[0][0]
+    assert "memory_procedures" in sql
+    assert "RETURNING id" in sql
 
 
 async def test_propose_procedure_swallows_db_error():
     pool, conn = _make_pool()
     store, conn = _make_store(pool)
-    conn.execute = AsyncMock(side_effect=RuntimeError("constraint"))
+    conn.fetchrow = AsyncMock(side_effect=RuntimeError("constraint"))
 
     proc = Procedure(id=None, name="Test", trigger="trigger", steps=["step"])
-    await store.propose_procedure(proc)  # Must not raise
+    result = await store.propose_procedure(proc)
+    assert result is None
+
+
+async def test_propose_procedure_fires_uses_procedure_edge():
+    pool, conn = _make_pool()
+    gs = _make_graph_store()
+    store, conn = _make_store(pool, graph_store=gs)
+    proc_id = uuid4()
+    task_id = uuid4()
+    conn.fetchrow = AsyncMock(return_value={"id": proc_id})
+
+    proc = Procedure(id=None, name="Test proc", trigger="trigger", steps=["step"])
+    await store.propose_procedure(proc, linked_task_id=task_id, linked_task_type="workflow")
+
+    await store._link_procedure_to_task(proc_id, task_id, "workflow")
+
+    calls = gs.upsert_relationship.call_args_list
+    assert any(c[0][0].predicate == "USES_PROCEDURE" for c in calls)
+    matching = [c for c in calls if c[0][0].predicate == "USES_PROCEDURE"]
+    rel = matching[0][0][0]
+    assert rel.source_id == proc_id
+    assert rel.target_id == task_id
+    assert rel.target_type == "workflow"
+
+
+async def test_propose_procedure_no_graph_edge_without_graph_store():
+    pool, conn = _make_pool()
+    store, conn = _make_store(pool, graph_store=None)
+    conn.fetchrow = AsyncMock(return_value={"id": uuid4()})
+
+    proc = Procedure(id=None, name="Test", trigger="trigger", steps=["step"])
+    result = await store.propose_procedure(proc, linked_task_id=uuid4())
+    assert result is not None  # stored successfully, no crash
 
 
 # ── upsert_entity ─────────────────────────────────────────────────────────────

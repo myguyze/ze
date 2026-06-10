@@ -235,19 +235,25 @@ class PostgresMemoryStore:
             except Exception as exc:
                 log.warning("memory_propose_event_failed", title=event.title, error=str(exc))
 
-    async def propose_procedure(self, procedure: Procedure) -> None:
+    async def propose_procedure(
+        self,
+        procedure: Procedure,
+        linked_task_id: UUID | None = None,
+        linked_task_type: str = "workflow",
+    ) -> UUID | None:
         try:
             emb_list = (
                 _to_list(self._embedder.encode(f"{procedure.trigger} {procedure.name}"))
                 if self._embedder is not None else None
             )
             async with self._pool.acquire() as conn:
-                await conn.execute(
+                row = await conn.fetchrow(
                     """
                     INSERT INTO memory_procedures
                       (name, trigger, preconditions, steps, success_criteria,
                        version, source_refs, embedding)
                     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7::jsonb, $8::vector)
+                    RETURNING id
                     """,
                     procedure.name,
                     procedure.trigger,
@@ -258,8 +264,15 @@ class PostgresMemoryStore:
                     json.dumps([str(r) for r in procedure.source_refs]),
                     emb_list,
                 )
+            procedure_id: UUID = row["id"]
+            if self._graph_store is not None and linked_task_id is not None:
+                asyncio.create_task(
+                    self._link_procedure_to_task(procedure_id, linked_task_id, linked_task_type)
+                )
+            return procedure_id
         except Exception as exc:
             log.warning("memory_propose_procedure_failed", name=procedure.name, error=str(exc))
+            return None
 
     async def upsert_entity(self, entity: Entity) -> UUID:
         emb_list = (
@@ -491,6 +504,27 @@ class PostgresMemoryStore:
                 ))
         except Exception as exc:
             log.warning("graph_link_event_participants_failed", event_id=str(event_id), error=str(exc))
+
+    async def _link_procedure_to_task(
+        self, procedure_id: UUID, task_id: UUID, task_type: str
+    ) -> None:
+        """Create USES_PROCEDURE edge from a stored procedure to the goal/workflow that produced it."""
+        try:
+            from ze_memory.graph.predicates import USES_PROCEDURE
+            await self._graph_store.upsert_relationship(Relationship(
+                source_id=procedure_id,
+                source_type="procedure",
+                predicate=USES_PROCEDURE,
+                target_id=task_id,
+                target_type=task_type,
+                creation_method="explicit",
+            ))
+        except Exception as exc:
+            log.warning(
+                "graph_link_procedure_failed",
+                procedure_id=str(procedure_id),
+                error=str(exc),
+            )
 
     async def _link_task_state_to_goal(self, task_state_id: UUID, goal_id: UUID) -> None:
         """Create BELONGS_TO_GOAL edge from task state to its goal."""

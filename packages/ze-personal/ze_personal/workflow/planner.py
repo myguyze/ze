@@ -6,7 +6,8 @@ from ze_core import defaults
 from ze_core.errors import WorkflowPlanError
 from ze_core.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
-from ze_personal.workflow.types import WorkflowStep
+from ze_memory.types import Procedure
+from ze_personal.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
 
@@ -30,6 +31,26 @@ Intent guidelines:
   tasks that reason, summarise, or plan → "reason"
 
 Omit agent_hint and verify if not applicable (use null).\
+"""
+
+_PROCEDURE_SYSTEM = """\
+You are extracting a reusable procedure from a completed workflow execution.
+
+A procedure captures HOW the workflow was accomplished — the generalizable sequence of
+steps that could be reused for a similar workflow in the future. Focus on the method,
+not the specific subject matter.
+
+Return JSON:
+{
+  "name": "short verb-phrase name for the procedure",
+  "trigger": "when would this procedure be useful? (one sentence)",
+  "preconditions": ["what must be true before starting?"],
+  "steps": ["step 1", "step 2", ...],
+  "success_criteria": ["how do you know it worked?"]
+}
+
+If the workflow was too specific or one-off to generalise into a reusable procedure,
+return: {"name": null}\
 """
 
 _SCHEDULE_SYSTEM = """\
@@ -70,6 +91,38 @@ class WorkflowPlanner:
 
         log.info("workflow_planned", steps=len(steps))
         return steps
+
+    async def extract_procedure(
+        self,
+        name: str,
+        step_results: list[StepResult],
+    ) -> Procedure | None:
+        """Derive a reusable procedure from a completed workflow. Returns None if not generalisable."""
+        completed = [r for r in step_results if r.success]
+        if not completed:
+            return None
+        steps_text = "\n".join(f"{i + 1}. {r.task}" for i, r in enumerate(completed))
+        prompt = f"Workflow: {name}\n\nCompleted steps:\n{steps_text}"
+        try:
+            raw = await self._client.complete(
+                messages=[{"role": "user", "content": prompt}],
+                model=defaults.MODEL_WORKFLOW_PLAN,
+                system=_PROCEDURE_SYSTEM,
+            )
+            data = json.loads(raw)
+            if not data.get("name"):
+                return None
+            return Procedure(
+                id=None,
+                name=data["name"],
+                trigger=data.get("trigger", ""),
+                preconditions=data.get("preconditions", []),
+                steps=data.get("steps", [r.task for r in completed]),
+                success_criteria=data.get("success_criteria", []),
+            )
+        except Exception as exc:
+            log.warning("workflow_procedure_extraction_failed", workflow=name, error=str(exc))
+            return None
 
     async def extract_schedule(self, description: str) -> str | None:
         raw = await self._client.complete(
