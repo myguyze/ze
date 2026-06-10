@@ -1,7 +1,7 @@
 # Ze — Adding a New Agent
 
 This guide explains how to author a new agent. Read it alongside the existing agents
-(`ze/agents/research/`, `ze/agents/companion/`) as working examples.
+(`ze_personal/agents/research/`, `ze_email/agents/email/`) as working examples.
 
 ---
 
@@ -9,13 +9,19 @@ This guide explains how to author a new agent. Read it alongside the existing ag
 
 1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`). No implementation begins without one.
 2. Resolve any open questions in the spec before writing code.
+3. Decide which package the agent belongs in (see [docs/package-architecture.md](package-architecture.md)):
+   - General assistant agents (research, companion) → `ze_personal/agents/<name>/`
+   - Email → `ze_email/agents/<name>/`
+   - Prospecting → `ze_prospecting/agents/`
+   - Calendar/reminder agents → `ze_calendar/agents/<name>/`
+   - Goals/workflow agents → `ze_personal/agents/<name>/`
 
 ---
 
 ## 1. Create the directory and files
 
 ```
-ze/agents/<name>/
+packages/<pkg>/<pkg_module>/agents/<name>/
     __init__.py
     agent.py        ← agent class + _AGENT_INSTRUCTIONS
     tools.py        ← tool functions (omit if the agent has no Python tools)
@@ -78,7 +84,7 @@ from ze_core.orchestration.registry import agent
 from ze_core.orchestration.types import AgentContext, AgentResult
 from ze_core.capability.types import Mode
 from ze_core.openrouter.client import OpenRouterClient
-from ze.settings import Settings
+from ze_api.settings import Settings
 
 _AGENT_INSTRUCTIONS = """
 You are Ze's <name> agent. <One paragraph: what you do, what you don't do, tone.>
@@ -137,7 +143,7 @@ class MyAgent(BaseAgent):
 | `self.agentic_loop(ctx, client=…)` | Runs the LLM-driven ReAct tool loop; returns `(response, tool_calls)` |
 | `self.call_tool(name, ctx, **kwargs)` | Executes a single tool with draft-mode suppression and structured logging |
 | `self._model(ctx)` | Returns the correct model string — primary or `model_simple` based on complexity |
-| `self.emit(ctx, key)` | Sends a Telegram progress message using a translation key |
+| `self.emit(ctx, key)` | Sends a progress message using a locale translation key |
 
 ### Lifecycle hooks
 
@@ -153,29 +159,48 @@ async def shutdown(self) -> None:
 
 ---
 
-## 4. Wire the instance (`ze/container.py`)
+## 4. Bootstrap wiring
 
-In `build_container()`, construct your agent and register the live instance:
+Agents are wired automatically by `bootstrap_agents()` in `ze_api/bootstrap.py`.
+At startup it:
+
+1. Imports every module listed in each plugin's `agent_module_paths()` so `@agent`
+   decorators register.
+2. Instantiates each registered `@agent` class by resolving constructor type annotations
+   against a `_dep_map` of known services.
+3. Calls `register_instance(name, instance)` for each.
+
+**To add your agent:** create the agent module in the appropriate domain package and
+add its module path to that package's `ZePlugin.agent_module_paths()`.
+
+**If your agent needs a dependency not already in `_dep_map`**, add it to the map in
+`bootstrap_agents()` before the scan runs:
 
 ```python
-from ze.agents.<name>.agent import MyAgent
-
-my_agent = MyAgent(openrouter_client=openrouter_client, settings=settings)
-register_instance(my_agent)
+# In ze_api/bootstrap.py, inside bootstrap_agents()
+if my_service is not None:
+    from my_package import MyService
+    _dep_map[MyService] = my_service
 ```
 
-The `@agent` class decorator registers the *class*. `register_instance()` registers
-the live *instance* built with its actual dependencies. Both are needed.
+**All `__init__` parameters must be type-annotated** — `bootstrap.py` uses
+`get_type_hints()` for dependency resolution. Parameters without annotations raise
+`AgentConfigError` at startup.
 
 ---
 
 ## 5. Import the tools module at startup
 
-Tools are registered when the module is imported. Add the import alongside the other
-agents in `container.py`:
+Tools are registered when the module is imported. Include the tools module path in
+the plugin's `agent_module_paths()` **before** the agent module:
 
 ```python
-import ze.agents.<name>.tools  # noqa: F401 — triggers tool registration
+# In yourpackage/plugin.py
+def agent_module_paths(self) -> list[str]:
+    return [
+        "yourpackage.agents.email.tools",
+        "yourpackage.agents.email.agent",
+    ]
 ```
 
 Ze fails hard at startup if an agent declares a tool in `tools = [...]` that isn't
@@ -186,7 +211,7 @@ registered — the discrepancy is caught before the app accepts traffic.
 ## 6. Write tests
 
 ```
-tests/agents/<name>/
+packages/<pkg>/tests/agents/<name>/
     __init__.py
     test_agent.py
     test_tools.py
@@ -206,9 +231,10 @@ Conventions:
 ## Checklist
 
 - [ ] Spec written and reviewed
-- [ ] `ze/agents/<name>/agent.py` — `@agent` class with `name`, `description`, `model`, `capabilities`, `intent_map`, `tools` class attributes
+- [ ] Agent module in the correct domain package — `@agent` class with `name`, `description`, `model`, `capabilities`, `intent_map`, `tools` class attributes
+- [ ] Module path added to the package's `ZePlugin.agent_module_paths()`
+- [ ] All `__init__` parameters are type-annotated
 - [ ] All tool calls go through `self.call_tool()` or `self.agentic_loop()`, never direct function calls
-- [ ] `ze/agents/<name>/tools.py` — all tools decorated with `@tool` (if applicable)
-- [ ] Agent wired in `ze/container.py` via `register_instance()`
-- [ ] Tools module imported at startup (if applicable)
+- [ ] `tools.py` — all tools decorated with `@tool` (if applicable)
+- [ ] Tools module listed in `agent_module_paths()` before the agent module (if applicable)
 - [ ] Tests written (including draft + blocked mode)

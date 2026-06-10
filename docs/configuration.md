@@ -1,9 +1,12 @@
 # Ze — Configuration Reference
 
-Ze has two layers of configuration:
+Ze has three layers of configuration:
 
 - **`.env`** — secrets and deployment-specific values. Never committed.
 - **`config/config.yaml`** — all structural and behavioural settings. Committed.
+- **`config/persona.yaml`** — persona profiles and dials. Committed.
+
+All files live in `packages/ze-api/config/` (or the path set by `config_dir`).
 
 ---
 
@@ -16,7 +19,7 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 | Variable | Required | Description |
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key — all LLM calls and web search go through this |
-| `ZE_API_KEY` | Yes | Static bearer token for REST endpoints (`Authorization: Bearer <token>`) |
+| `ZE_API_KEY` | Yes | Static bearer token for REST endpoints and WebSocket auth |
 
 ### Database
 
@@ -25,14 +28,13 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 | `DATABASE_URL` | `postgresql://ze:ze@localhost:5432/ze` | asyncpg connection URL (runtime) |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg2://ze:ze@localhost:5432/ze` | psycopg2 URL for Alembic CLI |
 
-### Telegram
+### ntfy push notifications
 
-| Variable | Required | Description |
+| Variable | Default | Description |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | Yes | Token from @BotFather |
-| `TELEGRAM_WEBHOOK_SECRET` | Prod only | Arbitrary secret used to verify Telegram POSTs via `X-Telegram-Bot-Api-Secret-Token` |
-| `TELEGRAM_ALLOWED_CHAT_ID` | Yes | Your personal Telegram chat ID (integer). All other chat IDs are silently ignored. |
-| `PUBLIC_URL` | Prod only | HTTPS base URL (e.g. `https://ze.fly.dev`). Omit or leave empty in local dev — polling mode needs no URL. |
+| `NTFY_BASE_URL` | `https://ntfy.sh` | ntfy server base URL (use self-hosted URL if applicable) |
+| `NTFY_TOPIC` | `""` | ntfy topic name. Leave empty to disable push notifications. |
+| `NTFY_TOKEN` | `""` | ntfy authentication token (optional, for private topics) |
 
 ### Google (Calendar + Gmail)
 
@@ -40,7 +42,7 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | If using calendar/email | OAuth2 client ID from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | If using calendar/email | OAuth2 client secret |
-| `GOOGLE_REFRESH_TOKEN` | If using calendar/email | Long-lived refresh token. Obtained by running `scripts/google_auth.py` once locally; stored as a Fly secret in production. |
+| `GOOGLE_REFRESH_TOKEN` | If using calendar/email | Long-lived refresh token. Obtained by running `scripts/google_auth.py` once locally. |
 | `TIMEZONE` | No | IANA timezone string (default: `UTC`). Used for calendar reminders and morning briefing scheduling. |
 
 ### Runtime behaviour
@@ -48,16 +50,38 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 | Variable | Default | Description |
 |---|---|---|
 | `CONFIRM_TIMEOUT_SECONDS` | `900` | How long (seconds) a `confirm`-mode graph pause waits before expiring |
+| `SESSION_INACTIVITY_MINUTES` | `30` | Minutes of inactivity before a session is considered stale |
 | `LOG_LEVEL` | `INFO` | Structlog level: `DEBUG` / `INFO` / `WARNING` |
+| `LOG_FILE` | `""` | Path to write JSON log file (empty = stdout only) |
+
+### Browser sidecar
+
+| Variable | Default | Description |
+|---|---|---|
+| `BROWSER_SERVICE_URL` | `http://ze-browser.internal:8080` | URL of the browser sidecar service |
+| `BROWSER_TIMEOUT_SECONDS` | `20` | HTTP timeout for browser requests |
+
+### Prospecting
+
+| Variable | Default | Description |
+|---|---|---|
+| `PROSPECTING_MAX_ITERATIONS` | `15` | Max ReAct loop iterations for the prospecting agent |
+| `PROSPECTING_STALE_TIMEOUT_MINUTES` | `10` | Minutes before an in-progress campaign is considered stuck |
+
+### Agent harness
+
+| Variable | Default | Description |
+|---|---|---|
+| `MAX_TOOL_CALLS_PER_TURN` | `20` | Hard cap on tool calls per graph invocation (enforced by `ToolCallCapHook`) |
 
 ---
 
 ## `config/config.yaml`
 
-Structural settings only: model aliases, contacts consolidation, proactive crons.
-Secrets and deployment values stay in `.env`. Persona profiles live in
-`config/persona.yaml`. Agent metadata is declared on `@agent` classes under
-`ze/agents/*/agent.py` (no `agents:` block in YAML).
+Structural settings only: model aliases, memory graph, contacts consolidation, proactive
+crons, and news. Secrets and deployment values stay in `.env`. Persona profiles live in
+`config/persona.yaml`. Agent metadata is declared as class attributes on `@agent`
+classes — there is no `agents:` block in YAML.
 
 Optional `routing:` overrides (threshold, gap_threshold, fallback_model) use ze-core
 defaults when omitted — see `ze_core.routing.types.RouterConfig`.
@@ -68,122 +92,61 @@ System-level model assignments for internal flows. These are not agent models.
 
 ```yaml
 models:
-  router:         anthropic/claude-haiku-4-5   # Haiku fallback + fact dedup merge decisions
-  synthesis:      anthropic/claude-haiku-4-5   # Multi-agent response synthesis + episode summaries
-  profile:        anthropic/claude-haiku-4-5   # User profile synthesis
-  reminders:      anthropic/claude-haiku-4-5   # Calendar reminder interval assessment
-  insights:       anthropic/claude-haiku-4-5   # Weekly insight generation
-  whisper:        openai/whisper-1             # Voice note transcription
-  vision_caption: google/gemini-flash-1.5      # Cheap routing caption for photos (no text)
+  router:           anthropic/claude-haiku-4-5      # Haiku fallback + fact dedup merge
+  synthesis:        anthropic/claude-haiku-4-5      # Multi-agent response synthesis + episode summaries
+  profile:          anthropic/claude-haiku-4-5      # User profile facet synthesis
+  reminders:        anthropic/claude-haiku-4-5      # Calendar reminder interval assessment
+  insights:         anthropic/claude-haiku-4-5      # Weekly insight generation
+  whisper:          openai/gpt-audio                # Voice note transcription
+  vision_caption:   google/gemini-flash-1.5         # Routing caption for photos with no text
 ```
 
-`whisper` is used by `TranscriptionClient` to convert OGG voice notes to text before
-the graph runs. `vision_caption` is called at `embed_route` when a photo arrives
-without a text caption, so the embedding router has text to score against agent
-embeddings. Both models are invoked via OpenRouter.
-
-### `persona:`
-
-Controls Ze's tone across all agent responses via named profiles and continuous dials.
-
-```yaml
-persona:
-  profile: default   # Active profile name. Overridden at runtime via /persona command.
-  locale: en         # BCP 47 locale for progress message translations (en | pt)
-
-  profiles:
-    default:
-      traits: [direct, warm, concise]
-      verbosity: concise        # concise | balanced | detailed
-      custom_instructions: ""   # Free-form text appended after traits, before memory context
-      dials:
-        humor:       0.3        # 0 = none → 1 = freely witty
-        directness:  0.9        # 0 = Socratic → 1 = blunt conclusions-first
-        formality:   0.2        # 0 = casual → 1 = formal
-        depth:       0.5        # 0 = surface → 1 = full elaboration
-
-    stoic:
-      traits: [precise, measured]
-      verbosity: concise
-      custom_instructions: ""
-      dials:
-        humor: 0.05
-        directness: 1.0
-        formality: 0.7
-        depth: 0.4
-
-    playful:
-      traits: [warm, curious, witty]
-      verbosity: balanced
-      custom_instructions: ""
-      dials:
-        humor: 0.85
-        directness: 0.4
-        formality: 0.1
-        depth: 0.6
-```
-
-**Profiles** are named personality presets. Add as many as you like under `profiles:`.
-The `profile:` key sets the YAML default; the active profile is overridden at runtime
-by the DB value set via `/persona` commands and survives process restarts.
-
-**Dials** are continuous `[0.0, 1.0]` values. Each dial maps to a prose clause injected
-into the identity block only at the extremes (below `0.2` or above `0.8`). The neutral
-band `[0.2, 0.8)` is intentionally silent — no instruction is added, keeping the system
-prompt compact for untuned dials.
-
-| Dial | Low (< 0.2) effect | High (≥ 0.8) effect |
-|---|---|---|
-| `humor` | No humor | Openly funny |
-| `directness` | Socratic / exploratory | Conclusions first, no preamble |
-| `formality` | Casual, first names | Formal and precise |
-| `depth` | Surface level | Full elaboration with examples |
-
-**`custom_instructions`** is free-form text appended to every system prompt for that
-profile — useful for "Always respond in European Portuguese" or "Use my name João."
-
-**Runtime switching** via Telegram:
-
-```
-/persona                    # show current profile + dial values
-/persona stoic              # switch to named profile (resets dial overrides)
-/persona humor 0.8          # override one dial on the active profile
-/persona reset              # restore all dials to profile YAML defaults
-```
-
-Profile switches and dial overrides are persisted in the `persona_state` DB table and
-survive restarts. The inline keyboard attached to `/persona` allows one-tap profile switching.
+`whisper` is used by `TranscriptionClient` to convert voice input to text before the
+graph runs. `vision_caption` is called at `embed_route` when a photo arrives without a
+text caption so the embedding router has text to score. Both are invoked via OpenRouter.
 
 ### `memory:`
 
 ```yaml
 memory:
-  contradiction_threshold: 0.85   # Cosine similarity above which two facts are candidates for dedup
+  graph:
+    enabled: true          # Enable the graph relationship layer
+    max_hops: 1            # Expansion hops during retrieval augmentation
+    max_relationships: 20  # Max graph neighbours fetched per expansion
 
+  # Optional consolidation overrides — defaults defined in ze_memory/defaults.py
   consolidation:
-    merge_silent_threshold: 0.95  # Above this → merge without LLM confirmation
-    merge_llm_threshold: 0.85     # Above this (below silent) → LLM decides whether to merge
-    contradicted_ttl_days: 30     # Hard-delete contradicted facts after N days
-    unreviewed_ttl_days: 90       # Soft-expire unreviewed facts after N days
-    expiry_grace_days: 7          # Days between soft-expire and hard-delete
-    episode_recency_days: 14      # Never archive episodes newer than N days
-    episode_archive_batch: 20     # Episodes per archive run
-    episode_min_archive_batch: 10 # Min unarchived episodes required to trigger a run
-    nightly_cron: "0 2 * * *"     # When consolidation runs (2 AM UTC default)
+    merge_silent_threshold: 0.95
+    merge_llm_threshold: 0.85
+    contradicted_ttl_days: 30
+    unreviewed_ttl_days: 90
+    expiry_grace_days: 7
+    episode_recency_days: 14
+    episode_min_archive_batch: 10
+    nightly_cron: "0 2 * * *"
 
   profile:
     min_facts: 3       # Skip profile synthesis below this many reviewed facts
     episode_limit: 50  # Max episodes fed into the synthesis prompt
+```
 
-  insights:
-    lookback_days: 7   # Evidence window for insight generation
-    min_evidence: 3    # Min combined facts + episodes required to produce insights
-    max_per_run: 3     # Max insights pushed per weekly run
+### `contacts:`
+
+```yaml
+contacts:
+  consolidation:
+    episode_batch_size: 10
+    max_episodes_per_run: 50
+    nightly_cron: "0 3 * * *"
+    review_cron: "30 8 * * *"
+  follow_up:
+    stale_days: 7
+    max_nudges: 3
 ```
 
 ### `proactive:`
 
-Controls the three proactive push behaviours.
+Controls all proactive push behaviours.
 
 ```yaml
 proactive:
@@ -204,30 +167,52 @@ proactive:
   insights:
     enabled: true
     cron: "0 7 * * 0"           # When to run insight generation (Sunday 7 AM UTC)
+    lookback_days: 7
+    min_evidence: 3
+    max_per_run: 3
     category_cooldown_days: 7   # Suppress same insight category within this window
+
+  goal_narrative:
+    enabled: true
+    cron: "0 18 * * 0"
+
+  goal_suggestion:
+    enabled: true
+    cron: "0 19 * * 0"
+
+  stuck_goals:
+    enabled: true
+    cron: "0 9 * * 2"
 ```
 
 Disable any proactive feature by setting `enabled: false` or toggling the relevant flag.
 
 ### `news:`
 
-Controls the `ze-news` plugin: RSS ingestion, personalisation, and briefing integration.
-The plugin is loaded when `news.enabled: true` and at least one source is configured.
+Controls the `ze-news` plugin. The plugin is loaded when `news.enabled: true` and at
+least one source is configured.
 
 ```yaml
 news:
   enabled: true
-  fetch_schedule: "*/30 * * * *"   # Cron for the RSS fetch job (default: every 30 min)
+  fetch_schedule: "*/30 * * * *"   # Cron for the RSS fetch job
   retention_days: 7                 # Hard-delete articles older than N days
   model: "openai/gpt-4o-mini"      # Model used by the news agent
   briefing_limit: 8                 # Total headlines in the morning briefing
 
   personalization:
     enabled: true
-    explore_ratio: 0.2             # Fraction of results reserved for off-profile discovery
-    candidate_multiplier: 3        # Over-fetch multiplier before exclusion filtering (limit * 3)
-    briefing_limit: 8              # Total articles in the briefing (overrides news.briefing_limit)
-    min_facts: 5                   # Min user facts required before scoring; below this → recency fallback
+    explore_ratio: 0.2             # Fraction reserved for off-profile discovery
+    candidate_multiplier: 3        # Over-fetch multiplier before filtering
+    briefing_limit: 8
+    min_facts: 5                   # Min user facts required for interest ranking
+
+  credibility:
+    enabled: true
+    llm_scoring: true
+    model: "openai/gpt-4o-mini"
+    flag_in_briefing: true
+    briefing_summary: true
 
   sources:
     - key: bbc_world
@@ -236,89 +221,78 @@ news:
       tags: [global, general]
 ```
 
-**`personalization.explore_ratio`** — `0.0` = fully interest-ranked (filter bubble, not
-recommended). `1.0` = all discovery, equivalent to plain recency. Default `0.2` means
-one in five briefing headlines is deliberately off-profile.
+**Source tags** are arbitrary strings used by the `get_headlines` tool and the briefing
+for filtering. Useful conventions: `global`, `local`, `tech`, `pt`, `hacker-news`.
 
-**`personalization.min_facts`** — Below this threshold Ze doesn't have enough signal
-to rank meaningfully; cosine similarities over 1–3 facts are noisy. The briefing falls
-back to plain recency ordering and labels the section `📰 Headlines:` instead of
-`📰 For you (based on your interests):`.
+---
 
-**`briefing_limit`** must be ≥ 8 for the 80/20 split to produce at least 2 discovery
-articles. At `limit=5`, `ceil(0.2 × 5) = 1` — a single discovery article is not
-meaningful serendipity.
+## `config/persona.yaml`
 
-**Source tags** are arbitrary strings. The `get_headlines` tool and the briefing
-both accept a `tags` filter. Useful conventions already in use: `global`, `local`,
-`tech`, `pt`, `leiria`, `hacker-news`.
-
-**Preference signals** require no new UI. When the user says *"Ze, I don't care about
-football"* in conversation, memory stores `UserFact(key="not interested in", value="football")`.
-On the next `_build_personalization_ctx()` call, "football" appears in `exclusions` and is
-filtered from both buckets using word-boundary regex (so "sport" won't falsely exclude
-articles about "transport").
-
-### `agents:`
-
-Per-agent configuration. Each agent block controls:
+Controls Ze's tone and personality across all agent responses via named profiles and
+continuous dials.
 
 ```yaml
-agents:
-  <name>:
-    enabled: true | false           # false → agent is excluded from routing
-    description: |                  # Embedded for cosine-similarity routing
-      One or more sentences describing what this agent handles.
-    model: anthropic/...            # Primary model for this agent
-    model_simple: anthropic/...     # Optional cheaper model for simple requests (cost-aware routing)
-    vision_capable: true | false    # If true, agent receives ChatContentImage for photo inputs
-    tools:
-      - tool_name                   # Tools available to this agent
-    timeout_seconds: 30             # asyncio.wait_for timeout for agent.run()
-    intent_map:
-      intent_key: "description"     # Maps intent names to tool descriptions
-    capabilities:
-      intent_key: autonomous | confirm | draft_only | disabled
+profile: default   # Active profile name. Overridden at runtime by DB value.
+locale: en         # BCP 47 locale for progress message translations (en | pt)
+
+profiles:
+  default:
+    traits: [direct, warm, concise]
+    verbosity: concise        # concise | balanced | detailed
+    custom_instructions: ""   # Free-form text appended after traits, before memory context
+    dials:
+      humor:       0.3        # 0 = none → 1 = freely witty
+      directness:  0.9        # 0 = Socratic → 1 = blunt conclusions-first
+      formality:   0.2        # 0 = casual → 1 = formal
+      depth:       0.5        # 0 = surface → 1 = full elaboration
+
+  stoic:
+    traits: [precise, measured]
+    verbosity: concise
+    custom_instructions: ""
+    dials:
+      humor: 0.05
+      directness: 1.0
+      formality: 0.7
+      depth: 0.4
+
+  playful:
+    traits: [warm, curious, witty]
+    verbosity: balanced
+    custom_instructions: ""
+    dials:
+      humor: 0.85
+      directness: 0.4
+      formality: 0.1
+      depth: 0.6
 ```
 
-**`vision_capable`** — when `true`, the `execute_tool` node passes raw image bytes to
-the agent as a `ChatContentImage` content block alongside the text prompt. When `false`
-(or omitted), the agent receives only the routing caption generated at `embed_route`.
-All current agents have `vision_capable: true`.
+**Profiles** are named personality presets. Add as many as you like under `profiles:`.
+The `profile:` key sets the YAML default; the active profile is overridden at runtime
+by the DB value in `persona_state` (set conversationally) and survives restarts.
 
-**Capability modes:**
+**Dials** are continuous `[0.0, 1.0]` values. Each dial maps to a prose clause injected
+into the identity block only at the extremes (below `0.2` or above `0.8`). The neutral
+band `[0.2, 0.8)` is intentionally silent.
 
-| Mode | Behaviour |
-|---|---|
-| `autonomous` | Execute immediately, no user prompt |
-| `confirm` | Pause graph, send inline keyboard (Yes / No / Edit). Timeout: `CONFIRM_TIMEOUT_SECONDS`. |
-| `draft_only` | Generate and show the proposed action, never execute |
-| `disabled` | Block entirely, return an error message |
-
-**Cost-aware routing:** if `model_simple` is set, the in-process complexity classifier
-may select it for short/simple requests. Agents that already use Haiku (e.g. `calendar`,
-`email`) should omit `model_simple` — there is no cheaper tier to fall back to.
-
-#### Default agent capabilities
-
-| Agent | Intent | Default mode |
+| Dial | Low (< 0.2) effect | High (≥ 0.8) effect |
 |---|---|---|
-| `research` | `read` | `autonomous` |
-| `research` | `execute` | `confirm` |
-| `companion` | `reason` | `autonomous` |
-| `calendar` | `read` | `autonomous` |
-| `calendar` | `create` / `update` / `delete` | `confirm` |
-| `email` | `read` | `autonomous` |
-| `email` | `create` / `update` | `draft_only` |
-| `email` | `delete` | `confirm` |
-| `workflow` | `read` | `autonomous` |
-| `workflow` | `manage` | `confirm` |
+| `humor` | No humor | Openly funny |
+| `directness` | Socratic / exploratory | Conclusions first, no preamble |
+| `formality` | Casual, first names | Formal and precise |
+| `depth` | Surface level | Full elaboration with examples |
+
+**`custom_instructions`** is free-form text appended to every system prompt for that
+profile — useful for "Always respond in European Portuguese" or "Use my name João."
+
+Profile switches and dial overrides are persisted in the `persona_state` DB table and
+survive restarts. The YAML values serve as defaults when no DB override exists.
 
 ---
 
 ## Enabling calendar and email
 
-Both agents default to `enabled: false` because they require Google OAuth2 credentials.
+Both require Google OAuth2 credentials.
 
 1. Create a Google Cloud project, enable Calendar and Gmail APIs.
 2. Create an OAuth2 client ID (Desktop application type).
@@ -329,13 +303,15 @@ Both agents default to `enabled: false` because they require Google OAuth2 crede
    ```
    This opens a browser, completes the OAuth flow, and prints the refresh token.
 5. Set `GOOGLE_REFRESH_TOKEN` in `.env` (locally) or as a Fly secret (production).
-6. Set `calendar.enabled: true` and/or `email.enabled: true` in `config/config.yaml`.
+
+Calendar and email agents are enabled automatically whenever `GOOGLE_REFRESH_TOKEN`
+is set — there are no `calendar.enabled` / `email.enabled` YAML flags.
 
 ---
 
 ## Hot-reloading
 
-Send `SIGHUP` to the running process to reload capability modes and persona settings
+Send `SIGHUP` to the running process to reload capability modes and YAML config
 without restarting:
 
 ```bash
@@ -344,4 +320,4 @@ kill -HUP <pid>
 fly ssh console -C "kill -HUP 1"
 ```
 
-Agent `enabled` flags and model assignments require a full restart.
+Model assignments and plugin configuration require a full restart.

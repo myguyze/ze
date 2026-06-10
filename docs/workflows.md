@@ -21,7 +21,7 @@ LangGraph compiled separately from the main conversation graph.
 
 ## Creating a workflow (conversational)
 
-Just describe what you want in Telegram. Ze's `WorkflowManagerAgent` handles
+Just describe what you want in the chat. Ze's `WorkflowManagerAgent` handles
 the lifecycle:
 
 > *"Every Monday at 8 AM, search for the top AI news from the past week and email me a summary."*
@@ -95,13 +95,13 @@ Verification runs three checks in order:
 ### Synthesis
 
 After all steps pass, `workflow_synthesize` calls Haiku to merge the step outputs
-into a concise summary and sends it to Telegram. For scheduled workflows running
-unattended, this is the only message the user sees.
+into a concise summary and pushes it via `ProactiveNotifier` (WebSocket or ntfy).
+For scheduled workflows running unattended, this is the only message the user sees.
 
 ### Failure handling
 
 If a step fails, `workflow_failed` records the failure in `workflow_executions`, sends
-an immediate Telegram alert (subject to `workflow_failure_cooldown_hours`), and stops.
+an immediate push notification (subject to `workflow_failure_cooldown_hours`), and stops.
 Subsequent steps are not attempted.
 
 ---

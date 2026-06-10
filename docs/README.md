@@ -3,10 +3,11 @@
 | Doc | What it covers |
 |-----|----------------|
 | [architecture.md](architecture.md) | System overview, graph flow, all modules at a glance |
-| [package-architecture.md](package-architecture.md) | Monorepo split (ze-core / ze-personal / ze / ze-browser), ZePlugin extension point, where new code belongs |
+| [package-architecture.md](package-architecture.md) | Monorepo split (13 packages), ZePlugin extension point, where new code belongs |
+| [native-interface.md](native-interface.md) | WebSocket protocol, frame types, confirmation flow, ntfy push, unread replay |
 | [adding-an-agent.md](adding-an-agent.md) | Step-by-step guide for authoring a new agent |
 | [configuration.md](configuration.md) | All config keys — `.env`, `config.yaml`, `persona.yaml` |
-| [memory.md](memory.md) | Facts, episodes, profile synthesis, nightly consolidation, inspection endpoints |
+| [memory.md](memory.md) | ze-memory package — facts, episodes, events, procedures, profile facets, graph layer, retrieval policies |
 | [scheduled-jobs.md](scheduled-jobs.md) | Background job schedule, memory lifecycle, proactive push pipeline |
 | [goals.md](goals.md) | Goal Engine — conversational usage, milestone execution, verification gates |
 | [workflows.md](workflows.md) | Workflow agent — multi-step plans, scheduling, step execution |

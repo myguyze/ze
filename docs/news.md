@@ -234,13 +234,10 @@ Labels are descriptive, not evaluative: "Sources unnamed" rather than "Phantom s
 
 The LLM scoring prompt's SHA-256 (first 12 characters) is stored on every
 `CredibilityReport` as `prompt_version`. When the prompt changes, only articles whose
-stored version differs from the current one need re-scoring — targeted via:
-
-```bash
-POST /news/rescore?version_mismatch_only=true
-```
-
-Treat prompt changes as schema changes: they alter the semantics of stored flag types.
+stored version differs from the current one need re-scoring. Treat prompt changes as
+schema changes: they alter the semantics of stored flag types. Articles can be re-scored
+by running the scoring pipeline directly against the database — no REST endpoint is
+exposed for this currently.
 
 ---
 
@@ -374,12 +371,7 @@ Full heuristic parity across all languages is a v2 concern. Heuristic flags carr
 
 ## Inspecting news data
 
-| Endpoint | Description |
-|---|---|
-| `GET /news/articles` | Recent articles with credibility data |
-| `POST /news/rescore` | Trigger credibility re-scoring (`?version_mismatch_only=true`) |
-
-Or via the news agent in conversation:
+Use the news agent in conversation to query current news:
 - *"What's in the news today?"* — `get_headlines` with default personalization
 - *"Any tech news?"* — `get_headlines(tags=["tech"])`
 - *"Search for articles about the budget"* — `search_news(query="budget")`

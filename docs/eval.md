@@ -153,7 +153,7 @@ If you prefer `curl` or want to integrate into your own script:
 ```bash
 curl -X POST http://localhost:8000/eval/chat \
   -H "Content-Type: application/json" \
-  -H "x-ze-api-key: <your-key>" \
+  -H "Authorization: Bearer <your-key>" \
   -d '{"prompt": "What is recursion?", "session_id": "test-1"}'
 ```
 
@@ -198,7 +198,7 @@ scenario runs:
 
 Verified rows are deleted after the check so eval runs don't contaminate each
 other. Requires `DATABASE_URL` in your environment (same as Ze). Tables you can
-verify against: `user_reminders`, `workflows`, `goals`, `user_facts`, `contacts`.
+verify against: `user_reminders`, `workflows`, `goals`, `memory_facts`, `contacts`.
 Calendar and email write to Google's APIs, not Ze's DB, so they have no `verify` blocks.
 
 ### Multi-turn scenario

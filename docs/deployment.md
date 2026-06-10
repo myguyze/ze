@@ -3,13 +3,16 @@
 Ze runs on [Fly.io](https://fly.io) as a single-machine app with an attached
 Postgres database. GitHub Actions handles CI and automated deploys on push to `main`.
 
+The deployment unit is `packages/ze-api/`. The `fly.toml` and `Dockerfile` both live
+there.
+
 ---
 
 ## Prerequisites
 
 - [flyctl](https://fly.io/docs/hands-on/install-flyctl/) installed and authenticated
 - A Fly.io account
-- All environment variables from `.env.example` ready
+- All environment variables from `packages/ze-api/.env.example` ready
 
 ---
 
@@ -18,6 +21,7 @@ Postgres database. GitHub Actions handles CI and automated deploys on push to `m
 ### 1. Create the Fly app
 
 ```bash
+cd packages/ze-api
 fly launch --no-deploy
 ```
 
@@ -44,14 +48,13 @@ fly secrets set \
   OPENROUTER_API_KEY=sk-or-... \
   ZE_API_KEY=your-secret-key \
   DATABASE_URL_SYNC="postgresql+psycopg2://..." \
-  TELEGRAM_BOT_TOKEN=... \
-  TELEGRAM_WEBHOOK_SECRET=your-webhook-secret \
-  TELEGRAM_ALLOWED_CHAT_ID=123456789 \
-  PUBLIC_URL=https://ze-backend.fly.dev \
+  NTFY_BASE_URL=https://ntfy.sh \
+  NTFY_TOPIC=ze-your-topic \
+  NTFY_TOKEN=your-ntfy-token \
   TIMEZONE=Europe/Lisbon
 ```
 
-For calendar and email (if enabled):
+For calendar and email (if you have Google credentials):
 
 ```bash
 fly secrets set \
@@ -87,7 +90,7 @@ logs immediately after:
 fly logs
 ```
 
-Look for `webhook registered` to confirm Telegram received the webhook URL.
+Look for `ze_startup_complete` to confirm the app is healthy.
 
 ---
 
@@ -127,7 +130,12 @@ fly scale count 1       # always 1 — Ze is single-user, no horizontal scaling
 ### Run migrations on production
 
 ```bash
-fly ssh console -C "python -m alembic upgrade head"
+fly ssh console -C "cd /app && python -m alembic upgrade head"
+```
+
+Or from the repo root:
+```bash
+make migrate  # runs against DATABASE_URL_SYNC
 ```
 
 ### Hot-reload config (no restart)
@@ -136,8 +144,8 @@ fly ssh console -C "python -m alembic upgrade head"
 fly ssh console -C "kill -HUP 1"
 ```
 
-This reloads capability modes and persona settings without interrupting the process.
-Changes to agent `enabled` flags or model assignments require a full `fly deploy`.
+This reloads capability modes and YAML settings without interrupting the process.
+Changes to model assignments or plugin configuration require a full `fly deploy`.
 
 ### Update a secret
 
@@ -157,9 +165,11 @@ Two workflows live in `.github/workflows/`:
 - `ruff check` (linting)
 - `pytest` with fast tests only (embedding model tests excluded)
 
-**`deploy.yml`** — runs on merge to `main` when application code changes:
+**`deploy-backend.yml`** — runs on merge to `main` when application code changes
+(path filter: `packages/ze-api/**`, `packages/ze-core/**`, `packages/ze-memory/**`,
+`packages/ze-personal/**`, etc.):
 - Runs CI first
-- Calls `fly deploy --remote-only` using a scoped deploy token
+- Calls `fly deploy --remote-only` from `packages/ze-api/` using a scoped deploy token
 
 ### One-time GitHub setup
 
@@ -171,42 +181,6 @@ Two workflows live in `.github/workflows/`:
    - Repo → Settings → Secrets and variables → Actions → New repository secret
 
 No other secrets are needed in GitHub — all runtime secrets live in Fly.
-
----
-
-## Telegram webhook
-
-In production, Ze uses a webhook. Telegram POSTs every update to:
-
-```
-POST https://ze-backend.fly.dev/telegram/webhook
-```
-
-The webhook is registered at startup (in the FastAPI lifespan) when `PUBLIC_URL` is
-set. If it falls out of sync:
-
-```bash
-# Re-register manually
-fly ssh console -C "python -c \"
-import asyncio
-from ze.container import build_container
-from ze.settings import get_settings
-
-async def main():
-    s = get_settings()
-    c = await build_container(s)
-    await c.bot.set_webhook()
-
-asyncio.run(main())
-\""
-```
-
-Or redeploy — the lifespan handler re-registers on every start.
-
-To verify the registered webhook:
-```bash
-curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
-```
 
 ---
 
@@ -237,32 +211,34 @@ The cold start (machine wake + model load) takes ~5–10 seconds. If this latenc
 is unacceptable, set `min_machines_running = 1` to keep the machine always warm
 (increases monthly cost).
 
+**Note:** WebSocket connections require the machine to stay awake. If you rely on
+a persistent WebSocket from the Flutter app, set `min_machines_running = 1` or use
+ntfy push notifications as the fallback when the machine is cold.
+
 ---
 
 ## Troubleshooting
 
-**Telegram stops delivering messages**
+**`ze_startup_complete` not in logs after deploy**
 
-Check if polling is running locally — it steals delivery from the webhook while active.
-Stop the local process (Ctrl-C) and Telegram resumes webhook delivery within seconds.
+The app failed during startup. Common causes:
 
-Verify the webhook is registered:
-```bash
-curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
-```
+- Missing required env var (check `fly secrets list`)
+- Database not reachable (check `DATABASE_URL` and Postgres status)
+- Migration not applied (run `fly ssh console -C "python -m alembic upgrade head"`)
 
-**`webhook registered` not in logs after deploy**
+**WebSocket disconnects / cannot connect**
 
-`PUBLIC_URL` may be missing or wrong. Confirm the secret:
-```bash
-fly secrets list
-```
+- Verify `ZE_API_KEY` secret is set and matches what the app sends as the bearer token.
+- Check `fly logs` for `ws_handler_error` events.
+- If using `auto_stop_machines = true`, the machine may be cold — the first WebSocket
+  connect triggers a wake; subsequent reconnects will be faster.
 
 **Database migrations not applied**
 
 ```bash
-fly ssh console -C "python -m alembic upgrade head"
-fly ssh console -C "python -m alembic current"
+fly ssh console -C "cd /app && python -m alembic current"
+fly ssh console -C "cd /app && python -m alembic upgrade head"
 ```
 
 **Machine OOM (out of memory)**
@@ -279,3 +255,10 @@ get a new refresh token, and update the secret:
 ```bash
 fly secrets set GOOGLE_REFRESH_TOKEN=new-token
 ```
+
+**ntfy push not delivering**
+
+- Confirm `NTFY_TOPIC` and `NTFY_TOKEN` are set correctly.
+- Check `fly logs` for `native_interface_ntfy_failed` events.
+- Verify the ntfy server is reachable from the Fly machine (use a public server if
+  self-hosting over a private network).

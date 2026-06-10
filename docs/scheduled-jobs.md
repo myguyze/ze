@@ -26,17 +26,15 @@ flowchart TD
 
 ## What happens during a conversation
 
-**Facts** (`ze_core/memory/store.py`)
+**Facts** (`ze_memory/retriever.py`)
 
 After each `execute_tool` or `draft_response` node, the `write_memory` graph node
-fires (fire-and-forget). The agent may propose new user facts — short declarative
-statements like "user prefers morning meetings" or "user is learning Portuguese".
+fires (fire-and-forget). The `gather_fact_proposals` extractor extracts declarative
+facts from the turn and writes them via `store.propose_facts()` with `reviewed = False`.
+The native app's `POST /memory/facts/review` endpoint exposes the review/edit/reject
+flow.
 
-Facts are never stored silently. Ze sends a Telegram message asking the user to
-confirm, reject, or edit the proposed fact. Only `reviewed = true` facts enter the
-long-term store.
-
-**Episodes** (`ze_core/memory/store.py`)
+**Episodes** (`ze_memory/retriever.py`)
 
 A summary of the conversation turn (what was asked, what Ze did, what was decided)
 is written automatically as an episode after every run. Episodes don't require user
@@ -53,8 +51,8 @@ into every system prompt — not just similar facts, but a synthesised portrait.
 
 ## Nightly consolidation (2 AM UTC)
 
-**Module:** `ze_core/memory/consolidator.py`  
-**Config:** `memory.consolidation.*` in `config/config.yaml`
+**Module:** `ze_memory/consolidator.py`  
+**Config:** `memory.consolidation.*` in `config/config.yaml` (optional overrides; defaults in `ze_memory/defaults.py`)
 
 Three tasks run in sequence every night:
 
@@ -94,24 +92,16 @@ Raw episodes accumulate quickly. Episodes older than `episode_recency_days` (def
 (default: 10) candidates exists, Haiku summarises them into a single archive row and
 the originals are deleted. This keeps the episodes table lean without losing history.
 
-### 4. Profile synthesis (end of every consolidation pass)
+### 4. Profile facet synthesis (end of every consolidation pass)
 
 After dedup + expiry + archival, the consolidator calls `synthesise_profile()`. Haiku
 reads all reviewed facts and the most recent episodes (up to `profile.episode_limit`,
-default: 50) and produces a structured user portrait:
+default: 50) and produces a structured list of `ProfileFacet` objects upserted into
+`memory_profile_facets` by key.
 
-| Field | What it captures |
-|---|---|
-| `preferences` | Communication style, tool preferences, output format preferences |
-| `habits` | Routines, recurring activities, work patterns |
-| `topics` | Domains of interest, recurring subjects |
-| `relationships` | People mentioned, their roles relative to the user |
-| `goals` | Stated objectives, in-progress projects |
-
-The profile is versioned (integer counter, incremented on every synthesis). The current
-profile is available at `GET /memory/profile` and is injected into every agent's system
-prompt. Agents don't reason about individual facts in isolation — they see the full
-portrait.
+Profile facets are key-value pairs with stability (`stable` | `dynamic`) and confidence
+scores. The current facets are available at `GET /memory/profile` and are injected into
+every agent's system prompt. Agents see the full synthesised portrait, not individual facts.
 
 Profile synthesis is skipped if fewer than `profile.min_facts` (default: 3) reviewed
 facts exist.
@@ -120,7 +110,7 @@ facts exist.
 
 ## Weekly insights (Sunday 7 AM UTC)
 
-**Module:** `ze/jobs/insights.py`  
+**Module:** `ze_personal/jobs/insights.py`  
 **Config:** `proactive.insights.*` in `config/config.yaml`
 
 Every Sunday Ze looks back over the past 7 days of facts and episodes and generates
@@ -136,8 +126,8 @@ noticed:
 Insight categories: `pattern` | `trend` | `goal` | `tension`.
 
 The same category won't fire again within `category_cooldown_days` (default: 7d) to
-avoid repetition. Insights are pushed directly to Telegram before the 8 AM morning
-briefing, so they feel like a natural start to the week.
+avoid repetition. Insights are pushed via `ProactiveNotifier` (WebSocket or ntfy) before the 8 AM
+morning briefing, so they feel like a natural start to the week.
 
 Insight generation is skipped if fewer than `min_evidence` (default: 3) facts +
 episodes exist in the lookback window.
@@ -146,10 +136,10 @@ episodes exist in the lookback window.
 
 ## Morning briefing (8 AM UTC daily)
 
-**Module:** `ze/jobs/briefing.py`  
+**Module:** `ze_personal/jobs/briefing.py`  
 **Config:** `proactive.briefing.*` and `news.personalization.*` in `config/config.yaml`
 
-A daily digest pushed to Telegram. No LLM call — it's a templated summary of stats and headlines:
+A daily digest pushed via `ProactiveNotifier`. No LLM call — it's a templated summary of stats and headlines:
 
 - **Unreviewed facts** — facts Ze proposed that you haven't confirmed or rejected yet.
   If the count is at or above `unreviewed_nudge_threshold` (default: 5), the briefing
@@ -182,17 +172,17 @@ The briefing is deduplicated — it will not fire if one was already sent within
 
 ## Calendar sync and reminders (7:45 AM UTC daily)
 
-**Module:** `ze/jobs/calendar.py`  
+**Module:** `ze_calendar/jobs/calendar_reminder.py` (`CalendarReminderJob`)  
 **Config:** `proactive.calendar.*` in `config/config.yaml`
 
-Each morning `CalendarReminderScheduler` syncs Google Calendar events up to
+Each morning `CalendarReminderService` syncs Google Calendar events up to
 `sync_days_ahead` (default: 7) days ahead. For each event, Haiku assesses the
 appropriate reminder interval (e.g. 15 minutes before a video call vs. 1 hour before
-a flight). APScheduler one-shot `DateTrigger` jobs are created accordingly.
+a flight). `WorkflowScheduler` one-shot `DateTrigger` jobs are created accordingly.
 
-When a reminder fires, Ze pushes the event title and time to Telegram. A startup
-replay pass re-registers any reminders that were scheduled before the last restart
-and haven't fired yet.
+When a reminder fires, Ze pushes the event title and time via `ProactiveNotifier`.
+A startup replay pass re-registers any reminders that were scheduled before the last
+restart and haven't fired yet.
 
 Calendar sync runs at 7:45 AM — before the 8 AM briefing — so upcoming events
 with same-day reminders are captured.
@@ -211,13 +201,13 @@ alert spam for repeatedly-failing workflows.
 
 ## Goal advance sweep (every 15 minutes)
 
-**Module:** `ze_personal/goals/executor.py` · registered in `ze/container.py`  
+**Module:** `ze_personal/goals/executor.py` · registered in `ze_api/container.py`  
 **Job id:** `goal_advance_sweep` · **Cron:** `*/15 * * * *`
 
 For each goal with status `ACTIVE`, the sweep calls `GoalExecutor.advance(goal_id)`.
 The advance loop either:
 
-- Fires a **verification gate** (Telegram checkpoint with Proceed / Stop / Redirect),
+- Fires a **verification gate** (push notification with Proceed / Stop / Redirect options),
   setting status to `AWAITING_GATE` until you respond, or
 - Runs the next pending **milestone** via the normal agent registry, stores output and
   a learning, and pushes a short progress line (e.g. *"✅ Draft target list done (2/8)"*).
@@ -225,8 +215,8 @@ The advance loop either:
 Goals in `AWAITING_GATE`, `PAUSED`, `PLANNING`, `COMPLETED`, or `ABANDONED` are skipped.
 The sweep is lightweight — it returns early when there is no actionable next step.
 
-Gate responses are handled immediately in `ZeBot` (not on the cron tick): approving
-or redirecting calls `advance` again from the callback handler.
+Gate responses are handled conversationally (not on the cron tick): approving
+or redirecting calls `advance` again from the conversation handler.
 
 See [docs/goals.md](goals.md) for the full goal engine documentation.
 
@@ -234,25 +224,25 @@ See [docs/goals.md](goals.md) for the full goal engine documentation.
 
 ## Weekly goal narrative (Sunday 6 PM UTC)
 
-**Module:** `ze/jobs/goal_narrative.py`  
+**Module:** `ze_personal/jobs/goal_narrative.py`  
 **Cron:** `0 18 * * 0` (configurable via `proactive.goal_narrative.cron`)
 
-For each active goal, Ze synthesises a one-paragraph weekly update: what was completed this week, any pending gate, and what comes next. Pushed to Telegram. Skips goals that had no activity in the past 7 days.
+For each active goal, Ze synthesises a one-paragraph weekly update: what was completed this week, any pending gate, and what comes next. Pushed via `ProactiveNotifier`. Skips goals that had no activity in the past 7 days.
 
 ---
 
 ## Weekly goal suggestions (Sunday 7 PM UTC)
 
-**Module:** `ze/jobs/goal_suggestion.py`  
+**Module:** `ze_personal/jobs/goal_suggestion.py`  
 **Cron:** `0 19 * * 0` (configurable via `proactive.goal_suggestion.cron`)
 
-Analyses recent memory facts, episodes, and past goal retrospectives to propose one new multi-week goal. Sent to Telegram with **Accept** / **Dismiss** buttons. Accepted suggestions open a goal creation flow. Suppressed if there are already 3+ active goals or if the last suggestion was dismissed within 7 days.
+Analyses recent memory facts, episodes, and past goal retrospectives to propose one new multi-week goal. Sent via `ProactiveNotifier` with **Accept** / **Dismiss** options. Accepted suggestions open a goal creation flow. Suppressed if there are already 3+ active goals or if the last suggestion was dismissed within 7 days.
 
 ---
 
 ## Stuck goal detection (Tuesday 9 AM UTC)
 
-**Module:** `ze/jobs/stuck_goals.py`  
+**Module:** `ze_personal/jobs/stuck_goals.py`  
 **Cron:** `0 9 * * 2` (configurable via `proactive.stuck_goals.cron`)
 
 Checks all active goals for inactivity:
@@ -260,7 +250,28 @@ Checks all active goals for inactivity:
 - **Milestone stuck**: no milestone progress for 48 h on an `ACTIVE` goal.
 - **Gate stuck**: a gate in `AWAITING_APPROVAL` for 72 h with no user response.
 
-For each stuck goal, Ze pushes a Telegram alert describing the blockage with **Resume** / **Abandon** / **Redirect** inline actions. `last_stuck_alert_at` on the goal prevents duplicate alerts within the same window.
+For each stuck goal, Ze pushes a notification describing the blockage with **Resume** / **Abandon** / **Redirect** options. `last_stuck_alert_at` on the goal prevents duplicate alerts within the same window.
+
+---
+
+## Cost reconciliation (every 15 minutes)
+
+**Module:** `ze_core/telemetry/reconciler.py` (`CostReconciler`) · registered in `ze_api/container.py`  
+**Job id:** `cost_reconciliation` · **Cron:** `*/15 * * * *`
+
+Pulls actual billed costs from the OpenRouter API and reconciles them against
+estimated records in `llm_cost_log`. Runs frequently to keep cost data fresh.
+
+---
+
+## Stale campaign recovery (every 15 minutes)
+
+**Module:** `ze_prospecting/jobs/campaigns.py` (`recover_stale_campaigns`) · registered via `ProspectingPlugin.register_proactive_jobs()`  
+**Job id:** `recover_stale_campaigns` · **Cron:** `*/15 * * * *`
+
+Marks prospecting campaigns that have been running longer than
+`PROSPECTING_STALE_TIMEOUT_MINUTES` (default: 10 min) as failed, preventing stuck
+campaigns from blocking new runs.
 
 ---
 
@@ -285,23 +296,26 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 
 | Time (UTC) | Job | Module |
 |---|---|---|
-| 2:00 AM daily | Memory consolidation + profile synthesis | `ze_core/memory/consolidator.py` |
+| 2:00 AM daily | Memory consolidation + profile synthesis | `ze_memory/consolidator.py` |
 | 3:00 AM daily | Contacts consolidation (dedup + merge) | `ze_personal/contacts/consolidator.py` |
-| 7:00 AM Sun | Weekly insight generation | `ze/jobs/insights.py` |
-| 7:45 AM daily | Calendar sync + reminder scheduling | `ze/jobs/calendar.py` |
-| 8:00 AM daily | Morning briefing (with personalised headlines) | `ze/jobs/briefing.py` |
-| 8:30 AM daily | Contact review suggestions | `ze/jobs/contacts.py` |
-| 6:00 PM Sun | Weekly goal narrative | `ze/jobs/goal_narrative.py` |
-| 7:00 PM Sun | Weekly goal suggestions | `ze/jobs/goal_suggestion.py` |
-| 9:00 AM Tue | Stuck goal detection | `ze/jobs/stuck_goals.py` |
+| 7:00 AM Sun | Weekly insight generation | `ze_personal/jobs/insights.py` |
+| 7:45 AM daily | Calendar sync + reminder scheduling | `ze_calendar/jobs/calendar_reminder.py` |
+| 8:00 AM daily | Morning briefing (with personalised headlines) | `ze_personal/jobs/briefing.py` |
+| 8:30 AM daily | Contact review suggestions | `ze_personal/jobs/contacts.py` |
+| 6:00 PM Sun | Weekly goal narrative | `ze_personal/jobs/goal_narrative.py` |
+| 7:00 PM Sun | Weekly goal suggestions | `ze_personal/jobs/goal_suggestion.py` |
+| 9:00 AM Tue | Stuck goal detection | `ze_personal/jobs/stuck_goals.py` |
 | Every 15 min | Goal advance sweep | `ze_personal/goals/executor.py` |
+| Every 15 min | Cost reconciliation | `ze_core/telemetry/reconciler.py` |
+| Every 15 min | Stale campaign recovery | `ze_prospecting/jobs/campaigns.py` |
 | Every 30 min | News article fetch + embed | `ze_news/jobs/fetch.py` |
 | Immediate | Workflow failure alerts | `ze_core/proactive/notifier.py` |
-| Immediate | Calendar event reminders (when they fire) | `ze/jobs/calendar.py` |
+| Immediate | Calendar event reminders (when they fire) | `ze_calendar/jobs/calendar_reminder.py` |
 | Immediate | Goal verification gates + milestone progress | `ze_core/proactive/notifier.py` |
 
-All scheduled jobs use APScheduler with Postgres as the job store, so jobs survive
-process restarts. Cron expressions are configurable in `config/config.yaml`.
+All scheduled jobs use APScheduler (via `WorkflowScheduler` or `ProactiveScheduler`)
+with Postgres as the job store, so jobs survive process restarts. Cron expressions
+are configurable in `config/config.yaml`.
 
 ---
 

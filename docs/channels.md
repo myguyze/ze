@@ -2,7 +2,7 @@
 
 This guide explains how to implement a new outbound communication channel
 (e.g. LinkedIn DM, WhatsApp). Read it alongside the existing `GmailChannel`
-(`ze/google/gmail.py`) as a working example.
+(`ze_email/channel/gmail.py`) as a working example.
 
 ---
 
@@ -32,7 +32,8 @@ change it after the first migration.
 
 ## 2. Implement the `Channel` subclass
 
-Create `ze/channels/<name>.py` and implement the `Channel` ABC:
+Create the channel in the appropriate domain package (e.g. `ze_email/channel/gmail.py`)
+and implement the `Channel` ABC:
 
 ```python
 from ze_core.channels.base import Channel
@@ -48,7 +49,7 @@ class LinkedInChannel(Channel):
 
     async def send(self, message: Message) -> SentMessage:
         # Call the transport API.
-        # Raise ChannelSendError (from ze/errors.py) on failure — never let
+        # Raise ChannelSendError (from ze_core.errors) on failure — never let
         # raw transport exceptions escape the channel boundary.
         ...
 
@@ -75,7 +76,7 @@ class LinkedInChannel(Channel):
 
 ### Error handling
 
-Wrap transport exceptions in `ze/errors.py` types before they surface:
+Wrap transport exceptions in `ze_core.errors` types before they surface:
 
 ```python
 from ze_core.errors import ChannelSendError, ChannelNotFoundError
@@ -88,12 +89,12 @@ except SomeTransportError as exc:
 
 ---
 
-## 3. Wire in `ze/container.py`
+## 3. Wire in `ze_api/container.py`
 
 Instantiate the channel and pass it to `ChannelRegistry`:
 
 ```python
-from ze.channels.linkedin import LinkedInChannel
+from ze_email.channel.gmail import GmailChannel
 
 linkedin_channel = LinkedInChannel(credentials=linkedin_creds)
 
@@ -110,7 +111,8 @@ The registry is keyed by `channel_type` — duplicate types raise at constructio
 ## 4. Write a migration if needed
 
 If the new channel requires credentials or config stored in the database, add
-a migration in `migrations/versions/` following the existing raw-SQL pattern.
+a migration in `packages/ze-api/migrations/versions/` following the existing
+raw-SQL pattern.
 
 The `contact_channels` table already supports any `ChannelType` value — no
 schema change is needed just to store handles for the new channel.
@@ -120,7 +122,7 @@ schema change is needed just to store handles for the new channel.
 ## 5. Write tests
 
 ```
-tests/channels/
+packages/ze-api/tests/channels/
     test_<name>_channel.py
 ```
 
@@ -160,8 +162,8 @@ LinkedIn handles once contacts have them stored.
 
 - [ ] Spec written and reviewed
 - [ ] `ChannelType` enum value added to `ze_core/channels/types.py`
-- [ ] `ze/channels/<name>.py` — `Channel` subclass with all three methods
+- [ ] Channel module in the domain package — `Channel` subclass with all three methods
 - [ ] Transport errors wrapped as `ChannelSendError` (never raw)
-- [ ] Channel instantiated and added to `ChannelRegistry` in `ze/container.py`
+- [ ] Channel exposed via the package's `ZePlugin` and added to `ChannelRegistry` in `ze_api/container.py`
 - [ ] Migration written (if credentials/config need DB storage)
 - [ ] Tests written — including error wrapping and reply filtering

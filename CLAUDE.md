@@ -33,8 +33,21 @@ ze/                           # monorepo root
 │   │       ├── goals/        # GoalStore, GoalPlanner, GoalExecutor, types
 │   │       ├── graph/        # workflow.py (execution nodes), memory_hooks.py (contact extraction)
 │   │       ├── persona/      # PostgresPersonaStore, identity builder, types
+│   │       ├── agents/       # research, companion, goals, workflow agents
+│   │       ├── jobs/         # briefing, insights, contacts, goal proactive jobs
 │   │       ├── workflow/     # WorkflowStore, planner, scheduler, types
 │   │       └── plugin.py     # PersonalPlugin(ZePlugin) — wires domain services into graphs
+│   ├── ze-email/             # Gmail channel + email agent (ZePlugin)
+│   │   └── ze_email/
+│   │       ├── channel/      # GmailChannel
+│   │       ├── agents/email/ # EmailAgent + tools
+│   │       └── plugin.py     # EmailPlugin(ZePlugin)
+│   ├── ze-prospecting/       # Prospecting agent, campaign store, recovery job (ZePlugin)
+│   │   └── ze_prospecting/
+│   │       ├── agents/       # ProspectingAgent + tools
+│   │       ├── jobs/         # recover_stale_campaigns
+│   │       ├── store.py      # ProspectCampaignStore
+│   │       └── plugin.py     # ProspectingPlugin(ZePlugin)
 │   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
 │   │   └── ze_google/
 │   │       └── auth.py       # GoogleCredentials, SCOPES, service client factories
@@ -47,12 +60,10 @@ ze/                           # monorepo root
 │   │       └── plugin.py     # CalendarPlugin(ZePlugin) — registers agents
 │   ├── ze-api/               # Deployment unit — HTTP/WebSocket API, wires all plugins
 │   │   ├── ze_api/
-│   │   │   ├── agents/       # email, companion, research, prospecting agents + bootstrap
 │   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
-│   │   │   ├── google/       # GmailChannel (imports GoogleCredentials from ze_google)
 │   │   │   ├── interface/    # NativeAppInterface (WebSocket + ntfy delivery)
-│   │   │   ├── jobs/         # Proactive cron jobs: briefing, insights, contacts, goal jobs
-│   │   │   ├── container.py  # ZeContainer (registers PersonalPlugin + CalendarPlugin + NewsPlugin)
+│   │   │   ├── bootstrap.py  # Agent DI wiring via plugin.agent_module_paths()
+│   │   │   ├── container.py  # ZeContainer (registers all ZePlugins)
 │   │   │   └── settings.py   # Pydantic Settings
 │   │   ├── config/
 │   │   │   ├── config.yaml   # Models, contacts, proactive schedules (secrets in .env)
@@ -77,10 +88,13 @@ ze-core         (no ze deps)
 ze-notifications(no ze deps)
 ze-components   (no ze deps)
 ze-google       (no ze deps)
-ze-personal   → ze-core
+ze-personal   → ze-core, ze-memory
+ze-email      → ze-core, ze-google, ze-personal
+ze-prospecting→ ze-core, ze-browser, ze-personal
 ze-calendar   → ze-core, ze-google, ze-personal
 ze-news       → ze-core
-ze-api        → ze-core, ze-personal, ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components
+ze-api        → ze-core, ze-memory, ze-personal, ze-email, ze-prospecting, ze-calendar,
+                  ze-google, ze-browser, ze-news, ze-notifications, ze-components
 ze-app          (Flutter — connects to ze-api over WebSocket)
 ```
 
@@ -186,8 +200,14 @@ Hot-reloaded on SIGHUP without restart.
 ## Adding a new agent
 
 1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`; see `specs/README.md` for the index).
-2. Create `ze_api/agents/<name>/agent.py` — decorate with `@agent` from `ze_core.orchestration.registry`, subclass `BaseAgent` from `ze_core.orchestration.base_agent`. Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class attributes. Define `_AGENT_INSTRUCTIONS` at the top.
-3. Add `ze_api/agents/<name>/tools.py` if the agent needs Python tools. Use `@tool` from `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search — no Python tool needed.
+2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_email/agents/`,
+   `ze_prospecting/agents/`, or `ze_calendar/agents/` — decorate with `@agent` from
+   `ze_core.orchestration.registry`, subclass `BaseAgent` from `ze_core.orchestration.base_agent`.
+   Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class
+   attributes. Define `_AGENT_INSTRUCTIONS` at the top.
+3. Add a `tools.py` alongside the agent if it needs Python tools. Use `@tool` from
+   `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search —
+   no Python tool needed. Register the tools module path in the package's `ZePlugin.agent_module_paths()`.
 4. Write tests in `tests/agents/<name>/`.
 5. Wire the live instance in `ze_api/container.py` via `register_instance()`.
 6. Import the tools module at startup so `@tool` registration fires.
