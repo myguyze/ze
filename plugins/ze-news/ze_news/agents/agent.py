@@ -62,7 +62,7 @@ class NewsAgent(BaseAgent):
 
     def __init__(
         self,
-        client: OpenRouterClient,
+        client: LLMClient,
         memory_store: PostgresMemoryStore,
         goal_provider: GoalTitleProvider,
         news_store: NewsStore,

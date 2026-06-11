@@ -70,6 +70,7 @@ def bootstrap_agents(
     are kept for backwards compatibility and are merged into ``deps``.
     """
     from ze_google.auth import GoogleCredentials
+    from ze_agents.client import LLMClient
     from ze_core.openrouter.client import OpenRouterClient
     from ze_api.settings import Settings
     from ze_agents.settings import Settings as CoreSettings
@@ -87,6 +88,7 @@ def bootstrap_agents(
     # Merge legacy kwargs.
     _legacy: list[tuple[Any, Any]] = [
         (OpenRouterClient, openrouter_client),
+        (LLMClient, openrouter_client),
         (Settings, settings),
         (CoreSettings, settings.to_core_settings() if settings and hasattr(settings, "to_core_settings") else None),
         (GoogleCredentials, google_credentials),
@@ -103,6 +105,7 @@ def bootstrap_agents(
         ("ze_personal.workflow.scheduler.WorkflowScheduler", workflow_scheduler),
         ("ze_calendar.reminders.store.ReminderStore", reminder_store),
         ("ze_core.proactive.notifier.ProactiveNotifier", notifier),
+        ("ze_proactive.notifier.ProactiveNotifier", notifier),
         ("ze_personal.contacts.store.PersonStore", person_store),
         ("ze_browser.BrowserClient", browser_client),
         ("ze_personal.contacts.channel_store.ContactChannelStore", contact_channel_store),

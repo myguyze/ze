@@ -97,7 +97,7 @@ async def draft_outreach(
     campaign_brief: str,
     channel: str,
     campaign_id: str,
-    client: OpenRouterClient,
+    client: LLMClient,
     model: str,
     person_store: PersonStore,
     campaign_store: ProspectCampaignStore,
