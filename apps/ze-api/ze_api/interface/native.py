@@ -87,3 +87,37 @@ class NativeAppInterface:
     ) -> None:
         """Called by the WS handler after graph invocation to attach the thread_id."""
         await self._send_message(text, thread_id=thread_id, components=components)
+
+    async def send_confirmation(self, request: ConfirmationRequest) -> None:
+        """Deliver a confirmation UI frame over WebSocket (and ntfy if backgrounded)."""
+        actions = _confirmation_actions(request.options)
+        await self._conn.send_frame({
+            "type": "confirm_request",
+            "id": str(uuid4()),
+            "prompt": request.content,
+            "actions": actions,
+        })
+
+        if self._notifier is not None:
+            from ze_notifications.types import Notification as PushNotification
+
+            body = (
+                f"Ze needs your approval:\n{request.content}"
+                if request.content
+                else "Ze needs your approval."
+            )
+            try:
+                await self._notifier.push(
+                    PushNotification(title="Ze", body=body[:200], priority=5)
+                )
+            except Exception as exc:
+                log.warning("native_interface_confirmation_ntfy_failed", error=str(exc))
+
+
+def _confirmation_actions(options: list[str]) -> list[dict[str, str]]:
+    if options == ["Approve", "Cancel"]:
+        return [
+            {"label": "Approve", "payload": "yes"},
+            {"label": "Cancel", "payload": "no"},
+        ]
+    return [{"label": opt, "payload": opt.lower()} for opt in options]
