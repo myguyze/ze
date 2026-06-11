@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:ze_app/src/config/dev_config.dart';
 
 const _keyServerUrl = 'ze_server_url';
 const _keyApiKey = 'ze_api_key';
@@ -14,8 +15,10 @@ class AppConfig {
   static Future<AppConfig?> load() async {
     final url = await _storage.read(key: _keyServerUrl);
     final key = await _storage.read(key: _keyApiKey);
-    if (url == null || key == null) return null;
-    return AppConfig(serverUrl: url, apiKey: key);
+    if (url != null && key != null) {
+      return AppConfig(serverUrl: url, apiKey: key);
+    }
+    return DevConfig.fallback;
   }
 
   static Future<void> save({required String serverUrl, required String apiKey}) async {

@@ -2,6 +2,7 @@ import signal
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from ze_api.api.openapi import OPENAPI_TAGS
 from ze_api.api.routes import capabilities, costs, eval, memory, routing, workflows
@@ -17,7 +18,11 @@ log = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    configure_logging(settings.log_level, log_file=settings.log_file)
+    configure_logging(
+        settings.log_level,
+        dev=settings.log_dev,
+        log_file=settings.log_file,
+    )
 
     container = await build_container(settings)
 
@@ -43,7 +48,14 @@ async def lifespan(app: FastAPI):
     await container.close()
 
 
+def _parse_cors_origins(value: str) -> list[str]:
+    if value.strip() == "*":
+        return ["*"]
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
 def create_app() -> FastAPI:
+    settings = get_settings()
     app = FastAPI(
         title="Ze API",
         version="0.1.0",
@@ -53,6 +65,13 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
         openapi_tags=OPENAPI_TAGS,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_parse_cors_origins(settings.cors_origins),
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.include_router(capabilities.router, prefix="/capabilities")

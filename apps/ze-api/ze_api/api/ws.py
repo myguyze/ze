@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ze_core.messages.types import Message
 from ze_agents.interface.types import RawInput
@@ -110,8 +110,8 @@ class ConnectionManager:
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(request: Request, ws: WebSocket, token: str | None = None) -> None:
-    settings = request.app.state.settings
+async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
+    settings = ws.app.state.settings
     api_key: str = settings.ze_api_key
 
     auth_header = ws.headers.get("Authorization", "")
@@ -123,10 +123,10 @@ async def websocket_endpoint(request: Request, ws: WebSocket, token: str | None 
 
     await ws.accept()
 
-    conn_mgr: ConnectionManager = request.app.state.connection_manager
-    msg_store = request.app.state.message_store
-    container = request.app.state.container
-    confirmation_store = getattr(request.app.state, "confirmation_store", None)
+    conn_mgr: ConnectionManager = ws.app.state.connection_manager
+    msg_store = ws.app.state.message_store
+    container = ws.app.state.container
+    confirmation_store = getattr(ws.app.state, "confirmation_store", None)
 
     await conn_mgr.connect(ws, msg_store, confirmation_store)
     log.info("ws_connected")

@@ -36,6 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     await AppConfig.save(serverUrl: _urlCtrl.text.trim(), apiKey: _keyCtrl.text.trim());
+    ref.invalidate(appConfigProvider);
     ref.invalidate(wsClientProvider);
     if (mounted) {
       setState(() => _saving = false);

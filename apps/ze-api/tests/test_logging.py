@@ -36,6 +36,14 @@ def test_bind_context_sets_agent(capsys):
     assert record["agent"] == "research"
 
 
+def test_dev_mode_uses_console_renderer(capsys):
+    configure_logging(dev=True)
+    get_logger("test").info("hello_dev")
+    out = capsys.readouterr().out.strip()
+    assert out
+    assert not out.startswith("{")
+
+
 def test_unbind_context_clears_fields(capsys):
     configure_logging()
     bind_context(session_id="sess-789")

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # ── API ───────────────────────────────────────────────────────────────────
     ze_api_key: str = "change-me"
+    cors_origins: str = "*"
     confirm_timeout_seconds: int = 900
     session_inactivity_minutes: int = 30
 
@@ -68,6 +69,7 @@ class Settings(BaseSettings):
     # ── Logging ───────────────────────────────────────────────────────────────
     log_level: str = "INFO"
     log_file: str = ""
+    log_dev: bool = False
 
     # ── Config paths ─────────────────────────────────────────────────────────
     config_dir: Path = _ROOT / "config"
@@ -174,6 +176,7 @@ class Settings(BaseSettings):
             consolidation_enabled=self.consolidation_enabled,
             auto_migrate=False,
             log_level=self.log_level,
+            timezone=self.timezone,
             config=self.config,
         )
 

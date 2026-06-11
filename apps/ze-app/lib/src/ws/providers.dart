@@ -8,7 +8,7 @@ import 'package:ze_app/src/ws/ws_protocol.dart';
 
 // ── AppConfig provider ─────────────────────────────────────────────────────────
 
-final appConfigProvider = StateProvider<AppConfig?>((ref) => null);
+final appConfigProvider = FutureProvider<AppConfig?>((ref) => AppConfig.load());
 
 // ── WebSocket state ────────────────────────────────────────────────────────────
 
@@ -48,6 +48,7 @@ class WsClientNotifier extends StateNotifier<WsState> {
   late ZeWebSocketClient _client;
   late MessageRepository _repo;
   StreamSubscription<InboundFrame>? _sub;
+  static const String _threadId = 'app-main';
 
   Future<void> _init() async {
     await _client.connect();
@@ -82,7 +83,7 @@ class WsClientNotifier extends StateNotifier<WsState> {
   }
 
   void sendMessage(String text, {Map<String, String>? context}) {
-    _client.send(SendMessageFrame(text: text, context: context));
+    _client.send(SendMessageFrame(text: text, threadId: _threadId, context: context));
     final msg = Message(id: 'local_${DateTime.now().millisecondsSinceEpoch}', role: MessageRole.user, text: text, createdAt: DateTime.now());
     _repo.add(msg);
     state = state.copyWith(messages: _repo.messages, isThinking: true);
@@ -99,7 +100,7 @@ class WsClientNotifier extends StateNotifier<WsState> {
 }
 
 final wsClientProvider = StateNotifierProvider<WsClientNotifier, WsState>((ref) {
-  final config = ref.watch(appConfigProvider);
+  final config = ref.watch(appConfigProvider).valueOrNull;
   if (config == null) {
     return WsClientNotifier(AppConfig(serverUrl: '', apiKey: ''));
   }

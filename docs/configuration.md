@@ -52,7 +52,8 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 | `CONFIRM_TIMEOUT_SECONDS` | `900` | How long (seconds) a `confirm`-mode graph pause waits before expiring |
 | `SESSION_INACTIVITY_MINUTES` | `30` | Minutes of inactivity before a session is considered stale |
 | `LOG_LEVEL` | `INFO` | Structlog level: `DEBUG` / `INFO` / `WARNING` |
-| `LOG_FILE` | `""` | Path to write JSON log file (empty = stdout only) |
+| `LOG_DEV` | `false` | Human-readable structlog console output (`true` = dev, `false` = JSON) |
+| `LOG_FILE` | `""` | Tee logs to this file as well as stdout (empty = stdout only) |
 
 ### Browser sidecar
 

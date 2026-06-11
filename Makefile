@@ -6,6 +6,14 @@ ZE      := apps/ze-api
 ZE_CORE := core/ze-core
 ZE_APP  := apps/ze-app
 
+# Flutter dev — server URL + API key from backend .env (skipped in app-build)
+ZE_API_KEY_DEV := $(shell grep -E '^ZE_API_KEY=' $(ZE)/.env 2>/dev/null | cut -d= -f2- | tr -d '\r')
+FLUTTER_DEV_DEFINES := --dart-define=ZE_DEV=true --dart-define=ZE_SERVER_URL=http://localhost:8000
+ifneq ($(ZE_API_KEY_DEV),)
+FLUTTER_DEV_DEFINES += --dart-define=ZE_API_KEY=$(ZE_API_KEY_DEV)
+endif
+FLUTTER_WEB_RUN := cd $(ZE_APP) && flutter run -d chrome $(FLUTTER_DEV_DEFINES)
+
 LOG_FILE     ?= $(ZE)/logs/ze.log
 DB_SYNC_URL  ?= postgresql+psycopg2://ze:ze@localhost:5432/ze
 ZE_MIGRATE   := cd $(ZE) && DATABASE_URL_SYNC=$(DB_SYNC_URL) uv run python -m ze_api.migrate
@@ -36,8 +44,9 @@ help:
 	@echo "  Development"
 	@echo "    dev              Start backend only (uvicorn --reload on :8000)"
 	@echo "    app              Start Flutter app on macOS (connects to localhost:8000)"
+	@echo "    app-web          Start Flutter app in Chrome (requires 'make dev' running)"
 	@echo "    app-ios          Start Flutter app on iOS simulator"
-	@echo "    dev-full         Start backend + macOS app together (Ctrl-C stops both)"
+	@echo "    dev-full         Start backend + Flutter web app in Chrome (Ctrl-C stops both)"
 	@echo "    dev-eval         Start backend without background jobs (use before evals)"
 	@echo "    logs             Tail the server log file (LOG_FILE=$(LOG_FILE))"
 	@echo ""
@@ -130,29 +139,32 @@ migrate-stamp:
 	$(ZE_MIGRATE) stamp --purge zc004 ze001
 
 # ── Development ───────────────────────────────────────────────────────────────
-.PHONY: dev app app-ios dev-full dev-eval logs
+.PHONY: dev app app-web app-ios dev-full dev-eval logs
 
 dev:
-	LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 app:
-	cd $(ZE_APP) && flutter run -d macos
+	cd $(ZE_APP) && flutter run -d macos $(FLUTTER_DEV_DEFINES)
+
+app-web:
+	$(FLUTTER_WEB_RUN)
 
 app-ios:
-	cd $(ZE_APP) && flutter run -d iphone
+	cd $(ZE_APP) && flutter run -d iphone $(FLUTTER_DEV_DEFINES)
 
 # Starts the backend in the background, waits for :8000 to be ready, then runs
-# the Flutter macOS app in the foreground. Ctrl-C stops Flutter and kills the backend.
+# the Flutter web app in Chrome. Ctrl-C stops Flutter and kills the backend.
 dev-full:
 	@trap 'kill %1 2>/dev/null; exit 0' INT TERM; \
-	LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
+	LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
 	until nc -z localhost 8000 2>/dev/null; do sleep 1; done; \
-	echo "Backend ready — starting Flutter app (macOS)..."; \
-	cd $(ZE_APP) && flutter run -d macos; \
+	echo "Backend ready — starting Flutter app (Chrome)..."; \
+	$(FLUTTER_WEB_RUN); \
 	kill %1 2>/dev/null
 
 dev-eval:
-	PUBLIC_URL= LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	PUBLIC_URL= LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 logs:
 	tail -f $(LOG_FILE)

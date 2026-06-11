@@ -33,6 +33,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
 
   Future<void> _finish() async {
     await AppConfig.save(serverUrl: _urlCtrl.text.trim(), apiKey: _keyCtrl.text.trim());
+    ref.invalidate(appConfigProvider);
     ref.invalidate(wsClientProvider);
     if (mounted) context.go('/');
   }
@@ -48,10 +49,19 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: PageView(
-          physics: const NeverScrollableScrollPhysics(),
-          children: [_WelcomePage(onNext: () => setState(() => _page = 1)),
-            _ConnectPage(urlCtrl: _urlCtrl, keyCtrl: _keyCtrl, testing: _testing, testOk: _testOk, testError: _testError, onTest: _testConnection, onNext: () => setState(() => _page = 2)),
+        child: IndexedStack(
+          index: _page,
+          children: [
+            _WelcomePage(onNext: () => setState(() => _page = 1)),
+            _ConnectPage(
+              urlCtrl: _urlCtrl,
+              keyCtrl: _keyCtrl,
+              testing: _testing,
+              testOk: _testOk,
+              testError: _testError,
+              onTest: _testConnection,
+              onNext: () => setState(() => _page = 2),
+            ),
             _NotificationsPage(onDone: _finish),
           ],
         ),
