@@ -240,6 +240,17 @@ def test_full_agent_state_dict_round_trips(serde: JsonPlusSerializer) -> None:
         )
 
 
+def test_non_serializable_embed_fn_raises(serde: JsonPlusSerializer) -> None:
+    ctx = AgentContext(
+        session_id="s",
+        prompt="p",
+        intent="read",
+        embed_fn=lambda _text: [0.1],
+    )
+    with pytest.raises((TypeError, Exception)):
+        serde.dumps_typed(ctx)
+
+
 def test_non_serializable_identity_builder_raises(serde: JsonPlusSerializer) -> None:
     """Regression: AgentContext with identity_builder set must not be checkpointed.
 

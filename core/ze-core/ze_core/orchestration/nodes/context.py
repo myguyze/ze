@@ -86,7 +86,6 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         contacts=contact_context,
         messages=messages,
         persona=active_persona,
-        embed_fn=embedder.encode if embedder is not None else None,
     )
 
     return {

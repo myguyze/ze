@@ -47,6 +47,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     identity_builder = config["configurable"].get("identity_builder")
     abort_token = config["configurable"].get("abort_token")
     component_hook = config["configurable"].get("component_hook")
+    embed_fn = _embed_fn(config)
 
     if envelope.is_compound:
         return await _execute_compound(
@@ -56,6 +57,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
             identity_builder=identity_builder,
             abort_token=abort_token,
             component_hook=component_hook,
+            embed_fn=embed_fn,
         )
     return await _execute_single(
         envelope.subtasks[0], base_ctx, gate_decision, state,
@@ -64,6 +66,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
         identity_builder=identity_builder,
         abort_token=abort_token,
         component_hook=component_hook,
+        embed_fn=embed_fn,
     )
 
 
@@ -87,6 +90,7 @@ async def draft_response(state: AgentState, config: RunnableConfig) -> dict:
         messages=_build_messages(state, subtask.agent, base_ctx),
         identity_builder=config["configurable"].get("identity_builder"),
         abort_token=config["configurable"].get("abort_token"),
+        embed_fn=_embed_fn(config),
     )
     result = await _run_with_timeout(subtask.agent, ctx)
     return {"agent_result": result, "pending_confirmation": True}
@@ -102,6 +106,13 @@ async def await_confirmation(state: AgentState, config: RunnableConfig) -> dict:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _embed_fn(config: RunnableConfig) -> Any:
+    embedder = config["configurable"].get("embedder")
+    if embedder is None:
+        return None
+    return embedder.encode
+
 
 def _build_messages(state: dict, agent_name: str, base_ctx: AgentContext) -> list[dict]:
     if state.get("image_data"):
@@ -136,6 +147,7 @@ async def _execute_single(
     identity_builder: Any = None,
     abort_token: Any = None,
     component_hook: Any = None,
+    embed_fn: Any = None,
 ) -> dict:
     ctx = AgentContext(
         session_id=base_ctx.session_id,
@@ -150,6 +162,7 @@ async def _execute_single(
         reporter=reporter,
         identity_builder=identity_builder,
         abort_token=abort_token,
+        embed_fn=embed_fn,
     )
     result = await _run_with_timeout(subtask.agent, ctx, token_queue=token_queue)
     components: list = []
@@ -168,6 +181,7 @@ async def _execute_compound(
     identity_builder: Any = None,
     abort_token: Any = None,
     component_hook: Any = None,
+    embed_fn: Any = None,
 ) -> dict:
     def _make_ctx(subtask: Any) -> AgentContext:
         return AgentContext(
@@ -183,6 +197,7 @@ async def _execute_compound(
             reporter=reporter,
             identity_builder=identity_builder,
             abort_token=abort_token,
+            embed_fn=embed_fn,
         )
 
     if is_sequential:
