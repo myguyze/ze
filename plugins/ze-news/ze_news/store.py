@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timezone
 
 import asyncpg
+import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from ze_agents.logging import get_logger
@@ -14,6 +15,7 @@ from ze_news.types import (
     CredibilityFlag,
     CredibilityReport,
     FLAG_CONFIDENCE,
+    NewsPreference,
     PersonalizationContext,
 )
 
@@ -218,6 +220,29 @@ class NewsStore:
         tags: list[str] | None = None,
         min_facts: int = _MIN_FACTS_DEFAULT,
     ) -> tuple[list[Article], list[Article]]:
+        include_preferences = [
+            p for p in ctx.preferences
+            if p.polarity == "include" and p.topic.strip()
+        ]
+        query_preferences = [p for p in include_preferences if p.source == "query"]
+        has_structured_preferences = bool(ctx.preferences)
+
+        if has_structured_preferences:
+            has_enough_preferences = (
+                len(include_preferences) >= min_facts or bool(query_preferences)
+            )
+            if not has_enough_preferences:
+                articles = await self.get_recent(limit=limit, tags=tags)
+                articles = self._apply_exclusions(articles, ctx.exclusions)
+                return articles, []
+
+            candidates = await self.get_recent(limit=limit * 4, tags=tags)
+            candidates = self._apply_exclusions(candidates, ctx.exclusions)
+            scored = self._score_candidates(candidates, ctx)
+            scored.sort(key=lambda x: x[1], reverse=True)
+            ranked = self._apply_topic_cap([a for a, _ in scored], ctx.max_per_topic)
+            return self._split_ranked(ranked, limit, ctx.explore_ratio)
+
         if not ctx.interest_text.strip() or ctx.fact_count < min_facts:
             articles = await self.get_recent(limit=limit, tags=tags)
             return articles, []
@@ -247,8 +272,6 @@ class NewsStore:
         articles: list[Article],
         interest_vec: object,
     ) -> list[tuple[Article, float]]:
-        import numpy as np
-
         iv = np.array(interest_vec, dtype=float)
         iv_norm = np.linalg.norm(iv)
 
@@ -264,6 +287,77 @@ class NewsStore:
                 score = float(np.dot(iv, av) / (iv_norm * av_norm))
             results.append((article, score))
         return results
+
+    def _score_candidates(
+        self,
+        articles: list[Article],
+        ctx: PersonalizationContext,
+    ) -> list[tuple[Article, float]]:
+        include_preferences = [
+            p for p in ctx.preferences
+            if p.polarity == "include" and p.topic.strip()
+        ]
+        query_preferences = [p for p in include_preferences if p.source == "query"]
+        stored_preferences = [p for p in include_preferences if p.source != "query"]
+
+        query_vectors = [
+            (p, self._embedder.encode(p.topic))
+            for p in query_preferences
+        ]
+        preference_vectors = [
+            (p, self._embedder.encode(p.topic))
+            for p in stored_preferences
+        ]
+
+        newest = max((a.published_at for a in articles), default=None)
+        oldest = min((a.published_at for a in articles), default=None)
+
+        scored: list[tuple[Article, float]] = []
+        for article in articles:
+            article_vec = self._embedder.encode(f"{article.title}. {article.summary}")
+            query_score = _weighted_similarity(article_vec, query_vectors)
+            preference_score = _weighted_similarity(article_vec, preference_vectors)
+            freshness_score = _freshness_score(article.published_at, oldest, newest)
+            scored.append((
+                article,
+                (1.5 * query_score) + preference_score + (0.1 * freshness_score),
+            ))
+        return scored
+
+    def _apply_topic_cap(
+        self,
+        articles: list[Article],
+        max_per_topic: int,
+    ) -> list[Article]:
+        if max_per_topic <= 0:
+            return articles
+
+        counts: dict[str, int] = {}
+        capped: list[Article] = []
+        for article in articles:
+            topic = _article_topic(article)
+            count = counts.get(topic, 0)
+            if count >= max_per_topic:
+                continue
+            counts[topic] = count + 1
+            capped.append(article)
+        return capped
+
+    def _split_ranked(
+        self,
+        ranked: list[Article],
+        limit: int,
+        explore_ratio: float,
+    ) -> tuple[list[Article], list[Article]]:
+        n_relevant = math.ceil((1 - explore_ratio) * limit)
+        relevant_articles = ranked[:n_relevant]
+        n_discovery = limit - len(relevant_articles)
+        discovery_articles = sorted(
+            ranked[n_relevant:n_relevant + n_discovery],
+            key=lambda a: a.published_at,
+            reverse=True,
+        )
+        return relevant_articles, discovery_articles
 
     def _apply_exclusions(
         self,
@@ -297,3 +391,45 @@ class NewsStore:
             return int(status.split()[-1])
         except (ValueError, IndexError):
             return 0
+
+
+def _weighted_similarity(
+    article_vec: object,
+    weighted_vectors: list[tuple[NewsPreference, object]],
+) -> float:
+    if not weighted_vectors:
+        return 0.0
+    av = np.array(article_vec, dtype=float)
+    scores = [
+        preference.weight * _cosine(av, np.array(vec, dtype=float))
+        for preference, vec in weighted_vectors
+    ]
+    return max(scores, default=0.0)
+
+
+def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+    a_norm = np.linalg.norm(a)
+    b_norm = np.linalg.norm(b)
+    if a_norm == 0 or b_norm == 0:
+        return 0.0
+    return float(np.dot(a, b) / (a_norm * b_norm))
+
+
+def _freshness_score(
+    published_at: datetime,
+    oldest: datetime | None,
+    newest: datetime | None,
+) -> float:
+    if oldest is None or newest is None or oldest == newest:
+        return 0.0
+    total = (newest - oldest).total_seconds()
+    if total <= 0:
+        return 0.0
+    return (published_at - oldest).total_seconds() / total
+
+
+def _article_topic(article: Article) -> str:
+    if article.tags:
+        return article.tags[0].lower()
+    title = article.title.strip().lower()
+    return title.split()[0] if title else article.source_key.lower()

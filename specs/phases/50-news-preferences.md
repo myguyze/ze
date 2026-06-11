@@ -23,8 +23,8 @@
 
 The existing news personalization path builds `PersonalizationContext` from the most
 recent memory facts and active goals. That is too broad. A fresh fact like "the user
-likes Bananas" can dominate headline selection even when the user did not ask for
-Bananas, and a follow-up like "why are you showing me Bananas?" can accidentally
+likes bananas" can dominate headline selection even when the user did not ask for
+fruit, and a follow-up like "why are you showing me bananas?" can accidentally
 reinforce the topic.
 
 This phase replaces "recent facts as interests" with an explicit news preference
@@ -70,8 +70,8 @@ interest_text = " | ".join(f"{f.predicate}: {f.value}" for f in facts)
 
 That creates three failure modes:
 
-- **Recency is not preference.** "I asked why you keep showing Benfica" is recent, but
-  it is not a request for more Benfica.
+- **Recency is not preference.** "I asked why you keep showing bananas" is recent, but
+  it is not a request for more bananas.
 - **All facts are not news interests.** Activity facts like "programming an AI assistant"
   may be useful context in conversation, but should not automatically steer headlines.
 - **No saturation control.** A single strong topic can crowd out the rest of the feed.
@@ -80,11 +80,11 @@ The target behavior is:
 
 - If the user asks "what's in the news?", use durable news preferences plus controlled
   discovery.
-- If the user asks "tech headlines", prioritize tech even if football is a known
+- If the user asks "tech headlines", prioritize tech even if fruit is a known
   interest.
-- If the user asks "why Benfica?", answer from explicit preference/exclusion evidence
+- If the user asks "why bananas?", answer from explicit preference/exclusion evidence
   and do not treat the question as positive interest.
-- If the user says "stop showing Benfica", suppress Benfica-related articles until the
+- If the user says "stop showing bananas", suppress banana-related articles until the
   preference changes.
 
 ---
@@ -96,7 +96,7 @@ News personalization may use only these signal classes:
 | Signal | Source | Weight | Notes |
 | ------ | ------ | ------ | ----- |
 | `news_interest` | explicit user fact or profile facet | High | "Show me AI news", "I care about Portuguese politics" |
-| `news_exclusion` | explicit negative user fact or profile facet | Blocking | "Don't show me Benfica", "I don't care about football" |
+| `news_exclusion` | explicit negative user fact or profile facet | Blocking | "Don't show me bananas", "I don't care about fruit" |
 | `topic_interest` | stable profile facet | Medium | General interests that are suitable for news, such as AI or economics |
 | `active_goal` | goal titles | Medium | Current projects can influence tech/business news |
 | `current_query` | user's current prompt | High | Always dominates broad preference matching |
@@ -105,7 +105,7 @@ News personalization may use only these signal classes:
 The news layer must not use these as positive personalization signals:
 
 - transient activity facts, for example `activity_programming`
-- assistant diagnostics, for example "user asked why Ze suggested Benfica"
+- assistant diagnostics, for example "user asked why Ze suggested bananas"
 - contact facts
 - facts about third parties
 - unreviewed facts below the confidence threshold
@@ -173,7 +173,7 @@ Build exclusions from both predicate and value text. The current implementation 
 only the predicate, which misses facts like:
 
 ```text
-preference: don't show me Benfica
+preference: don't show me bananas
 ```
 
 Negative patterns include:
@@ -194,10 +194,10 @@ be parsed conservatively.
 
 Preference-management and diagnostic prompts must not become interests:
 
-- "why do you keep showing Benfica?"
-- "show me the fact that says I like Benfica"
-- "stop suggesting Benfica"
-- "do you think I care about football?"
+- "why do you keep showing bananas?"
+- "show me the fact that says I like bananas"
+- "stop suggesting bananas"
+- "do you think I care about fruit?"
 
 For these prompts:
 
@@ -225,7 +225,7 @@ Ordering rules:
 
 1. Apply exclusions first.
 2. If the prompt names a topic, query relevance dominates stored interests.
-3. Enforce `max_per_topic` after scoring to avoid repeated Benfica-style saturation.
+3. Enforce `max_per_topic` after scoring to avoid repeated banana-style saturation.
 4. Fill the discovery bucket by recency and source diversity, not by preference score.
 5. If there are fewer than `min_preferences` include signals and the query is broad,
    fall back to recency plus discovery.
@@ -310,11 +310,11 @@ values match the new preference selection rules.
 ### Agent Tests
 
 - "what's in the news?" uses stored news preferences.
-- "tech headlines" does not over-rank Benfica from memory.
-- "why do you keep suggesting Benfica?" does not call `get_headlines`.
-- "stop showing Benfica" results in an exclusion signal being respected on the next
+- "tech headlines" does not over-rank bananas from memory.
+- "why do you keep suggesting bananas?" does not call `get_headlines`.
+- "stop showing bananas" results in an exclusion signal being respected on the next
   headline request.
-- "show me the fact that says I like Benfica" answers with the supporting memory fact
+- "show me the fact that says I like bananas" answers with the supporting memory fact
   or says no such fact is present, without substituting an unrelated fact.
 
 ---

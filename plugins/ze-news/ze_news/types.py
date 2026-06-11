@@ -87,11 +87,24 @@ class SourceConfig:
 
 
 @dataclass
+class NewsPreference:
+    topic: str
+    polarity: Literal["include", "exclude"]
+    source: Literal["fact", "profile", "goal", "query"]
+    weight: float
+    reason: str
+    confidence: float = 1.0
+
+
+@dataclass
 class PersonalizationContext:
-    interest_text: str
+    interest_text: str = ""
     exclusions: list[str] = field(default_factory=list)
     explore_ratio: float = 0.2
     fact_count: int = 0
+    query_text: str = ""
+    preferences: list[NewsPreference] = field(default_factory=list)
+    max_per_topic: int = 2
 
 
 @runtime_checkable

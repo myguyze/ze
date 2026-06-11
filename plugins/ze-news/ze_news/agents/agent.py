@@ -10,6 +10,7 @@ from ze_agents.client import LLMClient
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
 from ze_agents.types import AgentContext, AgentResult
+from ze_news.preferences import NewsPreferenceBuilder
 from ze_news.store import NewsStore
 from ze_news.types import GoalTitleProvider, PersonalizationContext
 
@@ -29,14 +30,15 @@ Guidelines:
 - When presenting get_headlines results, show 'relevant' articles first under "📰 For you:"
   and 'discovery' articles under "🔭 Outside your usual:" if the discovery bucket is non-empty.
 - Always include the article URL so the user can read more.
+- Do not infer that the user wants more coverage of a topic just because they ask why it
+  was shown. Treat "why did you show X?", "stop showing X", and "show me the fact for X"
+  as diagnostics or preference management, not positive interest.
 - For breaking news or specific facts that require up-to-date accuracy, tell the user
   that the local store may not reflect events from the last 30 minutes and suggest
   they ask Ze to search the web directly.
 - Summarise concisely — one or two sentences per article is enough unless the user
   asks for more detail.\
 """
-
-_EXCLUSION_KEYS = ("not interested", "don't like", "avoid", "no ")
 
 
 @agent
@@ -71,9 +73,13 @@ class NewsAgent(BaseAgent):
         self._memory_store = memory_store
         self._goal_provider = goal_provider
         self._news_store = news_store
+        self._preference_builder = NewsPreferenceBuilder(
+            memory_store=memory_store,
+            goal_provider=goal_provider,
+        )
 
     async def run(self, ctx: AgentContext) -> AgentResult:
-        personalization_ctx = await self._build_personalization_ctx()
+        personalization_ctx = await self._build_personalization_ctx(ctx.prompt)
         deps = {
             "news_store": self._news_store,
             "_personalization_ctx": personalization_ctx,
@@ -89,7 +95,7 @@ class NewsAgent(BaseAgent):
         return AgentResult(agent=self.name, response=response, tool_calls=tool_calls)
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
-        personalization_ctx = await self._build_personalization_ctx()
+        personalization_ctx = await self._build_personalization_ctx(ctx.prompt)
         deps = {
             "news_store": self._news_store,
             "_personalization_ctx": personalization_ctx,
@@ -108,27 +114,5 @@ class NewsAgent(BaseAgent):
         )
         yield response
 
-    async def _build_personalization_ctx(self) -> PersonalizationContext:
-        try:
-            facts = await self._memory_store.list_recent_facts(days=90, limit=30)
-        except Exception:
-            facts = []
-
-        try:
-            goals = await self._goal_provider.list_active_goal_titles()
-        except Exception:
-            goals = []
-
-        exclusions = [
-            f.value for f in facts
-            if any(kw in f.predicate.lower() for kw in _EXCLUSION_KEYS)
-        ]
-        topic_facts = [f for f in facts if f.value not in exclusions]
-        interest_parts = [f"{f.predicate}: {f.value}" for f in topic_facts]
-        interest_parts += goals
-
-        return PersonalizationContext(
-            interest_text=" | ".join(interest_parts),
-            exclusions=exclusions,
-            fact_count=len(topic_facts),
-        )
+    async def _build_personalization_ctx(self, query_text: str) -> PersonalizationContext:
+        return await self._preference_builder.build(query_text)

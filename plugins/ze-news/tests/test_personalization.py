@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from ze_news.preferences import NewsPreferenceBuilder
 from ze_news.store import NewsStore
-from ze_news.types import Article, PersonalizationContext
+from ze_news.types import Article, NewsPreference, PersonalizationContext
 
 
 def _make_article(**kwargs) -> Article:
@@ -29,6 +31,108 @@ def _make_store(encode_return=None):
     embedder.encode.return_value = encode_return or [0.1] * 384
 
     return NewsStore(pool=pool, embedder=embedder), conn
+
+
+class _KeywordEmbedder:
+    def encode(self, text: str) -> list[float]:
+        lowered = text.lower()
+        return [
+            1.0 if "tech" in lowered or "ai" in lowered else 0.0,
+            1.0 if "banana" in lowered or "fruit" in lowered else 0.0,
+            1.0 if "econom" in lowered else 0.0,
+        ]
+
+
+# ── NewsPreferenceBuilder ────────────────────────────────────────────────────
+
+
+async def test_preference_builder_includes_explicit_news_facts():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[
+        SimpleNamespace(
+            predicate="news_interest",
+            value="AI, economics",
+            confidence=0.9,
+            contradicted=False,
+        ),
+    ])
+    memory_store.get_profile = AsyncMock(return_value=[])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=[])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build("what's in the news?")
+
+    topics = [p.topic for p in ctx.preferences if p.polarity == "include"]
+    assert "AI" in topics
+    assert "economics" in topics
+
+
+async def test_preference_builder_ignores_activity_facts():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[
+        SimpleNamespace(
+            predicate="activity_programming",
+            value="programming/coding the AI assistant",
+            confidence=0.9,
+            contradicted=False,
+        ),
+    ])
+    memory_store.get_profile = AsyncMock(return_value=[])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=[])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build("what's in the news?")
+
+    assert all("programming" not in p.topic for p in ctx.preferences)
+
+
+async def test_preference_builder_extracts_exclusion_from_value():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[
+        SimpleNamespace(
+            predicate="preference",
+            value="don't show me bananas",
+            confidence=0.9,
+            contradicted=False,
+        ),
+    ])
+    memory_store.get_profile = AsyncMock(return_value=[])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=[])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build("headlines")
+
+    assert "bananas" in ctx.exclusions
+    assert any(p.polarity == "exclude" and p.topic == "bananas" for p in ctx.preferences)
+
+
+async def test_preference_builder_diagnostic_query_is_not_positive_interest():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[])
+    memory_store.get_profile = AsyncMock(return_value=[])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=[])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build(
+        "why do you keep suggesting bananas?"
+    )
+
+    assert not any(p.source == "query" and "bananas" in p.topic for p in ctx.preferences)
+
+
+async def test_preference_builder_includes_profile_and_goals():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[])
+    memory_store.get_profile = AsyncMock(return_value=[
+        SimpleNamespace(key="topics", value="AI; startups", confidence=0.9),
+    ])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=["Launch Ze"])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build("headlines")
+
+    assert any(p.source == "profile" and p.topic == "AI" for p in ctx.preferences)
+    assert any(p.source == "goal" and p.topic == "Launch Ze" for p in ctx.preferences)
 
 
 # ── PersonalizationContext ──────────────────────────────────────────────────
@@ -187,6 +291,145 @@ async def test_get_personalized_discovery_sorted_by_recency():
     if discovery:
         times = [a.published_at for a in discovery]
         assert times == sorted(times, reverse=True)
+
+
+async def test_get_personalized_query_relevance_outranks_stored_banana_interest():
+    store, _ = _make_store()
+    store._embedder = _KeywordEmbedder()
+    store.get_recent = AsyncMock(return_value=[
+        _make_article(
+            url="https://example.com/bananas",
+            title="Banana harvest improves",
+            summary="A fruit industry update.",
+            tags=["food"],
+        ),
+        _make_article(
+            url="https://example.com/tech",
+            title="AI startup launches new model",
+            summary="Technology companies race ahead.",
+            tags=["tech"],
+        ),
+    ])
+    ctx = PersonalizationContext(
+        query_text="tech headlines",
+        preferences=[
+            NewsPreference(
+                topic="bananas",
+                polarity="include",
+                source="fact",
+                weight=0.9,
+                reason="stored news preference: bananas",
+            ),
+            NewsPreference(
+                topic="tech headlines",
+                polarity="include",
+                source="query",
+                weight=1.0,
+                reason="matches current request: tech headlines",
+            ),
+        ],
+    )
+
+    relevant, _ = await store.get_personalized(ctx, limit=2, min_facts=5)
+
+    assert relevant[0].url == "https://example.com/tech"
+
+
+async def test_get_personalized_filters_excluded_banana_topic():
+    store, _ = _make_store()
+    store._embedder = _KeywordEmbedder()
+    store.get_recent = AsyncMock(return_value=[
+        _make_article(
+            url="https://example.com/bananas",
+            title="Banana import news",
+            summary="Fruit market update.",
+            tags=["food"],
+        ),
+        _make_article(
+            url="https://example.com/economy",
+            title="Economy grows",
+            summary="Economic indicators improved.",
+            tags=["business"],
+        ),
+    ])
+    ctx = PersonalizationContext(
+        query_text="headlines",
+        exclusions=["bananas"],
+        preferences=[
+            NewsPreference(
+                topic="bananas",
+                polarity="exclude",
+                source="fact",
+                weight=1.0,
+                reason="stored news exclusion: bananas",
+            ),
+            NewsPreference(
+                topic="economy",
+                polarity="include",
+                source="fact",
+                weight=0.9,
+                reason="stored news preference: economy",
+            ),
+        ],
+    )
+
+    relevant, discovery = await store.get_personalized(ctx, limit=2, min_facts=1)
+
+    assert all("Banana" not in article.title for article in relevant + discovery)
+
+
+async def test_get_personalized_exclusion_only_context_filters_recent_fallback():
+    store, _ = _make_store()
+    store.get_recent = AsyncMock(return_value=[
+        _make_article(url="https://example.com/1", title="Banana headline"),
+        _make_article(url="https://example.com/2", title="Tech headline"),
+    ])
+    ctx = PersonalizationContext(
+        exclusions=["bananas"],
+        preferences=[
+            NewsPreference(
+                topic="bananas",
+                polarity="exclude",
+                source="fact",
+                weight=1.0,
+                reason="stored news exclusion: bananas",
+            ),
+        ],
+    )
+
+    relevant, discovery = await store.get_personalized(ctx, limit=2, min_facts=5)
+
+    assert [article.title for article in relevant] == ["Tech headline"]
+    assert discovery == []
+
+
+async def test_get_personalized_caps_repeated_topics():
+    store, _ = _make_store()
+    store._embedder = _KeywordEmbedder()
+    store.get_recent = AsyncMock(return_value=[
+        _make_article(url="https://example.com/1", title="AI one", tags=["tech"]),
+        _make_article(url="https://example.com/2", title="AI two", tags=["tech"]),
+        _make_article(url="https://example.com/3", title="AI three", tags=["tech"]),
+        _make_article(url="https://example.com/4", title="Economy", tags=["business"]),
+    ])
+    ctx = PersonalizationContext(
+        query_text="tech headlines",
+        max_per_topic=2,
+        preferences=[
+            NewsPreference(
+                topic="tech headlines",
+                polarity="include",
+                source="query",
+                weight=1.0,
+                reason="matches current request: tech headlines",
+            ),
+        ],
+    )
+
+    relevant, discovery = await store.get_personalized(ctx, limit=4, min_facts=5)
+    tech_count = sum(1 for article in relevant + discovery if article.tags == ["tech"])
+
+    assert tech_count == 2
 
 
 # ── _score_articles ───────────────────────────────────────────────────────────
