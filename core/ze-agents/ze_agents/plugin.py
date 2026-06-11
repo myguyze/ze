@@ -7,6 +7,7 @@ from typing import Any, Callable, TYPE_CHECKING
 if TYPE_CHECKING:
     from langgraph.graph import StateGraph
     from ze_agents.base_agent import BaseAgent
+    from ze_onboarding import OnboardingProvider
 
 # Auto-populated by ZePlugin.__init_subclass__ when plugin modules are imported.
 _registry: list[type["ZePlugin"]] = []
@@ -38,6 +39,10 @@ class ZePlugin(ABC):
 
     def jobs(self) -> list[Any]:
         return []
+
+    def onboarding(self) -> OnboardingProvider | None:
+        """Return this plugin's onboarding provider, if it participates in setup."""
+        return None
 
     @classmethod
     def migrations_path(cls) -> Path | None:

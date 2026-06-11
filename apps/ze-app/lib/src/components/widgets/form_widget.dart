@@ -4,9 +4,19 @@ import 'package:ze_app/src/components/component_descriptor.dart';
 import 'package:ze_app/src/components/form.dart' as ze_form;
 
 class FormWidget extends StatefulWidget {
-  const FormWidget({super.key, required this.component, this.onSend});
+  const FormWidget({
+    super.key,
+    required this.component,
+    this.componentId,
+    this.onboardingSessionId,
+    this.onSend,
+    this.onComponentSubmit,
+  });
   final FormComponent component;
+  final String? componentId;
+  final String? onboardingSessionId;
   final void Function(String text)? onSend;
+  final void Function(String sessionId, String stepId, String componentId, Map<String, dynamic> values)? onComponentSubmit;
 
   @override
   State<FormWidget> createState() => _FormWidgetState();
@@ -19,6 +29,12 @@ class _FormWidgetState extends State<FormWidget> {
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _formKey.currentState!.save();
+    final sessionId = widget.onboardingSessionId;
+    final componentId = widget.componentId;
+    if (sessionId != null && componentId != null && widget.onComponentSubmit != null) {
+      widget.onComponentSubmit!(sessionId, componentId, componentId, Map<String, dynamic>.from(_values));
+      return;
+    }
     widget.onSend?.call('[form] ${jsonEncode(_values)}');
   }
 

@@ -13,6 +13,7 @@ dependencies = [
     "ze-news",
     "ze-notifications",
     "ze-components",
+    "ze-onboarding",
     "ze-calendar",
     "ze-google",
     "fastapi>=0.115",
@@ -57,6 +58,7 @@ ze-browser       = { workspace = true }
 ze-news          = { workspace = true }
 ze-notifications = { workspace = true }
 ze-components    = { workspace = true }
+ze-onboarding    = { workspace = true }
 ze-calendar      = { workspace = true }
 ze-google        = { workspace = true }
 

@@ -72,6 +72,10 @@ The client should send `{"type": "ack", "ids": [...]}` frames to mark messages a
 | `{"type": "command", "name": "cancel"}` | Cancel pending confirmation | Aborts the awaited graph turn |
 | `{"type": "command", "name": "costs"}` | Introspection | Returns a 7-day cost summary message |
 | `{"type": "command", "name": "status", "period_days": 1}` | Accountability | Returns an activity narrative (default: past 24 h; set `period_days: 7` for the weekly view) |
+| `{"type": "command", "name": "onboarding"}` | Setup | Starts or resumes onboarding |
+| `{"type": "command", "name": "reset_preview", "scope": "memory"}` | Reset preview | Returns counts for a reset scope |
+| `{"type": "command", "name": "reset", "scope": "memory", "confirm": "RESET"}` | Reset | Executes a scoped reset; requires explicit confirmation |
+| `{"type": "component_submit", "session_id": "...", "step_id": "...", "component_id": "...", "values": {...}}` | Interactive component | Submits structured onboarding form/button values |
 
 ### Server → Client
 
@@ -100,6 +104,19 @@ The client should send `{"type": "ack", "ids": [...]}` frames to mark messages a
 
 `components` is a list of server-driven UI component descriptors (from `ze-components`).
 The Flutter app renders them below the message text.
+
+Onboarding messages also include an `onboarding` metadata object beside `message`:
+
+```json
+{
+  "type": "message",
+  "message": { "role": "assistant", "text": "Setup", "components": [] },
+  "onboarding": { "session_id": "uuid", "completed": false }
+}
+```
+
+The Flutter app stores this metadata on the message and uses it when form/confirm
+components submit `component_submit` frames.
 
 ---
 

@@ -17,16 +17,18 @@ logic — only the framework primitives that every other package builds on.
 | [ze-google](ze-google/) | Google OAuth2 credentials and service client factories (no Ze deps) |
 | [ze-notifications](ze-notifications/) | Push notification abstraction (ntfy) |
 | [ze-components](ze-components/) | Server-driven UI component descriptors sent to the Flutter app |
+| [ze-onboarding](ze-onboarding/) | Plugin-extensible onboarding coordinator, provider contracts, reset domain types |
 
 ## Dependency graph
 
 ```
 ze-google         ←  no ze deps
 ze-notifications  ←  no ze deps
-ze-core           ←  no ze deps
-ze-memory         ←  ze-core
-ze-browser        ←  ze-core
-ze-components     ←  ze-core
+ze-onboarding     ←  no ze deps
+ze-core           ←  ze-agents
+ze-memory         ←  ze-agents
+ze-browser        ←  no ze deps
+ze-components     ←  ze-agents
 ```
 
 ## Where new code goes
@@ -37,6 +39,7 @@ ze-components     ←  ze-core
 | New memory retrieval policy, graph predicate, or consolidation strategy | `ze-memory` |
 | New push notification backend | `ze-notifications` |
 | New server-driven UI component type | `ze-components` |
+| New setup-flow primitive, onboarding step/seed type, provider contract | `ze-onboarding` |
 | New Google service client factory | `ze-google` |
 | New browser sidecar endpoint | `ze-browser` |
 

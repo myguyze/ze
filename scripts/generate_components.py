@@ -103,7 +103,16 @@ def _default_suffix(field: dataclasses.Field) -> str:
         return ""
     if isinstance(field.default, str):
         return f" @Default('{field.default}')"
+    if isinstance(field.default, bool):
+        return f" @Default({str(field.default).lower()})"
     return f" @Default({field.default!r})"
+
+
+def _component_type_value(cls: type) -> str:
+    for field in dataclasses.fields(cls):
+        if field.name == "type" and field.default is not dataclasses.MISSING:
+            return str(field.default)
+    return cls.__name__.replace("Component", "").lower()
 
 
 def _emit_dart_freezed(cls: type, schema: dict, out_dir: Path) -> None:
@@ -189,7 +198,7 @@ def _emit_dart_dispatcher(out_dir: Path) -> None:
         "  switch (json['type'] as String) {",
     ]
     for cls in COMPONENT_TYPES:
-        type_val = cls.__name__.replace("Component", "").lower()
+        type_val = _component_type_value(cls)
         lines.append(f"    '{type_val}' => {cls.__name__}.fromJson(json),")
     lines += [
         "    _ => throw FormatException('Unknown component type: \\${json[\\'type\\']}')",

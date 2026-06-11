@@ -4,9 +4,10 @@ import 'package:ze_app/src/messages/message.dart';
 import 'package:ze_app/src/components/component_widget.dart';
 
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({super.key, required this.message, this.onSend});
+  const MessageBubble({super.key, required this.message, this.onSend, this.onComponentSubmit});
   final Message message;
   final void Function(String)? onSend;
+  final void Function(String sessionId, String stepId, String componentId, Map<String, dynamic> values)? onComponentSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,12 @@ class MessageBubble extends StatelessWidget {
                 ),
               ...message.components.map((c) => Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: componentWidget(c, onSend: onSend),
+                child: componentWidget(
+                  c,
+                  onSend: onSend,
+                  onboardingSessionId: message.onboardingSessionId,
+                  onComponentSubmit: onComponentSubmit,
+                ),
               )),
               const SizedBox(height: 4),
               Text(

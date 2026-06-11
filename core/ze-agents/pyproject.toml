@@ -8,10 +8,14 @@ version = "0.1.0"
 description = "Ze developer API — BaseAgent, @agent, @tool, ZePlugin, shared types"
 requires-python = ">=3.11"
 dependencies = [
+    "ze-onboarding",
     "structlog>=24.4",
     "typing_extensions>=4.0",
     "pyyaml>=6.0",
 ]
+
+[tool.uv.sources]
+ze-onboarding = { workspace = true }
 
 [dependency-groups]
 dev = [

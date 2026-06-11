@@ -15,6 +15,7 @@ ze/
 │   ├── ze-sdk/       # Public SDK surface — flat re-export layer for plugin authors
 │   ├── ze-core/      # Engine — routing, orchestration, telemetry, DI container
 │   ├── ze-memory/    # Memory package — facts, episodes, graph, retrieval
+│   ├── ze-onboarding/# Onboarding coordinator, provider contracts, reset domain types
 │   ├── ze-browser/   # Browser sidecar HTTP client
 │   ├── ze-google/    # Shared Google OAuth2 credentials (no Ze deps)
 │   ├── ze-notifications/ # Push notification abstraction (ntfy)
@@ -36,13 +37,14 @@ ze/
 
 ```
 ze-browser        ←  no ze deps
-ze-agents         ←  no ze deps               ← developer API (BaseAgent, @agent, @tool, ZePlugin, types)
+ze-onboarding     ←  no ze deps               ← setup coordinator, provider/store/persistence protocols
+ze-agents         ←  ze-onboarding            ← developer API (BaseAgent, @agent, @tool, ZePlugin, types)
 ze-proactive      ←  ze-agents                ← job scheduling framework
 ze-notifications  ←  no ze deps
-ze-components     ←  no ze deps
+ze-components     ←  ze-agents
 ze-google         ←  no ze deps
 ze-memory         ←  ze-agents
-ze-sdk            ←  ze-agents, ze-proactive, ze-memory   ← plugin entry point
+ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding   ← plugin entry point
 ze-core           ←  ze-agents                            ← engine; never a plugin dep
 ze-personal       ←  ze-sdk
 ze-email          ←  ze-sdk, ze-google, ze-personal
@@ -51,12 +53,13 @@ ze-calendar       ←  ze-sdk, ze-google, ze-personal
 ze-news           ←  ze-sdk
 ze-api            ←  ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting,
                       ze-calendar, ze-google, ze-browser, ze-news, ze-notifications,
-                      ze-components
+                      ze-components, ze-onboarding
 ze-app            ←  connects to ze-api over WebSocket (no Python deps)
 ```
 
 Hard rules:
-- `ze-agents` never imports from any other Ze package — it is the stable API foundation.
+- `ze-onboarding` never imports from any other Ze package — it is the stable setup-flow foundation.
+- `ze-agents` depends only on `ze-onboarding` plus third-party utilities — it is the stable agent/plugin API foundation.
 - `ze-core` never imports from domain packages. It depends on `ze-agents` for the developer API types.
 - Plugin packages (`ze-personal`, `ze-email`, etc.) never import `ze-core` directly — use `ze-sdk`.
 - `ze-memory` and `ze-personal` never import from `ze-api`. Violations break the abstraction.
@@ -65,9 +68,8 @@ Hard rules:
 
 ## ze-agents — Developer API
 
-`ze_agents` is the stable authoring API. It has no Ze dependencies — only stdlib and
-`structlog`. Plugin authors import everything they need from `ze_sdk`, which re-exports
-`ze_agents` symbols.
+`ze_agents` is the stable authoring API. Plugin authors import everything they need from
+`ze_sdk`, which re-exports `ze_agents` symbols and the onboarding contract.
 
 | Module | What it provides |
 |--------|-----------------|
@@ -75,6 +77,7 @@ Hard rules:
 | `registry.py` | `@agent` decorator + `AgentRegistry` |
 | `tool.py` | `@tool` decorator, `ToolAccess` enum |
 | `plugin.py` | `ZePlugin` ABC — container and graph extension seam |
+| `onboarding/` | Compatibility re-export of `ze_onboarding` onboarding symbols |
 | `types.py` | `AgentContext`, `AgentResult`, `ToolCall`, `GateDecision`, `Mode`, `AbortToken` |
 | `client.py` | `LLMClient` Protocol — the interface `BaseAgent` calls; `OpenRouterClient` satisfies it |
 | `db.py` | `DBPool` Protocol — structural type for asyncpg pools |
@@ -105,7 +108,8 @@ Depends on `ze-agents` only.
 
 ## ze-sdk — Public SDK Surface
 
-`ze_sdk` is a flat re-export layer over `ze-agents`, `ze-proactive`, and `ze-memory`.
+`ze_sdk` is a flat re-export layer over `ze-agents`, `ze-proactive`, `ze-memory`, and
+`ze-onboarding`.
 Plugin authors list `ze-sdk` as their only Ze dependency and import everything from it.
 `ze-core` never appears in a plugin's dependency list.
 
@@ -116,7 +120,30 @@ Plugin authors list `ze-sdk` as their only Ze dependency and import everything f
 | `ze_sdk.proactive` | `ProactiveJob`, `proactive_job`, `ProactiveScheduler`, `ProactiveNotifier`, `PushLogStore`, `PushLogEntry` |
 | `ze_sdk.channels` | `Channel`, `ChannelType`, `ChannelHandle`, `Message`, `SentMessage`, `Thread`, `ThreadMessage`, `ChannelSendError` |
 | `ze_sdk.memory` | `MemoryContext`, `Fact`, `Episode`, `Procedure`, `Entity`, `TaskState`, `RetrievalRequest`, `MemoryStore`, `PostgresMemoryStore` |
+| `ze_sdk.onboarding` | `OnboardingProvider`, `OnboardingStep`, `OnboardingField`, `OnboardingSeed`, `OnboardingResult`, setup seed and submission types |
 | `ze_sdk.errors` | Full `ZeError` hierarchy |
+
+---
+
+## ze-onboarding — Setup Flow
+
+`ze_onboarding` owns the reusable onboarding domain: provider contracts, step/seed
+dataclasses, coordinator flow, review-before-save behavior, and reset scope/result
+types. It has no Ze dependencies. It does not know about Postgres, WebSocket, FastAPI,
+memory stores, or Flutter.
+
+| Module | What it provides |
+|--------|-----------------|
+| `types.py` | `OnboardingProvider`, `OnboardingStep`, `OnboardingSeed`, `OnboardingStore`, `OnboardingPersistence`, `ResetScope` |
+| `coordinator.py` | `OnboardingCoordinator` — orders providers, dispatches submissions, inserts review step, applies approved seeds through protocols |
+| `providers.py` | `CoreOnboardingProvider` — minimal built-in setup for name/timezone |
+
+Concrete adapters live elsewhere:
+
+- `ze_api.onboarding.store` implements the `OnboardingStore` protocol with Postgres.
+- `ze_api.onboarding.persistence` applies approved seeds to memory/plugin stores.
+- `ze_api.onboarding.reset` executes SQL reset scopes.
+- `ze_api.api.ws` maps WebSocket commands and `component_submit` frames to the coordinator.
 
 ---
 
@@ -398,6 +425,7 @@ are merged before the graph is compiled.
 |----------|---------|
 | New stable authoring API type or protocol | `ze-agents` (re-export from `ze_sdk`) |
 | New job scheduling primitive | `ze-proactive` (re-export from `ze_sdk.proactive`) |
+| New onboarding step/seed type, provider contract, or coordinator behavior | `ze-onboarding` (re-export from `ze_sdk.onboarding`) |
 | New engine primitive (routing, graph node, telemetry) | `ze-core` |
 | New memory layer or retrieval policy | `ze-memory` |
 | New domain concept tied to personal assistant | `ze-personal` |

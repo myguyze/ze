@@ -89,6 +89,26 @@ class WsClientNotifier extends StateNotifier<WsState> {
     state = state.copyWith(messages: _repo.messages, isThinking: true);
   }
 
+  void sendCommand(String name) {
+    _client.send(CommandFrame(name: name));
+    state = state.copyWith(isThinking: true);
+  }
+
+  void submitComponent({
+    required String sessionId,
+    required String stepId,
+    required String componentId,
+    required Map<String, dynamic> values,
+  }) {
+    _client.send(ComponentSubmitFrame(
+      sessionId: sessionId,
+      stepId: stepId,
+      componentId: componentId,
+      values: values,
+    ));
+    state = state.copyWith(isThinking: true);
+  }
+
   void _refresh() => state = state.copyWith(messages: _repo.messages);
 
   @override

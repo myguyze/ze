@@ -1,6 +1,6 @@
 # Onboarding Platform — Spec
 
-> **Packages:** `ze-sdk`, `ze-components`, `ze-api`, `ze-app`
+> **Packages:** `ze-onboarding`, `ze-sdk`, `ze-components`, `ze-api`, `ze-app`
 > **Phase:** 51
 > **Status:** Pending
 > **Depends on:** Phase 41 ([41-component-descriptors.md](41-component-descriptors.md)), Phase 42 ([42-native-ui-foundation.md](42-native-ui-foundation.md)), Phase 47 ([47-plugin-framework.md](47-plugin-framework.md)), Phase 49 ([49-ze-sdk.md](49-ze-sdk.md)), Phase 50 ([50-news-preferences.md](50-news-preferences.md))
@@ -12,8 +12,9 @@
 | Feature | Status |
 | ------- | ------ |
 | Personal data reset command | 🔲 Pending |
-| Onboarding SDK contract | 🔲 Pending |
-| Onboarding coordinator and store | 🔲 Pending |
+| Onboarding SDK contract | ✅ Implemented |
+| Core onboarding coordinator | ✅ Implemented |
+| Postgres onboarding store | ✅ Implemented |
 | Component submission protocol | 🔲 Pending |
 | Expanded onboarding components | 🔲 Pending |
 | Flutter onboarding UI | 🔲 Pending |
@@ -88,15 +89,21 @@ the user can wipe learned state and re-run onboarding safely.
 ## Module Locations
 
 ```text
-core/ze-agents/
-  ze_agents/
-    onboarding/
-      __init__.py
-      types.py              # SDK-owned dataclasses/protocols
+core/ze-onboarding/
+  ze_onboarding/
+    __init__.py
+    types.py                # dataclasses, provider/store/persistence protocols
+    coordinator.py          # flow assembly, review step, submission dispatch
+    providers.py            # built-in core setup provider
 
 core/ze-sdk/
   ze_sdk/
-    onboarding.py           # re-export ze_agents.onboarding symbols
+    onboarding.py           # re-export ze_onboarding symbols
+
+core/ze-agents/
+  ze_agents/
+    plugin.py               # ZePlugin.onboarding() opt-in hook
+    onboarding/             # compatibility re-export of ze_onboarding
 
 core/ze-components/
   ze_components/
@@ -107,10 +114,9 @@ apps/ze-api/
   ze_api/
     onboarding/
       __init__.py
-      coordinator.py        # flow assembly, step execution, completion
-      store.py              # Postgres progress + submissions
-      persistence.py        # apply typed seeds to memory/plugin stores
-      reset.py              # personal-state reset service
+      store.py              # Postgres adapter for ze_onboarding.OnboardingStore
+      persistence.py        # applies typed seeds to memory/plugin stores
+      reset.py              # SQL implementation for personal-state reset
     api/
       ws.py                 # component_submit frames and onboarding command
     migrations/
@@ -128,14 +134,16 @@ apps/ze-app/
     review_widget.dart
 ```
 
-The implementation should use the repo's current package locations (`core/`,
-`plugins/`, `apps/`). Do not introduce new `packages/` paths.
+The reusable onboarding domain belongs in `core/ze-onboarding`, not `ze-api`.
+`ze-api` owns only deployment adapters: SQL, WebSocket frames, reset execution, and
+container wiring.
 
 ---
 
 ## Public SDK Contract
 
-Plugin authors import onboarding symbols from `ze_sdk.onboarding`.
+Plugin authors import onboarding symbols from `ze_sdk.onboarding`, which re-exports
+`ze_onboarding`. Runtime internals can import directly from `ze_onboarding`.
 
 ```python
 from __future__ import annotations
@@ -252,14 +260,16 @@ class ZePlugin(ABC):
         return None
 ```
 
-`ze-sdk` re-exports these symbols only. The coordinator, store, reset service, and
-database implementations remain private to `ze-api`.
+`ze-sdk` re-exports provider/step/seed symbols only. The coordinator lives in
+`ze-onboarding`; Postgres storage, seed persistence, reset SQL, and WebSocket integration
+remain private to `ze-api`.
 
 ---
 
 ## Coordinator Contract
 
-The coordinator discovers providers from the active plugin list.
+The coordinator is implemented in `ze_onboarding.coordinator`. It depends on protocols,
+not concrete database or API types.
 
 ```python
 class OnboardingCoordinator:
@@ -267,8 +277,8 @@ class OnboardingCoordinator:
         self,
         *,
         providers: list[OnboardingProvider],
-        store: OnboardingStore,
-        persistence: OnboardingPersistence,
+        store: OnboardingStore,              # protocol from ze_onboarding.types
+        persistence: OnboardingPersistence,  # protocol from ze_onboarding.types
     ) -> None: ...
 
     async def start(self) -> OnboardingSession: ...

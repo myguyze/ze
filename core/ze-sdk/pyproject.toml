@@ -11,12 +11,14 @@ dependencies = [
     "ze-agents",
     "ze-proactive",
     "ze-memory",
+    "ze-onboarding",
 ]
 
 [tool.uv.sources]
 ze-agents    = { workspace = true }
 ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
+ze-onboarding = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_sdk"]

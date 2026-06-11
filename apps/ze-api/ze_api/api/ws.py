@@ -10,7 +10,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ze_core.messages.types import Message
 from ze_agents.interface.types import RawInput
+from ze_api.errors import OnboardingError
 from ze_api.logging import get_logger
+from ze_onboarding import OnboardingView
 
 log = get_logger(__name__)
 
@@ -153,6 +155,15 @@ async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
                 pending_config = await _handle_command(
                     ws, data, container, conn_mgr, pending_config
                 )
+
+            elif frame_type == "component_submit":
+                if not conn_mgr.try_set_busy():
+                    await ws.send_json({"type": "error", "detail": "busy"})
+                    continue
+                try:
+                    await _handle_component_submit(data, container, conn_mgr)
+                finally:
+                    conn_mgr.clear_busy()
 
             elif frame_type == "message":
                 if not conn_mgr.try_set_busy():
@@ -357,8 +368,89 @@ async def _handle_command(
             log.warning("ws_status_command_failed", error=str(exc))
         return pending_config
 
+    if name == "onboarding":
+        try:
+            view = await container.onboarding_coordinator.start()
+            await _send_onboarding_view(conn_mgr, view)
+        except Exception as exc:
+            log.warning("ws_onboarding_command_failed", error=str(exc))
+            await conn_mgr.send_frame({"type": "error", "detail": "Could not start onboarding."})
+        return pending_config
+
+    if name == "reset_preview":
+        scope = data.get("scope", "memory")
+        try:
+            preview = await container.reset_service.preview(scope)
+            lines = [f"{table}: {count}" for table, count in preview.counts.items()]
+            text = "Reset preview:\n" + ("\n".join(lines) if lines else "Nothing to delete.")
+            await conn_mgr.send_frame({
+                "type": "message",
+                "message": {"role": "assistant", "text": text, "components": []},
+            })
+        except Exception as exc:
+            log.warning("ws_reset_preview_failed", error=str(exc))
+            await conn_mgr.send_frame({"type": "error", "detail": "Could not preview reset."})
+        return pending_config
+
+    if name == "reset":
+        scope = data.get("scope", "memory")
+        confirm = data.get("confirm", "")
+        try:
+            result = await container.reset_service.reset(scope, confirm=confirm)
+            lines = [f"{table}: {count}" for table, count in result.deleted.items()]
+            text = "Reset complete:\n" + ("\n".join(lines) if lines else "Nothing was deleted.")
+            await conn_mgr.send_frame({
+                "type": "message",
+                "message": {"role": "assistant", "text": text, "components": []},
+            })
+        except Exception as exc:
+            log.warning("ws_reset_failed", error=str(exc))
+            await conn_mgr.send_frame({"type": "error", "detail": "Could not reset state."})
+        return pending_config
+
     log.warning("ws_unknown_command", name=name)
     return pending_config
+
+
+async def _handle_component_submit(
+    data: dict,
+    container: Any,
+    conn_mgr: ConnectionManager,
+) -> None:
+    try:
+        session_id = UUID(str(data.get("session_id")))
+        step_id = str(data.get("step_id") or data.get("component_id") or "")
+        values = data.get("values") or {}
+        if not step_id or not isinstance(values, dict):
+            raise OnboardingError("component_submit requires step_id and object values")
+        view = await container.onboarding_coordinator.submit(
+            session_id=session_id,
+            step_id=step_id,
+            values=values,
+        )
+        await _send_onboarding_view(conn_mgr, view)
+    except Exception as exc:
+        log.warning("ws_component_submit_failed", error=str(exc))
+        await conn_mgr.send_frame({"type": "error", "detail": "Could not submit component."})
+
+
+async def _send_onboarding_view(
+    conn_mgr: ConnectionManager,
+    view: OnboardingView,
+) -> None:
+    await conn_mgr.send_frame({
+        "type": "message",
+        "message": {
+            "role": "assistant",
+            "text": view.text,
+            "components": view.components,
+            "thread_id": f"onboarding:{view.session_id}",
+        },
+        "onboarding": {
+            "session_id": str(view.session_id),
+            "completed": view.completed,
+        },
+    })
 
 
 def _extract_thread_id(config: dict) -> str | None:

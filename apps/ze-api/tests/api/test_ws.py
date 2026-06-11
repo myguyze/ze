@@ -8,6 +8,8 @@ from uuid import uuid4
 import pytest
 
 from ze_api.api.ws import ConnectionManager, _message_to_dict
+from ze_api.api.ws import _send_onboarding_view
+from ze_onboarding import OnboardingView
 from ze_core.messages.types import Message
 
 
@@ -219,3 +221,28 @@ async def test_connect_works_without_confirmation_store():
     # confirmation_store=None (default) must not raise
     await mgr.connect(ws, store, confirmation_store=None)
     assert mgr.connected
+
+
+async def test_send_onboarding_view_includes_session_metadata():
+    mgr = ConnectionManager()
+    ws = _make_ws()
+    store = AsyncMock()
+    store.list_unread = AsyncMock(return_value=[])
+    await mgr.connect(ws, store)
+    ws.send_json.reset_mock()
+    session_id = uuid4()
+
+    await _send_onboarding_view(
+        mgr,
+        OnboardingView(
+            session_id=session_id,
+            text="Setup",
+            components=[{"type": "card", "body": "Hello"}],
+        ),
+    )
+
+    frame = ws.send_json.call_args[0][0]
+    assert frame["type"] == "message"
+    assert frame["message"]["components"][0]["type"] == "card"
+    assert frame["onboarding"]["session_id"] == str(session_id)
+    assert frame["onboarding"]["completed"] is False

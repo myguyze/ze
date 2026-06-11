@@ -53,6 +53,13 @@ from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_api.interface.native import NativeAppInterface
 from ze_api.api.ws import ConnectionManager
 from ze_api.api.pending_confirmations import PendingConfirmationStore
+from ze_api.onboarding import (
+    CoreOnboardingProvider,
+    OnboardingCoordinator,
+    OnboardingPersistence,
+    OnboardingStore,
+    ResetService,
+)
 from ze_agents.interface.types import RawInput
 from ze_agents.interface.validation import validate_interface
 from ze_core.telemetry.reconciler import CostReconciler
@@ -101,6 +108,8 @@ class ZeContainer(CoreContainer):
     connection_manager: ConnectionManager
     component_hook: ComponentCollectionHook
     confirmation_store: PendingConfirmationStore
+    onboarding_coordinator: OnboardingCoordinator
+    reset_service: ResetService
 
     def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -435,6 +444,28 @@ async def build_container(settings: Settings) -> ZeContainer:
         plugins.append(news_plugin)
         log.info("news_plugin_registered", sources=len(news_source_configs))
 
+    onboarding_providers = [CoreOnboardingProvider()]
+    for plugin in plugins:
+        provider = plugin.onboarding()
+        if provider is not None:
+            onboarding_providers.append(provider)
+            log.info(
+                "onboarding_provider_registered",
+                plugin=provider.plugin_name,
+                priority=provider.priority,
+            )
+    onboarding_store = OnboardingStore(pool=pool)
+    onboarding_persistence = OnboardingPersistence(
+        pool=pool,
+        memory_store=memory_store,
+    )
+    onboarding_coordinator = OnboardingCoordinator(
+        providers=onboarding_providers,
+        store=onboarding_store,
+        persistence=onboarding_persistence,
+    )
+    reset_service = ResetService(pool=pool)
+
     bootstrap_agents(
         openrouter_client=openrouter_client,
         settings=settings,
@@ -611,6 +642,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         connection_manager=connection_manager,
         component_hook=component_hook,
         confirmation_store=confirmation_store,
+        onboarding_coordinator=onboarding_coordinator,
+        reset_service=reset_service,
         plugins=plugins,
     )
 

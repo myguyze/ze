@@ -9,15 +9,16 @@
 
 ## Purpose
 
-After Phase 48, Ze's developer surface lives in three packages: `ze-agents`
-(authoring API and shared types), `ze-proactive` (job framework), and `ze-memory`
-(memory retrieval). A plugin author still needs to know which symbols live in which
-package, and must list three dependencies explicitly.
+After Phase 48, Ze's developer surface lives in several core packages: `ze-agents`
+(authoring API and shared types), `ze-proactive` (job framework), `ze-memory`
+(memory retrieval), and `ze-onboarding` (setup providers). A plugin author still needs
+to know which symbols live in which package, and must list multiple dependencies
+explicitly.
 
 `ze-sdk` removes that friction. It is a flat re-export layer over ze-agents,
-ze-proactive, and ze-memory. Plugin authors import from `ze_sdk.*` and never think
-about which underlying package a symbol comes from. A plugin's only Ze dependency
-is `ze-sdk`.
+ze-proactive, ze-memory, and ze-onboarding. Plugin authors import from `ze_sdk.*`
+and never think about which underlying package a symbol comes from. A plugin's only Ze
+dependency is `ze-sdk`.
 
 Ze-core (the engine) is never a ze-sdk dependency. Plugins cannot transitively
 import the LangGraph engine, embedding model, asyncpg pool wiring, or routing
@@ -29,11 +30,12 @@ infrastructure. Ze-core can evolve those internals freely.
 
 - Re-export every symbol a plugin author legitimately needs under a clean,
   grouped namespace (`ze_sdk`, `ze_sdk.types`, `ze_sdk.proactive`, `ze_sdk.channels`,
-  `ze_sdk.memory`, `ze_sdk.errors`).
+  `ze_sdk.memory`, `ze_sdk.onboarding`, `ze_sdk.errors`).
 - Hold no business logic — no implementations, no new types, no monkey-patching.
-  Every export is a direct re-export from ze-agents, ze-proactive, or ze-memory.
+  Every export is a direct re-export from ze-agents, ze-proactive, ze-memory, or
+  ze-onboarding.
 - Serve as the single Ze dependency for plugin packages. Plugins list `ze-sdk`;
-  the transitive graph pulls in ze-agents, ze-proactive, and ze-memory. Ze-core
+  the transitive graph pulls in ze-agents, ze-proactive, ze-memory, and ze-onboarding. Ze-core
   never appears.
 - Make the stable surface explicit: what ze-sdk re-exports is what ze-agents and
   ze-proactive commit to keeping stable. Ze-core's internals are not part of that
@@ -66,6 +68,7 @@ core/ze-sdk/
     proactive.py   ← job framework: ProactiveJob, proactive_job, ProactiveScheduler, ProactiveNotifier, PushLogStore
     channels.py    ← channel contract: Channel, ChannelType, ChannelHandle, Message, SentMessage, Thread, ThreadMessage
     memory.py      ← memory view: MemoryContext, MemoryStore, Fact, Episode, Procedure, Entity, TaskState, RetrievalRequest
+    onboarding.py  ← setup API: OnboardingProvider, OnboardingStep, OnboardingSeed, OnboardingResult
     errors.py      ← full ZeError hierarchy
 ```
 
@@ -288,12 +291,14 @@ dependencies = [
     "ze-agents",
     "ze-proactive",
     "ze-memory",
+    "ze-onboarding",
 ]
 
 [tool.uv.sources]
 ze-agents    = { workspace = true }
 ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
+ze-onboarding = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_sdk"]
@@ -315,9 +320,10 @@ dependencies = ["ze-sdk", "ze-google", "ze-personal", ...]
 
 ```
 ze-agents       (no ze deps)
+ze-onboarding   (no ze deps)
 ze-proactive  → ze-agents
 ze-memory     → ze-agents
-ze-sdk        → ze-agents, ze-proactive, ze-memory   ← plugin entry point
+ze-sdk        → ze-agents, ze-proactive, ze-memory, ze-onboarding   ← plugin entry point
 
 ze-personal   → ze-sdk
 ze-email      → ze-sdk, ze-google

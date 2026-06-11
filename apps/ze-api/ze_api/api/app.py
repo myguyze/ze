@@ -39,6 +39,8 @@ async def lifespan(app: FastAPI):
     app.state.message_store = container.message_store
     app.state.connection_manager = container.connection_manager
     app.state.confirmation_store = container.confirmation_store
+    app.state.onboarding_coordinator = container.onboarding_coordinator
+    app.state.reset_service = container.reset_service
     app.state.container = container
 
     log.info("ze_startup_complete")

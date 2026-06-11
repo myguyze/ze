@@ -8,8 +8,13 @@ from ze_components import context as _ctx
 from ze_components.schema import build_render_schema
 from ze_components.types import (
     CardComponent,
+    ChoiceGroupComponent,
+    ChoiceOption,
+    ConnectAccountComponent,
     ConfirmAction,
     ConfirmComponent,
+    ConsentComponent,
+    ConsentScope,
     FormComponent,
     FormField,
     ListComponent,
@@ -17,6 +22,8 @@ from ze_components.types import (
     MetricComponent,
     ProgressComponent,
     ProgressStep,
+    ReviewComponent,
+    ReviewItem,
     TableComponent,
     TimelineComponent,
     TimelineEvent,
@@ -190,3 +197,88 @@ async def render_card(
     style: str = "info",
 ) -> CardComponent:
     return CardComponent(body=body, title=title, style=style)  # type: ignore[arg-type]
+
+
+@render_tool(ChoiceGroupComponent, description=(
+    "Render a choice group for interactive setup. "
+    "Each option: {id, label, description (optional), recommended (optional)}."
+))
+async def render_choice_group(
+    id: str,
+    title: str,
+    options: list,
+    allow_multiple: bool = False,
+    description: str | None = None,
+    submit_label: str = "Continue",
+) -> ChoiceGroupComponent:
+    return ChoiceGroupComponent(
+        id=id,
+        title=title,
+        options=[_coerce(ChoiceOption, o) for o in options],
+        allow_multiple=allow_multiple,
+        description=description,
+        submit_label=submit_label,
+    )
+
+
+@render_tool(ConsentComponent, description=(
+    "Render a consent prompt with explicit scopes. "
+    "Each scope: {id, label, description, required}."
+))
+async def render_consent(
+    id: str,
+    title: str,
+    body: str,
+    scopes: list,
+    accept_label: str = "Allow",
+    reject_label: str = "Skip",
+) -> ConsentComponent:
+    return ConsentComponent(
+        id=id,
+        title=title,
+        body=body,
+        scopes=[_coerce(ConsentScope, s) for s in scopes],
+        accept_label=accept_label,
+        reject_label=reject_label,
+    )
+
+
+@render_tool(ConnectAccountComponent, description=(
+    "Render an account connection prompt for onboarding or settings."
+))
+async def render_connect_account(
+    id: str,
+    provider: str,
+    title: str,
+    description: str,
+    status: str = "not_connected",
+    action_label: str = "Connect",
+) -> ConnectAccountComponent:
+    return ConnectAccountComponent(
+        id=id,
+        provider=provider,
+        title=title,
+        description=description,
+        status=status,  # type: ignore[arg-type]
+        action_label=action_label,
+    )
+
+
+@render_tool(ReviewComponent, description=(
+    "Render a review list before saving durable setup details. "
+    "Each item: {id, label, value, kind, plugin (optional)}."
+))
+async def render_review(
+    id: str,
+    title: str,
+    items: list,
+    approve_label: str = "Save",
+    reject_label: str = "Edit",
+) -> ReviewComponent:
+    return ReviewComponent(
+        id=id,
+        title=title,
+        items=[_coerce(ReviewItem, i) for i in items],
+        approve_label=approve_label,
+        reject_label=reject_label,
+    )

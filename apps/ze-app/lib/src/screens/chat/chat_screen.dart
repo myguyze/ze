@@ -16,6 +16,11 @@ class ChatScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ze'),
         actions: [
+          IconButton(
+            tooltip: 'Setup',
+            icon: const Icon(Icons.checklist),
+            onPressed: () => ref.read(wsClientProvider.notifier).sendCommand('onboarding'),
+          ),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () => Navigator.pushNamed(context, '/settings')),
         ],
       ),
@@ -56,12 +61,12 @@ class _StatusBanner extends StatelessWidget {
   }
 }
 
-class _MessageList extends StatelessWidget {
+class _MessageList extends ConsumerWidget {
   const _MessageList({required this.ws});
   final WsState ws;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (ws.status == WsStatus.connecting && ws.messages.isEmpty) {
       return const _SkeletonList();
     }
@@ -71,7 +76,18 @@ class _MessageList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: ws.messages.length,
-      itemBuilder: (_, i) => MessageBubble(message: ws.messages[i]),
+      itemBuilder: (_, i) => MessageBubble(
+        message: ws.messages[i],
+        onSend: (text) => ref.read(wsClientProvider.notifier).sendMessage(text),
+        onComponentSubmit: (sessionId, stepId, componentId, values) {
+          ref.read(wsClientProvider.notifier).submitComponent(
+            sessionId: sessionId,
+            stepId: stepId,
+            componentId: componentId,
+            values: values,
+          );
+        },
+      ),
     );
   }
 }

@@ -55,7 +55,7 @@ InboundFrame? parseInboundFrame(String raw) {
   final j = jsonDecode(raw) as Map<String, dynamic>;
   final type = j['type'] as String?;
   return switch (type) {
-    'message' => MessageFrame(message: Message.fromJson(j['message'] as Map<String, dynamic>)),
+    'message' => MessageFrame(message: _messageFromFrame(j)),
     'edit' => EditFrame(
         id: j['id'] as String,
         text: j['text'] as String?,
@@ -114,4 +114,37 @@ class CommandFrame extends OutboundFrame {
 class PingFrame extends OutboundFrame {
   @override
   Map<String, dynamic> toJson() => {'type': 'ping'};
+}
+
+class ComponentSubmitFrame extends OutboundFrame {
+  ComponentSubmitFrame({
+    required this.sessionId,
+    required this.stepId,
+    required this.componentId,
+    required this.values,
+  });
+
+  final String sessionId;
+  final String stepId;
+  final String componentId;
+  final Map<String, dynamic> values;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'component_submit',
+    'session_id': sessionId,
+    'step_id': stepId,
+    'component_id': componentId,
+    'values': values,
+  };
+}
+
+Message _messageFromFrame(Map<String, dynamic> frame) {
+  final message = Map<String, dynamic>.from(frame['message'] as Map<String, dynamic>);
+  final onboarding = frame['onboarding'] as Map<String, dynamic>?;
+  if (onboarding != null) {
+    message['onboarding_session_id'] = onboarding['session_id'];
+    message['onboarding_completed'] = onboarding['completed'];
+  }
+  return Message.fromJson(message);
 }

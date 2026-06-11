@@ -28,3 +28,9 @@ class ImageDownloadError(ZeError):
     """Failed to download image bytes from Telegram's file server."""
 
 
+# ── Onboarding ────────────────────────────────────────────────────────────────
+
+class OnboardingError(ZeError):
+    """Onboarding flow failed or received an invalid submission."""
+
+
