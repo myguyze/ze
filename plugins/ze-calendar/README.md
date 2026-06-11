@@ -36,5 +36,5 @@ from ze_calendar.plugin import CalendarPlugin
 ```bash
 make test-calendar
 # or
-uv run pytest packages/ze-calendar/tests -q
+uv run pytest plugins/ze-calendar/tests -q
 ```

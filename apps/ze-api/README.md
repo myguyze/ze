@@ -87,5 +87,5 @@ See the root [README](../../README.md#configuration) for all environment variabl
 ```bash
 make test
 # or
-uv run pytest packages/ze-api/tests -q
+uv run pytest apps/ze-api/tests -q
 ```

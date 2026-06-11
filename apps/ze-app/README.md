@@ -39,7 +39,7 @@ Push notifications arrive via ntfy and carry deep-link data (`ze://navigate?...`
 ## Getting started
 
 ```bash
-cd packages/ze-app
+cd apps/ze-app
 flutter pub get
 flutter run
 ```

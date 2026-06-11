@@ -34,5 +34,5 @@ from ze_personal.plugin import PersonalPlugin
 ## Testing
 
 ```bash
-uv run pytest packages/ze-personal/tests -q
+uv run pytest plugins/ze-personal/tests -q
 ```

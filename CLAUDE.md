@@ -11,7 +11,7 @@ Push notifications are delivered via ntfy. All LLM calls go through OpenRouter.
 
 ```
 ze/                           # monorepo root
-├── packages/
+├── core/                     # Shared infrastructure — no domain knowledge
 │   ├── ze-core/              # Pure infrastructure — routing, memory, orchestration, telemetry, …
 │   │   └── ze_core/
 │   │       ├── capability/   # CapabilityGate, PostgresCapabilityOverrideStore, modes
@@ -27,6 +27,12 @@ ze/                           # monorepo root
 │   │       ├── telemetry/    # CostTracker, CostReconciler, PostgresCostStore, ContextVar
 │   │       ├── container.py  # Base Container with DI wiring and invoke/resume entry points
 │   │       └── embeddings.py # Shared paraphrase-multilingual-MiniLM-L12-v2 singleton
+│   ├── ze-memory/            # Memory — facts, episodes, graph, retrieval
+│   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
+│   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
+│   ├── ze-notifications/     # Push notification abstraction (ntfy)
+│   └── ze-components/        # Server-driven UI component descriptors
+├── plugins/                  # ZePlugin domain extensions
 │   ├── ze-personal/          # Personal-assistant domain layer (ZePlugin)
 │   │   └── ze_personal/
 │   │       ├── contacts/     # PersonStore, ContactChannelStore, consolidator, extractors, tools
@@ -42,15 +48,6 @@ ze/                           # monorepo root
 │   │       ├── channel/      # GmailChannel
 │   │       ├── agents/email/ # EmailAgent + tools
 │   │       └── plugin.py     # EmailPlugin(ZePlugin)
-│   ├── ze-prospecting/       # Prospecting agent, campaign store, recovery job (ZePlugin)
-│   │   └── ze_prospecting/
-│   │       ├── agents/       # ProspectingAgent + tools
-│   │       ├── jobs/         # recover_stale_campaigns
-│   │       ├── store.py      # ProspectCampaignStore
-│   │       └── plugin.py     # ProspectingPlugin(ZePlugin)
-│   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
-│   │   └── ze_google/
-│   │       └── auth.py       # GoogleCredentials, SCOPES, service client factories
 │   ├── ze-calendar/          # Calendar, reminders, and timezone domain (ZePlugin)
 │   │   └── ze_calendar/
 │   │       ├── agents/       # CalendarAgent, RemindersAgent + tools
@@ -58,7 +55,17 @@ ze/                           # monorepo root
 │   │       ├── jobs/         # CalendarReminderJob
 │   │       ├── timezone/     # TimezoneService, world_time @tool
 │   │       └── plugin.py     # CalendarPlugin(ZePlugin) — registers agents
-│   ├── ze-api/               # Deployment unit — HTTP/WebSocket API, wires all plugins
+│   ├── ze-prospecting/       # Prospecting agent, campaign store, recovery job (ZePlugin)
+│   │   └── ze_prospecting/
+│   │       ├── agents/       # ProspectingAgent + tools
+│   │       ├── jobs/         # recover_stale_campaigns
+│   │       ├── store.py      # ProspectCampaignStore
+│   │       └── plugin.py     # ProspectingPlugin(ZePlugin)
+│   ├── ze-news/              # News fetching, RSS sources, NewsAgent, NewsPlugin
+│   ├── ze-finance/           # Finance domain (ZePlugin) — in progress
+│   └── ze-legal/             # Legal domain (ZePlugin) — in progress
+├── apps/                     # Deployment units
+│   ├── ze-api/               # HTTP/WebSocket API, wires all plugins
 │   │   ├── ze_api/
 │   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
 │   │   │   ├── interface/    # NativeAppInterface (WebSocket + ntfy delivery)
@@ -70,10 +77,6 @@ ze/                           # monorepo root
 │   │   │   └── persona.yaml  # Persona profiles and dials
 │   │   ├── migrations/       # Alembic SQL migrations
 │   │   └── tests/
-│   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
-│   ├── ze-news/              # News fetching, RSS sources, NewsAgent, NewsPlugin
-│   ├── ze-notifications/     # Push notification abstraction (ntfy)
-│   ├── ze-components/        # Server-driven UI component descriptors
 │   └── ze-app/               # Flutter client app (iOS / Android / macOS / web)
 ├── specs/                    # Design specs (zc-* ze-core, numbered ze modules)
 ├── docs/                     # architecture.md, configuration.md, …
@@ -83,19 +86,20 @@ ze/                           # monorepo root
 ### Package dependency graph
 
 ```
-ze-browser      (no ze deps)
-ze-core         (no ze deps)
-ze-notifications(no ze deps)
-ze-components   (no ze deps)
-ze-google       (no ze deps)
-ze-personal   → ze-core, ze-memory
-ze-email      → ze-core, ze-google, ze-personal
-ze-prospecting→ ze-core, ze-browser, ze-personal
-ze-calendar   → ze-core, ze-google, ze-personal
-ze-news       → ze-core
+ze-browser      (no ze deps)             core/
+ze-core         (no ze deps)             core/
+ze-notifications(no ze deps)             core/
+ze-components   (no ze deps)             core/
+ze-google       (no ze deps)             core/
+ze-memory     → ze-core                  core/
+ze-personal   → ze-core, ze-memory       plugins/
+ze-email      → ze-core, ze-google, ze-personal            plugins/
+ze-prospecting→ ze-core, ze-browser, ze-personal           plugins/
+ze-calendar   → ze-core, ze-google, ze-personal            plugins/
+ze-news       → ze-core                  plugins/
 ze-api        → ze-core, ze-memory, ze-personal, ze-email, ze-prospecting, ze-calendar,
-                  ze-google, ze-browser, ze-news, ze-notifications, ze-components
-ze-app          (Flutter — connects to ze-api over WebSocket)
+                  ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
+ze-app          (Flutter — connects to ze-api over WebSocket)                       apps/
 ```
 
 ## Essential commands
@@ -265,3 +269,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 28 | Cross-goal learning promotion — generalizable facts extracted from goal learnings and promoted to user memory on completion | Done |
 | 44 | Calendar package split — ze-google (credentials), ze-calendar (agents, reminders, timezone), ze renamed to ze-api | Done |
 | 45 | Native app interface — Flutter client, WebSocket transport, ntfy push notifications, ze-notifications + ze-components packages | Done |
+| 46 | Accountability layer — weekly narrative, cost anomaly detection, confirmation persistence + replay + ntfy + timeout, `/status` command | Done |

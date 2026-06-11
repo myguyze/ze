@@ -6,7 +6,7 @@ Ze has three layers of configuration:
 - **`config/config.yaml`** — all structural and behavioural settings. Committed.
 - **`config/persona.yaml`** — persona profiles and dials. Committed.
 
-All files live in `packages/ze-api/config/` (or the path set by `config_dir`).
+All files live in `apps/ze-api/config/` (or the path set by `config_dir`).
 
 ---
 
@@ -183,6 +183,15 @@ proactive:
   stuck_goals:
     enabled: true
     cron: "0 9 * * 2"
+
+  accountability:
+    enabled: true
+    schedule: "0 9 * * 1"          # Monday 09:00 — weekly activity narrative
+    cost_anomaly_schedule: "0 */6 * * *"  # every 6 h — per-agent cost outlier scan
+    anomaly_threshold: 4.0          # multiplier above baseline to trigger an alert
+    anomaly_min_samples: 5          # min historical runs needed before alerting
+    anomaly_retention_days: 30      # prune anomaly records older than N days
+    stall_days: 3                   # milestone idle days before counted as stalled
 ```
 
 Disable any proactive feature by setting `enabled: false` or toggling the relevant flag.

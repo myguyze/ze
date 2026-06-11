@@ -38,5 +38,5 @@ result = await client.fetch("https://example.com")
 ## Testing
 
 ```bash
-uv run pytest packages/ze-browser/tests -q
+uv run pytest core/ze-browser/tests -q
 ```

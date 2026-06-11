@@ -254,6 +254,73 @@ For each stuck goal, Ze pushes a notification describing the blockage with **Res
 
 ---
 
+## Weekly accountability narrative (Monday 9 AM UTC)
+
+**Module:** `ze_personal/jobs/accountability.py` (`AccountabilityJob`)  
+**Cron:** `0 9 * * 1` (configurable via `proactive.accountability.schedule`)
+
+A weekly plain-text summary of everything Ze did while you weren't watching:
+
+```
+Ze activity report (last 7 days)
+
+💸 Cost: $0.42 across 38 runs
+   • research: 19 runs, $0.1800
+   • email: 12 runs, $0.1400
+   • prospecting: 7 runs, $0.1000
+
+🎯 Goals
+   • Advanced: "Send 10 outreach emails"
+   • Stalled: "Write technical blog post"
+
+⚙️  Workflows: no failures
+
+⚠️  Anomalies
+   • prospecting spent $0.3100 on one run (5.0× baseline) on 2026-06-09
+```
+
+Data sourced from:
+
+| Source | What it captures |
+|---|---|
+| `llm_cost_log` | Per-agent run counts, token totals, and costs |
+| `goal_milestones` | Milestones completed this week; pending milestones idle > `stall_days` (default: 3) |
+| `push_log` | Workflow failures in the period |
+| `accountability_anomalies` | Cost outliers flagged by `CostAnomalyJob` |
+
+The job is deduplicated with a 6-day window under key `weekly_accountability` — safe to retry without double-sending. No LLM call; the narrative is purely templated.
+
+The same data is available on-demand via the `/status` WebSocket command (see [native-interface.md](native-interface.md)).
+
+---
+
+## Cost anomaly detection (every 6 hours)
+
+**Module:** `ze_personal/jobs/cost_anomaly.py` (`CostAnomalyJob`)  
+**Cron:** `0 */6 * * *` (configurable via `proactive.accountability.cost_anomaly_schedule`)
+
+Silently scans recent LLM runs and alerts if any single run cost significantly more than that agent's historical baseline:
+
+- **Baseline**: median cost-per-run over the past 30 days. Uses median (not mean) to resist distortion from the very anomalies we are trying to detect.
+- **Minimum samples**: at least `anomaly_min_samples` (default: 5) historical runs are required before an agent can have a baseline. New agents are silently skipped.
+- **Threshold**: `anomaly_threshold` × baseline (default: 4.0×). A run at 4.01× fires an alert; one at 3.99× does not.
+- **Deduplication**: session IDs already logged in `accountability_anomalies` within the past 24 hours are skipped so a single run never fires twice.
+
+Alert format (ntfy, urgency `high`):
+
+```
+⚠️ Ze cost anomaly detected
+
+The prospecting agent spent $0.31 on one run — 5.0× its usual $0.06.
+Date: 2026-06-09
+```
+
+Anomaly records are written to the `accountability_anomalies` table and automatically pruned after `anomaly_retention_days` (default: 30 days).
+
+The threshold is a conservative first guess — calibrate after 30 days of live data.
+
+---
+
 ## Cost reconciliation (every 15 minutes)
 
 **Module:** `ze_core/telemetry/reconciler.py` (`CostReconciler`) · registered in `ze_api/container.py`  
@@ -304,7 +371,9 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 | 8:30 AM daily | Contact review suggestions | `ze_personal/jobs/contacts.py` |
 | 6:00 PM Sun | Weekly goal narrative | `ze_personal/jobs/goal_narrative.py` |
 | 7:00 PM Sun | Weekly goal suggestions | `ze_personal/jobs/goal_suggestion.py` |
+| 9:00 AM Mon | **Weekly accountability narrative** | `ze_personal/jobs/accountability.py` |
 | 9:00 AM Tue | Stuck goal detection | `ze_personal/jobs/stuck_goals.py` |
+| Every 6 hours | **Cost anomaly detection** | `ze_personal/jobs/cost_anomaly.py` |
 | Every 15 min | Goal advance sweep | `ze_personal/goals/executor.py` |
 | Every 15 min | Cost reconciliation | `ze_core/telemetry/reconciler.py` |
 | Every 15 min | Stale campaign recovery | `ze_prospecting/jobs/campaigns.py` |

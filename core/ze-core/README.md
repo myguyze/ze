@@ -42,5 +42,5 @@ from ze_core.plugin import ZePlugin
 ```bash
 make test-core
 # or
-uv run pytest packages/ze-core/tests -q
+uv run pytest core/ze-core/tests -q
 ```

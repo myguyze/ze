@@ -6,7 +6,7 @@ import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from ze_core.settings import Settings as CoreSettings
 
-_ROOT = Path(__file__).parent.parent  # packages/ze-api/
+_ROOT = Path(__file__).parent.parent  # apps/ze-api/
 
 
 class Settings(BaseSettings):

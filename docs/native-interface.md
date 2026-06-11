@@ -51,7 +51,10 @@ On connect, the server:
 1. Closes any previous connection with code `4000`.
 2. Fetches all unread messages from `MessageStore` and replays them as
    `{"type": "message", ...}` frames.
-3. Begins forwarding new messages in real time.
+3. If a confirmation was pending when the client disconnected, replays the
+   `confirm_request` frame so the user can still approve or cancel (see
+   [Confirmation flow](#confirmation-flow)).
+4. Begins forwarding new messages in real time.
 
 The client should send `{"type": "ack", "ids": [...]}` frames to mark messages as read.
 
@@ -67,7 +70,8 @@ The client should send `{"type": "ack", "ids": [...]}` frames to mark messages a
 | `{"type": "ack", "ids": ["<uuid>", ...]}` | After displaying messages | Marks messages as read in `MessageStore` |
 | `{"type": "message", "text": "...", "thread_id": "...", "context": {...}}` | User sends a message | `thread_id` is optional; `context` is optional screen context |
 | `{"type": "command", "name": "cancel"}` | Cancel pending confirmation | Aborts the awaited graph turn |
-| `{"type": "command", "name": "costs"}` | Introspection | Returns a cost summary message |
+| `{"type": "command", "name": "costs"}` | Introspection | Returns a 7-day cost summary message |
+| `{"type": "command", "name": "status", "period_days": 1}` | Accountability | Returns an activity narrative (default: past 24 h; set `period_days: 7` for the weekly view) |
 
 ### Server → Client
 
@@ -123,8 +127,38 @@ The client presents this to the user. On user action, the client sends a message
 ```
 
 The WS handler resumes the LangGraph checkpoint with `graph.ainvoke(None, config)` on
-the same `thread_id`. A 15-minute timeout (`CONFIRM_TIMEOUT_SECONDS`) applies — if
-no response arrives the pause expires and the graph unblocks automatically.
+the same `thread_id`.
+
+### Persistence across disconnects
+
+The `confirm_request` payload is saved to the `pending_confirmations` Postgres table
+at the moment it is sent. On the next WebSocket reconnect, after replaying unread
+messages, the server checks `pending_confirmations` for any non-expired row and
+re-sends the `confirm_request` frame. The user can approve or cancel even if they
+closed and reopened the app.
+
+The row is cleared when:
+- The user responds (approve or cancel).
+- The timeout elapses (see below).
+
+### ntfy push on background
+
+When the app is not connected and a confirmation is required, Ze also pushes an ntfy
+notification with the prompt text (urgency `high`) so the user is alerted even with
+the app closed.
+
+### Timeout
+
+A `CONFIRM_TIMEOUT_SECONDS` (default: 900 s / 15 min) watchdog runs in the background
+from the moment the `confirm_request` is sent. If the window elapses with no user
+response, Ze sends:
+
+```
+"I waited for your approval but the window elapsed — let me know if you'd like me to try again."
+```
+
+The `pending_confirmations` row is deleted. If the app is still connected the message
+appears in-chat; otherwise it goes via ntfy (urgency `low`).
 
 ---
 
@@ -199,7 +233,7 @@ on `app.state.connection_manager`. It exposes:
 
 | Method | Description |
 |---|---|
-| `connect(ws, message_store)` | Accept a new connection; closes the previous one; replays unread messages |
+| `connect(ws, message_store, confirmation_store=None)` | Accept a new connection; closes the previous one; replays unread messages; replays any pending confirmation |
 | `disconnect()` | Clear the active connection |
 | `push(message)` | Send a message frame; silently no-ops if disconnected |
 | `send_frame(frame)` | Send an arbitrary JSON frame |

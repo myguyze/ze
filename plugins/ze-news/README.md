@@ -35,5 +35,5 @@ from ze_news.plugin import NewsPlugin
 ## Testing
 
 ```bash
-uv run pytest packages/ze-news/tests -q
+uv run pytest plugins/ze-news/tests -q
 ```
