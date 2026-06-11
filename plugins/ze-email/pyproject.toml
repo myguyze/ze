@@ -19,6 +19,9 @@ ze-personal = { workspace = true }
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[project.entry-points."ze.plugins"]
+ze_email = "ze_email.plugin:EmailPlugin"
+
 [tool.hatch.build.targets.wheel]
 packages = ["ze_email"]
 

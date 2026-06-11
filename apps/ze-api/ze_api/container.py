@@ -143,6 +143,15 @@ class ZeContainer(CoreContainer):
         return await resume_turn(self, config)
 
     async def close(self) -> None:
+        for plugin in reversed(self.plugins):
+            try:
+                await plugin.shutdown()
+            except Exception as exc:
+                log.warning(
+                    "plugin_shutdown_failed",
+                    plugin=type(plugin).__name__,
+                    error=str(exc),
+                )
         await self.proactive_scheduler.stop()
         await self.workflow_scheduler.stop()
         await self.browser_client.close()
@@ -603,4 +612,13 @@ async def build_container(settings: Settings) -> ZeContainer:
         confirmation_store=confirmation_store,
         plugins=plugins,
     )
+
+    for plugin in plugins:
+        try:
+            await plugin.startup(container)
+            log.info("plugin_started", plugin=type(plugin).__name__)
+        except Exception as exc:
+            log.error("plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc))
+            raise
+
     return container

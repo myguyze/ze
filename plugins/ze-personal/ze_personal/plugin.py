@@ -145,6 +145,7 @@ class PersonalPlugin(ZePlugin):
 
     def agent_module_paths(self) -> list[str]:
         return [
+            "ze_personal.contacts.tools",
             "ze_personal.agents.goals.agent",
             "ze_personal.agents.workflow.agent",
             "ze_personal.agents.research.agent",

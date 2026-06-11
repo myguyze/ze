@@ -1,26 +1,26 @@
+from __future__ import annotations
+
 import importlib
 import inspect
+import sys
 from typing import Any, get_type_hints
 
 import asyncpg
 
 from ze_core.errors import AgentConfigError
-from ze_google.auth import GoogleCredentials
-from ze_core.openrouter.client import OpenRouterClient
-from ze_core.proactive.notifier import ProactiveNotifier
-from ze_calendar.reminders.store import ReminderStore
-from ze_api.settings import Settings
-from ze_core.settings import Settings as CoreSettings
-from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_core.logging import get_logger
 from ze_core.orchestration.registry import (
     get_registered_agents,
     register_instance,
 )
+from ze_core.plugin import ZePlugin
 
-_dep_map: dict[type, Any] = {}
+log = get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# Legacy static list — kept for tests and no-plugin bootstrap paths.
+# Production code derives paths from plugin instances via agent_module_paths().
+# ---------------------------------------------------------------------------
 _DEFAULT_AGENT_MODULE_PATHS = [
     "ze_personal.contacts.tools",
     "ze_browser.tool",
@@ -36,84 +36,92 @@ _DEFAULT_AGENT_MODULE_PATHS = [
     "ze_prospecting.agents.agent",
 ]
 
-
-def prepare_gate_registry(settings: Settings, plugins: list | None = None) -> None:
-    """Import agent modules so @agent registers classes in ze-core."""
-    del settings, plugins
+_dep_map: dict[type, Any] = {}
 
 
 def bootstrap_agents(
     *,
-    openrouter_client: OpenRouterClient,
-    settings: Settings,
-    google_credentials: GoogleCredentials | None = None,
-    workflow_store: WorkflowStore | None = None,
-    workflow_planner: WorkflowPlanner | None = None,
-    workflow_scheduler: WorkflowScheduler | None = None,
-    reminder_store: ReminderStore | None = None,
-    notifier: ProactiveNotifier | None = None,
-    person_store=None,
-    browser_client=None,
-    contact_channel_store=None,
-    goal_store=None,
-    goal_planner=None,
-    goal_executor=None,
+    deps: dict[type, Any] | None = None,
+    plugins: list[ZePlugin] | None = None,
+    # Legacy kwargs — forwarded into deps for backwards compatibility.
+    openrouter_client: Any = None,
+    settings: Any = None,
+    google_credentials: Any = None,
+    workflow_store: Any = None,
+    workflow_planner: Any = None,
+    workflow_scheduler: Any = None,
+    reminder_store: Any = None,
+    notifier: Any = None,
+    person_store: Any = None,
+    browser_client: Any = None,
+    contact_channel_store: Any = None,
+    goal_store: Any = None,
+    goal_planner: Any = None,
+    goal_executor: Any = None,
     pool: asyncpg.Pool | None = None,
-    campaign_store=None,
-    prospecting_settings=None,
-    plugins: list | None = None,
-    memory_store=None,
-    news_store=None,
+    campaign_store: Any = None,
+    prospecting_settings: Any = None,
+    memory_store: Any = None,
+    news_store: Any = None,
 ) -> None:
-    """Instantiate and register all enabled agents. Called once at app startup."""
-    if google_credentials is None:
-        google_credentials = GoogleCredentials.from_settings(settings)
+    """Instantiate and register all enabled agents. Called once at app startup.
+
+    Prefer passing ``deps`` as a typed dict. The individual keyword arguments
+    are kept for backwards compatibility and are merged into ``deps``.
+    """
+    from ze_google.auth import GoogleCredentials
+    from ze_core.openrouter.client import OpenRouterClient
+    from ze_api.settings import Settings
+    from ze_core.settings import Settings as CoreSettings
 
     _dep_map.clear()
-    _dep_map[OpenRouterClient] = openrouter_client
-    _dep_map[Settings] = settings
-    _dep_map[CoreSettings] = settings.to_core_settings()
-    _dep_map[GoogleCredentials] = google_credentials
 
-    if workflow_store is not None:
-        _dep_map[WorkflowStore] = workflow_store
-    if workflow_planner is not None:
-        _dep_map[WorkflowPlanner] = workflow_planner
-    if workflow_scheduler is not None:
-        _dep_map[WorkflowScheduler] = workflow_scheduler
-    if reminder_store is not None:
-        _dep_map[ReminderStore] = reminder_store
-    if notifier is not None:
-        _dep_map[ProactiveNotifier] = notifier
-    if person_store is not None:
-        from ze_personal.contacts.store import PersonStore
-        _dep_map[PersonStore] = person_store
-    if browser_client is not None:
-        from ze_browser import BrowserClient
-        _dep_map[BrowserClient] = browser_client
-    if contact_channel_store is not None:
-        from ze_personal.contacts.channel_store import ContactChannelStore
-        _dep_map[ContactChannelStore] = contact_channel_store
-    if goal_store is not None:
-        from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
-        _dep_map[GoalStore] = goal_store
-    if goal_planner is not None:
-        from ze_personal.goals.planner import GoalPlanner
-        _dep_map[GoalPlanner] = goal_planner
-    if goal_executor is not None:
-        from ze_personal.goals.executor import GoalExecutor
-        _dep_map[GoalExecutor] = goal_executor
-    if pool is not None:
-        _dep_map[asyncpg.Pool] = pool
-    if campaign_store is not None:
-        from ze_prospecting.store import ProspectCampaignStore
-        _dep_map[ProspectCampaignStore] = campaign_store
-    if prospecting_settings is not None:
-        from ze_prospecting.types import ProspectingSettings
-        _dep_map[ProspectingSettings] = prospecting_settings
-    if memory_store is not None:
-        from ze_memory.retriever import PostgresMemoryStore
-        _dep_map[PostgresMemoryStore] = memory_store
+    # Start from the explicit deps dict.
+    if deps:
+        _dep_map.update(deps)
+
+    # Resolve google_credentials from settings if not explicitly provided.
+    if google_credentials is None and settings is not None:
+        google_credentials = GoogleCredentials.from_settings(settings)
+
+    # Merge legacy kwargs.
+    _legacy: list[tuple[Any, Any]] = [
+        (OpenRouterClient, openrouter_client),
+        (Settings, settings),
+        (CoreSettings, settings.to_core_settings() if settings and hasattr(settings, "to_core_settings") else None),
+        (GoogleCredentials, google_credentials),
+        (asyncpg.Pool, pool),
+    ]
+    for type_, val in _legacy:
+        if val is not None:
+            _dep_map[type_] = val
+
+    # Optional typed deps — only add if provided.
+    _optional: list[tuple[str, Any]] = [
+        ("ze_personal.workflow.store.WorkflowStore", workflow_store),
+        ("ze_personal.workflow.planner.WorkflowPlanner", workflow_planner),
+        ("ze_personal.workflow.scheduler.WorkflowScheduler", workflow_scheduler),
+        ("ze_calendar.reminders.store.ReminderStore", reminder_store),
+        ("ze_core.proactive.notifier.ProactiveNotifier", notifier),
+        ("ze_personal.contacts.store.PersonStore", person_store),
+        ("ze_browser.BrowserClient", browser_client),
+        ("ze_personal.contacts.channel_store.ContactChannelStore", contact_channel_store),
+        ("ze_personal.goals.postgres.PostgresGoalStore", goal_store),
+        ("ze_personal.goals.planner.GoalPlanner", goal_planner),
+        ("ze_personal.goals.executor.GoalExecutor", goal_executor),
+        ("ze_prospecting.store.ProspectCampaignStore", campaign_store),
+        ("ze_prospecting.types.ProspectingSettings", prospecting_settings),
+        ("ze_memory.retriever.PostgresMemoryStore", memory_store),
+    ]
+    for dotted, val in _optional:
+        if val is not None:
+            try:
+                mod, attr = dotted.rsplit(".", 1)
+                type_ = getattr(importlib.import_module(mod), attr)
+                _dep_map[type_] = val
+            except Exception:
+                pass  # package not installed — skip silently
+
     if goal_store is not None and news_store is not None:
         try:
             from ze_news.types import GoalTitleProvider
@@ -128,6 +136,7 @@ def bootstrap_agents(
             pass
 
     for module_path in _plugin_agent_module_paths(plugins):
+        log.debug("importing_agent_module", path=module_path)
         importlib.import_module(module_path)
 
     prepare_gate_registry(settings, plugins)
@@ -137,8 +146,14 @@ def bootstrap_agents(
             continue
         instance = _resolve(cls)
         register_instance(name, instance)
+        log.debug("agent_registered", name=name, cls=cls.__name__)
 
     validate_registry()
+    log.info("bootstrap_complete", agents=list(get_registered_agents()))
+
+
+def prepare_gate_registry(settings: Any, plugins: list | None = None) -> None:
+    del settings, plugins
 
 
 def validate_registry() -> None:
@@ -172,23 +187,34 @@ def validate_registry() -> None:
                     )
 
 
-def _plugin_agent_module_paths(plugins: list | None) -> list[str]:
-    paths: list[str] = list(_DEFAULT_AGENT_MODULE_PATHS)
-    for plugin in (plugins or []):
-        paths.extend(plugin.agent_module_paths())
-    return paths
+def _plugin_agent_module_paths(plugins: list[ZePlugin] | None) -> list[str]:
+    """Collect agent module paths from plugin instances.
+
+    When plugins are provided, derives all paths exclusively from them —
+    no static fallback. When no plugins are given, falls back to the legacy
+    static list so no-plugin bootstrap paths (tests, evals) still work.
+    """
+    if plugins:
+        paths: list[str] = []
+        for plugin in plugins:
+            plugin_paths = plugin.agent_module_paths()
+            log.debug(
+                "plugin_agent_modules",
+                plugin=type(plugin).__name__,
+                paths=plugin_paths,
+            )
+            paths.extend(plugin_paths)
+        return paths
+    return list(_DEFAULT_AGENT_MODULE_PATHS)
 
 
 def _import_agent_modules(plugins: list | None = None) -> None:
-    """Import shared tools and plugin agent modules."""
     for module_path in _DEFAULT_AGENT_MODULE_PATHS:
         importlib.import_module(module_path)
 
 
 def reload_agent_modules(plugins: list | None = None) -> None:
     """Force @agent registration after tests replace the ze-core registry."""
-    import sys
-
     from ze_core.orchestration.registry import _instances, _registry
     from ze_core.orchestration.tool import clear_tool_registry
 

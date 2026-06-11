@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from langgraph.graph import StateGraph
     from ze_core.orchestration.base_agent import BaseAgent
     from ze_core.proactive.job import ProactiveJob
+    from ze_core.container import Container
 
 # Auto-populated by ZePlugin.__init_subclass__ when plugin modules are imported.
 _registry: list[type["ZePlugin"]] = []
@@ -73,6 +74,24 @@ class ZePlugin(ABC):
         Called after all base edges and plugin nodes have been added, before
         graph compilation.
         """
+
+    # ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    async def startup(self, container: "Container") -> None:
+        """Called once during app startup after the container is fully built.
+
+        Override to run async initialisation that requires shared resources
+        (e.g. schedule jobs, validate credentials, open connections).
+        """
+
+    async def shutdown(self) -> None:
+        """Called once during app shutdown, in reverse startup order.
+
+        Override to release async resources. Exceptions are caught and logged
+        so that remaining plugins still get a chance to shut down.
+        """
+
+    # ── Graph level ───────────────────────────────────────────────────────────
 
     def configurable_services(self) -> dict[str, Any]:
         """Return services to inject into config["configurable"] for every turn."""

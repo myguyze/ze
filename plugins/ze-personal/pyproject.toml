@@ -30,5 +30,8 @@ ze-memory = { workspace = true }
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[project.entry-points."ze.plugins"]
+ze_personal = "ze_personal.plugin:PersonalPlugin"
+
 [tool.hatch.build.targets.wheel]
 packages = ["ze_personal"]

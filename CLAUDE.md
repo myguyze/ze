@@ -211,12 +211,30 @@ Hot-reloaded on SIGHUP without restart.
    attributes. Define `_AGENT_INSTRUCTIONS` at the top.
 3. Add a `tools.py` alongside the agent if it needs Python tools. Use `@tool` from
    `ze_core.orchestration.tool`. Use `"openrouter:web_search"` in `tools` for web search —
-   no Python tool needed. Register the tools module path in the package's `ZePlugin.agent_module_paths()`.
-4. Write tests in `tests/agents/<name>/`.
-5. Wire the live instance in `ze_api/container.py` via `register_instance()`.
-6. Import the tools module at startup so `@tool` registration fires.
+   no Python tool needed.
+4. Add the module paths to the package's `ZePlugin.agent_module_paths()` — tools module
+   first, then the agent module. The bootstrapper imports these at startup to fire `@agent`
+   and `@tool` registration. No other wiring needed.
+5. Write tests in `tests/agents/<name>/`.
 
 See `docs/adding-an-agent.md` for the full authoring guide.
+
+## Adding a new plugin
+
+1. Create a `ZePlugin` subclass in `<package>/plugin.py`.
+2. Declare the plugin via an entry point in the package's `pyproject.toml`:
+   ```toml
+   [project.entry-points."ze.plugins"]
+   ze_myplugin = "ze_myplugin.plugin:MyPlugin"
+   ```
+3. Wire plugin instantiation in `ze_api/container.py`'s `build_container()` and add
+   it to the `plugins` list passed to `bootstrap_agents()`.
+4. Override `startup(container)` and `shutdown()` on the plugin class for async
+   lifecycle needs (DB connections, schedulers, credential refresh).
+
+The entry point declaration is what tells Ze Core that the plugin exists. The manual
+wiring in `container.py` is temporary — full auto-instantiation via `_resolve()` is
+planned for phase 47b once all plugin constructors use the shared `_dep_map`.
 
 ## LangGraph graph flow
 

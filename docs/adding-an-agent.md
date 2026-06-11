@@ -159,52 +159,36 @@ async def shutdown(self) -> None:
 
 ---
 
-## 4. Bootstrap wiring
+## 4. Register with your plugin
 
-Agents are wired automatically by `bootstrap_agents()` in `ze_api/bootstrap.py`.
-At startup it:
+Agents are discovered at startup by importing every module listed in the owning
+plugin's `agent_module_paths()`. The bootstrapper then resolves each `@agent` class's
+`__init__` parameters by type-matching against the shared `_dep_map` of services.
 
-1. Imports every module listed in each plugin's `agent_module_paths()` so `@agent`
-   decorators register.
-2. Instantiates each registered `@agent` class by resolving constructor type annotations
-   against a `_dep_map` of known services.
-3. Calls `register_instance(name, instance)` for each.
-
-**To add your agent:** create the agent module in the appropriate domain package and
-add its module path to that package's `ZePlugin.agent_module_paths()`.
-
-**If your agent needs a dependency not already in `_dep_map`**, add it to the map in
-`bootstrap_agents()` before the scan runs:
+**To add your agent:** add its module path to the plugin's `agent_module_paths()`.
+If your agent has a `tools.py`, list it **before** the agent module so `@tool`
+decorators register first.
 
 ```python
-# In ze_api/bootstrap.py, inside bootstrap_agents()
-if my_service is not None:
-    from my_package import MyService
-    _dep_map[MyService] = my_service
-```
-
-**All `__init__` parameters must be type-annotated** — `bootstrap.py` uses
-`get_type_hints()` for dependency resolution. Parameters without annotations raise
-`AgentConfigError` at startup.
-
----
-
-## 5. Import the tools module at startup
-
-Tools are registered when the module is imported. Include the tools module path in
-the plugin's `agent_module_paths()` **before** the agent module:
-
-```python
-# In yourpackage/plugin.py
+# In plugins/<pkg>/<pkg_module>/plugin.py
 def agent_module_paths(self) -> list[str]:
     return [
-        "yourpackage.agents.email.tools",
-        "yourpackage.agents.email.agent",
+        "yourpackage.agents.myagent.tools",   # tools first
+        "yourpackage.agents.myagent.agent",
     ]
 ```
 
 Ze fails hard at startup if an agent declares a tool in `tools = [...]` that isn't
 registered — the discrepancy is caught before the app accepts traffic.
+
+**All `__init__` parameters must be type-annotated** — `bootstrap.py` uses
+`get_type_hints()` for dependency resolution. Parameters without annotations raise
+`AgentConfigError` at startup.
+
+**If your agent needs a dependency not already in `_dep_map`**, add it to the map
+in `ze_api/container.py`'s `build_container()` where the dep_map is built, then
+pass it to `bootstrap_agents(deps=...)`. The dep_map keys are Python types; values
+are the live instances.
 
 ---
 
@@ -232,9 +216,8 @@ Conventions:
 
 - [ ] Spec written and reviewed
 - [ ] Agent module in the correct domain package — `@agent` class with `name`, `description`, `model`, `capabilities`, `intent_map`, `tools` class attributes
-- [ ] Module path added to the package's `ZePlugin.agent_module_paths()`
+- [ ] Module path added to the package's `ZePlugin.agent_module_paths()` (tools module listed first)
 - [ ] All `__init__` parameters are type-annotated
 - [ ] All tool calls go through `self.call_tool()` or `self.agentic_loop()`, never direct function calls
 - [ ] `tools.py` — all tools decorated with `@tool` (if applicable)
-- [ ] Tools module listed in `agent_module_paths()` before the agent module (if applicable)
 - [ ] Tests written (including draft + blocked mode)

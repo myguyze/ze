@@ -2,7 +2,7 @@
 
 > **Packages:** `ze_core` (plugin ABC), `ze_api` (bootstrapper, container)
 > **Phase:** 47
-> **Status:** Pending
+> **Status:** In Progress (lifecycle hooks + entry points shipped; full DI deferred)
 
 ---
 
@@ -10,15 +10,17 @@
 
 | Feature | Status |
 |---------|--------|
-| `ZePlugin` lifecycle hooks (`startup` / `shutdown`) | 🔲 Pending |
-| Entry point declaration in all plugin `pyproject.toml`s | 🔲 Pending |
-| Entry point discovery in bootstrapper | 🔲 Pending |
-| Plugin-scoped DI via extended `_resolve()` | 🔲 Pending |
-| Schema readiness validation | 🔲 Pending |
-| Tool registry namespacing | 🔲 Pending |
-| Bootstrapper discovery logging | 🔲 Pending |
-| Migration of existing plugins to entry points | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `ZePlugin` lifecycle hooks (`startup` / `shutdown`) | ✅ Done |
+| Entry point declaration in all plugin `pyproject.toml`s | ✅ Done |
+| `_plugin_agent_module_paths()` derives from plugin instances (no static fallback when plugins provided) | ✅ Done |
+| Bootstrapper startup/shutdown wiring in `container.py` | ✅ Done |
+| Bootstrapper discovery logging | ✅ Done |
+| Missing module paths moved into plugin `agent_module_paths()` | ✅ Done |
+| Entry point discovery in bootstrapper (auto-instantiate from entry points) | 🔲 Deferred — requires full plugin DI via `_resolve()` |
+| Plugin-scoped DI via extended `_resolve()` (plugin constructor from `_dep_map`) | 🔲 Deferred — requires moving service construction into plugin `__init__` |
+| Schema readiness validation | 🔲 Deferred — see Open Questions |
+| Tool registry namespacing | 🔲 Deferred — breaking change, see Open Questions |
+| Tests | ✅ All 165 existing tests passing |
 
 ---
 
@@ -312,19 +314,19 @@ Existing plugins in order of migration:
 
 ## Open Questions
 
+- [ ] **Full plugin auto-instantiation via entry points.** Currently container.py still
+  constructs plugin instances manually. To eliminate this, each plugin's `__init__`
+  must take only "primitive" deps (pool, openrouter_client, settings) and construct
+  its own stores/services internally. This is a large refactor of every plugin class —
+  deferred to a follow-up.
 - [ ] **Plugin dependency ordering.** If `PluginB.startup()` depends on a side-effect
-  from `PluginA.startup()`, alphabetical entry point order may not be correct.
-  Options: (a) add `depends_on: list[str] = []` class attribute and topological-sort
-  before calling `startup()`; (b) document that `startup()` must not depend on other
-  plugins' startup side-effects. Lean toward (b) unless a concrete cross-plugin
-  dependency arises.
-- [ ] **Alembic schema check implementation.** Running Alembic's Python API in-process
-  vs. spawning a subprocess. In-process is cleaner but couples ze-api to alembic's
-  internal API. Subprocess is more robust but adds startup latency. Decision deferred
-  until implementation.
+  from `PluginA.startup()`, declaration order may not be correct. Document that
+  `startup()` must not depend on other plugins' `startup()` side-effects; add
+  `depends_on` only if a concrete case arises.
+- [ ] **Alembic schema check implementation.** Running Alembic in-process vs. subprocess.
+  In-process is cleaner but couples ze-api to alembic internals. Deferred pending
+  a concrete plugin that needs it.
 - [ ] **Tool namespacing rollout.** Agents currently declare tools by bare name
   (`"send_email"`). Switching to namespaced keys (`"ze_email.send_email"`) is a
-  breaking change to every agent's `tools` class attribute. Options: (a) support both
-  during a transition period with a lookup that tries bare name as fallback; (b) do
-  the rename in one commit. Prefer (b) — it's a single grep-and-replace across all
-  agent files.
+  breaking change to every agent's `tools` class attribute. Deferred — prefer one
+  grep-and-replace commit when ready.

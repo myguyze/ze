@@ -30,5 +30,8 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[project.entry-points."ze.plugins"]
+ze_news = "ze_news.plugin:NewsPlugin"
+
 [tool.hatch.build.targets.wheel]
 packages = ["ze_news"]

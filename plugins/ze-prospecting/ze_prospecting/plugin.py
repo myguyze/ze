@@ -27,6 +27,7 @@ class ProspectingPlugin(ZePlugin):
 
     def agent_module_paths(self) -> list[str]:
         return [
+            "ze_browser.tool",
             "ze_prospecting.agents.tools",
             "ze_prospecting.agents.agent",
         ]
