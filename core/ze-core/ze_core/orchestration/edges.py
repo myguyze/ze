@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ze_core.capability.types import GateDecision
+from ze_agents.types import GateDecision
 from ze_core.orchestration.state import AgentState
 
 

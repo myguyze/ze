@@ -3,17 +3,17 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentTimeoutError
+from ze_agents.types import GateDecision
+from ze_agents.errors import AgentTimeoutError
 from ze_memory.types import MemoryContext
-from ze_core.orchestration import agent, clear_registry, register_instance
+from ze_agents.registry import agent, clear_registry, register_instance
 from ze_core.orchestration.nodes.execution import (
     await_confirmation,
     capability_check,
     draft_response,
     execute_tool,
 )
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
@@ -86,7 +86,8 @@ def _config(gate=None) -> dict:
 
 class TestCapabilityCheck:
     async def test_execute_decision(self):
-        from ze_core.capability import CapabilityGate, Mode
+        from ze_agents.types import Mode
+        from ze_core.capability import CapabilityGate
         cls = _make_agent_class("alpha")
         cls.capabilities = {"read": Mode.AUTONOMOUS}
         agent(cls)

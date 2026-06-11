@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from ze_personal.contacts.store import PersonStore
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.proactive.push_log_store import PushLogStore
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 from ze_personal.workflow.store import WorkflowStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_core.proactive.job import proactive_job

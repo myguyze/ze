@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from ze_core.orchestration.tool import ToolAccess, tool
+from ze_agents.tool import ToolAccess, tool
 from ze_personal.contacts.store import PersonStore
 from ze_personal.contacts.types import Person, PersonSource
 from ze_core.openrouter.client import OpenRouterClient

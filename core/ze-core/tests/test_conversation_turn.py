@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
-from ze_core.interface.types import RawInput
+from ze_agents.interface.types import RawInput
 
 
 @pytest.fixture

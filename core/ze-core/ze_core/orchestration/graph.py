@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
-    from ze_core.plugin import ZePlugin
+    from ze_agents.plugin import ZePlugin
 
 
 def graph_builder(

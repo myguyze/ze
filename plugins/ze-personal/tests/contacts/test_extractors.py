@@ -1,6 +1,6 @@
 from ze_personal.contacts.extractors import extract_calendar_contacts, extract_email_contacts
 from ze_personal.contacts.types import SOURCE_WEIGHTS
-from ze_core.orchestration.types import ToolCall
+from ze_agents.types import ToolCall
 
 
 def _email_tc(result: dict, success: bool = True) -> ToolCall:

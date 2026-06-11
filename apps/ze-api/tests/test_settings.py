@@ -1,6 +1,6 @@
 import pytest
 from ze_api.settings import Settings, get_settings
-from ze_core.orchestration.registry import get_registered_agents
+from ze_agents.registry import get_registered_agents
 
 
 @pytest.fixture(autouse=True)

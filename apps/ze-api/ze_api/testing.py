@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from ze_core.capability.gate import CapabilityGate
-from ze_core.capability.types import Mode
-from ze_core.orchestration import registry as zc_registry
+from ze_agents.types import Mode
+import ze_agents.registry as zc_registry
 
 
 def make_gate(

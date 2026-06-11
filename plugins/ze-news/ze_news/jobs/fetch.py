@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.proactive.job import ProactiveJob, proactive_job
 from ze_news.registry import SourceRegistry
 from ze_news.store import NewsStore

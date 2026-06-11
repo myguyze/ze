@@ -6,9 +6,9 @@ from email.mime.text import MIMEText
 
 import structlog
 
-from ze_core.channels.base import Channel
-from ze_core.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
-from ze_core.errors import ChannelSendError
+from ze_agents.channels.base import Channel
+from ze_agents.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_agents.errors import ChannelSendError
 from ze_google.auth import GoogleCredentials
 
 log = structlog.get_logger(__name__)

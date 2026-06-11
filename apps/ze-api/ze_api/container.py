@@ -15,12 +15,12 @@ from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_notifications.notifier import Notifier as PushNotifier
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
-from ze_core.channels.registry import ChannelRegistry
+from ze_agents.channels.registry import ChannelRegistry
 from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_api.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
 from ze_core.embeddings import get_embedder
 from ze_core.messages.store import PostgresMessageStore
-from ze_core.orchestration.registry import get_agent
+from ze_agents.registry import get_agent
 from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
@@ -35,7 +35,7 @@ from ze_personal.persona.postgres import PostgresPersonaStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.graph import build_graph
 from ze_personal.graph.workflow import build_workflow_graph
-from ze_core.progress import ProgressTranslations
+from ze_agents.progress.translations import ProgressTranslations
 from ze_calendar.reminders.store import ReminderStore, fire_reminder
 from ze_personal.goals.suggestion_store import GoalSuggestionStore
 from ze_core.proactive.push_log_store import PushLogStore
@@ -53,8 +53,8 @@ from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_api.interface.native import NativeAppInterface
 from ze_api.api.ws import ConnectionManager
 from ze_api.api.pending_confirmations import PendingConfirmationStore
-from ze_core.interface.types import RawInput
-from ze_core.interface.validation import validate_interface
+from ze_agents.interface.types import RawInput
+from ze_agents.interface.validation import validate_interface
 from ze_core.telemetry.reconciler import CostReconciler
 from ze_core.telemetry.tracker import CostTracker
 from ze_core.telemetry.postgres import PostgresCostStore
@@ -63,7 +63,7 @@ from ze_personal.workflow.postgres import PostgresWorkflowStore
 from ze_personal.workflow.store import WorkflowStore
 from ze_personal.workflow.scheduler import WorkflowScheduler
 from ze_core.container import Container as CoreContainer
-from ze_core.orchestration.hooks import register_hook
+from ze_agents.hooks import register_hook
 from ze_api.hooks import ComponentCollectionHook, ToolCallCapHook
 from ze_personal.plugin import PersonalPlugin
 from ze_calendar.plugin import CalendarPlugin
@@ -196,10 +196,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         allowed_msgpack_modules=[
             ("ze_core.routing.types", "SubTask"),
             ("ze_core.routing.types", "RoutingEnvelope"),
-            ("ze_core.orchestration.types", "ToolCall"),
-            ("ze_core.orchestration.types", "AgentResult"),
-            ("ze_core.orchestration.types", "AgentContext"),
-            ("ze_core.capability.types", "GateDecision"),
+            ("ze_agents.types", "ToolCall"),
+            ("ze_agents.types", "AgentResult"),
+            ("ze_agents.types", "AgentContext"),
+            ("ze_agents.types", "GateDecision"),
             ("ze_memory.types", "MemoryContext"),
             ("ze_memory.types", "Fact"),
             ("ze_memory.types", "Episode"),

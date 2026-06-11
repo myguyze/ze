@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from ze_core.errors import GoalExecutionError
+from ze_agents.errors import GoalExecutionError
 from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.types import (
     Goal,
@@ -17,7 +17,7 @@ from ze_personal.goals.types import (
     MilestoneStatus,
     VerificationGate,
 )
-from ze_core.interface.types import Notification
+from ze_agents.interface.types import Notification
 
 
 def _goal(status=GoalStatus.ACTIVE, **kwargs) -> Goal:
@@ -650,8 +650,8 @@ async def test_task_state_written_as_blocked_on_double_failure(executor_with_mem
     store.increment_replan_count = AsyncMock(return_value=2)
 
     # Agent raises so milestone is skipped/failed
-    from ze_core.errors import GoalExecutionError
-    from ze_core.orchestration.types import AgentContext, AgentResult
+    from ze_agents.errors import GoalExecutionError
+    from ze_agents.types import AgentContext, AgentResult
 
     failing_agent = AsyncMock()
     failing_agent.run = AsyncMock(side_effect=GoalExecutionError("tool failed"))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ze_core.capability.types import Mode
+from ze_agents.types import Mode
 
 
 class CapabilityOverrideStore(Protocol):

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_core.errors import GoalPlanError
+from ze_agents.errors import GoalPlanError
 from ze_personal.goals.planner import GoalPlanner, _parse_plan
 from ze_personal.goals.types import Goal, GoalStatus, Milestone, PriorMilestoneOutput
 

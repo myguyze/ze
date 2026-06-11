@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.errors import RoutingError
-from ze_core.orchestration import agent, clear_registry
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.errors import RoutingError
+from ze_agents.registry import agent, clear_registry
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.fallback import decompose
 
 
@@ -30,7 +30,7 @@ def _register(name: str, intent_map: dict | None = None) -> None:
 
 
 def _registry_from_names(*names: str) -> dict:
-    from ze_core.orchestration.registry import get_enabled_agents
+    from ze_agents.registry import get_enabled_agents
     return get_enabled_agents()
 
 

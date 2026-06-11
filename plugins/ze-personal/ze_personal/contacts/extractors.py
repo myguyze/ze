@@ -3,7 +3,7 @@ from __future__ import annotations
 import email.utils
 
 from ze_personal.contacts.types import ContactProposal, SOURCE_WEIGHTS
-from ze_core.orchestration.types import ToolCall
+from ze_agents.types import ToolCall
 
 
 def extract_email_contacts(tool_calls: list[ToolCall]) -> list[ContactProposal]:

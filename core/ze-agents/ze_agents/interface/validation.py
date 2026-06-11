@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ze_core.errors import InterfaceConfigError
-from ze_core.interface.base import AppInterface
+from ze_agents.errors import InterfaceConfigError
+from ze_agents.interface.base import AppInterface
 
 _VALID_STYLES = ("inline", "async")
 

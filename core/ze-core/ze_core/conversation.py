@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ze_core.interface.types import RawInput
+from ze_agents.interface.types import RawInput
 
 if TYPE_CHECKING:
     from ze_core.container import Container

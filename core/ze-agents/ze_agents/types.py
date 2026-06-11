@@ -2,11 +2,27 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from enum import Enum
+from typing import Any, Callable, Protocol
 
-from ze_core.capability.types import GateDecision
-from ze_core.progress.reporter import ProgressReporter
 
+# ── Capability types ──────────────────────────────────────────────────────────
+
+class Mode(str, Enum):
+    AUTONOMOUS = "autonomous"
+    CONFIRM    = "confirm"
+    DRAFT_ONLY = "draft_only"
+    DISABLED   = "disabled"
+
+
+class GateDecision(str, Enum):
+    EXECUTE            = "execute"
+    DRAFT              = "draft"
+    AWAIT_CONFIRMATION = "confirm"
+    BLOCKED            = "blocked"
+
+
+# ── Orchestration types ───────────────────────────────────────────────────────
 
 @dataclass
 class AbortToken:
@@ -60,7 +76,7 @@ class AgentContext:
     messages: list[dict] = field(default_factory=list)
     persona: dict = field(default_factory=dict)
     model: str | None = None
-    reporter: ProgressReporter | None = field(default=None, repr=False)
+    reporter: Any = field(default=None, repr=False)  # ProgressReporter | None
     # identity_builder is runtime-only (a callable); always None in stored state.
     # Never checkpoint a context where this is set — the serde test enforces that.
     identity_builder: IdentityBuilder | None = field(default=None, repr=False)
@@ -69,6 +85,9 @@ class AgentContext:
     # memory_store is runtime-only; set by GoalExecutor for direct agent invocations
     # that bypass the fetch_context graph node. Never checkpoint.
     memory_store: Any = field(default=None, repr=False)
+    # embed_fn is runtime-only; injected by the container so BaseAgent can compute
+    # embeddings without importing ze-core. Never checkpoint.
+    embed_fn: Callable[[str], Any] | None = field(default=None, repr=False)
     # extensions must hold only msgpack-serializable primitives so stored contexts
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)

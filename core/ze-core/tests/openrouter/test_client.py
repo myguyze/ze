@@ -23,7 +23,7 @@ from openrouter.errors import (
     TooManyRequestsResponseErrorData,
 )
 
-from ze_core.errors import OpenRouterError, RateLimitError
+from ze_agents.errors import OpenRouterError, RateLimitError
 from ze_core.openrouter.client import OpenRouterClient, _build_messages
 
 

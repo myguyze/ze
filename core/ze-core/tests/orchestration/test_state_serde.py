@@ -19,9 +19,9 @@ import pytest
 
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer  # type: ignore[import]
 
-from ze_core.capability.types import GateDecision
+from ze_agents.types import GateDecision
 from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
-from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
+from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
@@ -30,10 +30,10 @@ from ze_core.routing.types import RoutingEnvelope, SubTask
 ALLOWED_MODULES = [
     ("ze_core.routing.types", "SubTask"),
     ("ze_core.routing.types", "RoutingEnvelope"),
-    ("ze_core.orchestration.types", "ToolCall"),
-    ("ze_core.orchestration.types", "AgentResult"),
-    ("ze_core.orchestration.types", "AgentContext"),
-    ("ze_core.capability.types", "GateDecision"),
+    ("ze_agents.types", "ToolCall"),
+    ("ze_agents.types", "AgentResult"),
+    ("ze_agents.types", "AgentContext"),
+    ("ze_agents.types", "GateDecision"),
     ("ze_memory.types", "MemoryContext"),
     ("ze_memory.types", "Fact"),
     ("ze_memory.types", "Episode"),

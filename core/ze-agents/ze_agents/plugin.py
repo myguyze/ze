@@ -6,9 +6,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from langgraph.graph import StateGraph
-    from ze_core.orchestration.base_agent import BaseAgent
-    from ze_core.proactive.job import ProactiveJob
-    from ze_core.container import Container
+    from ze_agents.base_agent import BaseAgent
 
 # Auto-populated by ZePlugin.__init_subclass__ when plugin modules are imported.
 _registry: list[type["ZePlugin"]] = []
@@ -38,7 +36,7 @@ class ZePlugin(ABC):
     def agents(self) -> list[type[BaseAgent]]:
         return []
 
-    def jobs(self) -> list[ProactiveJob]:
+    def jobs(self) -> list[Any]:
         return []
 
     @classmethod
@@ -49,19 +47,11 @@ class ZePlugin(ABC):
     # ── Graph level ───────────────────────────────────────────────────────────
 
     def state_extensions(self) -> type | None:
-        """Return a TypedDict subclass whose fields are merged into AgentState.
-
-        Applied at graph build time. Return None to add no extra fields.
-        """
+        """Return a TypedDict subclass whose fields are merged into AgentState."""
         return None
 
     def pre_route_node(self) -> Callable | None:
-        """Return an async node to insert between preprocess and embed_route.
-
-        Used to inject runtime routing context (e.g. active goal hints) into
-        state before the embedding router runs. Return None to add no pre-route step.
-        At most one plugin may provide a pre-route node.
-        """
+        """Return an async node to insert between preprocess and embed_route."""
         return None
 
     def graph_nodes(self) -> dict[str, Callable]:
@@ -69,27 +59,15 @@ class ZePlugin(ABC):
         return {}
 
     def graph_edges(self, builder: StateGraph) -> None:
-        """Wire plugin nodes into the graph.
-
-        Called after all base edges and plugin nodes have been added, before
-        graph compilation.
-        """
+        """Wire plugin nodes into the graph."""
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    async def startup(self, container: "Container") -> None:
-        """Called once during app startup after the container is fully built.
-
-        Override to run async initialisation that requires shared resources
-        (e.g. schedule jobs, validate credentials, open connections).
-        """
+    async def startup(self, container: Any) -> None:
+        """Called once during app startup after the container is fully built."""
 
     async def shutdown(self) -> None:
-        """Called once during app shutdown, in reverse startup order.
-
-        Override to release async resources. Exceptions are caught and logged
-        so that remaining plugins still get a chance to shut down.
-        """
+        """Called once during app shutdown, in reverse startup order."""
 
     # ── Graph level ───────────────────────────────────────────────────────────
 
@@ -98,11 +76,7 @@ class ZePlugin(ABC):
         return {}
 
     def agent_module_paths(self) -> list[str]:
-        """Fully-qualified module paths to import at bootstrap to trigger @agent registration.
-
-        Modules are imported before ze/ agent discovery, so plugin agents are in the
-        @agent registry when bootstrap resolves instances.
-        """
+        """Fully-qualified module paths to import at bootstrap to trigger @agent registration."""
         return []
 
     def register_proactive_jobs(

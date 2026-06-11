@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from ze_personal.contacts.consolidator import ContactsConsolidator, _format_batch, _safe_classification
 from ze_personal.contacts.types import Person
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.errors import AgentConfigError, RoutingError
-from ze_core.orchestration import agent, clear_registry, register_instance
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.tool import clear_tool_registry
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.errors import AgentConfigError, RoutingError
+from ze_agents.registry import agent, clear_registry, register_instance
+from ze_agents.base_agent import BaseAgent
+from ze_agents.tool import clear_tool_registry
+from ze_agents.types import AgentContext, AgentResult
 
 
 @pytest.fixture(autouse=True)
@@ -54,9 +54,9 @@ class TestDiscoverAgents:
         (agents_dir.parent).joinpath("__init__.py").touch()
         (agents_dir / "__init__.py").touch()
         (agents_dir / "agent.py").write_text(
-            "from ze_core.orchestration import agent as _reg\n"
-            "from ze_core.orchestration.base_agent import BaseAgent\n"
-            "from ze_core.orchestration.types import AgentContext, AgentResult\n\n"
+            "from ze_agents.registry import agent as _reg\n"
+            "from ze_agents.base_agent import BaseAgent\n"
+            "from ze_agents.types import AgentContext, AgentResult\n\n"
             "@_reg\n"
             "class ResearchAgent(BaseAgent):\n"
             "    name = 'research'\n"
@@ -69,7 +69,7 @@ class TestDiscoverAgents:
         pkg = "myapp"
         try:
             _discover_agents(tmp_path / "myapp", pkg)
-            from ze_core.orchestration.registry import get_registered_agents
+            from ze_agents.registry import get_registered_agents
             assert "research" in get_registered_agents()
         finally:
             sys.path.pop(0)
@@ -92,7 +92,7 @@ class TestDiscoverAgents:
         # No agent.py — should be silently skipped
 
         _discover_agents(tmp_path, "pkg")
-        from ze_core.orchestration.registry import get_registered_agents
+        from ze_agents.registry import get_registered_agents
         assert get_registered_agents() == {}
 
     def test_imports_in_sorted_order(self, tmp_path):
@@ -106,7 +106,7 @@ class TestDiscoverAgents:
             (d / "__init__.py").touch()
             # Use a file that just writes its name to a shared list via a side-effect
             (d / "agent.py").write_text(
-                f"import ze_core.orchestration.registry as _r\n"
+                f"import ze_agents.registry as _r\n"
                 f"class _{name.capitalize()}(object):\n"
                 f"    name = '{name}'\n"
                 f"    description = 'x'\n"
@@ -151,7 +151,7 @@ class TestValidateRegistry:
 
     def test_passes_when_tool_is_registered(self):
         from ze_core.container import _validate_registry
-        from ze_core.orchestration.tool import tool as reg_tool
+        from ze_agents.tool import tool as reg_tool
 
         @reg_tool(access="read", description="a tool")
         async def known_tool(q: str) -> str: ...
@@ -333,7 +333,7 @@ class TestInstantiateAgents:
 
     def test_registers_instances_in_registry(self):
         from ze_core.container import _instantiate_agents
-        from ze_core.orchestration.registry import get_agent
+        from ze_agents.registry import get_agent
 
         class _Reg(BaseAgent):
             name = "regtest"
@@ -415,7 +415,7 @@ def _make_container():
 
 class TestSettings:
     def test_reads_env_vars(self, monkeypatch):
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
         monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/test")
@@ -427,7 +427,7 @@ class TestSettings:
         assert s.log_level == "DEBUG"
 
     def test_defaults_without_env(self, monkeypatch):
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
         monkeypatch.delenv("SESSION_INACTIVITY_MINUTES", raising=False)
@@ -439,14 +439,14 @@ class TestSettings:
         assert s.openrouter_base_url == "https://openrouter.ai/api/v1"
 
     def test_consolidation_disabled_via_env(self, monkeypatch):
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         monkeypatch.setenv("CONSOLIDATION_ENABLED", "false")
         s = Settings.from_env()
         assert s.consolidation_enabled is False
 
     def test_loads_yaml_config(self, tmp_path, monkeypatch):
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         config_file = tmp_path / "config.yaml"
         config_file.write_text("memory:\n  contradiction_threshold: 0.9\n")
@@ -457,7 +457,7 @@ class TestSettings:
             pytest.skip("PyYAML not installed")
 
     def test_empty_config_when_file_missing(self, tmp_path):
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         s = Settings.from_env(tmp_path / "nonexistent.yaml")
         assert s.config == {}

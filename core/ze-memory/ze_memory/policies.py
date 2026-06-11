@@ -576,7 +576,7 @@ class DefaultPolicyRegistry:
 
     def for_module(self, module: str) -> Any:
         if module not in self._policies:
-            from ze_core.logging import get_logger
+            from ze_agents.logging import get_logger
             get_logger(__name__).warning("unknown_memory_module_fallback", module=module)
             return _POLICY_MAP["companion"]
         return self._policies[module]

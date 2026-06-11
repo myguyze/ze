@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_personal.workflow.store import WorkflowStore
 from ze_personal.workflow.types import Workflow
 

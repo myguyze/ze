@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from ze_core.orchestration.tool import ToolAccess, tool
+from ze_agents.tool import ToolAccess, tool
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_calendar.reminders.store import ReminderStore, fire_reminder
 from ze_personal.workflow.scheduler import WorkflowScheduler

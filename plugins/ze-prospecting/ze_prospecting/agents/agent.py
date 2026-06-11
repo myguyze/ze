@@ -3,14 +3,14 @@ import ze_prospecting.agents.tools  # noqa: F401 — registers add_prospect, dra
 
 from typing import AsyncIterator
 
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.registry import agent
-from ze_core.capability.types import Mode
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.base_agent import BaseAgent
+from ze_agents.registry import agent
+from ze_agents.types import Mode
+from ze_agents.types import AgentContext, AgentResult
 from ze_browser import BrowserClient
 from ze_personal.contacts.store import PersonStore
 from ze_core.openrouter.client import OpenRouterClient
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 from ze_prospecting.store import ProspectCampaignStore
 from ze_prospecting.types import ProspectingSettings
 

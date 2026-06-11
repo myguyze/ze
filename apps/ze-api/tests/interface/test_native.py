@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_core.interface.types import Notification, OutboundMessage
+from ze_agents.interface.types import Notification, OutboundMessage
 from ze_api.interface.native import NativeAppInterface
 
 

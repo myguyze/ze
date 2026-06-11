@@ -1,11 +1,11 @@
 import time
 from uuid import UUID
 
-from ze_core.channels.types import ChannelHandle, ChannelType
+from ze_agents.channels.types import ChannelHandle, ChannelType
 from ze_personal.contacts.channel_store import ContactChannelStore
-from ze_core.logging import get_logger
-from ze_core.orchestration.tool import ToolAccess, tool
-from ze_core.orchestration.types import ToolCall
+from ze_agents.logging import get_logger
+from ze_agents.tool import ToolAccess, tool
+from ze_agents.types import ToolCall
 
 log = get_logger(__name__)
 

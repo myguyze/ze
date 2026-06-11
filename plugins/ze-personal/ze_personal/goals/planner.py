@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from ze_core import defaults
-from ze_core.errors import GoalPlanError
+from ze_agents.errors import GoalPlanError
 from typing import Any
 from ze_memory.types import Episode, Fact, Procedure, RetrievalRequest
 from ze_personal.goals.types import (
@@ -21,7 +21,7 @@ from ze_personal.goals.types import (
     SuggestionStatus,
     VerificationGate,
 )
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
 
 log = get_logger(__name__)

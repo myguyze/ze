@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, runtime_checkable
 from typing_extensions import Protocol
 
 if TYPE_CHECKING:
-    from ze_core.orchestration.types import AgentContext, ToolCall
+    from ze_agents.types import AgentContext, ToolCall
 
 
 @dataclass
@@ -58,18 +58,11 @@ class HarnessHook(Protocol):
         ...
 
     async def on_tool_end(self, event: ToolEndEvent) -> None:
-        """Called after a tool executes (success or error). Cannot modify the result.
-
-        May set event.ctx.abort_token.abort() to stop the loop after the current
-        tool call completes.
-        """
+        """Called after a tool executes (success or error). Cannot modify the result."""
         ...
 
     async def on_loop_start(self, event: LoopStartEvent) -> None:
-        """Called once when agentic_loop begins, before the first LLM call.
-
-        May raise AgentAbortedError to prevent the loop from starting at all.
-        """
+        """Called once when agentic_loop begins, before the first LLM call."""
         ...
 
     async def on_loop_end(self, event: LoopEndEvent) -> None:

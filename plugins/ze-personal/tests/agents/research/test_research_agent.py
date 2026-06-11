@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import AsyncMock
 
 from ze_personal.agents.research.agent import ResearchAgent
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.settings import Settings
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.settings import Settings
 from ze_memory.types import MemoryContext, Fact
 
 
@@ -54,7 +54,7 @@ def make_agent(client=None) -> ResearchAgent:
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_research_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "research" in _registry
 
 

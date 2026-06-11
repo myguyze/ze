@@ -4,28 +4,25 @@ import json
 import time
 from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, AsyncIterator
+from typing import Any, AsyncIterator
 
-from ze_core.capability.types import GateDecision, Mode
-from ze_core.defaults import MODEL_AGENT_DEFAULT, MODEL_AGENT_TIMEOUT
-from ze_core.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
-from ze_core.logging import get_logger
-from ze_core.orchestration.hooks import (
+from ze_agents.client import LLMClient
+from ze_agents.defaults import MODEL_AGENT_DEFAULT, MODEL_AGENT_TIMEOUT
+from ze_agents.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
+from ze_agents.hooks import (
     LoopEndEvent,
     LoopStartEvent,
     ToolEndEvent,
     ToolStartEvent,
     get_hooks,
 )
-from ze_core.orchestration.types import AgentContext, AgentResult, ToolCall
+from ze_agents.logging import get_logger
+from ze_agents.types import AgentContext, AgentResult, GateDecision, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
     "openrouter:web_search": {"type": "openrouter:web_search"},
 }
-
-if TYPE_CHECKING:
-    from ze_core.openrouter.client import OpenRouterClient
 
 log = get_logger(__name__)
 
@@ -38,7 +35,7 @@ class BaseAgent(ABC):
     vision_capable: bool = False
     timeout: int = MODEL_AGENT_TIMEOUT
     enabled: bool = True
-    capabilities: dict[str, Mode] = {}
+    capabilities: dict[str, Any] = {}
     intent_map: dict[str, str] = {}
     tools: list[str] = []
     system_prompt: str = ""
@@ -129,14 +126,8 @@ class BaseAgent(ABC):
         READ tools execute in any gate state.
         WRITE tools are suppressed and return a draft ToolCall when gate is DRAFT.
         Any tool raises ToolBlockedError when gate is BLOCKED.
-
-        Hooks fire only when the tool actually executes (gate allows it):
-        on_tool_start before, on_tool_end after (including on error).
-        Pass _iteration from agentic_loop; defaults to -1 for direct callers.
-        _lm_args: LLM-provided args only (no injected deps). Stored in ToolCall.args so
-        the checkpoint stays serializable. Defaults to all kwargs when not provided.
         """
-        from ze_core.orchestration.tool import get_tool
+        from ze_agents.tool import get_tool
 
         spec = get_tool(name)
 
@@ -218,7 +209,7 @@ class BaseAgent(ABC):
     async def agentic_loop(
         self,
         ctx: AgentContext,
-        client: "OpenRouterClient",
+        client: LLMClient,
         messages: list[dict],
         system: str,
         deps: dict[str, Any] | None = None,
@@ -227,27 +218,13 @@ class BaseAgent(ABC):
         max_history_tokens: int | None = None,
         max_tokens: int = 2000,
     ) -> tuple[str, list[ToolCall]]:
-        """Drive a ReAct loop: LLM picks tools, ze_core dispatches them, repeat until text.
-
-        Args:
-            ctx:                Agent context — passed to call_tool() for gate checks.
-            client:             OpenRouter client.
-            messages:           Conversation history including the current user turn.
-                                Mutated in-place as tool turns are appended.
-            system:             System prompt.
-            deps:               Internal dep map injected per tool (e.g. {"db": pool}).
-            tool_names:         Tools to expose; defaults to self.tools.
-            max_iterations:     Max tool-call rounds before forcing a plain completion.
-            max_history_tokens: Drop oldest tool rounds when token estimate exceeds budget.
-                                The last 4 messages are never removed.
-            max_tokens:         Max tokens for each completion call.
-        """
-        from ze_core.orchestration.delegate import (
+        """Drive a ReAct loop: LLM picks tools, ze dispatches them, repeat until text."""
+        from ze_agents.delegate import (
             DELEGATE_TOOL_NAME,
             DELEGATE_TOOL_SCHEMA,
             run_delegate,
         )
-        from ze_core.orchestration.tool import get_tool
+        from ze_agents.tool import get_tool
 
         names = tool_names if tool_names is not None else self.tools
         tool_schemas = [
@@ -260,7 +237,6 @@ class BaseAgent(ABC):
         _deps = deps or {}
         hooks = get_hooks()
 
-        # on_loop_start: AgentAbortedError propagates; other exceptions are warnings.
         await _dispatch_loop_hooks(hooks, "on_loop_start", LoopStartEvent(self.name, ctx))
 
         # Fetch tool-executor memory context for direct invocations (e.g. from GoalExecutor)
@@ -321,7 +297,6 @@ class BaseAgent(ABC):
 
             for tc in tool_calls:
                 if tc["name"] in _OPENROUTER_TOOL_SCHEMAS:
-                    # Server tool — OpenRouter executes it; we just acknowledge.
                     tool_call = ToolCall(
                         tool_name=tc["name"],
                         args=tc["arguments"],
@@ -373,11 +348,7 @@ class BaseAgent(ABC):
 # ── Module-level helpers ──────────────────────────────────────────────────────
 
 async def _dispatch_loop_hooks(hooks: list, method: str, event: Any) -> None:
-    """Dispatch a loop lifecycle hook to all registered hooks.
-
-    AgentAbortedError propagates (allows on_loop_start to abort before first iteration).
-    All other exceptions are caught and logged as warnings.
-    """
+    """Dispatch a loop lifecycle hook to all registered hooks."""
     for hook in hooks:
         try:
             await getattr(hook, method)(event)
@@ -403,7 +374,7 @@ async def _dispatch_tool_end(
 def _merge_deps(tool_name: str, llm_args: dict, deps: dict[str, Any]) -> dict:
     """Inject internal deps into tool kwargs for params the LLM cannot provide."""
     import inspect
-    from ze_core.orchestration.tool import get_tool
+    from ze_agents.tool import get_tool
 
     spec = get_tool(tool_name)
     merged = dict(llm_args)
@@ -430,21 +401,24 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
     """Fetch facts + task state via ToolExecutorPolicy for direct agent invocations.
 
     Only runs when ctx.memory_store is set (goal executor path). Returns a formatted
-    context block for prepending to the system prompt, or an empty string if nothing
+    context block for prepending to the system prompt, or empty string if nothing
     is available.
     """
     store = getattr(ctx, "memory_store", None)
     if store is None:
         return ""
     try:
-        from ze_core.embeddings import get_embedder
         import types as _types
         from uuid import UUID
 
         goal_id_str = ctx.extensions.get("goal_id") if ctx.extensions else None
         goal_id = UUID(goal_id_str) if goal_id_str else None
 
-        embedding = get_embedder().encode(ctx.prompt)
+        # Use ctx.embed_fn if available (injected by container); fall back to None
+        # so the retrieve call still works with stores that accept no embedding.
+        embed_fn = getattr(ctx, "embed_fn", None)
+        embedding = embed_fn(ctx.prompt) if embed_fn is not None else None
+
         request = _types.SimpleNamespace(
             module="tool_executor",
             agent="tool_executor",
@@ -479,12 +453,7 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
 
 
 def _truncate_messages(messages: list[dict], max_tokens: int) -> None:
-    """Remove oldest tool-call rounds until token estimate is under budget.
-
-    A round is an assistant message with tool_calls plus all matching tool
-    result messages. Rounds are removed atomically. The last 4 messages are
-    never removed.
-    """
+    """Remove oldest tool-call rounds until token estimate is under budget."""
     while True:
         total = sum(len(json.dumps(m)) // 4 for m in messages)
         if total <= max_tokens:

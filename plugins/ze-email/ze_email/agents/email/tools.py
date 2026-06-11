@@ -2,9 +2,9 @@ import asyncio
 import base64
 from email.mime.text import MIMEText
 
-from ze_core.orchestration.tool import ToolAccess, tool
+from ze_agents.tool import ToolAccess, tool
 from ze_email.channel.gmail import GmailChannel
-from ze_core.channels.types import ChannelType, Message
+from ze_agents.channels.types import ChannelType, Message
 from ze_google.auth import GoogleCredentials
 
 

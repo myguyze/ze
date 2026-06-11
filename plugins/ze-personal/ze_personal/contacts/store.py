@@ -11,7 +11,7 @@ from ze_personal.contacts.types import (
     PersonSource,
     StaleFollowUpNudge,
 )
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 
 def _tokens(text: str) -> int:

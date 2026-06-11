@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ze_components import context as _ctx
-from ze_core.orchestration.hooks import BaseHarnessHook, LoopEndEvent, LoopStartEvent
+from ze_agents.hooks import BaseHarnessHook, LoopEndEvent, LoopStartEvent
 
 
 class ComponentCollectionHook(BaseHarnessHook):

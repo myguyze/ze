@@ -5,7 +5,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 from ze_memory.defaults import (
     CONTRADICTION_THRESHOLD,

@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ze_core.errors import InvalidPromptError, RoutingError
-from ze_core.logging import get_logger
-from ze_core.orchestration.registry import get_enabled_agents
+from ze_agents.errors import InvalidPromptError, RoutingError
+from ze_agents.logging import get_logger
+from ze_agents.registry import get_enabled_agents
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.store import RoutingStore
 from ze_core.routing.types import LLMClient, RouterConfig, RoutingEnvelope, SubTask

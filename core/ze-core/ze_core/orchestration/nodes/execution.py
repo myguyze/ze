@@ -6,12 +6,12 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentTimeoutError
-from ze_core.logging import get_logger
-from ze_core.orchestration.registry import get_agent
+from ze_agents.types import GateDecision
+from ze_agents.errors import AgentTimeoutError
+from ze_agents.logging import get_logger
+from ze_agents.registry import get_agent
 from ze_core.orchestration.state import AgentState
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 
 log = get_logger(__name__)
 

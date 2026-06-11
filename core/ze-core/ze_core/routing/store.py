@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol, runtime_checkable
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.routing.types import RoutingEnvelope
 
 log = get_logger(__name__)

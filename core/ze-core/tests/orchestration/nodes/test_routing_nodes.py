@@ -3,10 +3,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.orchestration import agent, clear_registry
-from ze_core.orchestration.base_agent import BaseAgent
+from ze_agents.registry import agent, clear_registry
+from ze_agents.base_agent import BaseAgent
 from ze_core.orchestration.nodes.routing import decompose, embed_route
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
 

@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ze_personal.agents.workflow.agent import WorkflowManagerAgent
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.capability.types import GateDecision
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import GateDecision
 from ze_memory.types import MemoryContext
 
 
@@ -40,7 +40,7 @@ def make_agent(client=None) -> WorkflowManagerAgent:
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_workflow_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "workflow" in _registry
 
 

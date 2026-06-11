@@ -1,6 +1,6 @@
 """Ze application exceptions."""
 
-from ze_core.errors import ChannelError, ChannelSendError, ZeCoreError as ZeError
+from ze_agents.errors import ChannelError, ChannelSendError, ZeCoreError as ZeError
 
 # ── Capability ────────────────────────────────────────────────────────────────
 

@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from ze_core.errors import InvalidPromptError, RoutingError
-from ze_core.orchestration import agent, clear_registry
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.errors import InvalidPromptError, RoutingError
+from ze_agents.registry import agent, clear_registry
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore, RoutingStore
 from ze_core.routing.types import RouterConfig

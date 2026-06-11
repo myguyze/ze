@@ -3,10 +3,10 @@ import pytest
 import numpy as np
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.capability.gate import CapabilityGate
-from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentTimeoutError
+from ze_agents.types import GateDecision
+from ze_agents.errors import AgentTimeoutError
 from ze_api.logging import configure_logging
 from ze_memory.retriever import PostgresMemoryStore as MemoryStore
 from ze_memory.types import Fact, MemoryContext
@@ -194,7 +194,7 @@ async def test_execute_tool_single_agent(monkeypatch):
     mock_agent = AsyncMock()
     mock_agent.run = AsyncMock(return_value=mock_result)
 
-    import ze_core.orchestration.registry as reg
+    import ze_agents.registry as reg
     monkeypatch.setitem(reg._instances, "research", mock_agent)
 
     ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
@@ -213,7 +213,7 @@ async def test_execute_tool_compound_accumulates_results(monkeypatch):
     mock_companion = AsyncMock()
     mock_companion.run = AsyncMock(return_value=companion_result)
 
-    import ze_core.orchestration.registry as reg
+    import ze_agents.registry as reg
     monkeypatch.setitem(reg._instances, "research", mock_research)
     monkeypatch.setitem(reg._instances, "companion", mock_companion)
 
@@ -238,7 +238,7 @@ async def test_execute_tool_raises_timeout(monkeypatch):
     mock_agent.run = slow_run
     type(mock_agent).timeout = 0.01  # ze-core reads timeout from type(instance)
 
-    import ze_core.orchestration.registry as reg
+    import ze_agents.registry as reg
     monkeypatch.setitem(reg._instances, "research", mock_agent)
 
     ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
@@ -250,7 +250,7 @@ async def test_execute_tool_raises_timeout(monkeypatch):
 # ── confirmation.await_confirmation ──────────────────────────────────────────
 
 async def test_await_confirmation_clears_pending_and_sets_execute():
-    from ze_core.capability.types import GateDecision
+    from ze_agents.types import GateDecision
     result = await await_confirmation(base_state(), make_config())
     assert result["pending_confirmation"] is False
     assert result["gate_decision"] == GateDecision.EXECUTE
@@ -285,7 +285,7 @@ async def test_write_memory_no_crash_if_no_agent_context():
 # ── memory._write_contact_proposals ──────────────────────────────────────────
 
 async def test_write_contact_proposals_writes_email_to_channel_store():
-    from ze_core.channels.types import ChannelType
+    from ze_agents.channels.types import ChannelType
     from ze_personal.contacts.types import ContactProposal
     from ze_personal.graph.memory_hooks import _write_contact_proposals
 
@@ -360,7 +360,7 @@ async def test_write_contact_proposals_works_without_channel_store():
 
 
 async def test_write_contact_proposals_writes_channel_for_existing_contact():
-    from ze_core.channels.types import ChannelType
+    from ze_agents.channels.types import ChannelType
     from ze_personal.contacts.types import ContactProposal, Person
     from ze_personal.graph.memory_hooks import _write_contact_proposals
     from datetime import datetime, timezone
@@ -469,7 +469,7 @@ async def test_plan_sequential_empty_high_risk_when_all_autonomous():
 
 
 async def test_plan_sequential_returns_error_on_plan_failure():
-    from ze_core.errors import WorkflowPlanError
+    from ze_agents.errors import WorkflowPlanError
     from ze_personal.workflow.planner import WorkflowPlanner
 
     planner = AsyncMock(spec=WorkflowPlanner)

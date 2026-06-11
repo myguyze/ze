@@ -5,9 +5,9 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.orchestration.state import AgentState
-from ze_core.orchestration.types import AgentContext
+from ze_agents.types import AgentContext
 
 log = get_logger(__name__)
 
@@ -86,6 +86,7 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         contacts=contact_context,
         messages=messages,
         persona=active_persona,
+        embed_fn=embedder.encode if embedder is not None else None,
     )
 
     return {

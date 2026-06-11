@@ -21,7 +21,7 @@ from ze_components.types import (
     TimelineComponent,
     TimelineEvent,
 )
-from ze_core.orchestration.tool import ToolAccess, ToolSpec, _tools
+from ze_agents.tool import ToolAccess, ToolSpec, _tools
 
 
 def render_tool(component_cls: type, *, description: str) -> Callable:

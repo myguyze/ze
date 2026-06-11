@@ -1,10 +1,7 @@
-"""Ze Core framework defaults.
+"""Ze framework defaults.
 
 All framework-level constants live here. Modules import from this file so
 every magic number has a name and a single point of change.
-
-Override in code (subclass Container, pass RouterConfig, etc.) only when
-you have a measured reason. You will rarely have one.
 """
 
 # ── Routing ───────────────────────────────────────────────────────────────────

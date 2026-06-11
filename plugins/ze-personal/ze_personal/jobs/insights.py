@@ -4,10 +4,10 @@ from datetime import date, timedelta
 
 import asyncpg
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 from ze_core.proactive.job import proactive_job
 from ze_core.telemetry.context import set_agent_context, set_flow_context
 

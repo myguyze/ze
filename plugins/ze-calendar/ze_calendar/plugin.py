@@ -1,4 +1,4 @@
-from ze_core.plugin import ZePlugin
+from ze_agents.plugin import ZePlugin
 
 
 class CalendarPlugin(ZePlugin):

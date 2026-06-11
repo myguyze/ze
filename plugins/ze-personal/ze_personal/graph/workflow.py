@@ -11,9 +11,9 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_core.capability.types import GateDecision
-from ze_core.defaults import MODEL_WORKFLOW_VERIFY
-from ze_core.logging import get_logger
+from ze_agents.types import GateDecision
+from ze_agents.defaults import MODEL_WORKFLOW_VERIFY
+from ze_agents.logging import get_logger
 from ze_core.orchestration.state import AgentState
 from ze_core.telemetry.context import set_agent_context
 from ze_personal.workflow.store import WorkflowStore

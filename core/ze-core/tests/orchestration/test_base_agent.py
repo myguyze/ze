@@ -1,18 +1,18 @@
 """Tests for BaseAgent.call_tool() and BaseAgent.agentic_loop()."""
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
-from ze_core.orchestration import agent, clear_registry
-from ze_core.orchestration.base_agent import (
+from ze_agents.types import GateDecision
+from ze_agents.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
+from ze_agents.registry import agent, clear_registry
+from ze_agents.base_agent import (
     BaseAgent,
     _merge_deps,
     _serialise_result,
     _truncate_messages,
 )
-from ze_core.orchestration.hooks import (
+from ze_agents.hooks import (
     BaseHarnessHook,
     LoopEndEvent,
     LoopStartEvent,
@@ -21,8 +21,8 @@ from ze_core.orchestration.hooks import (
     clear_hooks,
     register_hook,
 )
-from ze_core.orchestration.tool import ToolAccess, clear_tool_registry, tool
-from ze_core.orchestration.types import AbortToken, AgentContext, AgentResult, ToolCall
+from ze_agents.tool import ToolAccess, clear_tool_registry, tool
+from ze_agents.types import AbortToken, AgentContext, AgentResult, ToolCall
 
 
 @pytest.fixture(autouse=True)
@@ -132,7 +132,7 @@ class TestCallTool:
         assert tc.success is True
 
     async def test_unknown_tool_raises(self):
-        from ze_core.errors import UnknownToolError
+        from ze_agents.errors import UnknownToolError
         a = _agent()
         with pytest.raises(UnknownToolError):
             await a.call_tool("does_not_exist", _ctx())
@@ -726,8 +726,9 @@ class TestToolExecutorContextFetch:
             prompt="Do the task",
             intent="execute",
             gate_decision=GateDecision.EXECUTE,
+            memory_store=memory_store,
+            embed_fn=MagicMock(return_value=[0.1] * 384) if memory_store is not None else None,
         )
-        ctx.memory_store = memory_store
         return ctx
 
     async def test_no_prepend_when_memory_store_is_none(self):
@@ -770,9 +771,7 @@ class TestToolExecutorContextFetch:
 
         ctx = self._make_ctx_with_memory(memory_store=memory_store)
 
-        with patch("ze_core.embeddings.get_embedder") as mock_embedder:
-            mock_embedder.return_value.encode = MagicMock(return_value=[0.1] * 384)
-            await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
+        await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
 
         assert len(captured_systems) > 0
         assert "preferred_language" in captured_systems[0] or "Relevant facts" in captured_systems[0]
@@ -788,8 +787,6 @@ class TestToolExecutorContextFetch:
 
         ctx = self._make_ctx_with_memory(memory_store=memory_store)
 
-        with patch("ze_core.embeddings.get_embedder") as mock_embedder:
-            mock_embedder.return_value.encode = MagicMock(return_value=[0.1] * 384)
-            result, _ = await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
+        result, _ = await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
 
         assert result == "done"

@@ -6,14 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.capability import (
-    CapabilityGate,
-    GateDecision,
-    Mode,
-    PostgresCapabilityOverrideStore,
-)
-from ze_core.orchestration import agent, clear_registry
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import GateDecision, Mode
+from ze_core.capability import CapabilityGate, PostgresCapabilityOverrideStore
+from ze_agents.registry import agent, clear_registry
+from ze_agents.types import AgentContext, AgentResult
 
 
 @pytest.fixture(autouse=True)

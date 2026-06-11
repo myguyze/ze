@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ze_core.plugin import ZePlugin
+from ze_agents.plugin import ZePlugin
 from ze_news.jobs.fetch import NewsFetchJob
 from ze_news.registry import SourceRegistry
 from ze_news.store import NewsStore

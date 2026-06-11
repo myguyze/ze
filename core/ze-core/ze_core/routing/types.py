@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-from ze_core.defaults import (
+from ze_agents.defaults import (
     MODEL_ROUTER_FALLBACK,
     ROUTING_GAP_THRESHOLD,
     ROUTING_THRESHOLD,

@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 
 from ze_core import defaults
-from ze_core.errors import WorkflowPlanError
-from ze_core.logging import get_logger
+from ze_agents.errors import WorkflowPlanError
+from ze_agents.logging import get_logger
 from ze_core.openrouter.client import OpenRouterClient
 from ze_memory.types import Procedure
 from ze_personal.workflow.types import StepResult, WorkflowStep

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ze_core.orchestration.tool import ToolAccess, tool
+from ze_agents.tool import ToolAccess, tool
 from ze_news.store import NewsStore
 from ze_news.types import PersonalizationContext
 

@@ -6,7 +6,7 @@ import pytest
 from ze_memory.types import MemoryContext
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.nodes.memory import synthesize, write_memory
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 

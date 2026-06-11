@@ -1,13 +1,13 @@
 import pytest
 
-from ze_core.errors import InterfaceConfigError
-from ze_core.interface.types import (
+from ze_agents.errors import InterfaceConfigError
+from ze_agents.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
     Notification,
     OutboundMessage,
 )
-from ze_core.interface.validation import validate_interface
+from ze_agents.interface.validation import validate_interface
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import html as _html
 
-from ze_core.interface.types import Action, Notification
-from ze_core.logging import get_logger
+from ze_agents.interface.types import Action, Notification
+from ze_agents.logging import get_logger
 from ze_core.proactive.job import proactive_job
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_personal.goals.store import GoalStore

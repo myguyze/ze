@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ze_core.capability.types import GateDecision, Mode
-from ze_core.logging import get_logger
+from ze_agents.types import GateDecision, Mode
+from ze_agents.logging import get_logger
 
 if TYPE_CHECKING:
     from ze_core.capability.overrides import CapabilityOverrideStore
@@ -93,8 +93,8 @@ class CapabilityGate:
         intent: str,
         session_overrides: dict[str, str],
     ) -> GateDecision:
-        from ze_core.errors import UnknownAgentError
-        from ze_core.orchestration.registry import get_agent_class
+        from ze_agents.errors import UnknownAgentError
+        from ze_agents.registry import get_agent_class
 
         try:
             agent_cls = get_agent_class(agent)

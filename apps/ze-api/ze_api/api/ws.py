@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
 from ze_core.messages.types import Message
-from ze_core.interface.types import RawInput
+from ze_agents.interface.types import RawInput
 from ze_api.logging import get_logger
 
 log = get_logger(__name__)

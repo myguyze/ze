@@ -6,9 +6,9 @@ cap applies per turn (not per session lifetime).
 """
 from __future__ import annotations
 
-from ze_core.errors import HookAbort
-from ze_core.logging import get_logger
-from ze_core.orchestration.hooks import BaseHarnessHook, LoopStartEvent, ToolStartEvent
+from ze_agents.errors import HookAbort
+from ze_agents.logging import get_logger
+from ze_agents.hooks import BaseHarnessHook, LoopStartEvent, ToolStartEvent
 
 log = get_logger(__name__)
 

@@ -11,7 +11,7 @@ import asyncpg
 
 from ze_personal.contacts.store import PersonStore
 from ze_personal.contacts.types import ContactProposal, Person, PersonSource, SOURCE_WEIGHTS
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.telemetry.context import set_agent_context, set_flow_context
 
 _MODEL_DEFAULT = "anthropic/claude-haiku-4-5"

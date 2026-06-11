@@ -4,11 +4,11 @@ version = "0.1.0"
 description = "Ze component descriptor types and render tools"
 requires-python = ">=3.12"
 dependencies = [
-    "ze-core",
+    "ze-agents",
 ]
 
 [tool.uv.sources]
-ze-core = { workspace = true }
+ze-agents = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

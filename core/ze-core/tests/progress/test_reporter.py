@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from ze_core.progress.reporter import ProgressReporter
-from ze_core.progress.translations import ProgressTranslations
+from ze_agents.progress.reporter import ProgressReporter
+from ze_agents.progress.translations import ProgressTranslations
 
 
 def make_reporter(data: dict) -> tuple[ProgressReporter, asyncio.Queue]:

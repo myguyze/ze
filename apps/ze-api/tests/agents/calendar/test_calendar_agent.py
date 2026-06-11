@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_calendar.agents.calendar.agent import CalendarAgent
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult
 from ze_api.logging import configure_logging
 from ze_memory.types import MemoryContext
 
@@ -76,7 +76,7 @@ def setup_logging():
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_calendar_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "calendar" in _registry
 
 

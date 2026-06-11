@@ -9,9 +9,9 @@ from ze_api.api.schemas import (
     UpdateCapabilityResponse,
 )
 from ze_core.capability.gate import CapabilityGate
-from ze_core.capability.types import Mode
+from ze_agents.types import Mode
 from ze_api.settings import Settings
-from ze_core.orchestration.registry import get_registered_agents
+from ze_agents.registry import get_registered_agents
 
 router = APIRouter(tags=["capabilities"])
 

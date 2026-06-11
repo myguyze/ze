@@ -4,7 +4,7 @@ import asyncio
 import sys
 from typing import ClassVar
 
-from ze_core.interface.types import (
+from ze_agents.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
     Notification,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from ze_core.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_agents.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
 
 
 class Channel(ABC):

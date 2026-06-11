@@ -8,9 +8,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, get_type_hints
 
-from ze_core.errors import AgentConfigError, RoutingError
-from ze_core.logging import get_logger
-from ze_core.orchestration.types import AbortToken
+from ze_agents.errors import AgentConfigError, RoutingError
+from ze_agents.logging import get_logger
+from ze_agents.types import AbortToken
 
 log = get_logger(__name__)
 
@@ -81,7 +81,7 @@ class Container:
         If no interface is configured, the graph is invoked once and
         final_response is returned directly without any delivery call.
         """
-        from ze_core.interface.types import ConfirmationRequest, InvokeResult, OutboundMessage
+        from ze_agents.interface.types import ConfirmationRequest, InvokeResult, OutboundMessage
 
         graph_input = {
             "prompt": prompt,
@@ -196,7 +196,7 @@ class Container:
         Called by the transport callback handler after the user decision has
         been written into AgentState and the application is ready to continue.
         """
-        from ze_core.interface.types import InvokeResult, OutboundMessage
+        from ze_agents.interface.types import InvokeResult, OutboundMessage
 
         config = self._build_config(session_id)
         state = await self.graph.ainvoke(None, config)
@@ -210,7 +210,7 @@ class Container:
         return InvokeResult(session_id=session_id, response=response)
 
     async def close(self) -> None:
-        from ze_core.orchestration.registry import get_enabled_instances
+        from ze_agents.registry import get_enabled_instances
 
         for instance in get_enabled_instances().values():
             try:
@@ -245,11 +245,11 @@ class Container:
 
         # 0. Validate interface early so misconfiguration fails fast
         if interface is not None:
-            from ze_core.interface.validation import validate_interface
+            from ze_agents.interface.validation import validate_interface
             validate_interface(interface)
 
         # 1. Load Settings
-        from ze_core.settings import Settings
+        from ze_agents.settings import Settings
 
         settings = Settings.from_env(config_path)
 
@@ -294,7 +294,7 @@ class Container:
         _validate_registry(settings)
 
         # 7. Instantiate enabled agents
-        from ze_core.orchestration.registry import get_enabled_agents
+        from ze_agents.registry import get_enabled_agents
 
         from ze_core.db import DBPool
 
@@ -382,10 +382,10 @@ class Container:
                 allowed_msgpack_modules=[
                     ("ze_core.routing.types", "SubTask"),
                     ("ze_core.routing.types", "RoutingEnvelope"),
-                    ("ze_core.orchestration.types", "ToolCall"),
-                    ("ze_core.orchestration.types", "AgentResult"),
-                    ("ze_core.orchestration.types", "AgentContext"),
-                    ("ze_core.capability.types", "GateDecision"),
+                    ("ze_agents.types", "ToolCall"),
+                    ("ze_agents.types", "AgentResult"),
+                    ("ze_agents.types", "AgentContext"),
+                    ("ze_agents.types", "GateDecision"),
                     ("ze_memory.types", "MemoryContext"),
                     ("ze_memory.types", "Fact"),
                     ("ze_memory.types", "Episode"),
@@ -434,8 +434,8 @@ def _discover_agents(app_root: Path, package: str) -> None:
 def _validate_registry(settings: Any) -> None:
     """Validate tool names against the tool registry (name/description/capabilities
     are already validated by @agent at decoration time)."""
-    from ze_core.orchestration.registry import get_registered_agents
-    from ze_core.orchestration.tool import registered_tools
+    from ze_agents.registry import get_registered_agents
+    from ze_agents.tool import registered_tools
 
     tool_reg = registered_tools()
     registered = get_registered_agents()
@@ -484,7 +484,7 @@ def _instantiate_agents(
     registered: dict[str, Any],
     deps: dict[type, Any],
 ) -> dict[str, Any]:
-    from ze_core.orchestration.registry import register_instance
+    from ze_agents.registry import register_instance
 
     instances: dict[str, Any] = {}
     for name, cls in registered.items():

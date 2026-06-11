@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.registry import agent
-from ze_core.capability.types import Mode
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.base_agent import BaseAgent
+from ze_agents.registry import agent
+from ze_agents.types import Mode
+from ze_agents.types import AgentContext, AgentResult
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.proactive.notifier import ProactiveNotifier
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 from ze_calendar.reminders.store import ReminderStore
 from ze_personal.workflow.scheduler import WorkflowScheduler
 

@@ -3,18 +3,18 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.capability.types import GateDecision
-from ze_core.errors import AgentAbortedError
-from ze_core.orchestration import agent, clear_registry, register_instance
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.delegate import (
+from ze_agents.types import GateDecision
+from ze_agents.errors import AgentAbortedError
+from ze_agents.registry import agent, clear_registry, register_instance
+from ze_agents.base_agent import BaseAgent
+from ze_agents.delegate import (
     DELEGATE_TOOL_NAME,
     DELEGATE_TOOL_SCHEMA,
     _DELEGATE_MAX_DEPTH,
     run_delegate,
 )
-from ze_core.orchestration.tool import ToolAccess, clear_tool_registry, tool
-from ze_core.orchestration.types import AbortToken, AgentContext, AgentResult
+from ze_agents.tool import ToolAccess, clear_tool_registry, tool
+from ze_agents.types import AbortToken, AgentContext, AgentResult
 
 
 @pytest.fixture(autouse=True)

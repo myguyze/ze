@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, ClassVar, Literal
 from uuid import uuid4
 
-from ze_core.interface.types import ConfirmationRequest, Notification, OutboundMessage
+from ze_agents.interface.types import ConfirmationRequest, Notification, OutboundMessage
 from ze_core.messages.types import Message
 from ze_api.logging import get_logger
 

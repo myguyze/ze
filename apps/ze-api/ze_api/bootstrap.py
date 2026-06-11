@@ -7,13 +7,13 @@ from typing import Any, get_type_hints
 
 import asyncpg
 
-from ze_core.errors import AgentConfigError
-from ze_core.logging import get_logger
-from ze_core.orchestration.registry import (
+from ze_agents.errors import AgentConfigError
+from ze_agents.logging import get_logger
+from ze_agents.registry import (
     get_registered_agents,
     register_instance,
 )
-from ze_core.plugin import ZePlugin
+from ze_agents.plugin import ZePlugin
 
 log = get_logger(__name__)
 
@@ -72,7 +72,7 @@ def bootstrap_agents(
     from ze_google.auth import GoogleCredentials
     from ze_core.openrouter.client import OpenRouterClient
     from ze_api.settings import Settings
-    from ze_core.settings import Settings as CoreSettings
+    from ze_agents.settings import Settings as CoreSettings
 
     _dep_map.clear()
 
@@ -158,7 +158,7 @@ def prepare_gate_registry(settings: Any, plugins: list | None = None) -> None:
 
 def validate_registry() -> None:
     """Cross-check declared tools and intent_map entries against registries."""
-    from ze_core.orchestration.tool import registered_tools
+    from ze_agents.tool import registered_tools
 
     tool_reg = registered_tools()
 
@@ -215,8 +215,8 @@ def _import_agent_modules(plugins: list | None = None) -> None:
 
 def reload_agent_modules(plugins: list | None = None) -> None:
     """Force @agent registration after tests replace the ze-core registry."""
-    from ze_core.orchestration.registry import _instances, _registry
-    from ze_core.orchestration.tool import clear_tool_registry
+    from ze_agents.registry import _instances, _registry
+    from ze_agents.tool import clear_tool_registry
 
     module_paths = (
         _plugin_agent_module_paths(plugins)

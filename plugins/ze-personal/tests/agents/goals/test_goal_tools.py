@@ -50,7 +50,7 @@ def _make_deps(
     store.create_milestone = AsyncMock()
     store.create_gate = AsyncMock()
 
-    from ze_core.errors import GoalPlanError
+    from ze_agents.errors import GoalPlanError
     planner = AsyncMock()
     if plan_raises:
         planner.plan = AsyncMock(side_effect=GoalPlanError("LLM failed"))

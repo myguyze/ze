@@ -6,10 +6,10 @@ from collections import defaultdict
 from typing import Callable
 from uuid import UUID
 
-from ze_core.errors import GoalExecutionError
+from ze_agents.errors import GoalExecutionError
 from ze_memory.store import MemoryStore
 from ze_memory.types import TaskState
-from ze_core.orchestration.types import ToolCall
+from ze_agents.types import ToolCall
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.store import GoalStore
 from ze_personal.goals.types import (
@@ -22,8 +22,8 @@ from ze_personal.goals.types import (
     MilestoneStatus,
     PriorMilestoneOutput,
 )
-from ze_core.interface.types import Action, Notification
-from ze_core.logging import get_logger
+from ze_agents.interface.types import Action, Notification
+from ze_agents.logging import get_logger
 
 log = get_logger(__name__)
 
@@ -477,8 +477,8 @@ class GoalExecutor:
             agent = self._get_agent("companion")
 
         # Import here to avoid circular dependency at module level
-        from ze_core.capability.types import GateDecision
-        from ze_core.orchestration.types import AgentContext
+        from ze_agents.types import GateDecision
+        from ze_agents.types import AgentContext
 
         prompt = _build_milestone_prompt(milestone, goal, all_milestones)
 

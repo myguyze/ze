@@ -13,7 +13,7 @@ for _path in _CalendarPlugin().agent_module_paths():
 
 
 def _registry_has_real_agents() -> bool:
-    from ze_core.orchestration.registry import get_registered_agents
+    from ze_agents.registry import get_registered_agents
 
     agents = get_registered_agents()
     if "research" not in agents:

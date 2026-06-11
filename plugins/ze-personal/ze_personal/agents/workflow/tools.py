@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from ze_core.orchestration.tool import ToolAccess, tool
-from ze_core.errors import WorkflowPlanError
+from ze_agents.tool import ToolAccess, tool
+from ze_agents.errors import WorkflowPlanError
 from ze_personal.workflow.planner import WorkflowPlanner
 from ze_personal.workflow.store import WorkflowStore
 from ze_personal.workflow.types import Workflow

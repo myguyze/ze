@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, get_type_hints
 
-from ze_core.errors import AgentConfigError, UnknownToolError
+from ze_agents.errors import AgentConfigError, UnknownToolError
 
 _tools: dict[str, ToolSpec] = {}
 
@@ -71,7 +71,7 @@ class ToolSpec:
 
 
 def tool(*, access: ToolAccess | str, description: str) -> Callable:
-    """Decorator that registers an async function as a Ze Core tool."""
+    """Decorator that registers an async function as a Ze tool."""
     access_val = ToolAccess(access) if isinstance(access, str) else access
 
     def _decorator(func: Callable) -> Callable:

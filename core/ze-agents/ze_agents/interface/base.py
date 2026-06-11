@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Protocol, runtime_checkable
+from typing import Any, ClassVar, Literal, Protocol, runtime_checkable
 
-from ze_core.interface.types import (
+from ze_agents.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
     Notification,
@@ -11,29 +11,12 @@ from ze_core.interface.types import (
     RawInput,
 )
 
-if TYPE_CHECKING:
-    pass
-
 
 class InputPreprocessor(Protocol):
-    """Converts raw transport input (audio, image, text) to a routing-ready prompt.
-
-    Implement this protocol in the application layer (e.g. a Telegram adapter that
-    runs Whisper for voice and a vision model for images). Register it on the
-    Container so Container.invoke_raw() calls it before graph invocation.
-    """
+    """Converts raw transport input (audio, image, text) to a routing-ready prompt."""
 
     async def process(self, raw: RawInput, client: Any) -> ProcessedInput:
-        """Normalise raw input to a text prompt and optional passthrough fields.
-
-        Args:
-            raw: Unprocessed input from the transport layer.
-            client: The OpenRouterClient (or any LLM client) available for
-                    transcription or captioning calls.
-
-        Returns:
-            ProcessedInput with at minimum a non-empty ``prompt`` string.
-        """
+        """Normalise raw input to a text prompt and optional passthrough fields."""
         ...
 
 

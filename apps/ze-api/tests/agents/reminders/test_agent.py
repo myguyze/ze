@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 
 from ze_calendar.agents.reminders.agent import RemindersAgent
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.capability.types import GateDecision
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import GateDecision
 from ze_memory.types import MemoryContext
 from ze_api.logging import configure_logging
 
@@ -62,7 +62,7 @@ def setup_logging():
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_reminders_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "reminders" in _registry
 
 

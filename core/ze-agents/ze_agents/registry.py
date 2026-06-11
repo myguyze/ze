@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ze_core.errors import AgentConfigError, UnknownAgentError
+from ze_agents.errors import AgentConfigError, UnknownAgentError
 
 if TYPE_CHECKING:
-    from ze_core.orchestration.base_agent import BaseAgent
+    from ze_agents.base_agent import BaseAgent
 
 _registry: dict[str, type[BaseAgent]] = {}
 _instances: dict[str, BaseAgent] = {}
@@ -16,10 +16,6 @@ def agent(cls: type) -> type:
 
     Accepts tools as either string names or callables; normalises callables to
     their ``__name__`` so downstream code always sees ``list[str]``.
-
-    Raises AgentConfigError for: missing/empty name, missing/empty description,
-    intent_map key not present in capabilities, duplicate name, or a tool entry
-    that is neither a string nor a callable with ``__name__``.
     """
     name = getattr(cls, "name", None)
     if not name:
@@ -29,9 +25,6 @@ def agent(cls: type) -> type:
     if not description:
         raise AgentConfigError(f"Agent {name!r} must define a non-empty `description`")
 
-    # Normalise tools: accept callables; extract __name__ so callers always
-    # see list[str].  Validation against the tool registry is deferred to
-    # Container._validate_registry (tools may not be registered yet at import time).
     raw_tools = list(getattr(cls, "tools", []))
     normalised: list[str] = []
     for t in raw_tools:
@@ -50,9 +43,6 @@ def agent(cls: type) -> type:
             )
     cls.tools = normalised
 
-    # When capabilities is declared, every intent_map key must be covered.
-    # An empty capabilities dict means the agent hasn't declared gating rules;
-    # the gate will default to AWAIT_CONFIRMATION for all intents.
     capabilities: dict = getattr(cls, "capabilities", {})
     if capabilities:
         for intent in getattr(cls, "intent_map", {}):

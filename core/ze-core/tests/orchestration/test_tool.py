@@ -1,7 +1,7 @@
 import pytest
 
-from ze_core.errors import AgentConfigError, UnknownToolError
-from ze_core.orchestration.tool import (
+from ze_agents.errors import AgentConfigError, UnknownToolError
+from ze_agents.tool import (
     ToolAccess,
     ToolSpec,
     clear_tool_registry,

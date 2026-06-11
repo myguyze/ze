@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from ze_core.errors import RoutingError
-from ze_core.logging import get_logger
+from ze_agents.errors import RoutingError
+from ze_agents.logging import get_logger
 from ze_core.routing.types import LLMClient, RoutingEnvelope, SubTask
 
 if TYPE_CHECKING:
-    from ze_core.orchestration.base_agent import BaseAgent
-    from ze_core.logging import _BoundLogger
+    from ze_agents.base_agent import BaseAgent
+    from ze_agents.logging import _BoundLogger
 
 _SYSTEM_PROMPT = """\
 You are a routing assistant for a personal AI assistant.

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.proactive.push_log_store import PushLogStore
 from ze_calendar.reminders.calendar_store import CalendarReminderStore
 from ze_core.openrouter.client import OpenRouterClient

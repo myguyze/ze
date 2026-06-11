@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from ze_personal.contacts.types import StaleFollowUpNudge
 from ze_personal.jobs.briefing import MorningBriefing
 from ze_core.proactive.push_log_store import PushLogEntry
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_news.types import Article
 

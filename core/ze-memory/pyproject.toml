@@ -7,7 +7,7 @@ name = "ze-memory"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "ze-core",
+    "ze-agents",
     "asyncpg>=0.29",
     "numpy>=2.0",
 ]
@@ -38,7 +38,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-ze-core = { workspace = true }
+ze-agents = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_memory"]

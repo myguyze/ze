@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_personal.agents.companion.agent import CompanionAgent, _detect_outreach_event
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.settings import Settings
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.settings import Settings
 from ze_memory.types import MemoryContext, Fact
 
 
@@ -71,7 +71,7 @@ def make_agent(client=None) -> CompanionAgent:
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_companion_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "companion" in _registry
 
 

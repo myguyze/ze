@@ -4,8 +4,8 @@ from uuid import uuid4
 import pytest
 
 from ze_personal.agents.goals.agent import GoalAgent
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.capability.types import GateDecision
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import GateDecision
 from ze_personal.goals.types import ExecutionTrace, Goal, GoalStatus, Milestone, MilestoneStatus
 from ze_memory.types import MemoryContext
 
@@ -58,7 +58,7 @@ def make_agent(client=None, store=None) -> GoalAgent:
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 def test_goal_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "goals" in _registry
 
 

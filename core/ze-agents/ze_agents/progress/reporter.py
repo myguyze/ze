@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable
 
-from ze_core.progress.translations import ProgressTranslations
+from ze_agents.progress.translations import ProgressTranslations
 
 
 class ProgressReporter:

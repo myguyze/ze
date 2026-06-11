@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from ze_core.interface.types import Notification
-from ze_core.logging import get_logger
+from ze_agents.interface.types import Notification
+from ze_agents.logging import get_logger
 from ze_core.proactive.job import proactive_job
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_core.proactive.push_log_store import PushLogStore

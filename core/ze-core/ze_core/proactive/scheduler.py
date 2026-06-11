@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 if TYPE_CHECKING:
     from ze_core.proactive.job import ProactiveJob
@@ -12,16 +12,7 @@ log = get_logger(__name__)
 
 
 class ProactiveScheduler:
-    """Thin wrapper around APScheduler's AsyncIOScheduler.
-
-    Manages cron-based proactive jobs (briefings, insights, sweeps).
-    Jobs are registered before start() is called. The scheduler is
-    in-process only — jobs do not persist across restarts, but they
-    are re-registered from config on each startup.
-
-    Requires APScheduler >= 3.x:
-        pip install apscheduler
-    """
+    """Thin wrapper around APScheduler's AsyncIOScheduler."""
 
     def __init__(self) -> None:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler

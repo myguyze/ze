@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import asyncpg
 from sentence_transformers import SentenceTransformer
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_news.types import (
     Article,
     CredibilityFlag,

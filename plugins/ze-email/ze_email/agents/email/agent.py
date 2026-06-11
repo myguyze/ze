@@ -1,14 +1,14 @@
 from typing import AsyncIterator
 
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.registry import agent
-from ze_core.capability.types import Mode
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.base_agent import BaseAgent
+from ze_agents.registry import agent
+from ze_agents.types import Mode
+from ze_agents.types import AgentContext, AgentResult
 from ze_email.channel.gmail import GmailChannel
 from ze_personal.contacts.extractors import extract_email_contacts
 from ze_google.auth import GoogleCredentials
 from ze_core.openrouter.client import OpenRouterClient
-from ze_core.settings import Settings
+from ze_agents.settings import Settings
 
 _AGENT_INSTRUCTIONS = """\
 You manage the user's Gmail inbox.

@@ -1,8 +1,8 @@
 import asyncio
 import time
 
-from ze_core.orchestration.tool import ToolAccess, tool
-from ze_core.orchestration.types import ToolCall
+from ze_agents.tool import ToolAccess, tool
+from ze_agents.types import ToolCall
 from ze_browser.client import BrowserClient
 
 _BLOCKED_MSG = "[blocked or empty — skip this URL]"

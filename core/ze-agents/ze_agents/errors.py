@@ -1,5 +1,9 @@
 class ZeCoreError(Exception):
-    """Base exception for all Ze Core errors."""
+    """Base exception for all Ze errors."""
+
+
+# Alias so ze-agents consumers can use the canonical name.
+ZeError = ZeCoreError
 
 
 # ── Routing ───────────────────────────────────────────────────────────────────

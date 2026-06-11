@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_core.telemetry.postgres import PostgresCostStore
 
 _BATCH_SIZE = 50

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ze_core.channels.types import ChannelHandle, ChannelType
+from ze_agents.channels.types import ChannelHandle, ChannelType
 from ze_personal.contacts.types import ContactProposal, Person, PersonSource
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 log = get_logger(__name__)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ze_core.errors import ZeCoreError
+from ze_agents.errors import ZeCoreError
 
 
 class MemoryError(ZeCoreError):

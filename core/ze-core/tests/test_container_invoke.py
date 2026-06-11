@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_core.container import Container
-from ze_core.interface.types import (
+from ze_agents.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
     InvokeResult,
     OutboundMessage,
 )
-from ze_core.orchestration.types import AbortToken, AgentResult
+from ze_agents.types import AbortToken, AgentResult
 
 
 # ── Fixtures / helpers ────────────────────────────────────────────────────────
@@ -299,17 +299,17 @@ class TestAbortInvocation:
 
 class TestFromConfigInterfaceValidation:
     def test_validate_interface_called_on_misconfigured(self):
-        from ze_core.errors import InterfaceConfigError
+        from ze_agents.errors import InterfaceConfigError
 
         class BadInterface:
             pass  # no confirmation_style
 
         with pytest.raises(InterfaceConfigError):
-            from ze_core.interface.validation import validate_interface
+            from ze_agents.interface.validation import validate_interface
             validate_interface(BadInterface())
 
     def test_valid_interface_passes_validation(self):
-        from ze_core.interface.validation import validate_interface
+        from ze_agents.interface.validation import validate_interface
 
         iface = _InlineInterface()
         validate_interface(iface)  # should not raise

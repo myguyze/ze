@@ -1,17 +1,17 @@
 import pytest
 
-from ze_core.capability.types import Mode
-from ze_core.errors import AgentConfigError, UnknownAgentError
-from ze_core.orchestration import (
-    BaseAgent,
+from ze_agents.types import Mode
+from ze_agents.errors import AgentConfigError, UnknownAgentError
+from ze_agents.base_agent import BaseAgent
+from ze_agents.registry import (
     agent,
     clear_registry,
     get_agent_class,
     get_enabled_agents,
     get_registered_agents,
 )
-from ze_core.orchestration.tool import ToolAccess, clear_tool_registry, tool
-from ze_core.orchestration.types import AgentContext, AgentResult
+from ze_agents.tool import ToolAccess, clear_tool_registry, tool
+from ze_agents.types import AgentContext, AgentResult
 
 
 @pytest.fixture(autouse=True)

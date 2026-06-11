@@ -5,8 +5,8 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_core.defaults import MODEL_VISION_CAPTION, MODEL_WHISPER
-from ze_core.logging import get_logger
+from ze_agents.defaults import MODEL_VISION_CAPTION, MODEL_WHISPER
+from ze_agents.logging import get_logger
 from ze_core.openrouter.client import _normalise_audio_format
 from ze_core.orchestration.state import AgentState
 

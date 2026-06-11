@@ -7,14 +7,11 @@ conflicts with clear_tool_registry() in tests.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from ze_core.errors import AgentAbortedError, ZeCoreError
-from ze_core.logging import get_logger
-from ze_core.orchestration.types import AgentContext, ToolCall
-
-if TYPE_CHECKING:
-    pass
+from ze_agents.errors import AgentAbortedError
+from ze_agents.logging import get_logger
+from ze_agents.types import AgentContext, ToolCall
 
 log = get_logger(__name__)
 
@@ -59,7 +56,7 @@ async def run_delegate(
     iteration: int,
 ) -> ToolCall:
     """Execute a delegate_to_agent tool call from inside agentic_loop."""
-    from ze_core.orchestration.registry import get_agent
+    from ze_agents.registry import get_agent
 
     agent_name: str = arguments.get("agent_name", "")
     task: str = arguments.get("task", "")
@@ -114,8 +111,6 @@ async def run_delegate(
     try:
         result = await instance.run(sub_ctx)
     except AgentAbortedError:
-        # Propagate abort signals so the parent loop also stops immediately,
-        # rather than waiting until the next iteration's abort-token check.
         raise
     except Exception as exc:
         duration_ms = int((time.monotonic() - start) * 1000)

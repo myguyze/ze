@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 from ze_memory.defaults import MODEL_SYNTHESIS
 

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from ze_core.interface.types import Action, Notification
+from ze_agents.interface.types import Action, Notification
 from ze_core.proactive.notifier import ProactiveNotifier, _split
 
 

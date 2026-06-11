@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from ze_core.errors import UnknownDialError, UnknownProfileError
+from ze_agents.errors import UnknownDialError, UnknownProfileError
 from ze_personal.persona.postgres import PostgresPersonaStore
 from ze_personal.persona.types import PersonaState
 

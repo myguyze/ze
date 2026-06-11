@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from ze_core.db import DBPool
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 from ze_personal.goals.types import GoalSuggestion, SuggestionStatus
 
 log = get_logger(__name__)

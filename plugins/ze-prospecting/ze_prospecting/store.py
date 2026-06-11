@@ -4,7 +4,7 @@ from uuid import UUID
 
 import asyncpg
 
-from ze_core.logging import get_logger
+from ze_agents.logging import get_logger
 
 log = get_logger(__name__)
 

@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from ze_api.bootstrap import prepare_gate_registry
-from ze_core.errors import InvalidPromptError, RoutingError
+from ze_agents.errors import InvalidPromptError, RoutingError
 from ze_api.logging import configure_logging
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
@@ -49,7 +49,7 @@ def make_router(
 ) -> EmbeddingRouter:
     if embedder is None:
         _prompt_vec = prompt_vec or unit_vec()
-        from ze_core.orchestration.registry import get_enabled_agents
+        from ze_agents.registry import get_enabled_agents
 
         enabled = {name: {} for name in get_enabled_agents()}
         agent_vecs = {name: unit_vec() for name in enabled}
@@ -238,7 +238,7 @@ _ALL_AGENTS = frozenset({
 def _reset_agent_enabled_flags():
     """Each test starts from all agents enabled (Phase 7: class-level `enabled`)."""
     from ze_api.bootstrap import _DEFAULT_AGENT_MODULE_PATHS
-    from ze_core.orchestration.registry import get_registered_agents
+    from ze_agents.registry import get_registered_agents
 
     def _enable_all() -> None:
         import importlib
@@ -255,7 +255,7 @@ def _reset_agent_enabled_flags():
 def _configure_enabled_agents(enabled: set[str]) -> None:
     import importlib
     from ze_api.bootstrap import _DEFAULT_AGENT_MODULE_PATHS
-    from ze_core.orchestration.registry import get_registered_agents
+    from ze_agents.registry import get_registered_agents
 
     for path in _DEFAULT_AGENT_MODULE_PATHS:
         importlib.import_module(path)

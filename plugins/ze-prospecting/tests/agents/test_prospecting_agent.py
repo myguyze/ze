@@ -5,8 +5,8 @@ import pytest
 
 from ze_prospecting.agents.agent import ProspectingAgent
 from ze_prospecting.types import ProspectingSettings
-from ze_core.orchestration.types import AgentContext, AgentResult
-from ze_core.settings import Settings
+from ze_agents.types import AgentContext, AgentResult
+from ze_agents.settings import Settings
 from ze_personal.contacts.types import PersonContext
 from ze_memory.types import MemoryContext
 
@@ -67,7 +67,7 @@ def make_agent(
 # ── Registration ──────────────────────────────────────────────────────────────
 
 def test_prospecting_agent_is_registered():
-    from ze_core.orchestration.registry import _registry
+    from ze_agents.registry import _registry
     assert "prospecting" in _registry
 
 
@@ -153,7 +153,7 @@ async def test_prospecting_agent_passes_campaign_id_in_deps():
 # ── agentic_loop max_history_tokens ──────────────────────────────────────────
 
 async def test_agentic_loop_truncates_old_rounds():
-    from ze_core.orchestration.base_agent import _truncate_messages
+    from ze_agents.base_agent import _truncate_messages
 
     def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
 
@@ -179,7 +179,7 @@ async def test_agentic_loop_truncates_old_rounds():
 
 
 async def test_agentic_loop_protects_last_4_messages():
-    from ze_core.orchestration.base_agent import _truncate_messages
+    from ze_agents.base_agent import _truncate_messages
 
     def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
 

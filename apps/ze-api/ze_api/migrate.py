@@ -3,7 +3,7 @@ Programmatic migration runner for Ze.
 
 Discovers migration paths from ze-core, ze-api, and all registered ZePlugin subclasses.
 Plugin modules listed in _PLUGIN_MODULES are imported at startup so their
-__init_subclass__ hooks fire and populate the ze_core.plugin registry.
+__init_subclass__ hooks fire and populate the ze_agents.plugin registry.
 
 Usage from the shell (via Makefile):
     python -m ze_api.migrate                         # upgrade heads
@@ -24,7 +24,7 @@ from typing import Any
 import ze_core
 
 # Ordered list of plugin modules to import before collecting migration paths.
-# Importing triggers __init_subclass__ registration in ze_core.plugin._registry.
+# Importing triggers __init_subclass__ registration in ze_agents.plugin._registry.
 # Add new plugin packages here when they are introduced.
 _PLUGIN_MODULES: list[str] = [
     "ze_personal.plugin",
@@ -51,7 +51,7 @@ def _import_plugins() -> None:
 def _collect_version_locations() -> list[Path]:
     _import_plugins()
 
-    from ze_core.plugin import get_plugin_registry
+    from ze_agents.plugin import get_plugin_registry
 
     paths: list[Path] = [_ZE_CORE_VERSIONS, _ZE_VERSIONS]
     for plugin_cls in get_plugin_registry():
