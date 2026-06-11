@@ -14,4 +14,4 @@ class TimelineEvent with _$TimelineEvent {
 
   factory TimelineEvent.fromJson(Map<String, dynamic> json) =>
       _$TimelineEventFromJson(json);
-}}
+}

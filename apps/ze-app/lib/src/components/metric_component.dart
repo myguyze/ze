@@ -15,4 +15,4 @@ class MetricComponent with _$MetricComponent {
 
   factory MetricComponent.fromJson(Map<String, dynamic> json) =>
       _$MetricComponentFromJson(json);
-}}
+}

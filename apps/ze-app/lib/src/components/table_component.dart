@@ -15,4 +15,4 @@ class TableComponent with _$TableComponent {
 
   factory TableComponent.fromJson(Map<String, dynamic> json) =>
       _$TableComponentFromJson(json);
-}}
+}

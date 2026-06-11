@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:ze_app/src/components/component_descriptor.dart';
+import 'package:ze_app/src/components/form.dart' as ze_form;
 
 class FormWidget extends StatefulWidget {
   const FormWidget({super.key, required this.component, this.onSend});
@@ -38,7 +39,7 @@ class _FormWidgetState extends State<FormWidget> {
     );
   }
 
-  Widget _buildField(FormField f) {
+  Widget _buildField(ze_form.FormField f) {
     if (f.fieldType == 'select' && f.options != null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),

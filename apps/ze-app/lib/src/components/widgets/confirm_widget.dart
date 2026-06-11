@@ -13,7 +13,7 @@ class ConfirmWidget extends StatefulWidget {
 class _ConfirmWidgetState extends State<ConfirmWidget> {
   String? _selected;
 
-  void _tap(ConfirmActionItem action) {
+  void _tap(ConfirmAction action) {
     if (_selected != null) return;
     setState(() => _selected = action.value);
     widget.onSend?.call(action.value);
@@ -42,7 +42,7 @@ class _ConfirmWidgetState extends State<ConfirmWidget> {
     );
   }
 
-  Widget _button(ConfirmActionItem action) {
+  Widget _button(ConfirmAction action) {
     return switch (action.style) {
       'danger' => FilledButton(onPressed: () => _tap(action), style: FilledButton.styleFrom(backgroundColor: Colors.red), child: Text(action.label)),
       'primary' => FilledButton(onPressed: () => _tap(action), child: Text(action.label)),

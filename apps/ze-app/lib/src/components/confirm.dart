@@ -9,9 +9,9 @@ class ConfirmAction with _$ConfirmAction {
   const factory ConfirmAction({
     required String label,
     required String value,
-    String? style,
+     @Default('secondary')String style,
   }) = _ConfirmAction;
 
   factory ConfirmAction.fromJson(Map<String, dynamic> json) =>
       _$ConfirmActionFromJson(json);
-}}
+}

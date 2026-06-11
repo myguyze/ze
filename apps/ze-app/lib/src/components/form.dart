@@ -9,11 +9,11 @@ class FormField with _$FormField {
   const factory FormField({
     required String id,
     required String label,
-    String? field_type,
+    @JsonKey(name: 'field_type')  @Default('text')String fieldType,
     String? placeholder,
-    String? options,
+    List<String>? options,
   }) = _FormField;
 
   factory FormField.fromJson(Map<String, dynamic> json) =>
       _$FormFieldFromJson(json);
-}}
+}

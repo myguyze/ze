@@ -9,9 +9,9 @@ class CardComponent with _$CardComponent {
   const factory CardComponent({
     required String body,
     String? title,
-    String? style,
+     @Default('info')String style,
   }) = _CardComponent;
 
   factory CardComponent.fromJson(Map<String, dynamic> json) =>
       _$CardComponentFromJson(json);
-}}
+}

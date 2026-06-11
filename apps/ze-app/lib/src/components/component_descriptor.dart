@@ -1,13 +1,30 @@
 // GENERATED — do not edit. Run make generate-components to regenerate.
+import 'package:ze_app/src/components/list.dart';
+export 'package:ze_app/src/components/list.dart';
+import 'package:ze_app/src/components/timeline.dart';
+export 'package:ze_app/src/components/timeline.dart';
+import 'package:ze_app/src/components/progress.dart';
+export 'package:ze_app/src/components/progress.dart';
+import 'package:ze_app/src/components/confirm.dart';
+export 'package:ze_app/src/components/confirm.dart';
+import 'package:ze_app/src/components/form.dart';
+export 'package:ze_app/src/components/form.dart';
 import 'package:ze_app/src/components/table_component.dart';
-import 'package:ze_app/src/components/table_component.dart';
+export 'package:ze_app/src/components/table_component.dart';
 import 'package:ze_app/src/components/metric_component.dart';
+export 'package:ze_app/src/components/metric_component.dart';
 import 'package:ze_app/src/components/list_component.dart';
+export 'package:ze_app/src/components/list_component.dart';
 import 'package:ze_app/src/components/timeline_component.dart';
+export 'package:ze_app/src/components/timeline_component.dart';
 import 'package:ze_app/src/components/progress_component.dart';
+export 'package:ze_app/src/components/progress_component.dart';
 import 'package:ze_app/src/components/confirm_component.dart';
+export 'package:ze_app/src/components/confirm_component.dart';
 import 'package:ze_app/src/components/form_component.dart';
+export 'package:ze_app/src/components/form_component.dart';
 import 'package:ze_app/src/components/card_component.dart';
+export 'package:ze_app/src/components/card_component.dart';
 
 // Dispatches JSON to the correct component class based on the 'type' field.
 dynamic componentFromJson(Map<String, dynamic> json) =>

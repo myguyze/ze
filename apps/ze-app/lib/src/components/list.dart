@@ -14,4 +14,4 @@ class ListItem with _$ListItem {
 
   factory ListItem.fromJson(Map<String, dynamic> json) =>
       _$ListItemFromJson(json);
-}}
+}

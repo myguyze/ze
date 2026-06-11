@@ -8,9 +8,9 @@ part 'progress.g.dart';
 class ProgressStep with _$ProgressStep {
   const factory ProgressStep({
     required String label,
-    String? status,
+     @Default('pending')String status,
   }) = _ProgressStep;
 
   factory ProgressStep.fromJson(Map<String, dynamic> json) =>
       _$ProgressStepFromJson(json);
-}}
+}
