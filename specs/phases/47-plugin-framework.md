@@ -2,7 +2,7 @@
 
 > **Packages:** `ze_core` (plugin ABC), `ze_api` (bootstrapper, container)
 > **Phase:** 47
-> **Status:** In Progress (lifecycle hooks + entry points shipped; full DI deferred)
+> **Status:** In Progress (DI auto-discovery shipped; schema validation + tool namespacing deferred)
 
 ---
 
@@ -16,11 +16,11 @@
 | Bootstrapper startup/shutdown wiring in `container.py` | ✅ Done |
 | Bootstrapper discovery logging | ✅ Done |
 | Missing module paths moved into plugin `agent_module_paths()` | ✅ Done |
-| Entry point discovery in bootstrapper (auto-instantiate from entry points) | 🔲 Deferred — requires full plugin DI via `_resolve()` |
-| Plugin-scoped DI via extended `_resolve()` (plugin constructor from `_dep_map`) | 🔲 Deferred — requires moving service construction into plugin `__init__` |
+| Entry point discovery in bootstrapper (auto-instantiate from entry points) | ✅ Done — `discover_plugins()` reads entry points, instantiates via `_resolve()` |
+| Plugin-scoped DI via extended `_resolve()` (plugin constructor from `_dep_map`) | ✅ Done — `_resolve()` handles Optional types and default params; all plugin constructors take only dep_map types |
 | Schema readiness validation | 🔲 Deferred — see Open Questions |
 | Tool registry namespacing | 🔲 Deferred — breaking change, see Open Questions |
-| Tests | ✅ All 165 existing tests passing |
+| Tests | ✅ All 171 existing tests passing |
 
 ---
 

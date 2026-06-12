@@ -22,7 +22,7 @@ class WorkflowScheduler:
     def __init__(
         self,
         workflow_store: WorkflowStore,
-        executor: WorkflowExecutor,
+        executor: WorkflowExecutor | None = None,
         enabled: bool = True,
         on_failure: WorkflowFailureHandler | None = None,
     ) -> None:
@@ -31,6 +31,20 @@ class WorkflowScheduler:
         self._enabled = enabled
         self._on_failure = on_failure
         self._scheduler = AsyncIOScheduler()
+
+    def configure_executor(
+        self,
+        executor: WorkflowExecutor,
+        on_failure: WorkflowFailureHandler | None = None,
+    ) -> None:
+        """Set (or replace) the executor and failure handler after construction.
+
+        Called by PersonalPlugin.startup() once the workflow graph is available.
+        Must be called before start().
+        """
+        self._executor = executor
+        if on_failure is not None:
+            self._on_failure = on_failure
 
     async def start(self) -> None:
         if not self._enabled:

@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
+import types as _types
+import typing
 from typing import Any, get_type_hints
 
 import asyncpg
@@ -37,6 +39,46 @@ _DEFAULT_AGENT_MODULE_PATHS = [
 ]
 
 _dep_map: dict[type, Any] = {}
+
+
+def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
+    """Load and instantiate all Ze plugins declared via entry points.
+
+    Reads ``[project.entry-points."ze.plugins"]`` from every installed package,
+    loads each class, and instantiates it via ``_resolve()`` using the provided
+    (or module-level) dep_map.
+
+    Returns the ordered list of plugin instances. Logs every discovered and
+    instantiated plugin at INFO level.
+    """
+    from importlib.metadata import entry_points
+
+    effective_deps = dep_map if dep_map is not None else _dep_map
+    discovered: list[ZePlugin] = []
+
+    for ep in entry_points(group="ze.plugins"):
+        log.info("plugin_discovered", name=ep.name, value=ep.value)
+        try:
+            cls = ep.load()
+        except Exception as exc:
+            log.error("plugin_load_failed", name=ep.name, error=str(exc))
+            raise AgentConfigError(
+                f"Failed to load plugin entry point {ep.name!r}: {exc}"
+            ) from exc
+
+        if not (isinstance(cls, type) and issubclass(cls, ZePlugin)):
+            raise AgentConfigError(
+                f"Entry point {ep.name!r} points to {cls!r}, "
+                f"which is not a ZePlugin subclass."
+            )
+
+        instance = _resolve(cls, effective_deps)
+        log.info("plugin_instantiated", name=ep.name, cls=cls.__qualname__)
+        discovered.append(instance)
+
+    if not discovered:
+        log.warning("no_plugins_discovered")
+    return discovered
 
 
 def bootstrap_agents(
@@ -104,8 +146,8 @@ def bootstrap_agents(
         ("ze_personal.workflow.planner.WorkflowPlanner", workflow_planner),
         ("ze_personal.workflow.scheduler.WorkflowScheduler", workflow_scheduler),
         ("ze_calendar.reminders.store.ReminderStore", reminder_store),
-        ("ze_core.proactive.notifier.ProactiveNotifier", notifier),
         ("ze_proactive.notifier.ProactiveNotifier", notifier),
+        ("ze_proactive.push_log_store.PushLogStore", notifier and getattr(notifier, "_push_log_store", None)),
         ("ze_personal.contacts.store.PersonStore", person_store),
         ("ze_browser.BrowserClient", browser_client),
         ("ze_personal.contacts.channel_store.ContactChannelStore", contact_channel_store),
@@ -236,8 +278,43 @@ def reload_agent_modules(plugins: list | None = None) -> None:
         importlib.import_module(module_path)
 
 
-def _resolve(cls: type) -> object:
-    """Instantiate cls by matching __init__ parameter types against _dep_map."""
+def _resolve_annotation(annotation: Any, dep_map: dict) -> tuple[bool, Any]:
+    """Resolve an annotation against dep_map, handling Optional[T] / T | None.
+
+    Returns (found, value). When found=False the caller should check the param
+    default and either skip or raise.
+    """
+    if annotation in dep_map:
+        return True, dep_map[annotation]
+
+    # Handle Optional[T] (typing.Union[T, None]) and T | None (3.10+ union).
+    origin = getattr(annotation, "__origin__", None)
+    args = getattr(annotation, "__args__", ())
+
+    is_optional_union = (
+        (origin is typing.Union and type(None) in args)
+        or (isinstance(annotation, _types.UnionType) and type(None) in args)
+    )
+    if is_optional_union:
+        inner_types = [a for a in args if a is not type(None)]
+        for inner in inner_types:
+            if inner in dep_map:
+                return True, dep_map[inner]
+        # Inner type not registered — treat as missing (caller handles default).
+        return False, None
+
+    return False, None
+
+
+def _resolve(cls: type, dep_map: dict | None = None) -> object:
+    """Instantiate cls by matching __init__ parameter types against dep_map.
+
+    Parameters with defaults are skipped when their type is not registered —
+    the default value is used instead. This supports Optional[T] and T | None
+    annotations, including GoogleCredentials | None patterns used in plugins.
+    """
+    effective = dep_map if dep_map is not None else _dep_map
+
     try:
         hints = get_type_hints(cls.__init__)
     except Exception as exc:
@@ -249,19 +326,30 @@ def _resolve(cls: type) -> object:
     kwargs: dict[str, Any] = {}
 
     for param_name, param in sig.parameters.items():
-        if param_name == "self":
+        if param_name in ("self", "args", "kwargs"):
             continue
+        if param.kind in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        ):
+            continue
+
         annotation = hints.get(param_name)
         if annotation is None:
             raise AgentConfigError(
                 f"{cls.__name__}.__init__ parameter {param_name!r} has no type annotation"
             )
-        if annotation not in _dep_map:
+
+        found, value = _resolve_annotation(annotation, effective)
+        if found:
+            kwargs[param_name] = value
+        elif param.default is not inspect.Parameter.empty:
+            pass  # use the declared default — don't add to kwargs
+        else:
             raise AgentConfigError(
                 f"No dependency registered for type {annotation!r} "
                 f"(required by {cls.__name__}). "
-                f"Add it to _dep_map before calling bootstrap_agents()."
+                f"Add it to the dep_map before calling bootstrap_agents()."
             )
-        kwargs[param_name] = _dep_map[annotation]
 
     return cls(**kwargs)

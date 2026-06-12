@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import Any
+
 import asyncpg
 
 from ze_agents.logging import get_logger
 from ze_agents.plugin import ZePlugin
+from ze_agents.settings import Settings as CoreSettings
 from ze_sdk.proactive import ProactiveScheduler
-from ze_agents.settings import Settings
 from ze_prospecting.jobs.campaigns import recover_stale_campaigns
 from ze_prospecting.store import ProspectCampaignStore
 from ze_prospecting.types import ProspectingSettings
@@ -18,11 +20,26 @@ class ProspectingPlugin(ZePlugin):
 
     def __init__(
         self,
+        *,
         pool: asyncpg.Pool,
-        prospecting_settings: ProspectingSettings | None = None,
+        settings: CoreSettings,
     ) -> None:
         self._pool = pool
-        self._prospecting_settings = prospecting_settings or ProspectingSettings.from_env()
+        prospecting_cfg = settings.config.get("prospecting", {})
+        if prospecting_cfg:
+            self._prospecting_settings = ProspectingSettings(
+                max_iterations=int(prospecting_cfg.get("max_iterations", 15)),
+                max_loop_tokens=int(prospecting_cfg.get("max_loop_tokens", 24_000)),
+                stale_timeout_minutes=int(
+                    prospecting_cfg.get("stale_timeout_minutes", 10)
+                ),
+                browser_delay_ms=int(prospecting_cfg.get("browser_delay_ms", 2000)),
+                browser_max_text_chars=int(
+                    prospecting_cfg.get("browser_max_text_chars", 8000)
+                ),
+            )
+        else:
+            self._prospecting_settings = ProspectingSettings.from_env()
         self.campaign_store = ProspectCampaignStore(pool=pool)
 
     def agent_module_paths(self) -> list[str]:
@@ -35,7 +52,7 @@ class ProspectingPlugin(ZePlugin):
     def register_proactive_jobs(
         self,
         scheduler: ProactiveScheduler,
-        settings: Settings,
+        settings: CoreSettings,
         *,
         consolidation_enabled: bool = True,
     ) -> None:
@@ -44,18 +61,22 @@ class ProspectingPlugin(ZePlugin):
         timeout = self._prospecting_settings.stale_timeout_minutes
         pool = self._pool
 
-        async def _recover_stale_campaigns() -> None:
+        async def _recover() -> None:
             await recover_stale_campaigns(pool, timeout)
 
         scheduler.add_cron_job(
-            fn=_recover_stale_campaigns,
+            fn=_recover,
             cron="*/15 * * * *",
             job_id="recover_stale_campaigns",
         )
         log.info("stale_campaign_recovery_scheduled")
 
-    async def recover_stale_on_startup(self) -> None:
+    async def startup(self, container: Any) -> None:
         await recover_stale_campaigns(
             self._pool,
             self._prospecting_settings.stale_timeout_minutes,
         )
+        log.info("stale_campaigns_checked")
+
+    async def shutdown(self) -> None:
+        await self.campaign_store.fail_all_running()

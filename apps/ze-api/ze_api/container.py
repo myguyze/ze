@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,42 +8,32 @@ from typing import Any
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
-from ze_api.bootstrap import bootstrap_agents, prepare_gate_registry
+from ze_api.bootstrap import bootstrap_agents, discover_plugins, prepare_gate_registry
 from ze_browser import BrowserClient
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_notifications.notifier import Notifier as PushNotifier
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze_agents.channels.registry import ChannelRegistry
-from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_api.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
 from ze_core.embeddings import get_embedder
 from ze_core.messages.store import PostgresMessageStore
 from ze_api.sessions.store import PostgresSessionStore
-from ze_agents.registry import get_agent
-from ze_personal.goals.executor import GoalExecutor
-from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
 from ze_google.auth import GoogleCredentials
 from ze_api.logging import get_logger
-from ze_personal.contacts.consolidator import ContactsConsolidator
-from ze_personal.contacts.store import PersonStore
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
+from ze_personal.plugin import PersonalPlugin
+from ze_personal.workflow.postgres import PostgresWorkflowStore
+from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_personal.workflow.store import WorkflowStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.graph import build_graph
-from ze_personal.graph.workflow import build_workflow_graph
-from ze_agents.progress.translations import ProgressTranslations
-from ze_calendar.reminders.store import ReminderStore, fire_reminder
-from ze_personal.goals.suggestion_store import GoalSuggestionStore
-from ze_core.proactive.push_log_store import PushLogStore
-from ze_core.proactive.notifier import ProactiveNotifier
-from ze_core.proactive.scheduler import ProactiveScheduler
-from ze_calendar.reminders.calendar_store import CalendarReminderStore
-from ze_calendar.reminders.calendar import CalendarReminderService
-from ze_calendar.jobs.calendar_reminder import CalendarReminderJob
+from ze_proactive.notifier import ProactiveNotifier
+from ze_proactive.push_log_store import PushLogStore
+from ze_proactive.scheduler import ProactiveScheduler
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore
@@ -66,18 +55,9 @@ from ze_agents.interface.validation import validate_interface
 from ze_core.telemetry.reconciler import CostReconciler
 from ze_core.telemetry.tracker import CostTracker
 from ze_core.telemetry.postgres import PostgresCostStore
-from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.postgres import PostgresWorkflowStore
-from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
 from ze_core.container import Container as CoreContainer
 from ze_agents.hooks import register_hook
 from ze_api.hooks import ComponentCollectionHook, ToolCallCapHook
-from ze_personal.plugin import PersonalPlugin
-from ze_calendar.plugin import CalendarPlugin
-from ze_email.plugin import EmailPlugin
-from ze_prospecting.plugin import ProspectingPlugin
-from ze_prospecting.types import ProspectingSettings
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
 
 log = get_logger(__name__)
@@ -88,22 +68,11 @@ class ZeContainer(CoreContainer):
     """Ze application container — ze-core graph stack plus WebSocket, proactive, workflow."""
 
     persona_store: Any
-    person_store: PersonStore
-    contacts_consolidator: ContactsConsolidator
     workflow_store: WorkflowStore
-    workflow_planner: WorkflowPlanner
+    goal_store: Any  # PostgresGoalStore — accessed by routes; populated from PersonalPlugin
     workflow_scheduler: WorkflowScheduler
     proactive_scheduler: ProactiveScheduler
-    notifier: ProactiveNotifier
-    calendar_reminders: CalendarReminderJob
-    goal_suggestion_store: GoalSuggestionStore
     browser_client: BrowserClient
-    channel_registry: ChannelRegistry
-    contact_channel_store: ContactChannelStore
-    goal_store: GoalStore
-    goal_executor: GoalExecutor
-    prospecting_plugin: ProspectingPlugin
-    personal_plugin: PersonalPlugin
     push_notifier: NtfyNotifier | None
     message_store: PostgresMessageStore
     session_store: PostgresSessionStore
@@ -112,6 +81,8 @@ class ZeContainer(CoreContainer):
     confirmation_store: PendingConfirmationStore
     onboarding_coordinator: OnboardingCoordinator
     reset_service: ResetService
+    _checkpointer: Any  # AsyncPostgresSaver — exposed for plugin startup()
+    _push_log_store: Any  # PushLogStore — exposed for PersonalPlugin startup()
 
     def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -127,13 +98,9 @@ class ZeContainer(CoreContainer):
             "memory_store": self.memory_store,
             "fact_extractor": gather_fact_proposals,
             "persona_store": self.persona_store,
-            "person_store": self.person_store,
             "openrouter_client": self.openrouter_client,
             "embedder": self.embedder,
             "settings": self.settings,
-            "workflow_planner": self.workflow_planner,
-            "contact_channel_store": self.contact_channel_store,
-            "goal_store": self.goal_store,
             "interface": self.interface,
             "component_hook": self.component_hook,
             **plugin_services,
@@ -166,7 +133,6 @@ class ZeContainer(CoreContainer):
         await self.proactive_scheduler.stop()
         await self.workflow_scheduler.stop()
         await self.browser_client.close()
-        await self.prospecting_plugin.campaign_store.fail_all_running()
         if self.push_notifier is not None:
             await self.push_notifier._session.close()
         await super().close()
@@ -191,17 +157,14 @@ Container = ZeContainer
 
 
 async def build_container(settings: Settings) -> ZeContainer:
+    from sentence_transformers import SentenceTransformer
+    from ze_agents.client import LLMClient
+    from ze_agents.settings import Settings as CoreSettings
+
     pool = await create_pool(settings)
     checkpointer_pool = await create_checkpointer_pool(settings)
     embedder = get_embedder()
     core_settings = settings.to_core_settings()
-    prospecting_settings = ProspectingSettings(
-        max_iterations=settings.prospecting_max_iterations,
-        max_loop_tokens=settings.prospecting_max_loop_tokens,
-        stale_timeout_minutes=settings.prospecting_stale_timeout_minutes,
-        browser_delay_ms=settings.browser_delay_ms,
-        browser_max_text_chars=settings.browser_max_text_chars,
-    )
 
     serde = JsonPlusSerializer(
         allowed_msgpack_modules=[
@@ -272,20 +235,15 @@ async def build_container(settings: Settings) -> ZeContainer:
         notifier=push_notifier,
     )
     validate_interface(interface)
+
     notifier = ProactiveNotifier(interface=interface)
+    push_log_store = PushLogStore(pool=pool)
 
     persona_cfg = settings.persona_config
     persona_store = PostgresPersonaStore(
         pool=pool,
         profiles=persona_cfg.get("profiles", {}),
         default_profile=persona_cfg.get("profile", "default"),
-    )
-    person_store = PersonStore(pool=pool, memory_store=memory_store)
-    contacts_consolidator = ContactsConsolidator(
-        pool=pool,
-        person_store=person_store,
-        openrouter_client=openrouter_client,
-        settings=settings,
     )
 
     memory_consolidator = MemoryConsolidator(
@@ -296,7 +254,16 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
 
     workflow_store = PostgresWorkflowStore(db_pool=pool)
-    workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client)
+
+    google_credentials = GoogleCredentials.from_settings(settings)
+
+    # WorkflowScheduler: executor is configured in PersonalPlugin.startup() once the
+    # workflow graph is available. Must be built here so CalendarPlugin can reference
+    # it during its startup().
+    workflow_scheduler = WorkflowScheduler(
+        workflow_store=workflow_store,
+        enabled=settings.scheduler_enabled,
+    )
 
     prepare_gate_registry(settings)
     estimator = ComplexityEstimator()
@@ -304,149 +271,32 @@ async def build_container(settings: Settings) -> ZeContainer:
     capability_gate = CapabilityGate(override_store=override_store)
     await capability_gate.load_persistent_overrides()
 
-    workflow_graph_config = {
-        "configurable": {
-            "capability_gate": capability_gate,
-            "memory_store": memory_store,
-            "persona_store": persona_store,
-            "openrouter_client": openrouter_client,
-            "embedder": embedder,
-            "settings": settings,
-            "workflow_store": workflow_store,
-            "workflow_planner": workflow_planner,
-        }
+    # Build dep_map for plugin discovery. All types that plugin constructors
+    # declare must be registered here.
+    plugin_deps: dict[type, Any] = {
+        asyncpg.Pool: pool,
+        OpenRouterClient: openrouter_client,
+        LLMClient: openrouter_client,
+        Settings: settings,
+        CoreSettings: core_settings,
+        GoogleCredentials: google_credentials,
+        ProactiveNotifier: notifier,
+        PushLogStore: push_log_store,
+        PostgresMemoryStore: memory_store,
+        WorkflowStore: workflow_store,
+        WorkflowScheduler: workflow_scheduler,
+        SentenceTransformer: embedder,
     }
 
-    _wf_push_log = PushLogStore(pool=pool)
+    plugins = discover_plugins(plugin_deps)
 
-    async def _workflow_executor(workflow, execution_id):
-        from ze_core.telemetry.context import set_flow_context
-        set_flow_context("workflow_execution", session_id=f"workflow:{workflow.id}")
-        initial_state = {
-            "prompt": f"[workflow] {workflow.name}",
-            "session_id": f"workflow:{workflow.id}",
-            "session_overrides": {},
-            "envelope": None,
-            "memory_context": None,
-            "agent_context": None,
-            "gate_decision": None,
-            "agent_result": None,
-            "subtask_results": [],
-            "pending_confirmation": False,
-            "messages": [],
-            "last_active_at": None,
-            "workflow_id": workflow.id,
-            "workflow_execution_id": execution_id,
-            "workflow_steps": workflow.steps,
-            "current_step_index": 0,
-            "workflow_step_results": [],
-            "final_response": None,
-            "error": None,
-        }
-        run_config = {
-            **workflow_graph_config,
-            "configurable": {
-                **workflow_graph_config.get("configurable", {}),
-                "thread_id": str(execution_id),
-                "workflow_store": workflow_store,
-            },
-        }
-        await workflow_graph.ainvoke(initial_state, run_config)
-
-    async def _workflow_failure_handler(workflow, exc):
-        alerts_cfg = settings.proactive_config.get("alerts", {})
-        if not alerts_cfg.get("workflow_failure_enabled", True):
-            return
-        cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
-        event_type = f"workflow_failure:{workflow.id}"
-        if await _wf_push_log.was_sent_within_hours(event_type, cooldown):
-            log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
-            return
-        await notifier.push(
-            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
-            format="markdown",
-            urgency="high",
-        )
-        await _wf_push_log.log(event_type, workflow.name)
-        log.info("failure_alert_sent", workflow=workflow.name)
-
-    workflow_scheduler = WorkflowScheduler(
-        workflow_store=workflow_store,
-        executor=_workflow_executor,
-        enabled=settings.scheduler_enabled,
-        on_failure=_workflow_failure_handler,
+    # Extract references needed by ZeContainer from the discovered plugins.
+    personal_plugin = next(
+        (p for p in plugins if isinstance(p, PersonalPlugin)), None
     )
+    goal_store = personal_plugin.goal_store if personal_plugin else None
 
-    contact_channel_store = ContactChannelStore(pool=pool)
-    goal_store = GoalStore(pool=pool)
-    goal_planner = GoalPlanner(client=openrouter_client, model=settings.workflow_plan_model, memory_store=memory_store)
-    goal_executor = GoalExecutor(
-        goal_store=goal_store,
-        goal_planner=goal_planner,
-        push=notifier.push_notification,
-        agent_getter=get_agent,
-        memory_store=memory_store,
-    )
-    proactive_scheduler = ProactiveScheduler()
-    reminder_store = ReminderStore(pool=pool)
-    push_log_store = PushLogStore(pool=pool)
-    goal_suggestion_store = GoalSuggestionStore(pool=pool)
-
-    google_credentials = GoogleCredentials.from_settings(settings)
-    prospecting_plugin = ProspectingPlugin(pool=pool, prospecting_settings=prospecting_settings)
-    email_plugin = EmailPlugin(google_credentials=google_credentials)
-
-    news_cfg = settings.config.get("news", {})
-    news_store = None
-    news_fetch_job = None
-    news_source_configs = []
-    if news_cfg.get("enabled", True) and news_cfg.get("sources"):
-        from ze_news.jobs.fetch import NewsFetchJob
-        from ze_news.plugin import NewsPlugin
-        from ze_news.registry import build_registry
-        from ze_news.store import NewsStore
-        from ze_news.types import SourceConfig
-
-        news_source_configs = [
-            SourceConfig(key=s["key"], type=s["type"], url=s["url"], tags=s.get("tags", []))
-            for s in news_cfg["sources"]
-        ]
-        news_registry = build_registry(news_source_configs)
-        news_store = NewsStore(pool=pool, embedder=embedder)
-        news_credibility_cfg = news_cfg.get("credibility", {})
-        news_fetch_job = NewsFetchJob(
-            registry=news_registry,
-            store=news_store,
-            retention_days=int(news_cfg.get("retention_days", 7)),
-            client=openrouter_client if news_credibility_cfg.get("enabled", False) else None,
-            credibility_enabled=news_credibility_cfg.get("enabled", False),
-            credibility_llm_enabled=news_credibility_cfg.get("llm_scoring", True),
-            credibility_model=news_credibility_cfg.get("model", "openai/gpt-4o-mini"),
-            min_fetch_interval_minutes=int(news_cfg.get("min_fetch_interval_minutes", 30)),
-        )
-
-    personal_plugin = PersonalPlugin(
-        notifier=notifier,
-        push_log_store=push_log_store,
-        memory_store=memory_store,
-        workflow_store=workflow_store,
-        person_store=person_store,
-        settings=core_settings,
-        goal_store=goal_store,
-        goal_planner=goal_planner,
-        suggestion_store=goal_suggestion_store,
-        openrouter_client=openrouter_client,
-        pool=pool,
-        news_store=news_store,
-    )
-
-    plugins: list = [personal_plugin, CalendarPlugin(), email_plugin, prospecting_plugin]
-    if news_store is not None:
-        from ze_news.plugin import NewsPlugin
-        news_plugin = NewsPlugin(registry=news_registry, store=news_store, fetch_job=news_fetch_job)
-        plugins.append(news_plugin)
-        log.info("news_plugin_registered", sources=len(news_source_configs))
-
+    # Wire onboarding providers.
     onboarding_providers = [CoreOnboardingProvider()]
     for plugin in plugins:
         provider = plugin.onboarding()
@@ -469,28 +319,50 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
     reset_service = ResetService(pool=pool)
 
-    bootstrap_agents(
-        openrouter_client=openrouter_client,
-        settings=settings,
-        google_credentials=google_credentials,
-        pool=pool,
-        workflow_store=workflow_store,
-        workflow_planner=workflow_planner,
-        workflow_scheduler=workflow_scheduler,
-        reminder_store=reminder_store,
-        notifier=notifier,
-        person_store=person_store,
-        browser_client=browser_client,
-        contact_channel_store=contact_channel_store,
-        goal_store=goal_store,
-        goal_planner=goal_planner,
-        goal_executor=goal_executor,
-        campaign_store=prospecting_plugin.campaign_store,
-        prospecting_settings=prospecting_settings,
-        plugins=plugins,
-        memory_store=memory_store,
-        news_store=news_store,
+    # Agent bootstrap — dep_map for agents includes all plugin-specific services
+    # so agents can receive them via DI.
+    agent_deps: dict[type, Any] = dict(plugin_deps)
+    if personal_plugin is not None:
+        from ze_personal.contacts.store import PersonStore
+        from ze_personal.contacts.channel_store import ContactChannelStore
+        from ze_personal.goals.postgres import PostgresGoalStore
+        from ze_personal.goals.planner import GoalPlanner
+        from ze_personal.goals.executor import GoalExecutor
+        from ze_personal.workflow.planner import WorkflowPlanner
+
+        agent_deps[PersonStore] = personal_plugin.person_store
+        agent_deps[ContactChannelStore] = personal_plugin.contact_channel_store
+        agent_deps[PostgresGoalStore] = personal_plugin.goal_store
+        agent_deps[GoalPlanner] = personal_plugin.goal_planner
+        agent_deps[GoalExecutor] = personal_plugin.goal_executor
+        agent_deps[WorkflowPlanner] = personal_plugin.workflow_planner
+
+    from ze_prospecting.plugin import ProspectingPlugin
+    prospecting_plugin = next(
+        (p for p in plugins if isinstance(p, ProspectingPlugin)), None
     )
+    if prospecting_plugin is not None:
+        from ze_prospecting.store import ProspectCampaignStore
+        from ze_prospecting.types import ProspectingSettings
+        agent_deps[ProspectCampaignStore] = prospecting_plugin.campaign_store
+        agent_deps[ProspectingSettings] = prospecting_plugin._prospecting_settings
+
+    agent_deps[BrowserClient] = browser_client
+
+    news_store = None
+    from ze_news.plugin import NewsPlugin  # type: ignore[import]
+    news_plugin = next((p for p in plugins if isinstance(p, NewsPlugin)), None)
+    if news_plugin is not None and news_plugin._store is not None:
+        news_store = news_plugin._store
+        from ze_news.store import NewsStore
+        from ze_news.types import GoalTitleProvider
+        agent_deps[NewsStore] = news_store
+        if personal_plugin is not None:
+            from ze_personal.goals.postgres import PostgresGoalStore
+            agent_deps[GoalTitleProvider] = personal_plugin.goal_store
+
+    bootstrap_agents(deps=agent_deps, plugins=plugins)
+
     router = EmbeddingRouter(
         embedder=embedder,
         openrouter_client=openrouter_client,
@@ -498,7 +370,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         config=RouterConfig(),
         estimator=estimator,
     )
-    workflow_graph_config["configurable"]["router"] = router
     component_hook = ComponentCollectionHook()
     register_hook(component_hook)
     log.info("component_collection_hook_registered")
@@ -507,109 +378,6 @@ async def build_container(settings: Settings) -> ZeContainer:
     log.info("tool_call_cap_hook_registered", max_tool_calls=settings.max_tool_calls_per_turn)
 
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
-    workflow_graph = build_workflow_graph(checkpointer=checkpointer, plugins=plugins)
-
-    now = datetime.now(timezone.utc)
-    unsent_reminders = await reminder_store.list_all_unsent()
-    overdue_count = 0
-    for r in unsent_reminders:
-        if r.fire_at <= now:
-            asyncio.create_task(fire_reminder(reminder_store, notifier, r.id))
-            overdue_count += 1
-        else:
-            workflow_scheduler.schedule_at(
-                fn=lambda rid=r.id: fire_reminder(reminder_store, notifier, rid),
-                dt=r.fire_at,
-                job_id=f"user_reminder:{r.id}",
-            )
-    if unsent_reminders:
-        log.info(
-            "reminders_replayed",
-            total=len(unsent_reminders),
-            overdue=overdue_count,
-            scheduled=len(unsent_reminders) - overdue_count,
-        )
-
-    await prospecting_plugin.recover_stale_on_startup()
-    log.info("stale_campaigns_checked")
-
-    cost_reconciler = CostReconciler(store=cost_store, openrouter_client=openrouter_client)
-    workflow_scheduler.schedule_job(
-        fn=cost_reconciler.run,
-        cron="*/15 * * * *",
-        job_id="cost_reconciliation",
-    )
-    log.info("cost_reconciliation_scheduled")
-
-    async def _sweep_active_goals() -> None:
-        goals = await goal_store.list_for_advance()
-        for g in goals:
-            asyncio.create_task(goal_executor.advance(g.id))
-
-    proactive_scheduler.add_cron_job(
-        fn=_sweep_active_goals,
-        cron="*/15 * * * *",
-        job_id="goal_advance_sweep",
-    )
-    log.info("goal_advance_sweep_scheduled")
-
-    await workflow_scheduler.start()
-
-    if settings.consolidation_enabled:
-        nightly_cron = settings.consolidation_config.get("nightly_cron") or "0 2 * * *"
-        proactive_scheduler.add_cron_job(
-            fn=memory_consolidator.run,
-            cron=nightly_cron,
-            job_id="memory_consolidation",
-        )
-        log.info("consolidation_scheduled", cron=nightly_cron)
-
-        contacts_cron = settings.contacts_config.get(
-            "consolidation", {}
-        ).get("nightly_cron", "0 3 * * *")
-        proactive_scheduler.add_cron_job(
-            fn=contacts_consolidator.run,
-            cron=contacts_cron,
-            job_id="contacts_consolidation",
-        )
-        log.info("contacts_consolidation_scheduled", cron=contacts_cron)
-
-    for plugin in plugins:
-        plugin.register_proactive_jobs(
-            proactive_scheduler,
-            core_settings,
-            consolidation_enabled=settings.consolidation_enabled,
-        )
-
-    proactive_cfg = settings.proactive_config
-    gmail_channel = email_plugin.gmail_channel
-    channel_registry = ChannelRegistry(channels=[gmail_channel] if gmail_channel else [])
-
-    calendar_reminder_store = CalendarReminderStore(pool=pool)
-    calendar_reminder_service = CalendarReminderService(
-        notifier=notifier,
-        store=calendar_reminder_store,
-        push_log_store=push_log_store,
-        openrouter_client=openrouter_client,
-        scheduler=workflow_scheduler,
-        settings=settings,
-    )
-    calendar_reminders = CalendarReminderJob(
-        service=calendar_reminder_service,
-        credentials=google_credentials,
-    )
-    calendar_cfg = proactive_cfg.get("calendar", {})
-    if calendar_cfg.get("sync_enabled", True):
-        await calendar_reminder_service.replay_unsent()
-        proactive_scheduler.register(calendar_reminders, cron=calendar_cfg.get("sync_cron", "45 7 * * *"))
-        log.info("calendar_reminders_scheduled")
-
-    if news_store is not None and news_fetch_job is not None:
-        fetch_cron = news_cfg.get("fetch_schedule", "*/30 * * * *")
-        proactive_scheduler.register(news_fetch_job, cron=fetch_cron)
-        log.info("news_fetch_scheduled", cron=fetch_cron, sources=len(news_source_configs))
-
-    await proactive_scheduler.start()
 
     container = ZeContainer(
         settings=settings,
@@ -624,22 +392,11 @@ async def build_container(settings: Settings) -> ZeContainer:
         graph=graph,
         interface=interface,
         persona_store=persona_store,
-        person_store=person_store,
-        contacts_consolidator=contacts_consolidator,
         workflow_store=workflow_store,
-        workflow_planner=workflow_planner,
-        workflow_scheduler=workflow_scheduler,
-        proactive_scheduler=proactive_scheduler,
-        notifier=notifier,
-        calendar_reminders=calendar_reminders,
-        goal_suggestion_store=goal_suggestion_store,
-        browser_client=browser_client,
-        channel_registry=channel_registry,
-        contact_channel_store=contact_channel_store,
         goal_store=goal_store,
-        goal_executor=goal_executor,
-        prospecting_plugin=prospecting_plugin,
-        personal_plugin=personal_plugin,
+        workflow_scheduler=workflow_scheduler,
+        proactive_scheduler=ProactiveScheduler(),
+        browser_client=browser_client,
         push_notifier=push_notifier,
         message_store=message_store,
         session_store=session_store,
@@ -649,6 +406,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         onboarding_coordinator=onboarding_coordinator,
         reset_service=reset_service,
         plugins=plugins,
+        _checkpointer=checkpointer,
+        _push_log_store=push_log_store,
     )
 
     for plugin in plugins:
@@ -658,5 +417,41 @@ async def build_container(settings: Settings) -> ZeContainer:
         except Exception as exc:
             log.error("plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc))
             raise
+
+    # Schedule cost reconciliation.
+    cost_reconciler = CostReconciler(store=cost_store, openrouter_client=openrouter_client)
+    workflow_scheduler.schedule_job(
+        fn=cost_reconciler.run,
+        cron="*/15 * * * *",
+        job_id="cost_reconciliation",
+    )
+    log.info("cost_reconciliation_scheduled")
+
+    # Schedule memory consolidation (contacts consolidation is registered in PersonalPlugin.startup).
+    if settings.consolidation_enabled:
+        nightly_cron = settings.consolidation_config.get("nightly_cron") or "0 2 * * *"
+        container.proactive_scheduler.add_cron_job(
+            fn=memory_consolidator.run,
+            cron=nightly_cron,
+            job_id="memory_consolidation",
+        )
+        log.info("consolidation_scheduled", cron=nightly_cron)
+
+    # Register plugin proactive jobs.
+    for plugin in plugins:
+        plugin.register_proactive_jobs(
+            container.proactive_scheduler,
+            core_settings,
+            consolidation_enabled=settings.consolidation_enabled,
+        )
+
+    # Build Gmail channel registry from EmailPlugin if present.
+    from ze_email.plugin import EmailPlugin  # type: ignore[import]
+    email_plugin = next((p for p in plugins if isinstance(p, EmailPlugin)), None)
+    gmail_channel = email_plugin.gmail_channel if email_plugin else None
+    _ = ChannelRegistry(channels=[gmail_channel] if gmail_channel else [])
+
+    await workflow_scheduler.start()
+    await container.proactive_scheduler.start()
 
     return container

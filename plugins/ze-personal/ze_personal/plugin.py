@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING
 
 import asyncpg
 
+from ze_agents.client import LLMClient
 from ze_agents.logging import get_logger
 from ze_agents.plugin import ZePlugin
-from ze_sdk.proactive import ProactiveNotifier
-from ze_sdk.proactive import PushLogStore
-from ze_sdk.proactive import ProactiveScheduler
-from ze_agents.settings import Settings
-from ze_agents.client import LLMClient
+from ze_agents.registry import get_agent
+from ze_agents.settings import Settings as CoreSettings
+from ze_proactive.notifier import ProactiveNotifier
+from ze_proactive.push_log_store import PushLogStore
+from ze_proactive.scheduler import ProactiveScheduler
 from ze_sdk.memory import PostgresMemoryStore
+from ze_personal.contacts.channel_store import ContactChannelStore
+from ze_personal.contacts.consolidator import ContactsConsolidator
 from ze_personal.contacts.store import PersonStore
+from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
 from ze_personal.goals.suggestion_store import GoalSuggestionStore
@@ -26,7 +31,10 @@ from ze_personal.jobs.goal_narrative import GoalNarrativeJob
 from ze_personal.jobs.goal_suggestion import GoalSuggestionJob
 from ze_personal.jobs.insights import InsightEngine
 from ze_personal.jobs.stuck_goals import StuckGoalJob
+from ze_personal.workflow.planner import WorkflowPlanner
+from ze_personal.workflow.postgres import PostgresWorkflowStore
 from ze_personal.workflow.store import WorkflowStore
+from ze_personal.workflow.scheduler import WorkflowScheduler
 
 if TYPE_CHECKING:
     from ze_sdk.memory import MemoryStore
@@ -37,54 +45,58 @@ log = get_logger(__name__)
 class PersonalPlugin(ZePlugin):
     """Domain plugin that wires the personal-assistant layer into ze_core graphs.
 
-    Contributes:
-    - identity_builder: builds the persona/memory context block injected into agent
-      system prompts (via AgentContext.extensions).
-    - memory_hooks: post-write callables; currently runs contact proposal extraction
-      after every memory write.
-    - inject_goal_routing_context: pre-route node that enriches routing state with
-      active goal context so goal-related messages route correctly.
-    - research + companion agents and proactive jobs (briefing, insights, goals, contacts).
+    Constructs all personal-assistant domain services from shared primitives.
+    Graph hooks, proactive jobs, and workflow execution are wired here.
     """
 
     def __init__(
         self,
         *,
+        pool: asyncpg.Pool,
+        openrouter_client: LLMClient,
+        settings: CoreSettings,
         notifier: ProactiveNotifier,
         push_log_store: PushLogStore,
         memory_store: PostgresMemoryStore,
         workflow_store: WorkflowStore,
-        person_store: PersonStore,
-        settings: Settings,
-        goal_store: GoalStore,
-        goal_planner: GoalPlanner,
-        suggestion_store: GoalSuggestionStore,
-        openrouter_client: LLMClient,
-        pool: asyncpg.Pool,
-        news_store: Any | None = None,
     ) -> None:
         self._settings = settings
         self._notifier = notifier
-        self._push_log_store = push_log_store
-        self._memory_store = memory_store
-        self._workflow_store = workflow_store
-        self._person_store = person_store
-        self._goal_store = goal_store
-        self._goal_planner = goal_planner
-        self._suggestion_store = suggestion_store
-        self._openrouter_client = openrouter_client
         self._pool = pool
-        self._news_store = news_store
+
+        self.person_store = PersonStore(pool=pool, memory_store=memory_store)
+        self.contact_channel_store = ContactChannelStore(pool=pool)
+        self.goal_store = GoalStore(pool=pool)
+        self.goal_planner = GoalPlanner(
+            client=openrouter_client,
+            memory_store=memory_store,
+        )
+        self.workflow_store = workflow_store
+        self.workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client)
+        self.suggestion_store = GoalSuggestionStore(pool=pool)
+        self.contacts_consolidator = ContactsConsolidator(
+            pool=pool,
+            person_store=self.person_store,
+            openrouter_client=openrouter_client,
+            settings=settings,
+        )
+        self.goal_executor = GoalExecutor(
+            goal_store=self.goal_store,
+            goal_planner=self.goal_planner,
+            push=notifier.push_notification,
+            agent_getter=get_agent,
+            memory_store=memory_store,
+        )
 
         self.morning_briefing = MorningBriefing(
             notifier=notifier,
             push_log_store=push_log_store,
             memory_store=memory_store,
             workflow_store=workflow_store,
-            person_store=person_store,
+            person_store=self.person_store,
             settings=settings,
-            news_store=news_store,
-            goal_store=goal_store,
+            news_store=None,
+            goal_store=self.goal_store,
         )
         self.insight_engine = InsightEngine(
             notifier=notifier,
@@ -93,32 +105,32 @@ class PersonalPlugin(ZePlugin):
             settings=settings,
         )
         self.contact_review = ContactReviewNotifier(
-            person_store=person_store,
+            person_store=self.person_store,
             notifier=notifier,
         )
         self.goal_narrative = GoalNarrativeJob(
             notifier=notifier,
             push_log_store=push_log_store,
-            goal_store=goal_store,
-            goal_planner=goal_planner,
+            goal_store=self.goal_store,
+            goal_planner=self.goal_planner,
         )
         self.goal_suggestion = GoalSuggestionJob(
             notifier=notifier,
-            goal_store=goal_store,
-            suggestion_store=suggestion_store,
-            planner=goal_planner,
+            goal_store=self.goal_store,
+            suggestion_store=self.suggestion_store,
+            planner=self.goal_planner,
             memory_store=memory_store,
         )
         self.stuck_goals = StuckGoalJob(
             notifier=notifier,
-            goal_store=goal_store,
+            goal_store=self.goal_store,
         )
         accountability_store = AccountabilityStore(pool=pool)
         self.accountability = AccountabilityJob(
             notifier=notifier,
             push_log_store=push_log_store,
             accountability_store=accountability_store,
-            goal_store=goal_store,
+            goal_store=self.goal_store,
             pool=pool,
         )
         self.cost_anomaly = CostAnomalyJob(
@@ -137,6 +149,10 @@ class PersonalPlugin(ZePlugin):
         return {
             "identity_builder": build_identity_block,
             "memory_hooks": [contact_proposal_hook],
+            "person_store": self.person_store,
+            "goal_store": self.goal_store,
+            "contact_channel_store": self.contact_channel_store,
+            "workflow_planner": self.workflow_planner,
         }
 
     def pre_route_node(self) -> Callable | None:
@@ -164,14 +180,130 @@ class PersonalPlugin(ZePlugin):
             self.cost_anomaly,
         ]
 
+    async def startup(self, container: Any) -> None:
+        api_settings = container.settings
+
+        # Wire news_store into morning briefing if a NewsPlugin is active.
+        for plugin in container.plugins:
+            if hasattr(plugin, "_store") and hasattr(plugin, "_fetch_job"):
+                news_store = getattr(plugin, "_store", None)
+                if news_store is not None:
+                    self.morning_briefing._news = news_store
+                    log.info("news_store_wired_to_briefing")
+                break
+
+        # Build workflow graph and configure executor on the shared scheduler.
+        from ze_personal.graph.workflow import build_workflow_graph
+
+        workflow_graph = build_workflow_graph(
+            checkpointer=container._checkpointer,
+            plugins=container.plugins,
+        )
+
+        workflow_graph_config: dict = {
+            "configurable": {
+                "capability_gate": container.capability_gate,
+                "memory_store": container.memory_store,
+                "persona_store": container.persona_store,
+                "openrouter_client": container.openrouter_client,
+                "embedder": container.embedder,
+                "settings": api_settings,
+                "workflow_store": self.workflow_store,
+                "workflow_planner": self.workflow_planner,
+                "router": container.router,
+            }
+        }
+
+        async def _workflow_executor(workflow: Any, execution_id: Any) -> None:
+            from ze_core.telemetry.context import set_flow_context
+            set_flow_context("workflow_execution", session_id=f"workflow:{workflow.id}")
+            initial_state = {
+                "prompt": f"[workflow] {workflow.name}",
+                "session_id": f"workflow:{workflow.id}",
+                "session_overrides": {},
+                "envelope": None,
+                "memory_context": None,
+                "agent_context": None,
+                "gate_decision": None,
+                "agent_result": None,
+                "subtask_results": [],
+                "pending_confirmation": False,
+                "messages": [],
+                "last_active_at": None,
+                "workflow_id": workflow.id,
+                "workflow_execution_id": execution_id,
+                "workflow_steps": workflow.steps,
+                "current_step_index": 0,
+                "workflow_step_results": [],
+                "final_response": None,
+                "error": None,
+            }
+            run_config = {
+                **workflow_graph_config,
+                "configurable": {
+                    **workflow_graph_config.get("configurable", {}),
+                    "thread_id": str(execution_id),
+                    "workflow_store": self.workflow_store,
+                },
+            }
+            await workflow_graph.ainvoke(initial_state, run_config)
+
+        async def _workflow_failure_handler(workflow: Any, exc: Exception) -> None:
+            alerts_cfg = api_settings.proactive_config.get("alerts", {})
+            if not alerts_cfg.get("workflow_failure_enabled", True):
+                return
+            cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
+            event_type = f"workflow_failure:{workflow.id}"
+            push_log = getattr(container, "_push_log_store", None)
+            if push_log and await push_log.was_sent_within_hours(event_type, cooldown):
+                log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
+                return
+            await self._notifier.push(
+                f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
+                format="markdown",
+                urgency="high",
+            )
+            if push_log:
+                await push_log.log(event_type, workflow.name)
+            log.info("failure_alert_sent", workflow=workflow.name)
+
+        container.workflow_scheduler.configure_executor(
+            executor=_workflow_executor,
+            on_failure=_workflow_failure_handler,
+        )
+
+        # Register goal advance sweep on the proactive scheduler.
+        async def _sweep_active_goals() -> None:
+            goals = await self.goal_store.list_for_advance()
+            for g in goals:
+                asyncio.create_task(self.goal_executor.advance(g.id))
+
+        container.proactive_scheduler.add_cron_job(
+            fn=_sweep_active_goals,
+            cron="*/15 * * * *",
+            job_id="goal_advance_sweep",
+        )
+        log.info("goal_advance_sweep_scheduled")
+
+        # Register contacts consolidation cron job.
+        if container.settings.consolidation_enabled:
+            contacts_cfg = self._settings.config.get("contacts", {})
+            contacts_cron = contacts_cfg.get("consolidation", {}).get("nightly_cron", "0 3 * * *")
+            container.proactive_scheduler.add_cron_job(
+                fn=self.contacts_consolidator.run,
+                cron=contacts_cron,
+                job_id="contacts_consolidation",
+            )
+            log.info("contacts_consolidation_scheduled", cron=contacts_cron)
+
     @property
     def goal_suggestion_store(self) -> GoalSuggestionStore:
-        return self._suggestion_store
+        return self.suggestion_store
 
     def register_proactive_jobs(
         self,
         scheduler: ProactiveScheduler,
-        settings: Settings,
+        settings: CoreSettings,
         *,
         consolidation_enabled: bool = True,
     ) -> None:
@@ -231,14 +363,12 @@ class PersonalPlugin(ZePlugin):
             )
             log.info("accountability_scheduled", cron=acc_cfg.get("schedule", "0 9 * * 1"))
 
-            # Update cost anomaly thresholds from config before registering.
             anomaly_threshold = float(acc_cfg.get("anomaly_threshold", 4.0))
             min_samples = int(acc_cfg.get("anomaly_min_samples", 5))
             retention_days = int(acc_cfg.get("anomaly_retention_days", 30))
             self.cost_anomaly._threshold = anomaly_threshold
             self.cost_anomaly._min_samples = min_samples
             self.cost_anomaly._retention_days = retention_days
-            # Update stall_days on accountability job.
             stall_days = int(acc_cfg.get("stall_days", 3))
             self.accountability._stall_days = stall_days
 
