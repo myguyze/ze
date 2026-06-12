@@ -2,8 +2,17 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
+from ze_core.conversation import TurnResult, invoke_raw_turn, make_graph_input, resume_turn
 from ze_agents.interface.types import RawInput
+
+
+def test_graph_input_preserves_conversation_history():
+    """messages/last_active_at must NOT be in the input dict: LangGraph input keys
+    overwrite checkpointed channels, which would wipe history every turn and break
+    follow-up questions."""
+    graph_input = make_graph_input(RawInput(text="are these recent?"), "s1")
+    assert "messages" not in graph_input
+    assert "last_active_at" not in graph_input
 
 
 @pytest.fixture

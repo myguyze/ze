@@ -10,6 +10,7 @@ from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container
 from ze_api.logging import configure_logging, get_logger
+from ze_api import migrate as ze_migrate
 from ze_api.settings import get_settings
 
 log = get_logger(__name__)
@@ -23,6 +24,11 @@ async def lifespan(app: FastAPI):
         dev=settings.log_dev,
         log_file=settings.log_file,
     )
+
+    if settings.auto_migrate:
+        log.info("ze_auto_migrate_start")
+        ze_migrate.upgrade(settings.database_url_sync)
+        log.info("ze_auto_migrate_done")
 
     container = await build_container(settings)
 

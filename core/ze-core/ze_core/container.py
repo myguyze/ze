@@ -93,7 +93,6 @@ class Container:
             "image_data": image_data,
             "image_mime": image_mime,
             "image_caption": None,
-            "messages": messages or [],
             "envelope": None,
             "memory_context": None,
             "agent_context": None,
@@ -101,11 +100,14 @@ class Container:
             "agent_result": None,
             "subtask_results": [],
             "pending_confirmation": False,
-            "last_active_at": None,
             "final_response": None,
             "error": None,
             "routing_hints": None,
         }
+        # Only overwrite the checkpointed history when the caller supplies one;
+        # otherwise the prior turns persist and write_memory keeps appending.
+        if messages is not None:
+            graph_input["messages"] = messages
         abort_token = AbortToken()
         self._abort_tokens[session_id] = abort_token
         config = self._build_config(session_id, abort_token=abort_token)
@@ -187,7 +189,7 @@ class Container:
             audio_mime=raw.audio_mime,
             image_data=raw.image,
             image_mime=raw.image_mime,
-            messages=messages or [],
+            messages=messages,
         )
 
     async def resume(self, session_id: str) -> "InvokeResult":

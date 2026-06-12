@@ -17,7 +17,12 @@ def make_graph_input(
     *,
     session_overrides: dict[str, str] | None = None,
 ) -> dict:
-    """Build AgentState input for the main conversation graph from raw transport input."""
+    """Build AgentState input for the main conversation graph from raw transport input.
+
+    ``messages`` and ``last_active_at`` are intentionally absent: LangGraph input
+    keys overwrite checkpointed channel values, and those two must survive across
+    turns so follow-ups keep conversation history (write_memory appends to them).
+    """
     modality = "voice" if raw.audio else "image" if raw.image else "text"
     return {
         "prompt": raw.text or "",
@@ -39,8 +44,6 @@ def make_graph_input(
         "final_response": None,
         "error": None,
         "components": [],
-        "messages": [],
-        "last_active_at": None,
         "workflow_id": None,
         "workflow_execution_id": None,
         "workflow_steps": None,

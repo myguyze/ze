@@ -9,7 +9,7 @@ from ze_sdk.memory import PostgresMemoryStore
 from ze_agents.client import LLMClient
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_news.preferences import NewsPreferenceBuilder
 from ze_news.store import NewsStore
 from ze_news.types import GoalTitleProvider, PersonalizationContext
@@ -18,18 +18,32 @@ _AGENT_INSTRUCTIONS = """\
 You are Ze's news capability. You answer questions about current events and headlines
 using a local store of articles fetched from curated RSS sources.
 
+Candidate articles already retrieved from the local store for this request:
+{candidate_articles}
+
 Available tools:
 - get_headlines: fetch recent headlines personalised to your interests, optionally filtered
   by tag (global, local, tech, etc.). Returns two buckets: 'relevant' (ranked by your
   interests) and 'discovery' (fresh, off-profile articles). Present both sections to the user.
 - search_news: semantic search over stored articles by topic or keyword
 
+Grounding rules (these override everything else):
+- Every headline, fact, or claim you present MUST come from the candidate articles above
+  or from a tool result. NEVER invent, embellish, or recall headlines from your own
+  knowledge.
+- Always cite each article with its source, published date, and URL.
+- If the candidate list is empty or irrelevant and tools return nothing useful, say
+  plainly that the local news store has no matching articles and offer to have Ze's
+  research agent search the web instead. Do not fabricate a digest.
+- If asked how you obtained the news or whether it is recent, explain that it comes
+  from the local store of curated RSS articles and use the published dates above.
+
 Guidelines:
 - Use get_headlines for broad digest queries ("what's in the news?", "any headlines today?").
-- Use search_news when the user asks about a specific topic or event.
+- Use search_news when the user asks about a specific topic or event not covered by the
+  candidates above.
 - When presenting get_headlines results, show 'relevant' articles first under "📰 For you:"
   and 'discovery' articles under "🔭 Outside your usual:" if the discovery bucket is non-empty.
-- Always include the article URL so the user can read more.
 - Do not infer that the user wants more coverage of a topic just because they ask why it
   was shown. Treat "why did you show X?", "stop showing X", and "show me the fact for X"
   as diagnostics or preference management, not positive interest.
@@ -39,6 +53,20 @@ Guidelines:
 - Summarise concisely — one or two sentences per article is enough unless the user
   asks for more detail.\
 """
+
+_CANDIDATE_LIMIT = 8
+
+
+def _format_candidates(articles: list) -> str:
+    if not articles:
+        return "(none — the local store returned no articles for this query)"
+    lines = []
+    for a in articles:
+        lines.append(
+            f"- {a.title} | source: {a.source_key} | "
+            f"published: {a.published_at.isoformat()} | {a.url}"
+        )
+    return "\n".join(lines)
 
 
 @agent
@@ -79,12 +107,28 @@ class NewsAgent(BaseAgent):
         )
 
     async def run(self, ctx: AgentContext) -> AgentResult:
+        response, tool_calls = await self._grounded_loop(ctx)
+        return AgentResult(agent=self.name, response=response, tool_calls=tool_calls)
+
+    async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
+        # stream is not supported via agentic_loop — fall back to a single completion
+        response, _ = await self._grounded_loop(ctx)
+        yield response
+
+    async def _grounded_loop(self, ctx: AgentContext) -> tuple[str, list[ToolCall]]:
+        """Pre-fetch candidate articles so the answer is always grounded in the
+        store, even when the model never calls a tool."""
         personalization_ctx = await self._build_personalization_ctx(ctx.prompt)
+        candidates = await self._fetch_candidates(ctx.prompt)
         deps = {
             "news_store": self._news_store,
             "_personalization_ctx": personalization_ctx,
         }
-        system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx)
+        system = self._build_system_prompt(
+            _AGENT_INSTRUCTIONS,
+            ctx,
+            candidate_articles=_format_candidates(candidates),
+        )
         response, tool_calls = await self.agentic_loop(
             ctx,
             client=self._client,
@@ -92,27 +136,21 @@ class NewsAgent(BaseAgent):
             system=system,
             deps=deps,
         )
-        return AgentResult(agent=self.name, response=response, tool_calls=tool_calls)
-
-    async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
-        personalization_ctx = await self._build_personalization_ctx(ctx.prompt)
-        deps = {
-            "news_store": self._news_store,
-            "_personalization_ctx": personalization_ctx,
-        }
-        system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx)
-        messages = list(ctx.messages)
-        tool_names = list(self.tools)
-        # stream is not supported via agentic_loop — fall back to a single completion
-        response, _ = await self.agentic_loop(
-            ctx,
-            client=self._client,
-            messages=messages,
-            system=system,
-            deps=deps,
-            tool_names=tool_names,
+        provenance = ToolCall(
+            tool_name="search_news",
+            args={"query": ctx.prompt, "limit": _CANDIDATE_LIMIT, "prefetched": True},
+            result=[a.url for a in candidates],
+            duration_ms=0,
+            success=True,
         )
-        yield response
+        return response, [provenance, *tool_calls]
+
+    async def _fetch_candidates(self, prompt: str) -> list:
+        try:
+            return await self._news_store.search(prompt, limit=_CANDIDATE_LIMIT)
+        except Exception as exc:
+            self._log.warning("news_candidate_prefetch_failed", error=str(exc))
+            return []
 
     async def _build_personalization_ctx(self, query_text: str) -> PersonalizationContext:
         return await self._preference_builder.build(query_text)

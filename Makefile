@@ -142,7 +142,7 @@ migrate-stamp:
 .PHONY: dev app app-web app-ios dev-full dev-eval logs
 
 dev:
-	LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	AUTO_MIGRATE=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 app:
 	cd $(ZE_APP) && flutter run -d macos $(FLUTTER_DEV_DEFINES)
@@ -157,14 +157,14 @@ app-ios:
 # the Flutter web app in Chrome. Ctrl-C stops Flutter and kills the backend.
 dev-full:
 	@trap 'kill %1 2>/dev/null; exit 0' INT TERM; \
-	LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
+	AUTO_MIGRATE=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
 	until nc -z localhost 8000 2>/dev/null; do sleep 1; done; \
 	echo "Backend ready — starting Flutter app (Chrome)..."; \
 	$(FLUTTER_WEB_RUN); \
 	kill %1 2>/dev/null
 
 dev-eval:
-	PUBLIC_URL= LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	AUTO_MIGRATE=true PUBLIC_URL= LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 logs:
 	tail -f $(LOG_FILE)

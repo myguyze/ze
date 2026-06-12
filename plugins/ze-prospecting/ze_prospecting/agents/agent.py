@@ -126,7 +126,13 @@ class ProspectingAgent(BaseAgent):
                 max_tokens=4000,
             )
 
-            await self._campaign_store.complete(campaign_id, response)
+            if tool_calls:
+                await self._campaign_store.complete(campaign_id, response)
+            else:
+                # No research happened — likely a mis-routed or conversational turn.
+                # Don't leave an empty campaign behind.
+                await self._campaign_store.discard(campaign_id)
+                self._log.info("campaign_discarded_no_work", campaign_id=str(campaign_id))
 
             return AgentResult(
                 agent=self.name,

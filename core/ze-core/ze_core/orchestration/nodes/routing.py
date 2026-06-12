@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from langchain_core.runnables import RunnableConfig
 from ze_agents.types import GateDecision
 from ze_agents.errors import WorkflowPlanError
@@ -8,6 +10,33 @@ from ze_core.orchestration.state import AgentState
 from ze_core.telemetry.context import set_agent_context
 
 log = get_logger(__name__)
+
+_HISTORY_HINT_TURNS = 4          # last N messages included as routing context
+_HISTORY_HINT_CHARS = 240        # per-message truncation
+_HISTORY_INACTIVITY_MINUTES = 30  # mirror fetch_context's session expiry default
+
+
+def _history_hint(state: AgentState) -> str | None:
+    """Compact tail of the conversation so anaphoric follow-ups
+    ("are these recent?", "how did you get those?") route to the agent
+    that produced the content being referenced."""
+    messages = state.get("messages") or []
+    if not messages:
+        return None
+
+    last_active = state.get("last_active_at")
+    if last_active and (time.time() - last_active) > _HISTORY_INACTIVITY_MINUTES * 60:
+        return None
+
+    lines = []
+    for msg in messages[-_HISTORY_HINT_TURNS:]:
+        content = (msg.get("content") or "").strip()
+        if not content:
+            continue
+        lines.append(f"{msg.get('role', '?')}: {content[:_HISTORY_HINT_CHARS]}")
+    if not lines:
+        return None
+    return "[Recent conversation]\n" + "\n".join(lines)
 
 
 async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
@@ -18,9 +47,13 @@ async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
     # preprocess has already set image_caption for image turns; use it for routing
     routing_text = state.get("image_caption") or state["prompt"]
 
+    # Append after the message so the actual message content dominates the embedding
+    history_hint = _history_hint(state)
+    if history_hint:
+        routing_text = f"{routing_text}\n\n{history_hint}"
+
     hints = state.get("routing_hints")
     if hints:
-        # Append after the message so the actual message content dominates the embedding
         routing_text = f"{routing_text}\n\n{hints}"
 
     envelope = await router.route(prompt=routing_text, session_id=state["session_id"])

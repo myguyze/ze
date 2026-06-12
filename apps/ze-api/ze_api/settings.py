@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────────
     database_url: str = "postgresql://ze:ze@localhost:5432/ze"
     database_url_sync: str = "postgresql+psycopg2://ze:ze@localhost:5432/ze"
+    auto_migrate: bool = False
 
     # ── API ───────────────────────────────────────────────────────────────────
     ze_api_key: str = "change-me"

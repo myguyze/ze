@@ -29,6 +29,14 @@ class ProspectCampaignStore:
                 output,
             )
 
+    async def discard(self, campaign_id: UUID) -> None:
+        """Delete a campaign that produced no prospecting work (e.g. a mis-routed turn)."""
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "DELETE FROM prospect_campaigns WHERE id = $1",
+                campaign_id,
+            )
+
     async def fail(self, campaign_id: UUID) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(

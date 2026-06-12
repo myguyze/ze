@@ -5,7 +5,7 @@ import pytest
 
 from ze_prospecting.agents.agent import ProspectingAgent
 from ze_prospecting.types import ProspectingSettings
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_agents.settings import Settings
 from ze_personal.contacts.types import PersonContext
 from ze_sdk.memory import MemoryContext
@@ -25,7 +25,12 @@ def make_campaign_store(campaign_id=None):
     store.create = AsyncMock(return_value=campaign_id or uuid4())
     store.complete = AsyncMock()
     store.fail = AsyncMock()
+    store.discard = AsyncMock()
     return store
+
+
+def make_tool_call():
+    return ToolCall(tool_name="add_prospect", args={}, result={"id": "x"}, duration_ms=5, success=True)
 
 
 def make_ctx(prompt: str = "find 5 charter operators in Portugal") -> AgentContext:
@@ -93,10 +98,26 @@ async def test_prospecting_agent_run_sets_status_complete():
 
     agent = make_agent(campaign_store=cs)
 
-    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Summary here.", []))):
+    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Summary here.", [make_tool_call()]))):
         await agent.run(make_ctx())
 
     cs.complete.assert_called_once_with(campaign_id, "Summary here.")
+    cs.discard.assert_not_called()
+
+
+async def test_prospecting_agent_discards_campaign_when_no_tool_calls():
+    """A mis-routed conversational turn must not leave an empty campaign behind."""
+    campaign_id = uuid4()
+    cs = make_campaign_store(campaign_id)
+
+    agent = make_agent(campaign_store=cs)
+
+    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Which campaign do you mean?", []))):
+        result = await agent.run(make_ctx("I meant those ones in specific. How did you get those?"))
+
+    cs.discard.assert_called_once_with(campaign_id)
+    cs.complete.assert_not_called()
+    assert result.response == "Which campaign do you mean?"
 
 
 async def test_prospecting_agent_failure_sets_status_failed():

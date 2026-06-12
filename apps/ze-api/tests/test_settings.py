@@ -69,3 +69,14 @@ def test_get_settings_is_cached():
 def test_default_confirm_timeout():
     s = make_settings()
     assert s.confirm_timeout_seconds == 900
+
+
+def test_auto_migrate_defaults_off():
+    s = make_settings()
+    assert s.auto_migrate is False
+
+
+def test_auto_migrate_reads_env(monkeypatch):
+    monkeypatch.setenv("AUTO_MIGRATE", "true")
+    s = make_settings()
+    assert s.auto_migrate is True
