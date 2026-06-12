@@ -114,6 +114,7 @@ class ConsolidationReportResponse(BaseModel):
     facts_hard_deleted: int
     episodes_archived: int
     episodes_deleted: int
+    session_episodes_archived: int
     profile_updated: bool
     duration_ms: int
 

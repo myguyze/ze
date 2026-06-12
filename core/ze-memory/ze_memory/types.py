@@ -132,5 +132,6 @@ class ConsolidationReport:
     facts_hard_deleted: int = 0
     episodes_archived: int = 0
     episodes_deleted: int = 0
+    session_episodes_archived: int = 0
     profile_updated: bool = False
     duration_ms: int = 0

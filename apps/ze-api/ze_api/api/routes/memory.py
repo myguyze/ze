@@ -119,6 +119,7 @@ async def run_consolidation(
         facts_hard_deleted=report.facts_hard_deleted,
         episodes_archived=report.episodes_archived,
         episodes_deleted=report.episodes_deleted,
+        session_episodes_archived=report.session_episodes_archived,
         profile_updated=report.profile_updated,
         duration_ms=report.duration_ms,
     )

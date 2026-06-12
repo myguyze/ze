@@ -7,16 +7,19 @@ from ze_agents.logging import get_logger
 
 from ze_memory.defaults import (
     CONTRADICTED_TTL_DAYS,
+    EPISODE_ARCHIVE_DAYS,
     EPISODE_ARCHIVE_BATCH,
     EPISODE_MIN_ARCHIVE_BATCH,
-    EPISODE_RECENCY_DAYS,
     EXPIRY_GRACE_DAYS,
+    MAX_SESSIONS_PER_RUN,
     MERGE_LLM_THRESHOLD,
     MERGE_SILENT_THRESHOLD,
+    MIN_SESSION_EPISODES,
     MODEL_SYNTHESIS,
+    SESSION_GROUPING_ENABLED,
     UNREVIEWED_TTL_DAYS,
 )
-from ze_memory.retriever import PostgresMemoryStore, _cosine_similarity, _to_list
+from ze_memory.retriever import PostgresMemoryStore, _cosine_similarity
 from ze_memory.synthesizer import ProfileSynthesizer
 from ze_memory.types import ConsolidationReport
 
@@ -51,6 +54,8 @@ class MemoryConsolidator:
         report.facts_soft_expired = soft
         report.facts_hard_deleted = hard
 
+        report.session_episodes_archived = await self.archive_session_episodes()
+
         archived, deleted = await self.archive_episodes()
         report.episodes_archived = archived
         report.episodes_deleted = deleted
@@ -61,6 +66,7 @@ class MemoryConsolidator:
         log.info(
             "memory_consolidation_complete",
             facts_merged=report.facts_merged,
+            session_episodes_archived=report.session_episodes_archived,
             episodes_archived=report.episodes_archived,
             profile_updated=report.profile_updated,
             duration_ms=report.duration_ms,
@@ -125,8 +131,11 @@ class MemoryConsolidator:
         return soft, hard
 
     async def archive_episodes(self) -> tuple[int, int]:
-        cfg = self._memory_config()
-        recency_days = cfg.get("episode_recency_days", EPISODE_RECENCY_DAYS)
+        cfg = self._consolidation_config()
+        recency_days = cfg.get(
+            "episode_archive_days",
+            cfg.get("episode_recency_days", EPISODE_ARCHIVE_DAYS),
+        )
         min_batch = cfg.get("episode_min_archive_batch", EPISODE_MIN_ARCHIVE_BATCH)
         max_batch = cfg.get("episode_archive_batch", EPISODE_ARCHIVE_BATCH)
 
@@ -159,6 +168,58 @@ class MemoryConsolidator:
         await self._store.delete_episodes_by_ids([r["id"] for r in candidates])
         return len(candidates), 0
 
+    async def archive_session_episodes(self) -> int:
+        cfg = self._consolidation_config()
+        enabled = cfg.get("session_grouping_enabled", SESSION_GROUPING_ENABLED)
+        if not enabled:
+            return 0
+
+        recency_days = cfg.get(
+            "episode_archive_days",
+            cfg.get("episode_recency_days", EPISODE_ARCHIVE_DAYS),
+        )
+        min_session_episodes = cfg.get("min_session_episodes", MIN_SESSION_EPISODES)
+        max_sessions = cfg.get("max_sessions_per_run", MAX_SESSIONS_PER_RUN)
+
+        sessions = await self._store.fetch_session_archive_candidates(
+            recency_days,
+            min_session_episodes,
+            max_sessions,
+        )
+        archived = 0
+
+        for session in sessions:
+            session_id = session["session_id"]
+            episodes = await self._store.fetch_raw_session_episodes(session_id, recency_days)
+            if len(episodes) < min_session_episodes:
+                continue
+
+            summary = await self._summarize_session(session_id, episodes)
+            if not summary:
+                continue
+
+            try:
+                embedding = self._embedder.encode(summary)
+                deleted = await self._store.replace_session_episodes_with_summary(
+                    session_id=session_id,
+                    episode_count=len(episodes),
+                    summary=summary,
+                    embedding=embedding,
+                    recency_days=recency_days,
+                )
+            except Exception as exc:
+                log.warning(
+                    "memory_session_archive_replace_failed",
+                    session_id=session_id,
+                    error=str(exc),
+                )
+                continue
+
+            if deleted:
+                archived += 1
+
+        return archived
+
     async def update_profile(self) -> bool:
         return await self._synthesizer.update_profile()
 
@@ -179,6 +240,42 @@ class MemoryConsolidator:
             log.warning("memory_llm_merge_failed", error=str(exc))
             return None
 
+    async def _summarize_session(self, session_id: str, episodes: list) -> str | None:
+        parts = "\n".join(
+            f"User: {episode['prompt']}\nZe: {episode['response']}"
+            for episode in episodes
+        )
+        try:
+            return await self._client.complete(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a memory consolidator. Summarise this conversation "
+                            "session into a concise third-person narrative (<=250 words). "
+                            "Capture main topics, decisions, outcomes, and any user intent "
+                            "or sentiment that may be relevant in future sessions. Do not "
+                            "fabricate anything not present in the source."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Session {session_id} contains {len(episodes)} episodes:\n\n"
+                            f"{parts}"
+                        ),
+                    },
+                ],
+                model=self._synthesis_model(),
+            )
+        except Exception as exc:
+            log.warning(
+                "memory_session_archive_summarize_failed",
+                session_id=session_id,
+                error=str(exc),
+            )
+            return None
+
     def _memory_config(self) -> dict:
         if self._settings is None:
             return {}
@@ -188,6 +285,14 @@ class MemoryConsolidator:
         if isinstance(self._settings, dict):
             return self._settings.get("memory", {})
         return {}
+
+    def _consolidation_config(self) -> dict:
+        memory_cfg = self._memory_config()
+        cfg = dict(memory_cfg)
+        consolidation_cfg = memory_cfg.get("consolidation", {})
+        if isinstance(consolidation_cfg, dict):
+            cfg.update(consolidation_cfg)
+        return cfg
 
     def _synthesis_model(self) -> str:
         if self._settings is None:

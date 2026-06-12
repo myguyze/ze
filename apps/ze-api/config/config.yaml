@@ -11,6 +11,12 @@ models:
   workflow_verify:  anthropic/claude-haiku-4-5-20251001
 
 memory:
+  consolidation:
+    episode_archive_days: 7
+    episode_archive_batch: 50
+    session_grouping_enabled: true
+    min_session_episodes: 3
+    max_sessions_per_run: 10
   graph:
     enabled: true
     max_hops: 1

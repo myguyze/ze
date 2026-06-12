@@ -11,10 +11,9 @@ from ze_memory.defaults import (
     CONTRADICTION_THRESHOLD,
     DEFAULT_EPISODE_BUDGET_TOKENS,
     DEFAULT_FACT_BUDGET_TOKENS,
-    EPISODES_FETCH_LIMIT,
     MODEL_SYNTHESIS,
 )
-from ze_memory.errors import InvalidRetrievalRequestError, StoreError
+from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
 from ze_memory.graph.predicates import (
     BELONGS_TO_GOAL,
@@ -33,7 +32,6 @@ from ze_memory.projection import (
     budget_facts,
     facets_from_rows,
     task_state_from_row,
-    token_estimate,
 )
 from ze_memory.types import (
     Entity,
@@ -726,10 +724,92 @@ class PostgresMemoryStore:
             return await conn.fetch(
                 "SELECT id, session_id, prompt, response, summary FROM memory_episodes"
                 " WHERE created_at < NOW() - $1::interval"
+                " AND summary IS NULL"
                 " ORDER BY created_at ASC LIMIT $2",
                 f"{recency_days} days",
                 max_batch,
             )
+
+    async def fetch_session_archive_candidates(
+        self,
+        recency_days: int,
+        min_session_episodes: int,
+        max_sessions: int,
+    ) -> list:
+        excluded_session_ids = ["", "app-main", "consolidator", "migrated"]
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                """
+                SELECT e.session_id, COUNT(*)::int AS n
+                FROM memory_episodes e
+                WHERE e.created_at < NOW() - $1::interval
+                  AND e.summary IS NULL
+                  AND e.session_id <> ALL($2::text[])
+                  AND e.session_id NOT LIKE 'workflow:%'
+                  AND e.session_id NOT LIKE 'onboarding:%'
+                  AND e.session_id NOT LIKE 'eval-%'
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM memory_episodes s
+                    WHERE s.session_id = e.session_id
+                      AND s.agent = 'consolidator'
+                      AND s.summary IS NOT NULL
+                  )
+                GROUP BY e.session_id
+                HAVING COUNT(*) >= $3
+                ORDER BY MIN(e.created_at)
+                LIMIT $4
+                """,
+                f"{recency_days} days",
+                excluded_session_ids,
+                min_session_episodes,
+                max_sessions,
+            )
+
+    async def fetch_raw_session_episodes(self, session_id: str, recency_days: int) -> list:
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(
+                """
+                SELECT id, prompt, response, created_at
+                FROM memory_episodes
+                WHERE session_id = $1
+                  AND summary IS NULL
+                  AND created_at < NOW() - $2::interval
+                ORDER BY created_at ASC
+                """,
+                session_id,
+                f"{recency_days} days",
+            )
+
+    async def replace_session_episodes_with_summary(
+        self,
+        session_id: str,
+        episode_count: int,
+        summary: str,
+        embedding: Any,
+        recency_days: int,
+    ) -> int:
+        emb_list = _to_list(embedding)
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO memory_episodes"
+                    " (session_id, agent, prompt, response, summary, embedding)"
+                    " VALUES ($1, 'consolidator', $2, $3, $3, $4::vector)",
+                    session_id,
+                    f"{session_id}:{episode_count} episodes",
+                    summary,
+                    emb_list,
+                )
+                result = await conn.execute(
+                    "DELETE FROM memory_episodes"
+                    " WHERE session_id = $1"
+                    " AND summary IS NULL"
+                    " AND created_at < NOW() - $2::interval",
+                    session_id,
+                    f"{recency_days} days",
+                )
+        return _parse_update_count(result)
 
     async def insert_archive_episode(self, archive_text: str, session_id: str = "consolidator") -> None:
         async with self._pool.acquire() as conn:

@@ -1,8 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
-
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.types import ConsolidationReport
@@ -19,6 +17,9 @@ def _store(**overrides):
     s.delete_expired_facts = AsyncMock(return_value=0)
     s.delete_contradicted_facts = AsyncMock(return_value=0)
     s.fetch_episode_candidates = AsyncMock(return_value=[])
+    s.fetch_session_archive_candidates = AsyncMock(return_value=[])
+    s.fetch_raw_session_episodes = AsyncMock(return_value=[])
+    s.replace_session_episodes_with_summary = AsyncMock(return_value=0)
     s.delete_old_episode_summaries = AsyncMock(return_value=0)
     s.insert_archive_episode = AsyncMock()
     s.delete_episodes_by_ids = AsyncMock()
@@ -197,6 +198,79 @@ class TestArchiveEpisodes:
         archived, deleted = await _consolidator(store=store, client=client, settings=settings).archive_episodes()
         assert archived == 0
         assert deleted == 0
+
+
+class TestArchiveSessionEpisodes:
+    async def test_disabled_skips_session_lookup(self):
+        store = _store()
+        settings = {"memory": {"consolidation": {"session_grouping_enabled": False}}}
+
+        archived = await _consolidator(store=store, settings=settings).archive_session_episodes()
+
+        assert archived == 0
+        store.fetch_session_archive_candidates.assert_not_awaited()
+
+    async def test_archives_eligible_session(self):
+        session_id = "session-1"
+        episodes = [
+            {"id": uuid4(), "prompt": f"p{i}", "response": f"r{i}"}
+            for i in range(3)
+        ]
+        store = _store(
+            fetch_session_archive_candidates=AsyncMock(
+                return_value=[{"session_id": session_id, "n": 3}]
+            ),
+            fetch_raw_session_episodes=AsyncMock(return_value=episodes),
+            replace_session_episodes_with_summary=AsyncMock(return_value=3),
+        )
+        embedder = _embedder([0.2, 0.8])
+        client = _client(response="session summary")
+        settings = {
+            "memory": {
+                "consolidation": {
+                    "episode_archive_days": 7,
+                    "min_session_episodes": 3,
+                    "max_sessions_per_run": 10,
+                }
+            }
+        }
+
+        archived = await _consolidator(
+            store=store,
+            client=client,
+            embedder=embedder,
+            settings=settings,
+        ).archive_session_episodes()
+
+        assert archived == 1
+        store.fetch_session_archive_candidates.assert_awaited_once_with(7, 3, 10)
+        store.fetch_raw_session_episodes.assert_awaited_once_with(session_id, 7)
+        client.complete.assert_awaited_once()
+        embedder.encode.assert_called_once_with("session summary")
+        store.replace_session_episodes_with_summary.assert_awaited_once_with(
+            session_id=session_id,
+            episode_count=3,
+            summary="session summary",
+            embedding=[0.2, 0.8],
+            recency_days=7,
+        )
+
+    async def test_skips_session_that_shrinks_below_minimum(self):
+        store = _store(
+            fetch_session_archive_candidates=AsyncMock(
+                return_value=[{"session_id": "session-1", "n": 3}]
+            ),
+            fetch_raw_session_episodes=AsyncMock(
+                return_value=[{"id": uuid4(), "prompt": "p", "response": "r"}]
+            ),
+        )
+        client = _client(response="session summary")
+
+        archived = await _consolidator(store=store, client=client).archive_session_episodes()
+
+        assert archived == 0
+        client.complete.assert_not_awaited()
+        store.replace_session_episodes_with_summary.assert_not_awaited()
 
 
 # ── TestUpdateProfile ─────────────────────────────────────────────────────────
