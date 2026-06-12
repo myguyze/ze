@@ -58,6 +58,7 @@ class CompanionPolicy:
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cur_sid = getattr(request, "current_session_id", None)
 
         async with store._pool.acquire() as conn:
             fact_rows = await conn.fetch(
@@ -80,10 +81,12 @@ class CompanionPolicy:
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
+                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                 ORDER BY embedding <=> $1::vector
-                LIMIT $2
+                LIMIT $3
                 """,
                 emb,
+                cur_sid,
                 EPISODES_FETCH_LIMIT,
             )
             profile_rows = await conn.fetch(
@@ -124,6 +127,7 @@ class ResearchPolicy:
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cur_sid = getattr(request, "current_session_id", None)
 
         async with store._pool.acquire() as conn:
             fact_rows = await conn.fetch(
@@ -143,10 +147,12 @@ class ResearchPolicy:
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
+                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                 ORDER BY embedding <=> $1::vector
-                LIMIT $2
+                LIMIT $3
                 """,
                 emb,
+                cur_sid,
                 EPISODES_FETCH_LIMIT,
             )
             event_rows = await _fetch_events_by_similarity(conn, emb)
@@ -299,6 +305,7 @@ class EmailPolicy:
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cur_sid = getattr(request, "current_session_id", None)
 
         async with store._pool.acquire() as conn:
             fact_rows = await conn.fetch(
@@ -318,10 +325,12 @@ class EmailPolicy:
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
+                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
                 emb,
+                cur_sid,
             )
             entity_rows = await conn.fetch(
                 """
@@ -355,6 +364,7 @@ class ProspectingPolicy:
 
     async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cur_sid = getattr(request, "current_session_id", None)
 
         async with store._pool.acquire() as conn:
             fact_rows = await conn.fetch(
@@ -374,10 +384,12 @@ class ProspectingPolicy:
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
+                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
                 emb,
+                cur_sid,
             )
 
         from ze_memory.projection import budget_episodes, budget_facts, token_estimate

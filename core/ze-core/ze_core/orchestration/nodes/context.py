@@ -51,6 +51,7 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         task_id=None,
         goal_id=None,
         max_tokens=2000,
+        current_session_id=state.get("session_id"),
     )
     memory_context = await store.retrieve(_request)
 

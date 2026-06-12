@@ -122,6 +122,7 @@ class RetrievalRequest:
     task_id: UUID | None = None
     goal_id: UUID | None = None
     max_tokens: int = 2000
+    current_session_id: str | None = None
 
 
 @dataclass
