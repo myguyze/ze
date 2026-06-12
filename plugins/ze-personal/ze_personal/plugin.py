@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 import asyncpg
 
@@ -31,13 +31,9 @@ from ze_personal.jobs.goal_narrative import GoalNarrativeJob
 from ze_personal.jobs.goal_suggestion import GoalSuggestionJob
 from ze_personal.jobs.insights import InsightEngine
 from ze_personal.jobs.stuck_goals import StuckGoalJob
+from ze_personal.onboarding import PersonalOnboardingProvider
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.postgres import PostgresWorkflowStore
 from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
-
-if TYPE_CHECKING:
-    from ze_sdk.memory import MemoryStore
 
 log = get_logger(__name__)
 
@@ -179,6 +175,9 @@ class PersonalPlugin(ZePlugin):
             self.accountability,
             self.cost_anomaly,
         ]
+
+    def onboarding(self) -> PersonalOnboardingProvider:
+        return PersonalOnboardingProvider()
 
     async def startup(self, container: Any) -> None:
         api_settings = container.settings

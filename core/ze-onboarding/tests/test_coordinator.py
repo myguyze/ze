@@ -22,6 +22,9 @@ class FakeStore:
     async def get_active_session(self) -> OnboardingSession | None:
         return self.session if self.session is not None and self.session.status == "active" else None
 
+    async def has_completed_session(self) -> bool:
+        return self.session is not None and self.session.status == "completed"
+
     async def create_session(self) -> OnboardingSession:
         self.session = OnboardingSession(
             id=uuid4(),
@@ -130,6 +133,43 @@ class FakeStore:
             for s in self.seeds
         ]
 
+    async def reset_for_edit(self, session_id) -> None:
+        self.seeds = [
+            StoredOnboardingSeed(
+                id=s.id,
+                session_id=s.session_id,
+                step_id=s.step_id,
+                plugin=s.plugin,
+                kind=s.kind,
+                key=s.key,
+                value=s.value,
+                confidence=s.confidence,
+                review_status="rejected" if s.review_status == "pending" else s.review_status,
+            )
+            for s in self.seeds
+        ]
+        first_reopened = False
+        reopened_steps = []
+        for s in self.steps:
+            if s.status != "completed":
+                reopened_steps.append(s)
+                continue
+            status = "active" if not first_reopened else "pending"
+            first_reopened = True
+            reopened_steps.append(
+                StoredOnboardingStep(
+                    id=s.id,
+                    session_id=s.session_id,
+                    plugin=s.plugin,
+                    step_key=s.step_key,
+                    status=status,
+                    descriptor=s.descriptor,
+                    submission=None,
+                    completed_at=None,
+                )
+            )
+        self.steps = reopened_steps
+
     async def list_approved_seeds(self, session_id):
         return [s for s in self.seeds if s.review_status == "approved"]
 
@@ -175,6 +215,20 @@ async def test_onboarding_start_returns_core_form():
     assert view.components[0]["id"] == "core.profile"
 
 
+async def test_onboarding_start_if_needed_skips_completed_session():
+    store = FakeStore()
+    persistence = FakePersistence()
+    coordinator = OnboardingCoordinator(
+        providers=[CoreOnboardingProvider()],
+        store=store,
+        persistence=persistence,
+    )
+    view = await coordinator.start()
+    await store.complete_session(view.session_id)
+
+    assert await coordinator.start_if_needed() is None
+
+
 async def test_onboarding_submit_reviews_then_applies_seed():
     store = FakeStore()
     persistence = FakePersistence()
@@ -191,10 +245,10 @@ async def test_onboarding_submit_reviews_then_applies_seed():
         values={"preferred_name": "Joao", "timezone": "Europe/Lisbon"},
     )
 
-    assert review.components[0]["type"] == "list"
-    assert {item["text"] for item in review.components[0]["items"]} == {
-        "preferred_name",
-        "timezone",
+    assert review.components[0]["type"] == "review"
+    assert {item["label"] for item in review.components[0]["items"]} == {
+        "Preferred Name",
+        "Timezone",
     }
 
     done = await coordinator.submit(
@@ -206,3 +260,30 @@ async def test_onboarding_submit_reviews_then_applies_seed():
     assert done.completed is True
     assert store.completed is True
     assert [seed.key for seed in persistence.applied] == ["preferred_name", "timezone"]
+
+
+async def test_onboarding_review_edit_reopens_completed_steps():
+    store = FakeStore()
+    persistence = FakePersistence()
+    coordinator = OnboardingCoordinator(
+        providers=[CoreOnboardingProvider()],
+        store=store,
+        persistence=persistence,
+    )
+    view = await coordinator.start()
+    await coordinator.submit(
+        session_id=view.session_id,
+        step_id="core.profile",
+        values={"preferred_name": "Old", "timezone": "UTC"},
+    )
+
+    reopened = await coordinator.submit(
+        session_id=view.session_id,
+        step_id="onboarding.review",
+        values={"action": "edit"},
+    )
+
+    assert reopened.components[0]["type"] == "form"
+    assert reopened.components[0]["id"] == "core.profile"
+    assert {seed.review_status for seed in store.seeds} == {"rejected"}
+    assert persistence.applied == []

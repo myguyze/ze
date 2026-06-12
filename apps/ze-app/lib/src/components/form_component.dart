@@ -1,17 +1,18 @@
-// GENERATED — do not edit. Run make generate-components to regenerate.
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:ze_app/src/components/form.dart';
 
-part 'form_component.freezed.dart';
-part 'form_component.g.dart';
+class FormComponent {
+  const FormComponent({
+    required this.title,
+    required this.fields,
+  });
 
-@freezed
-class FormComponent with _$FormComponent {
-  const factory FormComponent({
-    required String title,
-    required List<FormField> fields,
-  }) = _FormComponent;
+  final String title;
+  final List<FormField> fields;
 
-  factory FormComponent.fromJson(Map<String, dynamic> json) =>
-      _$FormComponentFromJson(json);
+  factory FormComponent.fromJson(Map<String, dynamic> json) => FormComponent(
+        title: json['title'] as String,
+        fields: (json['fields'] as List<dynamic>? ?? [])
+            .map((field) => FormField.fromJson(field as Map<String, dynamic>))
+            .toList(),
+      );
 }

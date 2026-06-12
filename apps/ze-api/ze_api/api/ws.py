@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
@@ -133,6 +132,18 @@ async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
 
     await conn_mgr.connect(ws, msg_store, confirmation_store)
     log.info("ws_connected")
+
+    onboarding_cfg = settings.config.get("onboarding", {})
+    if onboarding_cfg.get("enabled", True) and onboarding_cfg.get(
+        "auto_start_on_empty_profile",
+        True,
+    ):
+        try:
+            view = await container.onboarding_coordinator.start_if_needed()
+            if view is not None:
+                await _send_onboarding_view(conn_mgr, view)
+        except Exception as exc:
+            log.warning("ws_onboarding_autostart_failed", error=str(exc))
 
     pending_config: dict | None = None
 
@@ -458,10 +469,13 @@ async def _send_onboarding_view(
     await conn_mgr.send_frame({
         "type": "message",
         "message": {
+            "id": str(uuid4()),
             "role": "assistant",
             "text": view.text,
             "components": view.components,
+            "read": False,
             "thread_id": f"onboarding:{view.session_id}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
         },
         "onboarding": {
             "session_id": str(view.session_id),

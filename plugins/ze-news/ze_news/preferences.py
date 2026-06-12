@@ -6,7 +6,8 @@ from typing import Any
 from ze_news.types import GoalTitleProvider, NewsPreference, PersonalizationContext
 
 _INCLUDE_PREFIXES = ("news_interest", "interest_news", "topic_interest")
-_PROFILE_KEYS = {"topics", "preferences", "news_preferences"}
+_PROFILE_INCLUDE_KEYS = {"topics", "preferences", "news_preferences", "news_interests"}
+_PROFILE_EXCLUDE_KEYS = {"news_exclusions"}
 _NEGATIVE_PATTERNS = (
     "don't show",
     "do not show",
@@ -66,9 +67,24 @@ class NewsPreferenceBuilder:
             if getattr(facet, "confidence", 1.0) < self._min_confidence:
                 continue
             key = getattr(facet, "key", "")
-            if key not in _PROFILE_KEYS:
+            value = getattr(facet, "value", "")
+            if key in _PROFILE_EXCLUDE_KEYS:
+                exclusions.extend(_split_topics(value))
+                preferences.extend(
+                    NewsPreference(
+                        topic=topic,
+                        polarity="exclude",
+                        source="profile",
+                        weight=0.9,
+                        reason=f"profile news exclusion: {topic}",
+                        confidence=getattr(facet, "confidence", 1.0),
+                    )
+                    for topic in _split_topics(value)
+                )
                 continue
-            for topic in _split_topics(getattr(facet, "value", "")):
+            if key not in _PROFILE_INCLUDE_KEYS:
+                continue
+            for topic in _split_topics(value):
                 preferences.append(
                     NewsPreference(
                         topic=topic,

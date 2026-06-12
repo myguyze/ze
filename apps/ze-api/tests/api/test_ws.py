@@ -244,5 +244,7 @@ async def test_send_onboarding_view_includes_session_metadata():
     frame = ws.send_json.call_args[0][0]
     assert frame["type"] == "message"
     assert frame["message"]["components"][0]["type"] == "card"
+    assert frame["message"]["id"]
+    assert frame["message"]["created_at"]
     assert frame["onboarding"]["session_id"] == str(session_id)
     assert frame["onboarding"]["completed"] is False

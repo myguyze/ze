@@ -29,7 +29,7 @@ class Message {
         text: j['text'] as String?,
         createdAt: DateTime.parse(j['created_at'] as String),
         components: (j['components'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>(),
-        isRead: j['is_read'] as bool? ?? false,
+        isRead: (j['is_read'] as bool?) ?? (j['read'] as bool?) ?? false,
         threadId: j['thread_id'] as String?,
         onboardingSessionId: j['onboarding_session_id'] as String?,
         onboardingCompleted: j['onboarding_completed'] as bool? ?? false,

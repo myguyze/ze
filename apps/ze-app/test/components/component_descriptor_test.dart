@@ -18,6 +18,18 @@ void main() {
       expect(c, isA<CardComponent>());
     });
 
+    test('dispatches ReviewComponent', () {
+      final c = componentFromJson({
+        'type': 'review',
+        'id': 'review-memory',
+        'title': 'What Ze will remember',
+        'items': [
+          {'id': '1', 'label': 'Preferred name', 'value': 'Joao', 'kind': 'profile_facet'},
+        ],
+      });
+      expect(c, isA<ReviewComponent>());
+    });
+
     test('throws FormatException for unknown type', () {
       expect(() => componentFromJson({'type': 'not_a_real_type'}), throwsFormatException);
     });

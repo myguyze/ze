@@ -35,6 +35,7 @@ help:
 	@echo "    db-up            Start Postgres via docker-compose"
 	@echo "    db-down          Stop Postgres"
 	@echo "    db-reset         Drop + recreate ze database and apply all migrations"
+	@echo "    reset-personal-state  Delete learned personal state after CONFIRM=RESET"
 	@echo "    migrate          Apply all pending migrations (upgrade heads)"
 	@echo "    migrate-down     Roll back one migration step"
 	@echo "    migrate-status   Show current migration revision"
@@ -106,7 +107,7 @@ generate-ze-api-key:
 	uv run python $(ZE)/scripts/generate_ze_api_key.py $(if $(ZE_API_TOKEN),--token $(ZE_API_TOKEN))
 
 # ── Database ──────────────────────────────────────────────────────────────────
-.PHONY: db-up db-down db-reset migrate migrate-down migrate-status migrate-history migrate-stamp
+.PHONY: db-up db-down db-reset reset-personal-state migrate migrate-down migrate-status migrate-history migrate-stamp
 
 db-up:
 	docker compose up -d postgres
@@ -121,6 +122,13 @@ db-reset:
 	docker compose exec -T postgres psql -U ze -c "DROP DATABASE IF EXISTS ze"
 	docker compose exec -T postgres psql -U ze -c "CREATE DATABASE ze"
 	$(ZE_MIGRATE) upgrade
+
+reset-personal-state:
+	@if [ "$(CONFIRM)" != "RESET" ]; then \
+		echo "Refusing to reset. Re-run with CONFIRM=RESET"; \
+		exit 1; \
+	fi
+	cd $(ZE) && uv run python scripts/reset_personal_state.py --scope personal_state --confirm RESET
 
 migrate:
 	$(ZE_MIGRATE) upgrade

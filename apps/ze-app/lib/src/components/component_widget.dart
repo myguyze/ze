@@ -8,6 +8,10 @@ import 'package:ze_app/src/components/widgets/progress_widget.dart';
 import 'package:ze_app/src/components/widgets/confirm_widget.dart';
 import 'package:ze_app/src/components/widgets/form_widget.dart';
 import 'package:ze_app/src/components/widgets/card_widget.dart';
+import 'package:ze_app/src/components/widgets/choice_group_widget.dart';
+import 'package:ze_app/src/components/widgets/consent_widget.dart';
+import 'package:ze_app/src/components/widgets/connect_account_widget.dart';
+import 'package:ze_app/src/components/widgets/review_widget.dart';
 
 Widget componentWidget(
   Map<String, dynamic> json, {
@@ -39,6 +43,26 @@ Widget componentWidget(
           onComponentSubmit: onComponentSubmit,
         ),
       CardComponent c => CardWidget(component: c),
+      ChoiceGroupComponent c => ChoiceGroupWidget(
+          component: c,
+          onboardingSessionId: onboardingSessionId,
+          onComponentSubmit: onComponentSubmit,
+        ),
+      ConsentComponent c => ConsentWidget(
+          component: c,
+          onboardingSessionId: onboardingSessionId,
+          onComponentSubmit: onComponentSubmit,
+        ),
+      ConnectAccountComponent c => ConnectAccountWidget(
+          component: c,
+          onboardingSessionId: onboardingSessionId,
+          onComponentSubmit: onComponentSubmit,
+        ),
+      ReviewComponent c => ReviewWidget(
+          component: c,
+          onboardingSessionId: onboardingSessionId,
+          onComponentSubmit: onComponentSubmit,
+        ),
       _ => const SizedBox.shrink(),
     };
   } catch (_) {

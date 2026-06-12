@@ -38,6 +38,19 @@ class OnboardingStore:
             )
         return _row_to_session(row) if row is not None else None
 
+    async def has_completed_session(self) -> bool:
+        async with self._pool.acquire() as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM onboarding_sessions
+                    WHERE status = 'completed'
+                )
+                """
+            )
+        return bool(exists)
+
     async def create_session(self) -> OnboardingSession:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -213,6 +226,40 @@ class OnboardingStore:
                 """,
                 session_id,
             )
+
+    async def reset_for_edit(self, session_id: UUID) -> None:
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    """
+                    UPDATE onboarding_seeds
+                    SET review_status = 'rejected'
+                    WHERE session_id = $1 AND review_status = 'pending'
+                    """,
+                    session_id,
+                )
+                await conn.execute(
+                    """
+                    UPDATE onboarding_steps
+                    SET status = 'pending', submission = NULL, completed_at = NULL
+                    WHERE session_id = $1 AND status = 'completed'
+                    """,
+                    session_id,
+                )
+                await conn.execute(
+                    """
+                    UPDATE onboarding_steps
+                    SET status = 'active'
+                    WHERE id = (
+                        SELECT id
+                        FROM onboarding_steps
+                        WHERE session_id = $1 AND status = 'pending'
+                        ORDER BY created_at ASC
+                        LIMIT 1
+                    )
+                    """,
+                    session_id,
+                )
 
     async def list_approved_seeds(self, session_id: UUID) -> list[StoredOnboardingSeed]:
         async with self._pool.acquire() as conn:

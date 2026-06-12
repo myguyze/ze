@@ -2,8 +2,6 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from ze_news.preferences import NewsPreferenceBuilder
 from ze_news.store import NewsStore, _exclusion_term_patterns
 from ze_news.types import Article, NewsPreference, PersonalizationContext
@@ -196,6 +194,23 @@ async def test_preference_builder_includes_profile_and_goals():
     assert any(p.source == "goal" and p.topic == "Launch Ze" for p in ctx.preferences)
 
 
+async def test_preference_builder_includes_onboarding_news_facets():
+    memory_store = MagicMock()
+    memory_store.list_recent_facts = AsyncMock(return_value=[])
+    memory_store.get_profile = AsyncMock(return_value=[
+        SimpleNamespace(key="news_interests", value="AI, Portugal", confidence=0.9),
+        SimpleNamespace(key="news_exclusions", value="football", confidence=0.9),
+    ])
+    goals = MagicMock()
+    goals.list_active_goal_titles = AsyncMock(return_value=[])
+
+    ctx = await NewsPreferenceBuilder(memory_store, goals).build("")
+
+    assert any(p.source == "profile" and p.topic == "AI" for p in ctx.preferences)
+    assert "football" in ctx.exclusions
+    assert any(p.polarity == "exclude" and p.topic == "football" for p in ctx.preferences)
+
+
 # ── PersonalizationContext ──────────────────────────────────────────────────
 
 def test_personalization_context_defaults():
@@ -339,7 +354,6 @@ async def test_get_personalized_splits_into_buckets():
 
 
 async def test_get_personalized_discovery_sorted_by_recency():
-    import math
     store, conn = _make_store()
 
     t1 = datetime(2026, 6, 7, 10, 0, tzinfo=timezone.utc)
@@ -520,7 +534,6 @@ def test_score_articles_zero_vector_gives_zero():
 
 
 def test_score_articles_identical_vectors_give_one():
-    import numpy as np
     store, _ = _make_store()
     vec = [0.1] * 384
     store._embedder.encode.return_value = vec

@@ -86,11 +86,89 @@
         },
         "options": {
           "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "help_text": {
+          "type": "string"
+        },
+        "default_value": {
+          "type": "string"
         }
       },
       "required": [
         "id",
         "label"
+      ]
+    },
+    "ChoiceOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "recommended": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ]
+    },
+    "ConsentScope": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ]
+    },
+    "ReviewItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "plugin": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "value",
+        "kind"
       ]
     },
     "TableComponent": {
@@ -294,6 +372,15 @@
               },
               "options": {
                 "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "help_text": {
+                "type": "string"
+              },
+              "default_value": {
+                "type": "string"
               }
             },
             "required": [
@@ -324,6 +411,186 @@
       "required": [
         "body"
       ]
+    },
+    "ChoiceGroupComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "recommended": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "label"
+            ]
+          }
+        },
+        "allow_multiple": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "submit_label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "options"
+      ]
+    },
+    "ConsentComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "description"
+            ]
+          }
+        },
+        "accept_label": {
+          "type": "string"
+        },
+        "reject_label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body",
+        "scopes"
+      ]
+    },
+    "ConnectAccountComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "action_label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "title",
+        "description"
+      ]
+    },
+    "ReviewComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "plugin": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "value",
+              "kind"
+            ]
+          }
+        },
+        "approve_label": {
+          "type": "string"
+        },
+        "reject_label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "items"
+      ]
     }
   },
   "oneOf": [
@@ -350,6 +617,18 @@
     },
     {
       "$ref": "#/$defs/CardComponent"
+    },
+    {
+      "$ref": "#/$defs/ChoiceGroupComponent"
+    },
+    {
+      "$ref": "#/$defs/ConsentComponent"
+    },
+    {
+      "$ref": "#/$defs/ConnectAccountComponent"
+    },
+    {
+      "$ref": "#/$defs/ReviewComponent"
     }
   ]
 }

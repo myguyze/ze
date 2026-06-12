@@ -10,6 +10,7 @@ from ze_agents.client import LLMClient
 from ze_agents.logging import get_logger
 from ze_agents.plugin import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
+from ze_news.onboarding import NewsOnboardingProvider
 
 log = get_logger(__name__)
 
@@ -74,6 +75,11 @@ class NewsPlugin(ZePlugin):
         if self._store is None:
             return {}
         return {"news_store": self._store}
+
+    def onboarding(self) -> NewsOnboardingProvider | None:
+        if not self._enabled:
+            return None
+        return NewsOnboardingProvider()
 
     def agent_module_paths(self) -> list[str]:
         if not self._enabled:

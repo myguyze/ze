@@ -41,7 +41,7 @@ class OnboardingPersistence:
         await self._memory_store.propose_facts([
             Fact(
                 predicate=seed.key,
-                value=str(seed.value),
+                value=_seed_value_text(seed.value),
                 confidence=seed.confidence,
                 reviewed=True,
             )
@@ -62,7 +62,7 @@ class OnboardingPersistence:
                   updated_at = NOW()
                 """,
                 seed.key,
-                str(seed.value),
+                _seed_value_text(seed.value),
                 seed.confidence,
                 json.dumps([]),
             )
@@ -74,3 +74,11 @@ class OnboardingPersistence:
         if setter is None:
             raise OnboardingError(f"No onboarding setting setter registered for {seed.plugin}")
         await setter(seed.key, seed.value)
+
+
+def _seed_value_text(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item).strip() for item in value if str(item).strip())
+    if isinstance(value, dict):
+        return json.dumps(value, sort_keys=True)
+    return str(value)

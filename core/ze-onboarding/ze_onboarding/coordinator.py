@@ -13,6 +13,7 @@ from ze_onboarding.types import (
 )
 
 _REVIEW_STEP_ID = "onboarding.review"
+_REVIEW_COMPONENT_ID = "onboarding.review"
 
 
 class OnboardingError(Exception):
@@ -41,6 +42,11 @@ class OnboardingCoordinator:
                 steps.extend(await provider.steps())
             await self._store.upsert_steps(session.id, steps)
         return await self.get_current(session.id)
+
+    async def start_if_needed(self) -> OnboardingView | None:
+        if await self._store.has_completed_session():
+            return None
+        return await self.start()
 
     async def get_current(self, session_id: UUID) -> OnboardingView:
         step = await self._store.get_current_step(session_id)
@@ -82,9 +88,12 @@ class OnboardingCoordinator:
     ) -> OnboardingView:
         if step_id == _REVIEW_STEP_ID:
             action = str(values.get("action") or values.get("choice") or "approve")
-            if action != "approve":
-                raise OnboardingError("Only review approval is supported in this version")
-            await self._store.approve_pending_seeds(session_id)
+            if action == "approve":
+                await self._store.approve_pending_seeds(session_id)
+            elif action in {"edit", "reject"}:
+                await self._store.reset_for_edit(session_id)
+            else:
+                raise OnboardingError(f"Unsupported onboarding review action: {action}")
             return await self.get_current(session_id)
 
         step = await self._store.get_step_by_key(session_id, step_id)
@@ -112,27 +121,34 @@ def _descriptor_to_component(descriptor: dict[str, Any]) -> dict[str, Any]:
             "type": "form",
             "id": descriptor["id"],
             "title": descriptor["title"],
+            "description": descriptor.get("description"),
             "fields": descriptor.get("fields", []),
         }
     if kind == "choice":
         return {
-            "type": "confirm",
+            "type": "choice_group",
             "id": descriptor["id"],
-            "prompt": descriptor["title"],
-            "actions": [
-                {"label": choice["label"], "value": choice["id"], "style": "secondary"}
-                for choice in descriptor.get("choices", [])
-            ],
+            "title": descriptor["title"],
+            "description": descriptor.get("description"),
+            "options": descriptor.get("choices", []),
+            "allow_multiple": descriptor.get("allow_multiple", False),
         }
     if kind == "consent":
         return {
-            "type": "confirm",
+            "type": "consent",
             "id": descriptor["id"],
-            "prompt": descriptor["title"],
-            "actions": [
-                {"label": "Allow", "value": "approve", "style": "primary"},
-                {"label": "Skip", "value": "skip", "style": "secondary"},
-            ],
+            "title": descriptor["title"],
+            "body": descriptor.get("description") or "",
+            "scopes": descriptor.get("choices", []),
+        }
+    if kind == "connect_account":
+        return {
+            "type": "connect_account",
+            "id": descriptor["id"],
+            "provider": descriptor.get("plugin", "account"),
+            "title": descriptor["title"],
+            "description": descriptor.get("description") or "",
+            "status": "not_connected",
         }
     return {
         "type": "card",
@@ -146,9 +162,11 @@ def _descriptor_to_component(descriptor: dict[str, Any]) -> dict[str, Any]:
 def _review_view(session_id: UUID, seeds: list[StoredOnboardingSeed]) -> OnboardingView:
     items = [
         {
-            "text": seed.key,
-            "subtext": str(seed.value),
-            "status": seed.kind,
+            "id": str(seed.id),
+            "label": seed.key.replace("_", " ").title(),
+            "value": _format_seed_value(seed.value),
+            "kind": seed.kind,
+            "plugin": seed.plugin,
         }
         for seed in seeds
     ]
@@ -157,17 +175,20 @@ def _review_view(session_id: UUID, seeds: list[StoredOnboardingSeed]) -> Onboard
         text="Review what Ze will remember before saving it.",
         components=[
             {
-                "type": "list",
+                "type": "review",
+                "id": _REVIEW_COMPONENT_ID,
                 "title": "What Ze will remember",
                 "items": items,
-            },
-            {
-                "type": "confirm",
-                "id": _REVIEW_STEP_ID,
-                "prompt": "Save these onboarding details?",
-                "actions": [
-                    {"label": "Save", "value": "approve", "style": "primary"},
-                ],
+                "approve_label": "Save",
+                "reject_label": "Edit",
             },
         ],
     )
+
+
+def _format_seed_value(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value if str(item).strip())
+    if isinstance(value, dict):
+        return ", ".join(f"{key}: {val}" for key, val in value.items())
+    return str(value)

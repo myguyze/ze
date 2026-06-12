@@ -1,19 +1,32 @@
-// GENERATED — do not edit. Run make generate-components to regenerate.
-import 'package:freezed_annotation/freezed_annotation.dart';
+class FormField {
+  const FormField({
+    required this.id,
+    required this.label,
+    this.fieldType = 'text',
+    this.placeholder,
+    this.options,
+    this.required = true,
+    this.helpText,
+    this.defaultValue,
+  });
 
-part 'form.freezed.dart';
-part 'form.g.dart';
+  final String id;
+  final String label;
+  final String fieldType;
+  final String? placeholder;
+  final List<String>? options;
+  final bool required;
+  final String? helpText;
+  final String? defaultValue;
 
-@freezed
-class FormField with _$FormField {
-  const factory FormField({
-    required String id,
-    required String label,
-    @JsonKey(name: 'field_type')  @Default('text')String fieldType,
-    String? placeholder,
-    List<String>? options,
-  }) = _FormField;
-
-  factory FormField.fromJson(Map<String, dynamic> json) =>
-      _$FormFieldFromJson(json);
+  factory FormField.fromJson(Map<String, dynamic> json) => FormField(
+        id: json['id'] as String,
+        label: json['label'] as String,
+        fieldType: json['field_type'] as String? ?? 'text',
+        placeholder: json['placeholder'] as String?,
+        options: (json['options'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+        required: json['required'] as bool? ?? true,
+        helpText: json['help_text'] as String?,
+        defaultValue: json['default_value'] as String?,
+      );
 }

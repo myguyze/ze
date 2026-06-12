@@ -32,6 +32,13 @@ contacts:
     stale_days: 7
     max_nudges: 3
 
+onboarding:
+  enabled: true
+  auto_start_on_empty_profile: true
+  require_review: true
+  reset:
+    allow_full_dev_from_app: false
+
 proactive:
   briefing:
     enabled: true

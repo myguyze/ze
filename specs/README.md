@@ -77,7 +77,7 @@ explicitly deferred before implementation begins.
 | 48 | [Ze Core Split](phases/48-core-split.md) | ✅ Done |
 | 49 | [Ze SDK](phases/49-ze-sdk.md) | ✅ Done |
 | 50 | [News Preference Model](phases/50-news-preferences.md) | ✅ Done |
-| 51 | [Onboarding Platform](phases/51-onboarding.md) | 🔄 In Progress |
+| 51 | [Onboarding Platform](phases/51-onboarding.md) | ✅ Done |
 | 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | 🔄 In Progress |
 
 ## Ze Core specs (`core/`)

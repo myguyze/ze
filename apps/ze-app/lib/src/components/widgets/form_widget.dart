@@ -24,7 +24,8 @@ class FormWidget extends StatefulWidget {
 
 class _FormWidgetState extends State<FormWidget> {
   final _formKey = GlobalKey<FormState>();
-  final _values = <String, String>{};
+  final _values = <String, dynamic>{};
+  final _multiValues = <String, Set<String>>{};
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -56,26 +57,78 @@ class _FormWidgetState extends State<FormWidget> {
   }
 
   Widget _buildField(ze_form.FormField f) {
+    if (f.fieldType == 'boolean') {
+      final current = (_values[f.id] as bool?) ?? (f.defaultValue == 'true');
+      return CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(f.label),
+        subtitle: f.helpText == null ? null : Text(f.helpText!),
+        value: current,
+        onChanged: (v) => setState(() => _values[f.id] = v ?? false),
+      );
+    }
+    if (f.fieldType == 'multiselect' && f.options != null) {
+      final selected = _multiValues.putIfAbsent(f.id, () => <String>{});
+      return FormField<Set<String>>(
+        validator: (_) => f.required && selected.isEmpty ? 'Required' : null,
+        onSaved: (_) => _values[f.id] = selected.toList(),
+        builder: (state) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(f.label, style: Theme.of(context).textTheme.bodyMedium),
+              if (f.helpText != null) Text(f.helpText!, style: Theme.of(context).textTheme.bodySmall),
+              ...f.options!.map((option) => CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(option),
+                    value: selected.contains(option),
+                    onChanged: (checked) {
+                      setState(() {
+                        if (checked ?? false) {
+                          selected.add(option);
+                        } else {
+                          selected.remove(option);
+                        }
+                        state.didChange(selected);
+                      });
+                    },
+                  )),
+              if (state.hasError) Text(state.errorText!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+          ),
+        ),
+      );
+    }
     if (f.fieldType == 'select' && f.options != null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: DropdownButtonFormField<String>(
-          decoration: InputDecoration(labelText: f.label),
+          value: f.defaultValue,
+          decoration: InputDecoration(labelText: f.label, helperText: f.helpText),
           items: f.options!.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
           onChanged: (v) => _values[f.id] = v ?? '',
           onSaved: (v) => _values[f.id] = v ?? '',
-          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+          validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
         ),
       );
     }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: TextFormField(
-        decoration: InputDecoration(labelText: f.label, hintText: f.placeholder),
+        initialValue: f.defaultValue,
+        decoration: InputDecoration(labelText: f.label, hintText: f.placeholder, helperText: f.helpText),
         keyboardType: f.fieldType == 'number' ? TextInputType.number : TextInputType.text,
-        onSaved: (v) => _values[f.id] = v ?? '',
-        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+        maxLines: f.fieldType == 'textarea' || f.fieldType == 'chips' ? null : 1,
+        onSaved: (v) => _values[f.id] = f.fieldType == 'chips' ? _splitChips(v ?? '') : v ?? '',
+        validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
       ),
     );
   }
+
+  List<String> _splitChips(String value) => value
+      .split(',')
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
 }
