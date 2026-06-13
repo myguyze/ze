@@ -10,7 +10,7 @@ both `core/` and `plugins/` but are never imported by either.
 | Package | Description |
 |---------|-------------|
 | [ze-api](ze-api/) | FastAPI/WebSocket backend — HTTP API, WebSocket chat endpoint, background jobs, plugin wiring |
-| [ze-app](ze-app/) | Flutter client app (iOS, Android, macOS, web) |
+| [ze-web](ze-web/) | React web client (Vite + TypeScript + Tailwind + shadcn/ui) |
 
 ## ze-api
 
@@ -28,14 +28,14 @@ make migrate    # apply pending migrations
 make test       # run ze-api tests
 ```
 
-## ze-app
+## ze-web
 
-Native Flutter application. Connects to `ze-api` over WebSocket at `/ws`. Has no
-Python dependencies — built and run with the Flutter SDK.
+React SPA. Connects to `ze-api` over WebSocket at `/ws`. Has no Python dependencies —
+built and run with the Bun JavaScript runtime.
 
 ```bash
-cd apps/ze-app
-flutter run
+make web        # bun dev server on :5173
+make web-build  # production build
 ```
 
 ## Dependency graph
@@ -44,5 +44,5 @@ flutter run
 ze-api  ←  ze-core, ze-memory, ze-personal, ze-email, ze-calendar,
             ze-prospecting, ze-browser, ze-news, ze-notifications,
             ze-components, ze-google
-ze-app  ←  (Flutter — connects to ze-api over WebSocket, no Python deps)
+ze-web  ←  (React — connects to ze-api over WebSocket, no Python deps)
 ```

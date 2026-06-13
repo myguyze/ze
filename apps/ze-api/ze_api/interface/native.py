@@ -20,7 +20,7 @@ _NTFY_PRIORITY_MAP = {"normal": 3, "high": 5}
 
 
 class NativeAppInterface:
-    """AppInterface for the native Flutter app — WebSocket + ntfy delivery."""
+    """AppInterface for the web client — WebSocket + ntfy delivery."""
 
     confirmation_style: ClassVar[Literal["inline", "async"]] = "async"
 

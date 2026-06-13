@@ -1,6 +1,6 @@
 # Ze — Native App Interface
 
-Ze's native interface connects the Flutter app (`ze-app`) to the backend (`ze-api`)
+Ze's native interface connects the React web app (`ze-web`) to the backend (`ze-api`)
 over a persistent WebSocket. When the app is not connected, Ze falls back to
 **ntfy push notifications**.
 
@@ -12,7 +12,7 @@ over a persistent WebSocket. When the app is not connected, Ze falls back to
 ## Overview
 
 ```
-Flutter App ←──── WebSocket /ws ────→ NativeAppInterface
+React App ←──── WebSocket /ws ────→ NativeAppInterface
                                               │
                                      ┌────────┴─────────┐
                                      ▼                   ▼
@@ -103,7 +103,7 @@ The client should send `{"type": "ack", "ids": [...]}` frames to mark messages a
 ```
 
 `components` is a list of server-driven UI component descriptors (from `ze-components`).
-The Flutter app renders them below the message text.
+The web app renders them below the message text.
 
 Onboarding messages also include an `onboarding` metadata object beside `message`:
 
@@ -115,7 +115,7 @@ Onboarding messages also include an `onboarding` metadata object beside `message
 }
 ```
 
-The Flutter app stores this metadata on the message and uses it when form/confirm
+The web app stores this metadata on the message and uses it when form/confirm
 components submit `component_submit` frames.
 
 ---

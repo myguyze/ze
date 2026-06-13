@@ -3,7 +3,7 @@
 ## Overview
 
 Ze is a single-user, self-hosted AI assistant. The primary interface is a native
-**Flutter app** (`ze-app`) that communicates over a persistent **WebSocket** to the
+**React web app** (`ze-web`) that communicates over a persistent **WebSocket** to the
 backend (`ze-api`). When the app is not connected, Ze delivers messages via
 **ntfy push notifications**.
 
@@ -93,7 +93,7 @@ because `AsyncPostgresSaver` checkpoints it to Postgres on every pause.
 
 When `capability_check` resolves to `confirm`, the graph pauses at
 `await_confirmation` (`interrupt_before`). The WS handler sends a `confirm_request`
-frame to the Flutter app. The app presents approve/cancel UI. The client's `confirm`
+frame to the web app. The app presents approve/cancel UI. The client's `confirm`
 reply causes `graph.ainvoke(None, config)` with the same `thread_id` to resume from
 the checkpoint.
 
@@ -334,7 +334,7 @@ See [docs/goals.md](goals.md) for usage including steering, proactive suggestion
 
 **Module:** `ze_agents/interface/` (preprocessing) · `ze_core.openrouter` (transcription client)
 
-Ze accepts three input types from the Flutter app, all handled before the graph runs:
+Ze accepts three input types from the web app, all handled before the graph runs:
 
 | Input | Handler | Processing |
 |---|---|---|

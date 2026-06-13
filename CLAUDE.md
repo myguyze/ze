@@ -4,7 +4,7 @@
 
 Ze is a single-user personal AI assistant. A Python/FastAPI backend with a LangGraph
 orchestration layer routes user messages to specialised agents (research, companion,
-calendar, email, workflow). Users interact via a native Flutter app over WebSocket.
+calendar, email, workflow). Users interact via a React web app over WebSocket.
 Push notifications are delivered via ntfy. All LLM calls go through OpenRouter.
 
 ## Repository layout
@@ -90,7 +90,7 @@ ze/                           # monorepo root
 │   │   │   └── persona.yaml  # Persona profiles and dials
 │   │   ├── migrations/       # Alembic SQL migrations
 │   │   └── tests/
-│   └── ze-app/               # Flutter client app (iOS / Android / macOS / web)
+│   └── ze-web/               # React web client (Vite + TypeScript + Tailwind + shadcn/ui)
 ├── specs/                    # Design specs (zc-* ze-core, numbered ze modules)
 ├── docs/                     # architecture.md, configuration.md, …
 └── Makefile                  # make test, make test-core, make dev, …
@@ -115,7 +115,7 @@ ze-calendar   → ze-sdk, ze-google, ze-personal             plugins/
 ze-news       → ze-sdk                   plugins/
 ze-api        → ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting, ze-calendar,
                   ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
-ze-app          (Flutter — connects to ze-api over WebSocket)                       apps/
+ze-web          (React — connects to ze-api over WebSocket, no Python deps)         apps/
 ```
 
 ## Essential commands
@@ -125,8 +125,7 @@ make help            # full target list
 
 # Setup
 make install         # Python workspace deps (uv sync)
-make app-get         # Flutter app deps (flutter pub get)
-make app-gen         # Flutter code generation (freezed / riverpod / json)
+make web-install     # React web app deps (bun install)
 
 # Database
 make db-up           # start Postgres via Docker
@@ -134,8 +133,8 @@ make migrate         # apply migrations (requires db-up first)
 
 # Development
 make dev             # backend only — uvicorn --reload on :8000
-make app             # Flutter macOS app (connects to localhost:8000)
-make dev-full        # backend + macOS app together; Ctrl-C stops both
+make web             # React web app — bun dev on :5173
+make dev-full        # backend + web app together; Ctrl-C stops both
 make logs            # tail the server log file
 
 # Testing
@@ -143,8 +142,7 @@ make test            # ze-api tests, fast (skips slow embedding tests)
 make test-all        # all packages, including slow ones
 make test-personal   # ze-personal tests only
 make test-calendar   # ze-calendar tests only
-make app-test        # Flutter unit tests
-make app-analyze     # flutter analyze
+make web-test        # React web app tests (vitest)
 
 # Code quality
 make lint            # ruff lint across all Python packages
@@ -166,7 +164,7 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
 | DB driver | asyncpg (runtime), psycopg2 (Alembic CLI) | asyncpg has no sync mode |
 | Config | Pydantic BaseSettings + YAML files | Secrets in .env, structure in YAML |
 | Migrations | Alembic raw SQL, no ORM | Explicit schema control |
-| Client interface | Flutter + WebSocket | Native cross-platform app, server-driven UI via component descriptors |
+| Client interface | React + WebSocket | Browser-first SPA; Tauri desktop wrapper deferred |
 | Push notifications | ntfy | Self-hostable, no vendor lock-in, deep-link support |
 
 ## Coding conventions

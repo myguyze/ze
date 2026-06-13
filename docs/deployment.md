@@ -212,7 +212,7 @@ is unacceptable, set `min_machines_running = 1` to keep the machine always warm
 (increases monthly cost).
 
 **Note:** WebSocket connections require the machine to stay awake. If you rely on
-a persistent WebSocket from the Flutter app, set `min_machines_running = 1` or use
+a persistent WebSocket from the web app, set `min_machines_running = 1` or use
 ntfy push notifications as the fallback when the machine is cold.
 
 ---
