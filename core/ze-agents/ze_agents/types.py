@@ -91,6 +91,7 @@ class AgentContext:
     # extensions must hold only msgpack-serializable primitives so stored contexts
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)
+    timezone: str = "UTC"
 
 
 @dataclass

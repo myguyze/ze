@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from functools import cached_property
 from typing import Any, AsyncIterator
 
@@ -115,6 +116,15 @@ class BaseAgent(ABC):
         ctx: AgentContext,
         **extra: str,
     ) -> str:
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(ctx.timezone)
+        except Exception:
+            from datetime import timezone as _tz
+            tz = _tz.utc
+        now = datetime.now(tz).strftime("%Y-%m-%d %H:%M %Z")
+        datetime_line = f"Current date and time: {now}\n\n"
+
         identity_builder = ctx.identity_builder
         if identity_builder is not None:
             identity = identity_builder(
@@ -127,7 +137,7 @@ class BaseAgent(ABC):
         else:
             prefix = ""
         rendered = agent_instructions.format(**extra) if extra else agent_instructions
-        return f"{prefix}{rendered}"
+        return f"{datetime_line}{prefix}{rendered}"
 
     # ── Tool execution ────────────────────────────────────────────────────────
 
