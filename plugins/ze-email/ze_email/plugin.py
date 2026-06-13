@@ -21,6 +21,10 @@ class EmailPlugin(ZePlugin):
             return None
         return GmailChannel(credentials=self._google_credentials)
 
+    def channels(self) -> list:
+        ch = self.gmail_channel
+        return [ch] if ch is not None else []
+
     def agent_module_paths(self) -> list[str]:
         if self._google_credentials is None:
             return []

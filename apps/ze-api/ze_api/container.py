@@ -2,21 +2,19 @@ from __future__ import annotations
 
 import asyncpg
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
-from ze_api.bootstrap import bootstrap_agents, discover_plugins, prepare_gate_registry
+from ze_api.bootstrap import bootstrap_agents, discover_plugins
 from ze_browser import BrowserClient
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
-from ze_notifications.notifier import Notifier as PushNotifier
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze_agents.channels.registry import ChannelRegistry
-from ze_api.db import create_checkpointer_pool, create_pool, dispose_checkpointer_pool
+from ze_api.db import create_checkpointer_pool, create_pool
 from ze_core.embeddings import get_embedder
 from ze_core.messages.store import PostgresMessageStore
 from ze_api.sessions.store import PostgresSessionStore
@@ -26,7 +24,6 @@ from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
-from ze_personal.plugin import PersonalPlugin
 from ze_personal.workflow.postgres import PostgresWorkflowStore
 from ze_personal.workflow.scheduler import WorkflowScheduler
 from ze_personal.workflow.store import WorkflowStore
@@ -70,7 +67,7 @@ class ZeContainer(CoreContainer):
 
     persona_store: Any
     workflow_store: WorkflowStore
-    goal_store: Any  # PostgresGoalStore — accessed by routes; populated from PersonalPlugin
+    goal_store: Any  # PostgresGoalStore — accessed by routes; populated from agent_deps
     workflow_scheduler: WorkflowScheduler
     proactive_scheduler: ProactiveScheduler
     browser_client: BrowserClient
@@ -135,7 +132,7 @@ class ZeContainer(CoreContainer):
         await self.workflow_scheduler.stop()
         await self.browser_client.close()
         if self.push_notifier is not None:
-            await self.push_notifier._session.close()
+            await self.push_notifier.close()
         await super().close()
 
     @classmethod
@@ -266,7 +263,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         enabled=settings.scheduler_enabled,
     )
 
-    prepare_gate_registry(settings)
     estimator = ComplexityEstimator()
     override_store = PostgresCapabilityOverrideStore(pool=pool)
     capability_gate = CapabilityGate(override_store=override_store)
@@ -287,15 +283,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         WorkflowStore: workflow_store,
         WorkflowScheduler: workflow_scheduler,
         SentenceTransformer: embedder,
+        BrowserClient: browser_client,
     }
 
     plugins = discover_plugins(plugin_deps)
-
-    # Extract references needed by ZeContainer from the discovered plugins.
-    personal_plugin = next(
-        (p for p in plugins if isinstance(p, PersonalPlugin)), None
-    )
-    goal_store = personal_plugin.goal_store if personal_plugin else None
 
     # Wire onboarding providers.
     onboarding_providers = [CoreOnboardingProvider()]
@@ -320,55 +311,19 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
     reset_service = ResetService(pool=pool)
 
-    # Agent bootstrap — dep_map for agents includes all plugin-specific services
-    # so agents can receive them via DI.
+    # Each plugin declares what it contributes to the agent dep-map.
+    # accumulated is passed so plugins can resolve cross-plugin deps (e.g.
+    # GoalTitleProvider pointing at PersonalPlugin's goal_store).
     agent_deps: dict[type, Any] = dict(plugin_deps)
-    if personal_plugin is not None:
-        from ze_personal.contacts.store import PersonStore
-        from ze_personal.contacts.channel_store import ContactChannelStore
+    for plugin in plugins:
+        agent_deps.update(plugin.agent_deps(agent_deps))
+
+    # ZeContainer needs direct access to goal_store for REST routes.
+    try:
         from ze_personal.goals.postgres import PostgresGoalStore
-        from ze_personal.goals.planner import GoalPlanner
-        from ze_personal.goals.executor import GoalExecutor
-        from ze_personal.workflow.planner import WorkflowPlanner
-
-        agent_deps[PersonStore] = personal_plugin.person_store
-        agent_deps[ContactChannelStore] = personal_plugin.contact_channel_store
-        agent_deps[PostgresGoalStore] = personal_plugin.goal_store
-        agent_deps[GoalPlanner] = personal_plugin.goal_planner
-        agent_deps[GoalExecutor] = personal_plugin.goal_executor
-        agent_deps[WorkflowPlanner] = personal_plugin.workflow_planner
-
-    from ze_prospecting.plugin import ProspectingPlugin
-    prospecting_plugin = next(
-        (p for p in plugins if isinstance(p, ProspectingPlugin)), None
-    )
-    if prospecting_plugin is not None:
-        from ze_prospecting.store import ProspectCampaignStore
-        from ze_prospecting.types import ProspectingSettings
-        agent_deps[ProspectCampaignStore] = prospecting_plugin.campaign_store
-        agent_deps[ProspectingSettings] = prospecting_plugin._prospecting_settings
-
-    from ze_calendar.plugin import CalendarPlugin
-    calendar_plugin = next(
-        (p for p in plugins if isinstance(p, CalendarPlugin)), None
-    )
-    if calendar_plugin is not None:
-        from ze_calendar.reminders.store import ReminderStore
-        agent_deps[ReminderStore] = calendar_plugin.reminder_store
-
-    agent_deps[BrowserClient] = browser_client
-
-    news_store = None
-    from ze_news.plugin import NewsPlugin  # type: ignore[import]
-    news_plugin = next((p for p in plugins if isinstance(p, NewsPlugin)), None)
-    if news_plugin is not None and news_plugin._store is not None:
-        news_store = news_plugin._store
-        from ze_news.store import NewsStore
-        from ze_news.types import GoalTitleProvider
-        agent_deps[NewsStore] = news_store
-        if personal_plugin is not None:
-            from ze_personal.goals.postgres import PostgresGoalStore
-            agent_deps[GoalTitleProvider] = personal_plugin.goal_store
+        goal_store = agent_deps.get(PostgresGoalStore)
+    except ImportError:
+        goal_store = None
 
     bootstrap_agents(deps=agent_deps, plugins=plugins)
 
@@ -454,11 +409,9 @@ async def build_container(settings: Settings) -> ZeContainer:
             consolidation_enabled=settings.consolidation_enabled,
         )
 
-    # Build Gmail channel registry from EmailPlugin if present.
-    from ze_email.plugin import EmailPlugin  # type: ignore[import]
-    email_plugin = next((p for p in plugins if isinstance(p, EmailPlugin)), None)
-    gmail_channel = email_plugin.gmail_channel if email_plugin else None
-    _ = ChannelRegistry(channels=[gmail_channel] if gmail_channel else [])
+    # Build channel registry from all plugins.
+    all_channels = [ch for plugin in plugins for ch in plugin.channels()]
+    _ = ChannelRegistry(channels=all_channels)
 
     await workflow_scheduler.start()
     await container.proactive_scheduler.start()

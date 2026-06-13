@@ -7,8 +7,6 @@ import types as _types
 import typing
 from typing import Any, get_type_hints
 
-import asyncpg
-
 from ze_agents.errors import AgentConfigError
 from ze_agents.logging import get_logger
 from ze_agents.registry import (
@@ -85,106 +83,15 @@ def bootstrap_agents(
     *,
     deps: dict[type, Any] | None = None,
     plugins: list[ZePlugin] | None = None,
-    # Legacy kwargs — forwarded into deps for backwards compatibility.
-    openrouter_client: Any = None,
-    settings: Any = None,
-    google_credentials: Any = None,
-    workflow_store: Any = None,
-    workflow_planner: Any = None,
-    workflow_scheduler: Any = None,
-    reminder_store: Any = None,
-    notifier: Any = None,
-    person_store: Any = None,
-    browser_client: Any = None,
-    contact_channel_store: Any = None,
-    goal_store: Any = None,
-    goal_planner: Any = None,
-    goal_executor: Any = None,
-    pool: asyncpg.Pool | None = None,
-    campaign_store: Any = None,
-    prospecting_settings: Any = None,
-    memory_store: Any = None,
-    news_store: Any = None,
 ) -> None:
-    """Instantiate and register all enabled agents. Called once at app startup.
-
-    Prefer passing ``deps`` as a typed dict. The individual keyword arguments
-    are kept for backwards compatibility and are merged into ``deps``.
-    """
-    from ze_google.auth import GoogleCredentials
-    from ze_agents.client import LLMClient
-    from ze_core.openrouter.client import OpenRouterClient
-    from ze_api.settings import Settings
-    from ze_agents.settings import Settings as CoreSettings
-
+    """Instantiate and register all enabled agents. Called once at app startup."""
     _dep_map.clear()
-
-    # Start from the explicit deps dict.
     if deps:
         _dep_map.update(deps)
-
-    # Resolve google_credentials from settings if not explicitly provided.
-    if google_credentials is None and settings is not None:
-        google_credentials = GoogleCredentials.from_settings(settings)
-
-    # Merge legacy kwargs.
-    _legacy: list[tuple[Any, Any]] = [
-        (OpenRouterClient, openrouter_client),
-        (LLMClient, openrouter_client),
-        (Settings, settings),
-        (CoreSettings, settings.to_core_settings() if settings and hasattr(settings, "to_core_settings") else None),
-        (GoogleCredentials, google_credentials),
-        (asyncpg.Pool, pool),
-    ]
-    for type_, val in _legacy:
-        if val is not None:
-            _dep_map[type_] = val
-
-    # Optional typed deps — only add if provided.
-    _optional: list[tuple[str, Any]] = [
-        ("ze_personal.workflow.store.WorkflowStore", workflow_store),
-        ("ze_personal.workflow.planner.WorkflowPlanner", workflow_planner),
-        ("ze_personal.workflow.scheduler.WorkflowScheduler", workflow_scheduler),
-        ("ze_calendar.reminders.store.ReminderStore", reminder_store),
-        ("ze_proactive.notifier.ProactiveNotifier", notifier),
-        ("ze_proactive.push_log_store.PushLogStore", notifier and getattr(notifier, "_push_log_store", None)),
-        ("ze_personal.contacts.store.PersonStore", person_store),
-        ("ze_browser.BrowserClient", browser_client),
-        ("ze_personal.contacts.channel_store.ContactChannelStore", contact_channel_store),
-        ("ze_personal.goals.postgres.PostgresGoalStore", goal_store),
-        ("ze_personal.goals.planner.GoalPlanner", goal_planner),
-        ("ze_personal.goals.executor.GoalExecutor", goal_executor),
-        ("ze_prospecting.store.ProspectCampaignStore", campaign_store),
-        ("ze_prospecting.types.ProspectingSettings", prospecting_settings),
-        ("ze_memory.retriever.PostgresMemoryStore", memory_store),
-    ]
-    for dotted, val in _optional:
-        if val is not None:
-            try:
-                mod, attr = dotted.rsplit(".", 1)
-                type_ = getattr(importlib.import_module(mod), attr)
-                _dep_map[type_] = val
-            except Exception:
-                pass  # package not installed — skip silently
-
-    if goal_store is not None and news_store is not None:
-        try:
-            from ze_news.types import GoalTitleProvider
-            _dep_map[GoalTitleProvider] = goal_store
-        except ImportError:
-            pass
-    if news_store is not None:
-        try:
-            from ze_news.store import NewsStore
-            _dep_map[NewsStore] = news_store
-        except ImportError:
-            pass
 
     for module_path in _plugin_agent_module_paths(plugins):
         log.debug("importing_agent_module", path=module_path)
         importlib.import_module(module_path)
-
-    prepare_gate_registry(settings, plugins)
 
     for name, cls in get_registered_agents().items():
         if not getattr(cls, "enabled", True):
@@ -195,10 +102,6 @@ def bootstrap_agents(
 
     validate_registry()
     log.info("bootstrap_complete", agents=list(get_registered_agents()))
-
-
-def prepare_gate_registry(settings: Any, plugins: list | None = None) -> None:
-    del settings, plugins
 
 
 def validate_registry() -> None:
@@ -251,11 +154,6 @@ def _plugin_agent_module_paths(plugins: list[ZePlugin] | None) -> list[str]:
             paths.extend(plugin_paths)
         return paths
     return list(_DEFAULT_AGENT_MODULE_PATHS)
-
-
-def _import_agent_modules(plugins: list | None = None) -> None:
-    for module_path in _DEFAULT_AGENT_MODULE_PATHS:
-        importlib.import_module(module_path)
 
 
 def reload_agent_modules(plugins: list | None = None) -> None:

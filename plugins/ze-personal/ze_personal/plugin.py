@@ -139,6 +139,23 @@ class PersonalPlugin(ZePlugin):
     def migrations_path(cls) -> Path | None:
         return Path(__file__).parent / "migrations"
 
+    def agent_deps(self, accumulated: dict) -> dict:
+        from ze_personal.contacts.store import PersonStore
+        from ze_personal.contacts.channel_store import ContactChannelStore
+        from ze_personal.goals.postgres import PostgresGoalStore
+        from ze_personal.goals.planner import GoalPlanner
+        from ze_personal.goals.executor import GoalExecutor
+        from ze_personal.workflow.planner import WorkflowPlanner
+
+        return {
+            PersonStore: self.person_store,
+            ContactChannelStore: self.contact_channel_store,
+            PostgresGoalStore: self.goal_store,
+            GoalPlanner: self.goal_planner,
+            GoalExecutor: self.goal_executor,
+            WorkflowPlanner: self.workflow_planner,
+        }
+
     def configurable_services(self) -> dict[str, Any]:
         from ze_personal.persona.identity import build_identity_block
         from ze_personal.graph.memory_hooks import contact_proposal_hook
@@ -182,13 +199,12 @@ class PersonalPlugin(ZePlugin):
     async def startup(self, container: Any) -> None:
         api_settings = container.settings
 
-        # Wire news_store into morning briefing if a NewsPlugin is active.
+        # Wire news_store into morning briefing if any plugin provides one.
         for plugin in container.plugins:
-            if hasattr(plugin, "_store") and hasattr(plugin, "_fetch_job"):
-                news_store = getattr(plugin, "_store", None)
-                if news_store is not None:
-                    self.morning_briefing._news = news_store
-                    log.info("news_store_wired_to_briefing")
+            news_store = plugin.configurable_services().get("news_store")
+            if news_store is not None:
+                self.morning_briefing._news = news_store
+                log.info("news_store_wired_to_briefing")
                 break
 
         # Build workflow graph and configure executor on the shared scheduler.

@@ -1,6 +1,7 @@
 import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncpg
 import pytest
 
 from ze_api.bootstrap import bootstrap_agents
@@ -40,36 +41,45 @@ def test_bootstrap_registers_companion_and_research(settings):
     from unittest.mock import MagicMock as MM
     from ze_browser import BrowserClient
     from ze_personal.contacts.store import PersonStore
+    from ze_personal.contacts.channel_store import ContactChannelStore
     from ze_personal.goals.executor import GoalExecutor
     from ze_personal.goals.planner import GoalPlanner
-    from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
-    from ze_core.proactive.notifier import ProactiveNotifier
+    from ze_personal.goals.postgres import PostgresGoalStore
+    from ze_agents.client import LLMClient
     from ze_calendar.reminders.store import ReminderStore
     from ze_personal.workflow.store import WorkflowStore
     from ze_personal.workflow.planner import WorkflowPlanner
     from ze_personal.workflow.scheduler import WorkflowScheduler
-
     from ze_prospecting.store import ProspectCampaignStore
     from ze_prospecting.types import ProspectingSettings
+    from ze_core.openrouter.client import OpenRouterClient
+    from ze_google.auth import GoogleCredentials
+    from ze_agents.settings import Settings as CoreSettings
+    from ze_proactive.notifier import ProactiveNotifier
 
     client = AsyncMock()
-    bootstrap_agents(
-        openrouter_client=client,
-        settings=settings,
-        workflow_store=MM(spec=WorkflowStore),
-        workflow_planner=MM(spec=WorkflowPlanner),
-        workflow_scheduler=MM(spec=WorkflowScheduler),
-        reminder_store=MM(spec=ReminderStore),
-        notifier=MM(spec=ProactiveNotifier),
-        person_store=MM(spec=PersonStore),
-        browser_client=MM(spec=BrowserClient),
-        goal_store=MM(spec=GoalStore),
-        goal_planner=MM(spec=GoalPlanner),
-        goal_executor=MM(spec=GoalExecutor),
-        pool=MagicMock(),
-        campaign_store=MM(spec=ProspectCampaignStore),
-        prospecting_settings=ProspectingSettings(),
-    )
+    core_settings = settings.to_core_settings()
+    deps = {
+        LLMClient: client,
+        OpenRouterClient: client,
+        CoreSettings: core_settings,
+        asyncpg.Pool: MagicMock(),
+        WorkflowStore: MM(spec=WorkflowStore),
+        WorkflowPlanner: MM(spec=WorkflowPlanner),
+        WorkflowScheduler: MM(spec=WorkflowScheduler),
+        ReminderStore: MM(spec=ReminderStore),
+        PersonStore: MM(spec=PersonStore),
+        ContactChannelStore: MM(spec=ContactChannelStore),
+        BrowserClient: MM(spec=BrowserClient),
+        PostgresGoalStore: MM(spec=PostgresGoalStore),
+        GoalPlanner: MM(spec=GoalPlanner),
+        GoalExecutor: MM(spec=GoalExecutor),
+        ProspectCampaignStore: MM(spec=ProspectCampaignStore),
+        ProspectingSettings: ProspectingSettings(),
+        GoogleCredentials: MM(spec=GoogleCredentials),
+        ProactiveNotifier: MM(spec=ProactiveNotifier),
+    }
+    bootstrap_agents(deps=deps)
 
     assert isinstance(get_agent("companion"), CompanionAgent)
     assert isinstance(get_agent("research"), ResearchAgent)

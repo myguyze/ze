@@ -2,7 +2,6 @@ import json
 import pytest
 from unittest.mock import AsyncMock
 
-from ze_api.bootstrap import prepare_gate_registry
 from ze_agents.errors import RoutingError
 from ze_api.logging import configure_logging
 from ze_agents.registry import get_enabled_agents
@@ -27,7 +26,6 @@ def settings(tmp_path):
         database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
         config_dir=real_config,
     )
-    prepare_gate_registry(settings)
     return settings
 
 

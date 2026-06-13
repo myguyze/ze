@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from ze_api.bootstrap import prepare_gate_registry
 from ze_agents.errors import InvalidPromptError, RoutingError
 from ze_api.logging import configure_logging
 from ze_core.routing.router import EmbeddingRouter
@@ -54,7 +53,6 @@ def make_router(
         enabled = {name: {} for name in get_enabled_agents()}
         agent_vecs = {name: unit_vec() for name in enabled}
         embedder = make_embedder(agent_vecs, _prompt_vec)
-    prepare_gate_registry(settings)
     _client = client or make_client()
     return EmbeddingRouter(
         embedder=embedder,

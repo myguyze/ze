@@ -84,6 +84,19 @@ class ZePlugin(ABC):
         """Fully-qualified module paths to import at bootstrap to trigger @agent registration."""
         return []
 
+    def agent_deps(self, accumulated: dict[type, Any]) -> dict[type, Any]:
+        """Return types this plugin contributes to the agent dep-map.
+
+        ``accumulated`` holds deps registered so far (shared infra + earlier plugins),
+        allowing cross-plugin wiring (e.g. a type alias that resolves to another
+        plugin's service).
+        """
+        return {}
+
+    def channels(self) -> list[Any]:
+        """Return communication channel instances this plugin provides."""
+        return []
+
     def register_proactive_jobs(
         self,
         scheduler: Any,

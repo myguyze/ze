@@ -46,6 +46,9 @@ class NtfyNotifier:
         except Exception as exc:
             log.warning("ntfy push error: %s", exc)
 
+    async def close(self) -> None:
+        await self._session.close()
+
     def _build_headers(self, n: Notification) -> dict[str, str]:
         headers: dict[str, str] = {
             "X-Title": n.title,

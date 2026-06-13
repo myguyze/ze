@@ -42,6 +42,12 @@ class ProspectingPlugin(ZePlugin):
             self._prospecting_settings = ProspectingSettings.from_env()
         self.campaign_store = ProspectCampaignStore(pool=pool)
 
+    def agent_deps(self, accumulated: dict) -> dict:
+        return {
+            ProspectCampaignStore: self.campaign_store,
+            ProspectingSettings: self._prospecting_settings,
+        }
+
     def agent_module_paths(self) -> list[str]:
         return [
             "ze_browser.tool",
