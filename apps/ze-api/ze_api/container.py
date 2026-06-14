@@ -70,6 +70,7 @@ class ZeContainer(CoreContainer):
     goal_store: Any  # PostgresGoalStore — accessed by routes; populated from agent_deps
     reminder_store: Any  # ReminderStore — accessed by routes; populated from agent_deps
     person_store: Any  # PersonStore — accessed by routes; populated from agent_deps
+    news_store: Any  # NewsStore — accessed by routes; populated from agent_deps
     workflow_scheduler: WorkflowScheduler
     proactive_scheduler: ProactiveScheduler
     browser_client: BrowserClient
@@ -336,6 +337,11 @@ async def build_container(settings: Settings) -> ZeContainer:
         person_store = agent_deps.get(PersonStore)
     except ImportError:
         person_store = None
+    try:
+        from ze_news.store import NewsStore
+        news_store = agent_deps.get(NewsStore)
+    except ImportError:
+        news_store = None
 
     bootstrap_agents(deps=agent_deps, plugins=plugins)
 
@@ -372,6 +378,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         goal_store=goal_store,
         reminder_store=reminder_store,
         person_store=person_store,
+        news_store=news_store,
         workflow_scheduler=workflow_scheduler,
         proactive_scheduler=ProactiveScheduler(),
         browser_client=browser_client,

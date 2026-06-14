@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ze_api.api.openapi import OPENAPI_TAGS
-from ze_api.api.routes import capabilities, contacts, costs, eval, goals, health, memory, reminders, routing, sessions, workflows
+from ze_api.api.routes import capabilities, contacts, costs, eval, goals, health, memory, news, reminders, routing, sessions, workflows
 from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container
@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(goals.router)
     app.include_router(reminders.router)
     app.include_router(contacts.router)
+    app.include_router(news.router)
     app.include_router(sessions.router)
     app.include_router(health.router)
     app.include_router(ws_router)

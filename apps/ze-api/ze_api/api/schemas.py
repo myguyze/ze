@@ -189,6 +189,22 @@ class WebCostSummaryResponse(BaseModel):
     period: str
 
 
+class CredibilityFlagItem(BaseModel):
+    type: str
+    label: str
+    detail: str
+
+
+class ArticleItem(BaseModel):
+    url: str
+    source_key: str
+    title: str
+    summary: str
+    published_at: datetime
+    tags: list[str]
+    credibility_flags: list[CredibilityFlagItem]
+
+
 # ── REST: eval ────────────────────────────────────────────────────────────────
 
 class EvalChatRequest(BaseModel):
