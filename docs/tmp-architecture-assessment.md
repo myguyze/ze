@@ -21,9 +21,9 @@
 
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
-| 1 | C1 | Fix confirmation flow end-to-end (server interrupt → client UI → `resume_turn`) | ☐ |
-| 2 | C2 | Lock down WS protocol contract (single source of truth + conformance test) | ☐ |
-| 3 | H6 | Fix `cancel` command inverted logic / `None` dereference | ☐ |
+| 1 | C1 | Fix confirmation flow end-to-end (server interrupt → client UI → `resume_turn`) | ✅ 2026-06-15 |
+| 2 | C2 | Lock down WS protocol contract (single source of truth + conformance test) | ✅ 2026-06-15 |
+| 3 | H6 | Fix `cancel` command inverted logic / `None` dereference | ✅ 2026-06-15 |
 | 4 | H1 + H2 | Remove plugin wiring from `ZeContainer` + add plugin dependency ordering | ☐ |
 | 5 | H3 | Fix memory contradiction logic + entity scan scalability | ☐ |
 

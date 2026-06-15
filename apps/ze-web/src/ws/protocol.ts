@@ -24,8 +24,13 @@ export interface ScreenContext {
 
 // ── Server → Client ───────────────────────────────────────────────────────────
 
+export interface OnboardingMeta {
+  session_id: string;
+  completed: boolean;
+}
+
 export type InboundFrame =
-  | { type: "message"; message: Message }
+  | { type: "message"; message: Message; onboarding?: OnboardingMeta }
   | { type: "edit"; id: string; text?: string; components: ComponentDescriptor[] }
   | { type: "confirm_request"; id: string; prompt: string; actions: ConfirmAction[] }
   | { type: "confirm_cancel"; id: string }
@@ -40,6 +45,6 @@ export type OutboundFrame =
   | { type: "message"; text: string; thread_id?: string; context?: ScreenContext }
   | { type: "ack"; ids: string[] }
   | { type: "confirm"; id: string; choice: "approve" | "deny" }
-  | { type: "command"; name: "cancel" | "costs" | "memory" | "contacts" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview" }
+  | { type: "command"; name: "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview" }
   | { type: "component_submit"; session_id: string; step_id: string; values: Record<string, unknown> }
   | { type: "ping" };
