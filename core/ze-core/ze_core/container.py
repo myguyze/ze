@@ -161,6 +161,27 @@ class Container:
         if token is not None:
             token.abort(reason)
 
+    async def abort_pending_checkpoint(self, config: dict) -> None:
+        """Finalize a LangGraph checkpoint paused at await_confirmation.
+
+        The graph compiles with interrupt_before=["await_confirmation"], so a
+        deny or timeout leaves a checkpoint with next=["await_confirmation"].
+        This advances past that node without executing the pending action, so
+        the next turn starts from the entry node instead of the interrupted state.
+        """
+        try:
+            state = await self.graph.aget_state(config)
+            if not state or not state.next:
+                return
+            await self.graph.update_state(
+                config,
+                {"pending_confirmation": False, "agent_result": None, "agent_context": None},
+                as_node="write_memory",
+            )
+            await self.graph.ainvoke(None, config)
+        except Exception as exc:
+            log.warning("abort_pending_checkpoint_failed", error=str(exc))
+
     async def invoke_raw(
         self,
         raw: "RawInput",

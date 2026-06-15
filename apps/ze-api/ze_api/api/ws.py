@@ -304,6 +304,8 @@ async def _handle_message(
                 notifier,
                 effective_thread_id,
                 confirm_timeout,
+                container=container,
+                graph_config=outcome.config,
             ))
 
         return outcome.config
@@ -383,7 +385,7 @@ async def _handle_confirm(
         return None
     else:
         try:
-            await container.abort_invocation(thread_id)
+            await container.abort_pending_checkpoint(pending_config)
         except Exception as exc:
             log.warning("ws_deny_abort_failed", error=str(exc))
         await conn_mgr.send_frame({"type": "confirm_cancel", "id": request_id})
@@ -404,6 +406,8 @@ async def _confirmation_timeout(
     notifier: Any | None,
     thread_id: str,
     timeout_seconds: int,
+    container: Any | None = None,
+    graph_config: dict | None = None,
 ) -> None:
     await asyncio.sleep(timeout_seconds)
     cleared = await confirmation_store.clear(thread_id)
@@ -412,6 +416,13 @@ async def _confirmation_timeout(
         return
 
     log.info("confirmation_timeout_elapsed", thread_id=thread_id)
+
+    if container is not None and graph_config is not None:
+        try:
+            await container.abort_pending_checkpoint(graph_config)
+        except Exception as exc:
+            log.warning("ws_timeout_checkpoint_abort_failed", error=str(exc))
+
     timeout_msg = (
         "I waited for your approval but the window elapsed — "
         "let me know if you'd like me to try again."

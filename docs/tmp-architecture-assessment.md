@@ -4,34 +4,63 @@
 >
 > **Date:** 2026-06-15
 >
-> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through the [Top 5 action list](#top-5-fix-first) first, then remaining items by severity.
+> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through [Phase 2](#phase-2--fix-next) first, then remaining items by severity.
 
 ---
 
 ## How to use this document
 
-1. Pick the next unchecked item from the action list or severity sections.
+1. Pick the next unchecked item from the [Phase 2](#phase-2--fix-next) table.
 2. Fix it in a focused PR.
-3. Mark the item done here (add `✅` and date) or remove it once resolved.
-4. When all Critical/High items are done, delete this file or fold remaining notes into `docs/architecture.md`.
+3. Mark the item done here (add `✅` and date).
+4. When Phase 2 is complete, promote Phase 3 candidates and update this doc.
+5. When all High items are done, delete this file or fold remaining notes into `docs/architecture.md`.
 
 ---
 
-## Top 5 — fix first
+## Phase 2 — fix next
 
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
-| 1 | C1 | Fix confirmation flow end-to-end (server interrupt → client UI → `resume_turn`) | ✅ 2026-06-15 |
-| 2 | C2 | Lock down WS protocol contract (single source of truth + conformance test) | ✅ 2026-06-15 |
-| 3 | H6 | Fix `cancel` command inverted logic / `None` dereference | ✅ 2026-06-15 |
-| 4 | H1 + H2 | Remove plugin wiring from `ZeContainer` + add plugin dependency ordering | ✅ 2026-06-15 |
-| 5 | H3 | Fix memory contradiction logic + entity scan scalability | ✅ 2026-06-15 |
+| 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny | ✅ 2026-06-15 |
+| 2 | M2 | Per-subtask capability gate + correct resume semantics | ☐ |
+| 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ☐ |
+| 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ☐ |
+| 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ☐ |
+
+---
+
+## Phase 1 — completed 2026-06-15
+
+| # | ID | Summary |
+|---|-----|---------|
+| 1 | C1 | Confirmation flow end-to-end (server interrupt → client UI → `resume_turn`) |
+| 2 | C2 | WS protocol type alignment (partial — conformance test deferred to Phase 2) |
+| 3 | H6 | Cancel command inverted logic / `None` dereference |
+| 4 | H1 + H2 | Plugin `rest_stores()` + topological plugin discovery ordering |
+| 5 | H3 | Memory contradiction scoped to `(predicate, subject_id)` + indexed entity lookups |
+
+---
+
+## Phase 3 — candidates (after Phase 2)
+
+| ID | Summary | Why defer |
+|----|---------|-----------|
+| H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | Large refactor; H3 fixed worst correctness/scaling bugs |
+| M3 | Compose pre-route plugin hooks; remove dead routing branch | Orchestration hygiene, no user-visible bug today |
+| M4 | Unify `AgentState` / single `initial_state()` factory | Important before many new flows; large scope |
+| M5 | Typed retrieval request Protocol in `ze-agents` | Small, isolated — good filler task |
+| M6 | Fire-and-forget memory writes — surface failures | Needs observability design |
+| M9 | Single `OnboardingError`; implement or remove seed kinds | Only bites when providers emit those seeds |
+| L1–L7 | Low-severity polish | Batch when touching nearby code |
 
 ---
 
 ## Critical
 
-### C1. Confirmation (Approve/Deny) flow is broken end-to-end
+> **C1 ✅ · C2 ✅ (partial)** — completed in Phase 1. Conformance test tracked in Phase 2 #5.
+
+### C1. Confirmation (Approve/Deny) flow is broken end-to-end ✅ Phase 1
 
 - **Category:** Correctness
 - **Location:**
@@ -48,7 +77,7 @@
 
 ---
 
-### C2. WebSocket protocol contract diverges between server and client
+### C2. WebSocket protocol contract diverges between server and client ✅ Phase 1 (partial)
 
 - **Category:** Correctness / Tech debt
 - **Location:** `apps/ze-api/ze_api/api/ws.py` vs `apps/ze-web/src/ws/protocol.ts`
@@ -64,7 +93,9 @@
 
 ## High
 
-### H1. `ZeContainer` hard-codes plugin store types, defeating auto-discovery
+> **H1 ✅ · H2 ✅ · H3 ✅ · H6 ✅** — completed in Phase 1. **H4 · H5** remain (H5 in Phase 2 #3; H4 deferred to Phase 3).
+
+### H1. `ZeContainer` hard-codes plugin store types, defeating auto-discovery ✅ Phase 1
 
 - **Category:** Boundary violation / Scalability
 - **Location:** `apps/ze-api/ze_api/container.py:68-86, 276-344`
@@ -74,7 +105,7 @@
 
 ---
 
-### H2. Cross-plugin dependency and startup resolution is order-dependent
+### H2. Cross-plugin dependency and startup resolution is order-dependent ✅ Phase 1
 
 - **Category:** Correctness / Scalability
 - **Location:**
@@ -86,7 +117,7 @@
 
 ---
 
-### H3. Memory contradiction logic is incorrect and won't scale
+### H3. Memory contradiction logic is incorrect and won't scale ✅ Phase 1
 
 - **Category:** Correctness / Scalability
 - **Location:** `core/ze-memory/ze_memory/retriever.py:391-412` (entity scans at `470-473, 566-607`)
@@ -108,7 +139,7 @@
 
 ---
 
-### H5. React WS layer fragments chat state and broadcasts global "thinking"
+### H5. React WS layer fragments chat state and broadcasts global "thinking" — Phase 2 #3
 
 - **Category:** Correctness / Scalability
 - **Location:**
@@ -120,7 +151,7 @@
 
 ---
 
-### H6. `cancel` command has inverted logic that dereferences `None`
+### H6. `cancel` command has inverted logic that dereferences `None` ✅ Phase 1
 
 - **Category:** Correctness
 - **Location:** `apps/ze-api/ze_api/api/ws.py:373-378`
@@ -139,7 +170,9 @@
 
 ## Medium
 
-### M1. Confirmation timeout doesn't abort paused LangGraph checkpoint
+> **M1 · M2 · M7 · M8** — in Phase 2. **M3–M6 · M9** — Phase 3 candidates.
+
+### M1. Confirmation timeout doesn't abort paused LangGraph checkpoint ✅ Phase 2
 
 - **Category:** Correctness / Tech debt
 - **Location:** `apps/ze-api/ze_api/api/ws.py:335-361`; `core/ze-core/ze_core/conversation.py:131-140`
@@ -148,7 +181,7 @@
 
 ---
 
-### M2. Capability gate only checks primary subtask; resume re-runs as EXECUTE
+### M2. Capability gate only checks primary subtask; resume re-runs as EXECUTE — Phase 2 #2
 
 - **Category:** Correctness
 - **Location:** `core/ze-core/ze_core/orchestration/nodes/execution.py:24-33, 99-105`
@@ -202,7 +235,7 @@
 
 ---
 
-### M7. Sessions are a metadata overlay, not a first-class entity
+### M7. Sessions are a metadata overlay, not a first-class entity — Phase 2 #4
 
 - **Category:** Tech debt
 - **Location:**
@@ -214,7 +247,7 @@
 
 ---
 
-### M8. SDUI `ComponentRenderer` and frame handlers are non-exhaustive
+### M8. SDUI `ComponentRenderer` and frame handlers are non-exhaustive — Phase 2 #3
 
 - **Category:** Correctness / Tech debt
 - **Location:**
@@ -256,14 +289,14 @@
 
 ## Testing gaps (highest-value coverage)
 
-| Priority | Area | Would catch |
-|----------|------|-------------|
-| 1 | Confirmation flow E2E (server interrupt → frame → client → approve → resume) | C1, C2, H6 |
-| 2 | WS protocol conformance test (server frames vs TS unions) | C2 permanently |
-| 3 | Plugin discovery with shuffled entry-point order + cross-plugin deps | H2 |
-| 4 | Memory contradiction/write paths | H3 regressions |
-| 5 | Graph edges + compound capability | M2, M3 |
-| 6 | React: `useMessages` thread filtering + frame dispatcher | H5, M8 |
+| Priority | Area | Phase | Would catch |
+|----------|------|-------|-------------|
+| 1 | Confirmation flow E2E (server interrupt → frame → client → approve → resume) | 2 #5 | C1 regressions, M1 |
+| 2 | WS protocol conformance test (server frames vs TS unions) | 2 #5 | C2 permanently |
+| 3 | Plugin discovery with shuffled entry-point order + cross-plugin deps | 1 ✅ | H2 regressions |
+| 4 | Memory contradiction/write paths | 1 ✅ | H3 regressions |
+| 5 | Graph edges + compound capability | 2 #2 / Phase 3 | M2, M3 |
+| 6 | React: `useMessages` thread filtering + frame dispatcher | 2 #3 | H5, M8 |
 
 **Note:** React app has vitest configured but zero test files today.
 
@@ -290,3 +323,4 @@ The "core" layer has absorbed domain knowledge (workflow fields in `AgentState`,
 | Date | Change |
 |------|--------|
 | 2026-06-15 | Initial assessment written |
+| 2026-06-15 | Phase 1 completed (C1, C2 partial, H1, H2, H3, H6); Phase 2 backlog added |
