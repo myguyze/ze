@@ -23,6 +23,11 @@ class SessionSchema(BaseModel):
     last_active_at: datetime
 
 
+class CreateSessionRequest(BaseModel):
+    id: str | None = None
+    title: str | None = None
+
+
 # ── REST: messages ────────────────────────────────────────────────────────────
 
 class MessageSchema(BaseModel):

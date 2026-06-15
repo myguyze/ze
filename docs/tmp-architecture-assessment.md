@@ -23,8 +23,8 @@
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
 | 1 | M5 | Typed retrieval request Protocol in `ze-agents` (replace `SimpleNamespace`) | ✅ 2026-06-15 |
-| 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch | ☐ |
-| 3 | M7 | Finish session hardening (orphan thread IDs, unify naming, title updates) | ☐ |
+| 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch | ✅ 2026-06-15 |
+| 3 | M7 | Finish session hardening (orphan thread IDs, unify naming, title updates) | ✅ 2026-06-15 |
 | 4 | M9 | Single `OnboardingError`; implement or remove seed kinds | ☐ |
 | 5 | M4 | Unify `AgentState` / single `initial_state()` factory; use `state_extensions` | ☐ |
 

@@ -15,7 +15,10 @@ class SessionStore(Protocol):
         *,
         title: str | None = None,
         preview: str | None = None,
+        update_title: bool = False,
     ) -> None: ...
+
+    async def create(self, session_id: str, *, title: str | None = None) -> Session: ...
 
     async def list_all(self, limit: int = 50) -> list[Session]: ...
 
@@ -32,15 +35,19 @@ class PostgresSessionStore:
         *,
         title: str | None = None,
         preview: str | None = None,
+        update_title: bool = False,
     ) -> None:
         now = datetime.now(timezone.utc)
+        # When update_title is True (explicit refresh), overwrite existing title.
+        # Otherwise keep whatever title is already set (first-message heuristic).
+        title_expr = "EXCLUDED.title" if update_title else "COALESCE(sessions.title, EXCLUDED.title)"
         async with self._pool.acquire() as conn:
             await conn.execute(
-                """
+                f"""
                 INSERT INTO sessions (id, title, preview, created_at, last_active_at)
                 VALUES ($1, $2, $3, $4, $4)
                 ON CONFLICT (id) DO UPDATE SET
-                    title = COALESCE(sessions.title, EXCLUDED.title),
+                    title = {title_expr},
                     preview = COALESCE(EXCLUDED.preview, sessions.preview),
                     last_active_at = EXCLUDED.last_active_at
                 """,
@@ -49,6 +56,21 @@ class PostgresSessionStore:
                 preview,
                 now,
             )
+
+    async def create(self, session_id: str, *, title: str | None = None) -> Session:
+        now = datetime.now(timezone.utc)
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO sessions (id, title, preview, created_at, last_active_at)
+                VALUES ($1, $2, NULL, $3, $3)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                session_id,
+                title,
+                now,
+            )
+        return Session(id=session_id, title=title, preview=None, created_at=now, last_active_at=now)
 
     async def list_all(self, limit: int = 50) -> list[Session]:
         async with self._pool.acquire() as conn:

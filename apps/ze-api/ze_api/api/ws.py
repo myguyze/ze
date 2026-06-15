@@ -224,6 +224,10 @@ async def _handle_message(
     if not text:
         return pending_config
 
+    if not thread_id:
+        await conn_mgr.send_frame({"type": "error", "detail": "thread_id required"})
+        return pending_config
+
     user_msg = Message(
         id=uuid4(),
         role="user",
@@ -255,7 +259,7 @@ async def _handle_message(
 
     try:
         outcome = await container.invoke_raw_turn(
-            thread_id or f"ws-{uuid4()}",
+            thread_id,
             RawInput(text=text),
             config_extra=config_extra,
         )

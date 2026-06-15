@@ -113,17 +113,15 @@ def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any
     from ze_core.orchestration.state import build_state_type
 
     state_type = build_state_type(plugins or [])
-    pre_route = next(
-        (fn for p in (plugins or []) for fn in [p.pre_route_node()] if fn is not None),
-        None,
-    )
+    pre_route_fns = [fn for p in (plugins or []) for fn in [p.pre_route_node()] if fn is not None]
+    pre_route = _compose_pre_route_nodes(pre_route_fns) if pre_route_fns else None
     builder = graph_builder(state_type=state_type, pre_route_node=pre_route)
     builder.add_node("plan_sequential", nodes.plan_sequential)
 
     builder.add_conditional_edges(
         "embed_route",
         after_embed_route,
-        {"decompose": "decompose", "fetch_context": "fetch_context", "plan_sequential": "plan_sequential"},
+        {"decompose": "decompose", "fetch_context": "fetch_context"},
     )
     builder.add_conditional_edges(
         "decompose",
