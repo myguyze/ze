@@ -40,6 +40,6 @@ if __name__ == "__main__":
 
     print("\n✓ Authorisation complete. Run the following to store the token:\n")
     print(f"fly secrets set GOOGLE_REFRESH_TOKEN={creds.refresh_token}")
-    print(f"\nAlso set client credentials if not already in Fly secrets:")
-    print(f"fly secrets set GOOGLE_CLIENT_ID=<your-client-id>")
-    print(f"fly secrets set GOOGLE_CLIENT_SECRET=<your-client-secret>")
+    print("\nAlso set client credentials if not already in Fly secrets:")
+    print("fly secrets set GOOGLE_CLIENT_ID=<your-client-id>")
+    print("fly secrets set GOOGLE_CLIENT_SECRET=<your-client-secret>")

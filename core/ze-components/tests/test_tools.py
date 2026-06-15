@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import dataclasses
 
 import pytest
 
 import ze_components.tools  # noqa: F401 — ensures render tools are registered
 from ze_components import context as ctx
-from ze_components.types import ConfirmComponent, ListComponent, TableComponent
 
 
 async def test_render_table_appends_correct_dict():
@@ -47,7 +45,7 @@ async def test_render_list_raises_type_error_on_missing_field():
 
 async def test_render_confirm_produces_correct_component():
     token = ctx.begin_collection()
-    result = await ze_components.tools.render_confirm(
+    await ze_components.tools.render_confirm(
         prompt="Delete this?",
         actions=[{"label": "Yes", "value": "yes", "style": "danger"}, {"label": "No", "value": "no"}],
     )

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_api.api.ws import ConnectionManager, _message_to_dict
 from ze_api.api.ws import _send_onboarding_view

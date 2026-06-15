@@ -2,7 +2,6 @@
 Tests for Container.invoke() and Container.resume() — graph is fully mocked.
 These tests verify the confirmation-flow wiring without needing langgraph or asyncpg.
 """
-from dataclasses import dataclass, field
 from typing import ClassVar
 from unittest.mock import AsyncMock, MagicMock
 
@@ -12,7 +11,6 @@ from ze_core.container import Container
 from ze_agents.interface.types import (
     ConfirmationRequest,
     ConfirmationResponse,
-    InvokeResult,
     OutboundMessage,
 )
 from ze_agents.types import AbortToken, AgentResult

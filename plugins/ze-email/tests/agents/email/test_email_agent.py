@@ -1,7 +1,5 @@
-import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_email.agents.email.agent import EmailAgent
 from ze_agents.types import AgentContext, AgentResult
@@ -101,7 +99,6 @@ async def test_run_returns_response_from_agentic_loop():
 
 async def test_run_lists_emails_when_llm_requests():
     """LLM calls list_emails once then returns text."""
-    import ze_email.agents.email.tools  # noqa: ensure email tools registered
 
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
@@ -167,8 +164,6 @@ async def test_run_list_then_get_in_single_turn():
 async def test_run_sends_email_when_llm_requests():
     """LLM calls send_email directly."""
     import ze_email.agents.email.tools  # noqa
-    import base64
-    from email.mime.text import MIMEText
 
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[

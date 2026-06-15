@@ -33,7 +33,6 @@ class _Delta(ZePlugin):
 # ---------------------------------------------------------------------------
 
 def test_no_deps_any_order_preserved():
-    entries = [("a", _Alpha), ("b", _Beta.__class__)]
     # When there are no deps the output should equal the input order.
     entries_nodeps = [("x", _Alpha), ("y", _Alpha)]
     result = _topological_sort(entries_nodeps)

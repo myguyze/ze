@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_personal.persona.postgres import PostgresPersonaStore as PersonaStore
-from ze_personal.persona.types import PersonaState
 from ze_agents.settings import Settings
 from ze_agents.errors import UnknownDialError, UnknownProfileError
 

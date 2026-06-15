@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock
 
-import pytest
 
 from ze_memory.extractor import (
     extract_events,

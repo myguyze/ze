@@ -1,5 +1,6 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+import aiohttp
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -170,7 +171,6 @@ async def test_push_swallows_connection_error(caplog):
         raise aiohttp.ClientConnectionError("unreachable")
         yield  # make it a generator
 
-    import aiohttp as _aiohttp
     session = MagicMock()
     session.post = _post
     notifier = NtfyNotifier(config=make_config(), session=session)

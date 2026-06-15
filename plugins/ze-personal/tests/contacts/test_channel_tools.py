@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_agents.channels.types import ChannelHandle, ChannelType
 from ze_personal.contacts.tools import get_contact_channels, set_contact_channel

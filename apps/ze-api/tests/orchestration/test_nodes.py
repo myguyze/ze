@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 import numpy as np
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from ze_agents.types import AgentContext, AgentResult
 from ze_core.capability.gate import CapabilityGate

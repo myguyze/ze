@@ -1,7 +1,6 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_memory.types import MemoryContext
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
@@ -56,7 +55,7 @@ class TestWriteMemory:
             "messages": [],
             "input_modality": "text",
         }
-        result = await write_memory(state, _config(store=store, thread_id="eval-001"))
+        await write_memory(state, _config(store=store, thread_id="eval-001"))
         store.write_episode.assert_not_awaited()
         store.propose_facts.assert_not_awaited()
 

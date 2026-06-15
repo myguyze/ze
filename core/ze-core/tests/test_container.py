@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -98,7 +97,6 @@ class TestDiscoverAgents:
     def test_imports_in_sorted_order(self, tmp_path):
         from ze_core.container import _discover_agents
 
-        import_order = []
         agents_dir = tmp_path / "agents"
         for name in ["beta", "alpha"]:
             d = agents_dir / name
@@ -354,7 +352,6 @@ class TestInstantiateAgents:
 
 class TestContainerClose:
     async def test_calls_shutdown_on_all_instances(self):
-        from ze_core.container import Container
 
         instance = MagicMock()
         instance.name = "agent_a"
@@ -366,7 +363,6 @@ class TestContainerClose:
         instance.shutdown.assert_awaited_once()
 
     async def test_continues_after_agent_shutdown_failure(self):
-        from ze_core.container import Container
 
         instance = MagicMock()
         instance.name = "failing"
@@ -378,7 +374,6 @@ class TestContainerClose:
         container.pool.close.assert_awaited_once()
 
     async def test_closes_pool_and_client(self):
-        from ze_core.container import Container
 
         container = _make_container()
         await container.close()

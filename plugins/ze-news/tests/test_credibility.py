@@ -4,7 +4,6 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_news.credibility import _prompt_version, run_heuristics, run_llm_scoring, score_article
 from ze_news.types import Article, CredibilityFlag, CredibilityReport

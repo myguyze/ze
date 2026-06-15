@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 import ze_components.tools  # noqa: F401
 from ze_api.hooks import ComponentCollectionHook

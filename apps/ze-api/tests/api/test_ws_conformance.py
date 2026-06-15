@@ -9,13 +9,11 @@ using mocked WebSocket + container objects.
 """
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_api.api.ws import ConnectionManager, _confirmation_timeout, _handle_confirm, _message_to_dict
 from ze_core.messages.types import Message
@@ -340,7 +338,7 @@ class TestConfirmationDenyFlow:
         container = _make_container()
         pending_config = _make_pending_config()
 
-        result = await _handle_confirm(
+        await _handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
             container, mgr, pending_config,
         )

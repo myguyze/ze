@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.types import Goal, GoalStatus, GoalSuggestion, SuggestionStatus
@@ -45,8 +44,8 @@ def _goal_with_retro(title="Travel to South America") -> Goal:
         status=GoalStatus.COMPLETED,
     )
     g.retrospective_text = (
-        f"Completed the trip to Argentina. Key finding: language barrier was a major issue. "
-        f"João struggled with Spanish throughout the trip."
+        "Completed the trip to Argentina. Key finding: language barrier was a major issue. "
+        "João struggled with Spanish throughout the trip."
     )
     return g
 

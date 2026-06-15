@@ -74,13 +74,13 @@ def print_summary(run: dict) -> None:
         avg_lat = sum(lats_s) / len(lats_s)
         p95_lat = lats_s[int(len(lats_s) * 0.95)]
         print()
-        print(f"  Latency (wall-clock)")
+        print("  Latency (wall-clock)")
         print(f"    avg: {avg_lat/1000:.1f}s   p95: {p95_lat/1000:.1f}s   max: {lats_s[-1]/1000:.1f}s")
 
     if t.get("total_tokens", 0) > 0:
         n = t.get("total", 1)
         print()
-        print(f"  Tokens (from llm_cost_log)")
+        print("  Tokens (from llm_cost_log)")
         print(f"    total: {t['total_tokens']:,}   avg/scenario: {t['total_tokens']//n:,}")
         if t.get("prompt_tokens") and t.get("completion_tokens"):
             print(f"    prompt: {t['prompt_tokens']:,}   completion: {t['completion_tokens']:,}")
@@ -141,7 +141,7 @@ def _delta(old: float | None, new: float | None) -> str:
 def print_diff(old: dict, new: dict) -> None:
     old_ts = old.get("timestamp", old.get("run_id", "?"))[:19].replace("T", " ")
     new_ts = new.get("timestamp", new.get("run_id", "?"))[:19].replace("T", " ")
-    print(f"Comparing runs:")
+    print("Comparing runs:")
     print(f"  Old: {old_ts} UTC  (run_id: {old['run_id']})")
     print(f"  New: {new_ts} UTC  (run_id: {new['run_id']})")
     print()

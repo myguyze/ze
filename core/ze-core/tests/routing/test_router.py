@@ -3,7 +3,7 @@ Router tests use a fake embedder that returns pre-canned vectors, avoiding
 any dependency on sentence_transformers or numpy.
 """
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -11,7 +11,7 @@ from ze_agents.errors import InvalidPromptError, RoutingError
 from ze_agents.registry import agent, clear_registry
 from ze_agents.types import AgentContext, AgentResult
 from ze_core.routing.router import EmbeddingRouter
-from ze_core.routing.store import PostgresRoutingStore, RoutingStore
+from ze_core.routing.store import PostgresRoutingStore
 from ze_core.routing.types import RouterConfig
 
 

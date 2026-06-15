@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING
 
 from ze_agents.logging import get_logger
 from ze_news.types import (
-    AnalysisStatus,
     CredibilityFlag,
     CredibilityReport,
     FLAG_CONFIDENCE,
 )
 
 if TYPE_CHECKING:
-    from ze_agents.client import LLMClient
+    from ze_core.openrouter.client import OpenRouterClient
+
     from ze_news.types import Article
 
 log = get_logger(__name__)

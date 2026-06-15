@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.goals.suggestion_store import GoalSuggestionStore
 from ze_personal.goals.types import GoalSuggestion, SuggestionStatus

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 _VERBOSITY_CLAUSES = {
     "concise": " Keep responses brief — one to two paragraphs unless the user asks for more.",

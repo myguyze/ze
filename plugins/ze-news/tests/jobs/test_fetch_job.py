@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_news.jobs.fetch import NewsFetchJob
 from ze_news.registry import SourceRegistry
 from ze_news.types import Article
-from datetime import datetime, timezone
 
 
 def _make_article(url="https://example.com/1") -> Article:

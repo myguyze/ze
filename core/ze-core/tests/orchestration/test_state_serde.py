@@ -217,7 +217,7 @@ def test_full_agent_state_dict_round_trips(serde: JsonPlusSerializer) -> None:
             pytest.fail(f"State field {key!r} failed serde round-trip: {exc}")
 
         assert restored == value or restored is value, (
-            f"State field {key!r} did not survive round-trip: {original!r} → {restored!r}"
+            f"State field {key!r} did not survive round-trip: {value!r} → {restored!r}"
         )
 
 

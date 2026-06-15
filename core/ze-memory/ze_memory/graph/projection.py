@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from ze_memory.defaults import DEFAULT_FACT_BUDGET_TOKENS
 from ze_memory.graph.types import GraphExpansion
 from ze_memory.projection import (
     budget_facts,

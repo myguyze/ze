@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ze_agents.logging import get_logger
-from ze_sdk.proactive import ProactiveJob, proactive_job
+from ze_sdk.proactive import proactive_job
 from ze_news.registry import SourceRegistry
 from ze_news.store import NewsStore
 from ze_news.types import Article
 
 if TYPE_CHECKING:
-    from ze_agents.client import LLMClient
+    from ze_core.openrouter.client import OpenRouterClient
 
 log = get_logger(__name__)
 

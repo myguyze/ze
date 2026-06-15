@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from contextlib import asynccontextmanager
 
 import pytest
 
 from ze_agents.errors import UnknownDialError, UnknownProfileError
 from ze_personal.persona.postgres import PostgresPersonaStore
-from ze_personal.persona.types import PersonaState
 
 
 _PROFILES = {

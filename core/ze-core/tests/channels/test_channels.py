@@ -1,6 +1,5 @@
 """Tests for Channel ABC, ChannelRegistry, and channel types."""
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
 
 import pytest
 

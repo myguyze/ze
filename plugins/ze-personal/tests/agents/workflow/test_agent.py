@@ -1,6 +1,5 @@
 from unittest.mock import AsyncMock
 
-import pytest
 
 from ze_personal.agents.workflow.agent import WorkflowManagerAgent
 from ze_agents.types import AgentContext, AgentResult
@@ -61,7 +60,6 @@ async def test_run_returns_response_from_agentic_loop():
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
 async def test_run_lists_workflows_via_tool():
-    import ze_personal.agents.workflow.tools  # noqa: ensure tools registered
 
     from ze_personal.workflow.types import Workflow, WorkflowStep
     from uuid import uuid4

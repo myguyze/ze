@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from ze_core import defaults
+from ze_agents.client import LLMClient
 from ze_agents.errors import GoalPlanError
 from typing import Any
 from ze_sdk.memory import Episode, Fact, Procedure, RetrievalRequest
@@ -22,7 +23,6 @@ from ze_personal.goals.types import (
     VerificationGate,
 )
 from ze_agents.logging import get_logger
-from ze_agents.client import LLMClient
 
 log = get_logger(__name__)
 
@@ -249,7 +249,7 @@ def _parse_plan(raw: str, goal_id: UUID) -> tuple[list[Milestone], list[Verifica
 class GoalPlanner:
     def __init__(
         self,
-        client: OpenRouterClient,
+        client: LLMClient,
         model: str = defaults.MODEL_GOAL_PLAN,
         memory_store: Any = None,
     ) -> None:
@@ -351,7 +351,7 @@ class GoalPlanner:
             for m in milestones
         ) or "  (none)"
         learnings_text = "\n".join(
-            f"  - {l.content}" for l in learnings[-5:]
+            f"  - {lr.content}" for lr in learnings[-5:]
         ) or "  (none)"
         prompt = (
             f"Goal: {goal.title}\n"
@@ -423,7 +423,7 @@ class GoalPlanner:
     ) -> list[Fact]:
         """Extract generalizable user facts from goal learnings. Returns [] on any error."""
         learnings_text = "\n".join(
-            f"  - [{l.source}] {l.content}" for l in learnings
+            f"  - [{lr.source}] {lr.content}" for lr in learnings
         )
         prompt = (
             f"Goal: {goal.title}\n"

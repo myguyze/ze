@@ -3,7 +3,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.goals.types import Goal, GoalStatus, PriorMilestoneOutput
 

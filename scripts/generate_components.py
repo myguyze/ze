@@ -21,8 +21,8 @@ repo_root = Path(__file__).parent.parent
 sys.path.insert(0, str(repo_root / "core" / "ze-components"))
 sys.path.insert(0, str(repo_root / "core" / "ze-core"))
 
-from ze_components.schema import export_json_schema, _dataclass_schema
-from ze_components.types import COMPONENT_TYPES, SUB_ITEM_TYPES
+from ze_components.schema import export_json_schema  # noqa: E402
+from ze_components.types import COMPONENT_TYPES, SUB_ITEM_TYPES  # noqa: E402
 
 _DOCS_DIR = repo_root / "docs"
 _TS_OUT = repo_root / "apps" / "ze-web" / "src" / "components" / "types.ts"
@@ -104,8 +104,7 @@ def _emit_ts_types(out_path: Path) -> None:
     for cls in COMPONENT_TYPES:
         _emit_ts_interface(cls, lines)
 
-    union = " | ".join(cls.__name__ for cls in COMPONENT_TYPES)
-    lines.append(f"export type ComponentDescriptor =")
+    lines.append("export type ComponentDescriptor =")
     for i, cls in enumerate(COMPONENT_TYPES):
         sep = ";" if i == len(COMPONENT_TYPES) - 1 else ""
         prefix = "  | " if i > 0 else "  | "

@@ -1,9 +1,8 @@
 import pathlib
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_core.proactive.notifier import ProactiveNotifier
 from ze_calendar.reminders.calendar import (
@@ -398,7 +397,8 @@ async def test_workflow_failure_alert_respects_cooldown():
 
 async def test_workflow_failure_alert_disabled():
     import yaml
-    import tempfile, pathlib as pl
+    import tempfile
+    import pathlib as pl
     tmp = pl.Path(tempfile.mkdtemp())
     real_cfg = pl.Path(__file__).parent.parent.parent / "config" / "config.yaml"
     cfg = yaml.safe_load(real_cfg.read_text())

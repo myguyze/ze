@@ -1,6 +1,5 @@
 import asyncio
 
-import pytest
 
 from ze_agents.progress.reporter import ProgressReporter
 from ze_agents.progress.translations import ProgressTranslations

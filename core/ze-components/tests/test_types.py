@@ -4,7 +4,6 @@ import dataclasses
 
 from ze_components.types import (
     COMPONENT_TYPES,
-    CardComponent,
     ConfirmAction,
     ConfirmComponent,
     ListComponent,
@@ -70,7 +69,6 @@ def test_confirm_component_with_actions():
 def _make_minimal(cls: type) -> object:
     """Instantiate a component with minimal required fields."""
     import dataclasses as dc
-    hints = {}
     kwargs = {}
     fields = [f for f in dc.fields(cls) if f.init]
     for f in fields:

@@ -98,7 +98,6 @@ async def test_run_returns_response_from_agentic_loop():
 
 async def test_run_lists_events_when_llm_requests():
     """LLM calls list_events once then returns text."""
-    import ze_calendar.agents.calendar.tools  # noqa: ensure calendar tools registered
 
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[

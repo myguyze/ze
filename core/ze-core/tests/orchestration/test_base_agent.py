@@ -5,7 +5,7 @@ import pytest
 
 from ze_agents.types import GateDecision
 from ze_agents.errors import AgentAbortedError, AgentError, HookAbort, ToolBlockedError
-from ze_agents.registry import agent, clear_registry
+from ze_agents.registry import clear_registry
 from ze_agents.base_agent import (
     BaseAgent,
     _canonical_openrouter_tool_name,

@@ -266,14 +266,14 @@ def _print_summary(run: dict) -> None:
         avg_lat = sum(lats_s) / len(lats_s)
         p95_lat = lats_s[int(len(lats_s) * 0.95)]
         print()
-        print(f"  Latency (wall-clock)")
+        print("  Latency (wall-clock)")
         print(f"    avg: {avg_lat/1000:.1f}s   p95: {p95_lat/1000:.1f}s   max: {lats_s[-1]/1000:.1f}s")
 
     tok = run.get("totals", {})
     if tok.get("total_tokens", 0) > 0:
         n = tok.get("total", 1)
         print()
-        print(f"  Tokens (from llm_cost_log)")
+        print("  Tokens (from llm_cost_log)")
         print(f"    total: {tok['total_tokens']:,}   avg/scenario: {tok['total_tokens']//n:,}")
         if tok.get("prompt_tokens") and tok.get("completion_tokens"):
             print(f"    prompt: {tok['prompt_tokens']:,}   completion: {tok['completion_tokens']:,}")

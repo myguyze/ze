@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.goals.postgres import PostgresGoalStore
 from ze_personal.goals.types import ExecutionTrace

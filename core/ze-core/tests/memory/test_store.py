@@ -1,3 +1,4 @@
+# ruff: noqa
 """Tests for PostgresMemoryStore.
 
 NOTE: These tests were written for the old ze_core.memory API (get_context/get_profile
@@ -14,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from ze_memory.retriever import PostgresMemoryStore as MemoryStore, _cosine_similarity
-from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
+from ze_memory.types import Fact, MemoryContext
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

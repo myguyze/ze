@@ -13,7 +13,7 @@ from ze_agents.delegate import (
     _DELEGATE_MAX_DEPTH,
     run_delegate,
 )
-from ze_agents.tool import ToolAccess, clear_tool_registry, tool
+from ze_agents.tool import clear_tool_registry
 from ze_agents.types import AbortToken, AgentContext, AgentResult
 
 

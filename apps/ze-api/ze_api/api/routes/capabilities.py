@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze_api.api.dependencies import get_capability_gate, get_settings
+from ze_api.api.dependencies import get_capability_gate
 from ze_api.api.openapi import OPENAPI_RESPONSES_422
 from ze_api.api.schemas import (
     AgentCapabilityConfig,
@@ -10,7 +10,6 @@ from ze_api.api.schemas import (
 )
 from ze_core.capability.gate import CapabilityGate
 from ze_agents.types import Mode
-from ze_api.settings import Settings
 from ze_agents.registry import get_registered_agents
 
 router = APIRouter(tags=["capabilities"])

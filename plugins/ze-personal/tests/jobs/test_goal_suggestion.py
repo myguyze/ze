@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.jobs.goal_suggestion import GoalSuggestionJob
 from ze_personal.goals.types import GoalSuggestion, SuggestionStatus

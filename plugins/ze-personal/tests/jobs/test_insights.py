@@ -1,9 +1,7 @@
 import json
-from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.jobs.insights import InsightEngine
 from ze_sdk.proactive import ProactiveNotifier

@@ -1,6 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_personal.agents.companion.agent import CompanionAgent, _detect_outreach_event
 from ze_agents.types import AgentContext, AgentResult

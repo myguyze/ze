@@ -6,7 +6,6 @@ import pytest
 from ze_core.interface.cli import CLIInterface
 from ze_agents.interface.types import (
     ConfirmationRequest,
-    ConfirmationResponse,
     Notification,
     OutboundMessage,
 )

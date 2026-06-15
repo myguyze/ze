@@ -6,13 +6,16 @@ import inspect
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 from ze_agents.errors import AgentConfigError, RoutingError
 from ze_agents.interface.types import RawInput
 from ze_agents.logging import get_logger
 from ze_agents.types import AbortToken
 from ze_core.conversation import make_graph_input
+
+if TYPE_CHECKING:
+    from ze_agents.interface.types import InvokeResult
 
 log = get_logger(__name__)
 
@@ -351,7 +354,6 @@ class Container:
         from ze_memory.retriever import PostgresMemoryStore
 
         if is_sqlite:
-            db_path = _sqlite_db_path(settings.database_url)
             memory_store = PostgresMemoryStore(
                 pool=pool,
                 embedder=embedder,

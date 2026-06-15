@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
-from ze_memory.graph.predicates import DESCRIBES, MENTIONS, SOURCED_FROM
+from ze_memory.graph.predicates import DESCRIBES, MENTIONS
 from ze_memory.graph.store import PostgresGraphStore
 from ze_memory.graph.traversal import BoundedExpansionPolicy
 from ze_memory.graph.types import GraphExpansion, Relationship

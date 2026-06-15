@@ -5,11 +5,9 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_memory.graph.projection import enrich_context
-from ze_memory.graph.types import GraphExpansion, Relationship
-from ze_memory.graph.predicates import DESCRIBES, MENTIONS
+from ze_memory.graph.types import GraphExpansion
 from ze_memory.types import (
     Entity,
     Fact,

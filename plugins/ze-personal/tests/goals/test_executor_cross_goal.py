@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.goals.executor import GoalExecutor, _build_milestone_prompt
 from ze_personal.goals.types import (
@@ -123,7 +122,7 @@ def test_build_milestone_prompt_emits_log_when_hint_set():
     goal = _goal()
     with structlog.testing.capture_logs() as logs:
         _build_milestone_prompt(m, goal, [m])
-    assert any(l.get("event") == "goal_reuse_hint_used" for l in logs)
+    assert any(e.get("event") == "goal_reuse_hint_used" for e in logs)
 
 
 # ── _fetch_prior_work ─────────────────────────────────────────────────────────
@@ -137,7 +136,7 @@ async def test_fetch_prior_work_returns_empty_and_logs_on_store_failure():
         result = await executor._fetch_prior_work(uuid4())
 
     assert result == []
-    assert any(l.get("event") == "goal_prior_work_query_failed" for l in logs)
+    assert any(e.get("event") == "goal_prior_work_query_failed" for e in logs)
 
 
 async def test_fetch_prior_work_returns_results_on_success():
@@ -265,8 +264,8 @@ async def test_handle_gate_redirected_passes_none_when_no_prior_work():
 
 # ── _promote_learnings ────────────────────────────────────────────────────────
 
-from ze_sdk.memory import Fact
-from ze_personal.goals.types import GoalLearning
+from ze_sdk.memory import Fact  # noqa: E402
+from ze_personal.goals.types import GoalLearning  # noqa: E402
 
 
 def _learning(content="User prefers concise summaries.") -> GoalLearning:
@@ -331,7 +330,7 @@ async def test_promote_learnings_logs_count_on_success():
     with structlog.testing.capture_logs() as logs:
         await executor._promote_learnings(_goal(), [_learning()])
 
-    assert any(l.get("event") == "goal_learning_promoted" for l in logs)
+    assert any(e.get("event") == "goal_learning_promoted" for e in logs)
 
 
 async def test_promote_learnings_logs_none_when_no_facts_returned():
@@ -343,7 +342,7 @@ async def test_promote_learnings_logs_none_when_no_facts_returned():
     with structlog.testing.capture_logs() as logs:
         await executor._promote_learnings(_goal(), [_learning()])
 
-    assert any(l.get("event") == "goal_learning_promotion_none" for l in logs)
+    assert any(e.get("event") == "goal_learning_promotion_none" for e in logs)
 
 
 async def test_promote_learnings_swallows_planner_exception():
@@ -355,7 +354,7 @@ async def test_promote_learnings_swallows_planner_exception():
     with structlog.testing.capture_logs() as logs:
         await executor._promote_learnings(_goal(), [_learning()])
 
-    assert any(l.get("event") == "goal_learning_promotion_failed" for l in logs)
+    assert any(e.get("event") == "goal_learning_promotion_failed" for e in logs)
     memory.propose_facts.assert_not_called()
 
 
@@ -371,7 +370,7 @@ async def test_promote_learnings_swallows_propose_facts_exception():
     with structlog.testing.capture_logs() as logs:
         await executor._promote_learnings(_goal(), [_learning()])
 
-    assert any(l.get("event") == "goal_learning_promotion_write_failed" for l in logs)
+    assert any(e.get("event") == "goal_learning_promotion_write_failed" for e in logs)
 
 
 async def test_push_retrospective_fires_promote_learnings_as_task():

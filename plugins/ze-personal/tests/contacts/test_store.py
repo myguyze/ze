@@ -4,7 +4,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.contacts.store import PersonStore
 from ze_personal.contacts.types import Person
@@ -73,7 +72,7 @@ async def test_confirm_writes_entity_when_memory_store_set():
     memory_store.upsert_entity = AsyncMock(return_value=uuid4())
 
     store = PersonStore(pool=pool, memory_store=memory_store)
-    result = await store.confirm(person.id)
+    await store.confirm(person.id)
 
     memory_store.upsert_entity.assert_called_once()
     entity: Entity = memory_store.upsert_entity.call_args.args[0]

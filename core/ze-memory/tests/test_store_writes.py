@@ -1,13 +1,12 @@
 """Tests for PostgresMemoryStore write paths: propose_events, propose_procedure, upsert_entity."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from ze_memory.graph.store import GraphStore
-from ze_memory.graph.types import Relationship
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.types import Entity, Event, Procedure
 
@@ -421,17 +420,11 @@ async def test_propose_events_fires_promotes_to_when_outcome_set():
     conn.fetchrow = AsyncMock(return_value={"id": event_id})
     store, _ = _make_store(pool, graph_store=gs)
 
-    with patch.object(store, "_promote_event_outcome", new_callable=AsyncMock) as mock_promote:
+    with patch.object(store, "_promote_event_outcome", new_callable=AsyncMock):
         with patch("asyncio.create_task") as mock_task:
             event = Event(id=None, event_type="meeting", title="Signed contract", outcome="signed the deal")
             await store.propose_events([event])
 
-            # asyncio.create_task was called with a coroutine from _promote_event_outcome
-            promote_calls = [
-                c for c in mock_task.call_args_list
-                if hasattr(c[0][0], "cr_frame")
-                or "promote" in str(c)
-            ]
             assert mock_task.call_count >= 1
 
 

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock
-from uuid import UUID
 
 import pytest
 
 from ze_agents.errors import GoalPlanError
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, GateStatus
+from ze_personal.goals.types import Goal, Milestone, MilestoneStatus, GateStatus
 from uuid import uuid4
 
 

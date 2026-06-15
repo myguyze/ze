@@ -83,7 +83,6 @@ async def test_run_returns_response_from_agentic_loop():
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
 async def test_run_sets_reminder_via_tool():
-    import ze_calendar.agents.reminders.tools  # noqa: ensure tools registered
 
     rid = uuid4()
     fire_at = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
@@ -143,7 +142,7 @@ async def test_run_rejects_past_fire_at_via_tool():
         notifier=AsyncMock(),
         settings=make_settings(),
     )
-    result = await agent.run(make_ctx())
+    await agent.run(make_ctx())
 
     store.create.assert_not_called()
     scheduler.schedule_at.assert_not_called()
@@ -233,7 +232,6 @@ async def test_stream_yields_response():
 
 # ── _human_delta helper (standalone, no agent needed) ─────────────────────────
 
-from ze_calendar.agents.reminders.tools import set_reminder as _  # noqa: just ensure module importable
 
 
 def _human_delta(delta: timedelta) -> str:

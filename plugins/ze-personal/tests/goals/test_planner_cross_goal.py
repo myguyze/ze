@@ -4,9 +4,7 @@ import json
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
-from ze_agents.errors import GoalPlanError
 from ze_personal.goals.planner import GoalPlanner, _parse_plan
 from ze_personal.goals.types import Goal, GoalStatus, Milestone, PriorMilestoneOutput
 
@@ -177,10 +175,9 @@ async def test_replan_with_empty_prior_work_omits_prior_work_block():
 
 # ── promote_learnings ─────────────────────────────────────────────────────────
 
-import json as _json
+import json as _json  # noqa: E402
 
-from ze_sdk.memory import Fact
-from ze_personal.goals.types import GoalLearning
+from ze_personal.goals.types import GoalLearning  # noqa: E402
 
 
 def _learning(content="User prefers bullet-point summaries.", source="milestone") -> GoalLearning:

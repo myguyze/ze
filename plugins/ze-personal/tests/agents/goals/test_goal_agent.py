@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.agents.goals.agent import GoalAgent
 from ze_agents.types import AgentContext, AgentResult
@@ -79,7 +78,6 @@ async def test_run_returns_response_from_agentic_loop():
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
 async def test_run_lists_goals_via_tool():
-    import ze_personal.agents.goals.tools  # noqa: ensure tools registered
 
     gid = uuid4()
     store = make_store()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from langchain_core.runnables import RunnableConfig
 
 from ze_personal.goals.types import GoalStatus, MilestoneStatus

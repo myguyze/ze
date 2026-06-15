@@ -1,13 +1,11 @@
 """Graph store protocol and Postgres implementation."""
 from __future__ import annotations
 
-import json
 from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
 from ze_agents.logging import get_logger
 
-from ze_memory.graph.predicates import ALL_PREDICATES
 from ze_memory.graph.types import GraphExpansion, Relationship
 
 log = get_logger(__name__)

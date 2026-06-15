@@ -25,12 +25,10 @@ def test_resolve_unknown_raises(svc):
 
 
 def test_now_in_returns_aware_datetime(svc):
-    from datetime import datetime, timezone
     dt = svc.now_in("London")
     assert dt.tzinfo is not None
 
 
 def test_now_in_utc(svc):
-    from datetime import timezone
     dt = svc.now_in("UTC")
     assert str(dt.tzinfo) in ("UTC", "UTC+00:00")

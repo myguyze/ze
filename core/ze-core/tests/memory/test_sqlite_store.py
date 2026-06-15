@@ -1,12 +1,12 @@
+# ruff: noqa
 """Tests for SQLiteMemoryStore — SKIPPED: SQLite memory removed in ze_memory migration."""
 import pytest
 
 pytestmark = pytest.mark.skip(reason="SQLiteMemoryStore removed; ze_memory uses Postgres only")
 
-import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock  # noqa: E402
 
-from ze_core.container import _sqlite_db_path
+from ze_core.container import _sqlite_db_path  # noqa: E402
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
