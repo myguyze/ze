@@ -14,6 +14,23 @@ permissions:
   contents: read
 
 jobs:
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: cd apps/ze-web && bun install --frozen-lockfile
+
+      - name: Build
+        run: cd apps/ze-web && bun run build
+
+      - name: Test
+        run: cd apps/ze-web && bun run test
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
