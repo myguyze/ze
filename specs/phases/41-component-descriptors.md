@@ -670,7 +670,7 @@ Whether to unify these in a future phase is an open question, deferred.
 ```
 Python dataclasses (ze_components/types.py)
   → JSON schema       (docs/component-schema.json)            via scripts/generate_components.py
-  → TypeScript types  (apps/ze-web/src/components/types.ts)   via scripts/generate_components.py
+  → TypeScript types  (apps/ze-web/src/components/server-driven/types.ts)   via scripts/generate_components.py
 ```
 
 ### `scripts/generate_components.py`
@@ -678,7 +678,7 @@ Python dataclasses (ze_components/types.py)
 1. Imports `COMPONENT_TYPES`, `SUB_ITEM_TYPES` from `ze_components.types`.
 2. Calls `_dataclass_schema()` from `ze_components.schema` for each type.
 3. Writes `docs/component-schema.json` with `$defs` per type, discriminated on `type`.
-4. Emits `apps/ze-web/src/components/types.ts` with TypeScript interfaces for each
+4. Emits `apps/ze-web/src/components/server-driven/types.ts` with TypeScript interfaces for each
    component and sub-item type, plus a `ComponentDescriptor` discriminated union.
 
 ### `Makefile` target
@@ -691,7 +691,7 @@ generate-components:
 ### Generated TypeScript shape (illustrative)
 
 ```ts
-// apps/ze-web/src/components/types.ts — generated, do not edit
+// apps/ze-web/src/components/server-driven/types.ts — generated, do not edit
 
 export interface TableComponent {
   type: 'table';

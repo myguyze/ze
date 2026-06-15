@@ -6,7 +6,7 @@ Usage:
 
 Outputs:
     docs/component-schema.json
-    apps/ze-web/src/components/types.ts
+    apps/ze-web/src/components/server-driven/types.ts
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from ze_components.schema import export_json_schema  # noqa: E402
 from ze_components.types import COMPONENT_TYPES, SUB_ITEM_TYPES  # noqa: E402
 
 _DOCS_DIR = repo_root / "docs"
-_TS_OUT = repo_root / "apps" / "ze-web" / "src" / "components" / "types.ts"
+_TS_OUT = repo_root / "apps" / "ze-web" / "src" / "components" / "server-driven" / "types.ts"
 
 _PY_TO_TS: dict[type, str] = {
     str: "string",
