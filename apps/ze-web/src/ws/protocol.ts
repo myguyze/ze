@@ -39,5 +39,7 @@ export type InboundFrame =
 export type OutboundFrame =
   | { type: "message"; text: string; thread_id?: string; context?: ScreenContext }
   | { type: "ack"; ids: string[] }
-  | { type: "command"; name: "cancel" | "costs" | "memory" | "contacts" | "capabilities" }
+  | { type: "confirm"; id: string; choice: "approve" | "deny" }
+  | { type: "command"; name: "cancel" | "costs" | "memory" | "contacts" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview" }
+  | { type: "component_submit"; session_id: string; step_id: string; values: Record<string, unknown> }
   | { type: "ping" };

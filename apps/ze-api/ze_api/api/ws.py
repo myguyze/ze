@@ -177,6 +177,13 @@ async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
                 finally:
                     conn_mgr.clear_busy()
 
+            elif frame_type == "confirm":
+                pending_config = await _handle_confirm(
+                    ws, data, container, conn_mgr, pending_config,
+                    confirmation_store=confirmation_store,
+                    session_store=session_store,
+                )
+
             elif frame_type == "message":
                 if not conn_mgr.try_set_busy():
                     await ws.send_json({"type": "error", "detail": "busy"})
@@ -266,8 +273,8 @@ async def _handle_message(
             "id": request_id,
             "prompt": outcome.draft or "",
             "actions": [
-                {"label": "Approve", "payload": "yes"},
-                {"label": "Cancel", "payload": "no"},
+                {"label": "Approve", "value": "approve", "style": "primary"},
+                {"label": "Cancel", "value": "deny", "style": "secondary"},
             ],
         }
 
@@ -324,6 +331,65 @@ async def _handle_message(
     return None
 
 
+async def _handle_confirm(
+    ws: WebSocket,
+    data: dict,
+    container: Any,
+    conn_mgr: ConnectionManager,
+    pending_config: dict | None,
+    *,
+    confirmation_store: Any | None = None,
+    session_store: Any | None = None,
+) -> dict | None:
+    choice = data.get("choice", "")
+    request_id = data.get("id", "")
+
+    if pending_config is None:
+        await conn_mgr.send_frame({"type": "error", "detail": "No pending confirmation."})
+        return None
+
+    thread_id = _extract_thread_id(pending_config) or ""
+    if confirmation_store is not None and thread_id:
+        await confirmation_store.clear(thread_id)
+
+    if choice == "approve":
+        if not conn_mgr.try_set_busy():
+            await conn_mgr.send_frame({"type": "error", "detail": "busy"})
+            return pending_config
+        try:
+            await conn_mgr.send_frame({"type": "typing"})
+            outcome = await container.resume_turn(pending_config)
+        except Exception as exc:
+            log.exception("ws_resume_error", error=str(exc))
+            await conn_mgr.send_frame({"type": "error", "detail": "Resume failed."})
+            return None
+        finally:
+            conn_mgr.clear_busy()
+
+        if outcome.response:
+            if session_store is not None and thread_id:
+                preview = outcome.response[:120].strip()
+                try:
+                    await session_store.upsert(thread_id, preview=preview)
+                except Exception as exc:
+                    log.warning("ws_session_preview_update_failed", error=str(exc))
+
+            components = outcome.final_state.get("components", [])
+            await container.interface.send_with_thread(
+                outcome.response,
+                thread_id=thread_id,
+                components=components or None,
+            )
+        return None
+    else:
+        try:
+            await container.abort_invocation(thread_id)
+        except Exception as exc:
+            log.warning("ws_deny_abort_failed", error=str(exc))
+        await conn_mgr.send_frame({"type": "confirm_cancel", "id": request_id})
+        return None
+
+
 async def _push_confirmation_ntfy(notifier: Any, prompt: str) -> None:
     try:
         text = f"Ze needs your approval:\n{prompt}" if prompt else "Ze needs your approval."
@@ -372,9 +438,13 @@ async def _handle_command(
 
     if name == "cancel":
         if pending_config is not None:
+            thread_id = pending_config.get("configurable", {}).get("thread_id", "")
+            try:
+                await container.abort_invocation(thread_id)
+            except Exception as exc:
+                log.warning("ws_cancel_abort_failed", error=str(exc))
             await conn_mgr.send_frame({"type": "confirm_cancel", "id": ""})
             return None
-        await container.abort_invocation(pending_config.get("configurable", {}).get("thread_id", ""))
         return None
 
     if name == "costs":

@@ -4,15 +4,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWebSocket, useWsStore, send } from "@/ws/useWebSocket";
 import { useMessages } from "@/messages/useMessages";
 import { useSession } from "@/chat/useSession";
-import { type InboundFrame } from "@/ws/protocol";
+import { type InboundFrame, type ConfirmAction } from "@/ws/protocol";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { SessionSheet } from "./SessionSheet";
 import { BackgroundBeamsCanvas } from "@/lib/aceternity/background-beams";
 import { GlowingStars } from "@/lib/aceternity/glowing-stars";
+import { cn } from "@/lib/cn";
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
+
+interface PendingConfirm {
+  id: string;
+  prompt: string;
+  actions: ConfirmAction[];
+}
 
 export function ChatScreen() {
   const threadId = useSession((s) => s.threadId);
@@ -25,6 +32,7 @@ export function ChatScreen() {
   const [connState, setConnState] = useState<ConnectionState>("connecting");
   const [showTyping, setShowTyping] = useState(false);
   const [input, setInput] = useState("");
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -51,6 +59,14 @@ export function ChatScreen() {
       setShowTyping(true);
       clearTimeout(typingTimer.current);
       typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
+    }
+    if (frame.type === "confirm_request") {
+      setThinking(false);
+      setShowTyping(false);
+      setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
+    }
+    if (frame.type === "confirm_cancel") {
+      setPendingConfirm(null);
     }
     if (frame.type === "error") {
       setThinking(false);
@@ -85,11 +101,22 @@ export function ChatScreen() {
     send({ type: "message", text, thread_id: threadId });
   }
 
+  function handleConfirm(choice: "approve" | "deny") {
+    if (!pendingConfirm) return;
+    const { id } = pendingConfirm;
+    setPendingConfirm(null);
+    send({ type: "confirm", id, choice });
+    if (choice === "approve") {
+      setThinking(true);
+    }
+  }
+
   function handleNewSession() {
     newSession();
     setInput("");
     setThinking(false);
     setShowTyping(false);
+    setPendingConfirm(null);
   }
 
   const isEmpty = messages.length === 0 && connState === "connected";
@@ -154,6 +181,30 @@ export function ChatScreen() {
           ))}
           {showTyping && <TypingIndicator />}
           <div ref={bottomRef} />
+        </div>
+      )}
+
+      {pendingConfirm && (
+        <div className="relative z-10 mx-4 mb-2 p-4 rounded-[24px] border border-[#8052ff]/40 bg-[#8052ff]/5">
+          <p className="text-sm text-white mb-3">{pendingConfirm.prompt}</p>
+          <div className="flex flex-wrap gap-2">
+            {pendingConfirm.actions.map((action) => (
+              <button
+                key={action.value}
+                onClick={() => handleConfirm(action.value as "approve" | "deny")}
+                className={cn(
+                  "px-4 py-2 rounded-[24px] text-xs font-semibold tracking-wide transition-opacity",
+                  action.style === "primary" || !action.style
+                    ? "bg-[#8052ff] text-white"
+                    : action.style === "danger"
+                      ? "border border-[#ffb829] text-[#ffb829]"
+                      : "border border-white/20 text-white",
+                )}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
