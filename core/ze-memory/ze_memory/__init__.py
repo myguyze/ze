@@ -1,3 +1,4 @@
+from ze_memory.consolidation_store import PostgresConsolidationStore
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.errors import (
     InvalidRetrievalRequestError,
@@ -43,6 +44,7 @@ __all__ = [
     "MemoryPolicyRegistry",
     # implementations
     "PostgresMemoryStore",
+    "PostgresConsolidationStore",
     "DefaultPolicyRegistry",
     "MemoryConsolidator",
     "ProfileSynthesizer",

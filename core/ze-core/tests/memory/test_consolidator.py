@@ -1,15 +1,15 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
+from ze_memory.consolidation_store import PostgresConsolidationStore
 from ze_memory.consolidator import MemoryConsolidator
-from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.types import ConsolidationReport
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _store(**overrides):
-    s = AsyncMock(spec=PostgresMemoryStore)
+    s = AsyncMock(spec=PostgresConsolidationStore)
     s.fetch_active_facts = AsyncMock(return_value=[])
     s.mark_contradicted = AsyncMock()
     s.insert_merged_fact = AsyncMock()

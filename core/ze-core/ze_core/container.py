@@ -375,6 +375,7 @@ class Container:
             )
             memory_consolidator = None
         else:
+            from ze_memory.consolidation_store import PostgresConsolidationStore
             from ze_memory.consolidator import MemoryConsolidator
 
             memory_store = PostgresMemoryStore(
@@ -384,7 +385,7 @@ class Container:
                 settings=settings,
             )
             memory_consolidator = MemoryConsolidator(
-                store=memory_store,
+                store=PostgresConsolidationStore(pool),
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,

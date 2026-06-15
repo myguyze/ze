@@ -26,6 +26,7 @@ from ze_memory.defaults import (
     DEFAULT_PROFILE_BUDGET_TOKENS,
     EPISODES_FETCH_LIMIT,
 )
+from ze_memory.store import MemoryQueryable
 from ze_memory.types import MemoryContext, RetrievalRequest
 
 
@@ -56,11 +57,11 @@ async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> l
 class CompanionPolicy:
     """Companion agent: facts + recent episodes + profile facets + entities + events."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -125,11 +126,11 @@ class CompanionPolicy:
 class ResearchPolicy:
     """Research agent: facts + broader episode window + events. No profile — research is topic-specific."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -170,10 +171,10 @@ class ResearchPolicy:
 class GoalsPolicy:
     """Goals agent: facts + profile facets + task state + events for the current goal."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -206,10 +207,10 @@ class GoalsPolicy:
 class WorkflowPolicy:
     """Workflow agent: minimal facts + task state for the current task."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -235,10 +236,10 @@ class WorkflowPolicy:
 class CalendarPolicy:
     """Calendar agent: minimal facts + conversation-extracted events."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -276,10 +277,10 @@ class CalendarPolicy:
 class RemindersPolicy:
     """Reminders agent: minimal facts only — reminder state lives in its own store."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -303,11 +304,11 @@ class RemindersPolicy:
 class EmailPolicy:
     """Email agent: facts + recent episodes + entities + events for correspondence context."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -362,11 +363,11 @@ class EmailPolicy:
 class ProspectingPolicy:
     """Prospecting agent: facts + recent episodes. Profile excluded — prospecting is outbound-focused."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -410,10 +411,10 @@ class PlannerPolicy:
     for the current goal. Not dispatched via agent name.
     """
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -454,10 +455,10 @@ class ToolExecutorPolicy:
     Not dispatched via agent name.
     """
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
@@ -487,8 +488,8 @@ class ToolExecutorPolicy:
 class ProfilePolicy:
     """Memory profile introspection (/memory profile): all profile facets + top facts."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
-        async with store._pool.acquire() as conn:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 "SELECT id, subject_id, predicate, object_text, object_id, value,"
                 " confidence, reviewed, contradicted, source_episode_id, source_refs"
@@ -512,10 +513,10 @@ class ProfilePolicy:
 class MemoryUIPolicy:
     """Full memory UI display: all types at wider budgets."""
 
-    async def retrieve(self, request: RetrievalRequest, store: Any) -> MemoryContext:
+    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
-        async with store._pool.acquire() as conn:
+        async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,

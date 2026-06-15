@@ -19,7 +19,7 @@ from ze_memory.defaults import (
     SESSION_GROUPING_ENABLED,
     UNREVIEWED_TTL_DAYS,
 )
-from ze_memory.retriever import PostgresMemoryStore, _cosine_similarity
+from ze_memory.consolidation_store import PostgresConsolidationStore, _cosine_similarity
 from ze_memory.synthesizer import ProfileSynthesizer
 from ze_memory.types import ConsolidationReport
 
@@ -29,7 +29,7 @@ log = get_logger(__name__)
 class MemoryConsolidator:
     def __init__(
         self,
-        store: PostgresMemoryStore,
+        store: PostgresConsolidationStore,
         embedder: Any,
         openrouter_client: Any,
         settings: Any = None,
