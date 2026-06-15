@@ -8,19 +8,15 @@ import { getConfig } from "@/config/AppConfig";
 interface WsStore {
   isConnected: boolean;
   isThinking: boolean;
-  lastFrame: InboundFrame | null;
   setConnected: (v: boolean) => void;
   setThinking: (v: boolean) => void;
-  pushFrame: (f: InboundFrame) => void;
 }
 
 export const useWsStore = create<WsStore>((set) => ({
   isConnected: false,
   isThinking: false,
-  lastFrame: null,
   setConnected: (v) => set({ isConnected: v }),
   setThinking: (v) => set({ isThinking: v }),
-  pushFrame: (f) => set({ lastFrame: f }),
 }));
 
 // ── Singleton WS manager (lives outside React) ────────────────────────────────
@@ -66,7 +62,6 @@ function connect() {
     } catch {
       return;
     }
-    useWsStore.getState().pushFrame(frame);
     frameListeners.forEach((l) => l(frame));
   };
 

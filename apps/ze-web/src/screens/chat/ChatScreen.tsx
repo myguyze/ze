@@ -42,34 +42,43 @@ export function ChatScreen() {
   }, [isConnected, threadId, loadHistory]);
 
   useWebSocket((frame: InboundFrame) => {
-    if (frame.type === "message") {
-      if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
-      upsert(frame.message);
-      setThinking(false);
-      setShowTyping(false);
-      void queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      if (frame.message.role === "assistant" && !frame.message.read) {
-        send({ type: "ack", ids: [frame.message.id] });
+    switch (frame.type) {
+      case "message":
+        if (frame.message.thread_id && frame.message.thread_id !== threadId) break;
+        upsert(frame.message);
+        setThinking(false);
+        setShowTyping(false);
+        void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+        if (frame.message.role === "assistant" && !frame.message.read) {
+          send({ type: "ack", ids: [frame.message.id] });
+        }
+        break;
+      case "edit":
+        edit(frame.id, frame.text, frame.components);
+        break;
+      case "typing":
+        setShowTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
+        break;
+      case "confirm_request":
+        setThinking(false);
+        setShowTyping(false);
+        setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
+        break;
+      case "confirm_cancel":
+        setPendingConfirm(null);
+        break;
+      case "error":
+        setThinking(false);
+        break;
+      case "refresh":
+      case "pong":
+        break;
+      default: {
+        const _exhaustive: never = frame;
+        void _exhaustive;
       }
-    }
-    if (frame.type === "edit") {
-      edit(frame.id, frame.text, frame.components);
-    }
-    if (frame.type === "typing") {
-      setShowTyping(true);
-      clearTimeout(typingTimer.current);
-      typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
-    }
-    if (frame.type === "confirm_request") {
-      setThinking(false);
-      setShowTyping(false);
-      setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
-    }
-    if (frame.type === "confirm_cancel") {
-      setPendingConfirm(null);
-    }
-    if (frame.type === "error") {
-      setThinking(false);
     }
   });
 

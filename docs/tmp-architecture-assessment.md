@@ -24,7 +24,7 @@
 |---|-----|---------|--------|
 | 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny | ✅ 2026-06-15 |
 | 2 | M2 | Per-subtask capability gate + correct resume semantics | ✅ 2026-06-15 |
-| 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ☐ |
+| 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ✅ 2026-06-15 |
 | 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ☐ |
 | 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ☐ |
 
@@ -139,7 +139,7 @@
 
 ---
 
-### H5. React WS layer fragments chat state and broadcasts global "thinking" — Phase 2 #3
+### H5. React WS layer fragments chat state and broadcasts global "thinking" ✅ Phase 2
 
 - **Category:** Correctness / Scalability
 - **Location:**
@@ -247,7 +247,7 @@
 
 ---
 
-### M8. SDUI `ComponentRenderer` and frame handlers are non-exhaustive — Phase 2 #3
+### M8. SDUI `ComponentRenderer` and frame handlers are non-exhaustive ✅ Phase 2
 
 - **Category:** Correctness / Tech debt
 - **Location:**

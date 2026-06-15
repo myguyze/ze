@@ -2,16 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowUp } from "lucide-react";
 import { useOverlay } from "./useOverlay";
-import { useWsStore, send } from "@/ws/useWebSocket";
+import { send } from "@/ws/useWebSocket";
 import { useWebSocket } from "@/ws/useWebSocket";
 import { type InboundFrame, type Message } from "@/ws/protocol";
 import { MessageBubble } from "@/screens/chat/MessageBubble";
 import { TypingIndicator } from "@/screens/chat/TypingIndicator";
 
 export function ContextOverlay() {
-  const { open, close, screen, entityId } = useOverlay();
-  const isThinking = useWsStore((s) => s.isThinking);
-  const setThinking = useWsStore((s) => s.setThinking);
+  const { open, close, screen, entityId, thinking: isThinking, setThinking } = useOverlay();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [showTyping, setShowTyping] = useState(false);
@@ -20,15 +18,28 @@ export function ContextOverlay() {
 
   useWebSocket((frame: InboundFrame) => {
     if (!open) return;
-    if (frame.type === "message") {
-      setMessages((prev) => [...prev, frame.message]);
-      setThinking(false);
-      setShowTyping(false);
-    }
-    if (frame.type === "typing") {
-      setShowTyping(true);
-      clearTimeout(typingTimer.current);
-      typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
+    switch (frame.type) {
+      case "message":
+        setMessages((prev) => [...prev, frame.message]);
+        setThinking(false);
+        setShowTyping(false);
+        break;
+      case "typing":
+        setShowTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
+        break;
+      case "edit":
+      case "confirm_request":
+      case "confirm_cancel":
+      case "error":
+      case "refresh":
+      case "pong":
+        break;
+      default: {
+        const _exhaustive: never = frame;
+        void _exhaustive;
+      }
     }
   });
 
