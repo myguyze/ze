@@ -327,7 +327,7 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 27 | Cross-goal output reuse — prior milestone summaries injected into planner and executor prompts | Done |
 | 28 | Cross-goal learning promotion — generalizable facts extracted from goal learnings and promoted to user memory on completion | Done |
 | 44 | Calendar package split — ze-google (credentials), ze-calendar (agents, reminders, timezone), ze renamed to ze-api | Done |
-| 45 | Native app interface — Flutter client, WebSocket transport, ntfy push notifications, ze-notifications + ze-components packages | Done |
+| 45 | Native app interface — React web client, WebSocket transport, ntfy push notifications, ze-notifications + ze-components packages | Done |
 | 46 | Accountability layer — weekly narrative, cost anomaly detection, confirmation persistence + replay + ntfy + timeout, `/status` command | Done |
 | 48 | Core split — ze-agents (developer API), ze-proactive (job framework) extracted from ze-core | Done |
 | 49 | Ze SDK — `ze-sdk` flat re-export layer; plugins import from `ze_sdk.*`, no direct ze-core dep | Done |

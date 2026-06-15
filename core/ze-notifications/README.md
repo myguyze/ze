@@ -31,7 +31,7 @@ await notifier.push(Notification(
 ))
 ```
 
-The Flutter app (`ze-app`) handles `ze://navigate?...` deep links from the notification `data` field.
+The React web app (`ze-web`) uses browser URL routing for in-app navigation. ntfy push notifications alert the user when the app is closed; tapping opens the app in the browser.
 
 ## Configuration
 

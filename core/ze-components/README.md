@@ -1,6 +1,6 @@
 # ze-components
 
-Server-driven UI component descriptors for Ze. Allows agents to emit structured component payloads that the Flutter client (`ze-app`) renders without requiring app updates.
+Server-driven UI component descriptors for Ze. Allows agents to emit structured component payloads that the React web client (`ze-web`) renders without requiring app updates.
 
 ## Responsibilities
 
@@ -17,7 +17,7 @@ No Ze package dependencies. Pure Python — no third-party runtime dependencies.
 
 ## Concept
 
-Agents call component tools during execution; the resulting descriptors are serialised and sent as a `components` field in the WebSocket message frame. The Flutter app deserialises and renders them inline with the text response.
+Agents call component tools during execution; the resulting descriptors are serialised and sent as a `components` field in the WebSocket message frame. The web app deserialises and renders them inline with the text response.
 
 ```python
 from ze_components.types import ComponentDescriptor
@@ -33,3 +33,5 @@ Component schemas are generated from Python dataclasses:
 ```bash
 make generate-components
 ```
+
+TypeScript types for the web client are generated alongside the JSON schema.

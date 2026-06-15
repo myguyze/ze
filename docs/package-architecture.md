@@ -30,7 +30,7 @@ ze/
 │   └── ze-legal/     # Legal domain (ZePlugin) — in progress
 └── apps/             # Deployment units
     ├── ze-api/       # HTTP/WebSocket API, wires all plugins
-    └── ze-app/       # Flutter client app (iOS / Android / macOS / web)
+    └── ze-web/       # React web client (Vite + TypeScript + Tailwind + shadcn/ui)
 ```
 
 ### Dependency graph
@@ -54,7 +54,7 @@ ze-news           ←  ze-sdk
 ze-api            ←  ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting,
                       ze-calendar, ze-google, ze-browser, ze-news, ze-notifications,
                       ze-components, ze-onboarding
-ze-app            ←  connects to ze-api over WebSocket (no Python deps)
+ze-web            ←  connects to ze-api over WebSocket (no Python deps)
 ```
 
 Hard rules:
@@ -130,7 +130,7 @@ Plugin authors list `ze-sdk` as their only Ze dependency and import everything f
 `ze_onboarding` owns the reusable onboarding domain: provider contracts, step/seed
 dataclasses, coordinator flow, review-before-save behavior, and reset scope/result
 types. It has no Ze dependencies. It does not know about Postgres, WebSocket, FastAPI,
-memory stores, or Flutter.
+memory stores, or the web client.
 
 | Module | What it provides |
 |--------|-----------------|
@@ -323,7 +323,7 @@ No ze dependencies.
 
 ## ze-components — Server-Driven UI
 
-`ze_components` defines server-driven UI component descriptors sent to the Flutter app
+`ze_components` defines server-driven UI component descriptors sent to the React web app
 inside message frames. No ze dependencies.
 
 | Module | What it provides |
@@ -352,10 +352,18 @@ their `ZePlugin` implementations.
 
 ---
 
-## ze-app — Flutter Client
+## ze-web — React Client
 
-`ze_app` is the native Flutter application for iOS, Android, macOS, and web. It
-communicates with `ze-api` via WebSocket at `/ws`. It has no Python dependencies.
+`ze-web` is the React web application (Vite + TypeScript + Tailwind + shadcn/ui). It
+communicates with `ze-api` via WebSocket at `/ws`. It has no Python dependencies — built
+and run with Bun.
+
+```bash
+make web-install   # bun install
+make web           # dev server on :5173
+make web-build     # production build
+make web-test      # vitest
+```
 
 ---
 

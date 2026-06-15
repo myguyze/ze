@@ -17,6 +17,6 @@ class Notification:
     body: str
     priority: NotificationPriority = 3
     tags: list[str] | None = None
-    # Deep link payload. On tap, the Flutter app receives:
+    # Deep link payload. On tap, the web client can use this for in-app navigation.
     #   ze://navigate?<key>=<value>&...
     data: dict[str, str] | None = None

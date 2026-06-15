@@ -10,7 +10,7 @@ Ze is a self-hosted, single-user assistant with access to Gmail, Google Calendar
 - Credential or secret exposure (API keys, OAuth tokens)
 - Dependency vulnerabilities with a credible exploit path
 
-Issues with the Flutter client, deployment configuration, or third-party services (OpenRouter, Fly.io, ntfy) are generally out of scope unless they stem from Ze's own code.
+Issues with the React web client, deployment configuration, or third-party services (OpenRouter, Fly.io, ntfy) are generally out of scope unless they stem from Ze's own code.
 
 ## Reporting a vulnerability
 

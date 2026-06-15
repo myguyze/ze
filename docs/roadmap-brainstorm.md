@@ -4,7 +4,7 @@
 
 ## Opportunity framing
 
-Ze has shipped the core "Jarvis chassis": autonomous goal execution, deep memory, proactive delivery, native Flutter app. The next frontier is making Ze feel less like a capable tool you configure and more like a genuine extension of yourself — one that gets perceptibly smarter over time, operates across every domain of life, and reduces friction to near zero.
+Ze has shipped the core "Jarvis chassis": autonomous goal execution, deep memory, proactive delivery, React web client. The next frontier is making Ze feel less like a capable tool you configure and more like a genuine extension of yourself — one that gets perceptibly smarter over time, operates across every domain of life, and reduces friction to near zero.
 
 **Central assumption to keep testing:** does Ze save enough time and cognitive load that a user would miss it if it was gone?
 
@@ -22,7 +22,7 @@ A synthesised weekly signal derived from all Ze's domains: goal progress, spendi
 Let Ze receive and send events from/to any tool — Linear, Notion, GitHub, Slack, bank APIs. Incoming webhooks trigger Ze agents. Outgoing actions complete Ze goals. Unlocks Ze as an orchestration layer across a person's entire digital life.
 
 **PM4 · Mobile-first voice input**
-A persistent press-and-speak button in the Flutter app. Ze transcribes, routes, and acts. The app fades into the background; Ze becomes more like a presence than an app. The Jarvis interaction model.
+A persistent press-and-speak button in the web app. Ze transcribes, routes, and acts. The app fades into the background; Ze becomes more like a presence than an app. The Jarvis interaction model.
 
 **PM5 · Trusted partner mode**
 Let a second authenticated user (partner, EA, collaborator) interact with Ze with scoped permissions — read goal state, send messages — but Ze always defers to the primary user for confirmations. Unlocks real delegation without breaking the single-user trust model.
@@ -51,7 +51,7 @@ Rich confirmation cards with full context ("Ze wants to send this email to Ana �
 ## Engineer perspective
 
 **E1 · Streaming responses over WebSocket**
-Switch `graph.ainvoke()` to `astream_events` and stream tokens to the Flutter app. Eliminates the "spinning for 30 seconds then dumping text" experience. Highest-impact UX change with no model cost increase. Prerequisite for voice feeling natural.
+Switch `graph.ainvoke()` to `astream_events` and stream tokens to the web client. Eliminates the "spinning for 30 seconds then dumping text" experience. Highest-impact UX change with no model cost increase. Prerequisite for voice feeling natural.
 
 **E2 · Document and file ingestion**
 Attach PDFs, images, or URLs in the app. Ze chunks, embeds, and stores in a per-user document store (pgvector). Any agent retrieves relevant chunks at turn time. Unlocks: contract review, research papers, meeting notes, personal knowledge bases.

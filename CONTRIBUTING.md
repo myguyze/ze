@@ -20,6 +20,9 @@ cp apps/ze-api/.env.example apps/ze-api/.env
 # Fill in OPENROUTER_API_KEY, ZE_API_KEY, DATABASE_URL at minimum.
 
 make dev           # API + WebSocket on :8000
+make web-install   # React web app deps (Bun)
+make web           # React web app on :5173
+# or: make dev-full   # backend + web app together
 ```
 
 ---
@@ -35,6 +38,7 @@ make dev           # API + WebSocket on :8000
    ```bash
    make test      # fast (skips embedding model load) — must pass
    make lint      # ruff — must pass
+   make web-test  # React web app tests (vitest) — must pass if you changed ze-web
    make test-all  # optional, includes slow embedding tests
    ```
 

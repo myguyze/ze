@@ -6,7 +6,7 @@
 **/.ruff_cache
 **/*.pyc
 **/.venv
-apps/ze-app
+apps/ze-web
 sidecar
 specs
 docs

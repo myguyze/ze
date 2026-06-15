@@ -9,7 +9,7 @@ Ze doesn't wait to be asked. It knows you, acts on your behalf, and operates in 
 <p>
   <a href="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml"><img src="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.12+-blue.svg" alt="Python 3.12+">
-  <img src="https://img.shields.io/badge/interface-Flutter-54C5F8.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/interface-React-61DAFB.svg" alt="React">
   <img src="https://img.shields.io/badge/LLM-OpenRouter-000000.svg" alt="OpenRouter">
   <img src="https://img.shields.io/badge/deploy-Fly.io-7B3FE8.svg" alt="Fly.io">
   <img src="https://img.shields.io/badge/license-Unlicense-green.svg" alt="Unlicense">
@@ -39,7 +39,7 @@ Every message runs through a [LangGraph](https://langchain-ai.github.io/langgrap
 
 ```mermaid
 flowchart TD
-    A([Flutter app]) -->|WebSocket /ws| PRE
+    A([React web app]) -->|WebSocket /ws| PRE
     PRE[preprocess<br/>Whisper / vision caption] --> IRC{active goals?}
     IRC -->|yes| INJ[inject_routing_context<br/>goal hints]
     IRC -->|no| ER
@@ -126,7 +126,7 @@ Two layers in Postgres + pgvector, plus a derived portrait.
 - **Cost telemetry** — per-flow and per-agent token tracking, reconciled against OpenRouter billing every 15 minutes.
 - **Agent harness** — a ReAct tool loop with a per-turn tool-call cap, cross-agent delegation, and mid-run abort.
 - **REST API** — memory, costs, capabilities, workflows, and routing log, all behind `ZE_API_KEY`.
-- **Server-driven UI** — agents emit component descriptors consumed by the Flutter client; the server controls layout without app updates.
+- **Server-driven UI** — agents emit component descriptors consumed by the React web client; the server controls layout without app updates.
 - **News** — curated RSS sources fetched on a schedule, ranked by your interest profile, surfaced via the news agent.
 
 ---
@@ -167,10 +167,13 @@ cp apps/ze-api/.env.example apps/ze-api/.env
 make db-up
 make migrate
 
-make dev   # REST API + WebSocket on :8000
+make dev        # REST API + WebSocket on :8000
+make web-install  # React web app deps (Bun)
+make web        # React web app on :5173
+# or: make dev-full   # backend + web app together
 ```
 
-The Flutter app (`apps/ze-app`) connects to the WebSocket at `ws://<host>:8000/ws?token=<ZE_API_KEY>`.
+The React web app (`apps/ze-web`) connects to the WebSocket at `ws://<host>:8000/ws?token=<ZE_API_KEY>`.
 
 **Optional — Google Calendar + Gmail:**
 
@@ -209,6 +212,9 @@ Minimum required environment variables:
 ```bash
 make help            # full target list
 
+make dev-full        # backend + React web app
+make web-test        # React web app tests (vitest)
+
 make test            # fast ze-api tests (skips embedding model load)
 make test-core       # ze-core tests only
 make test-all        # everything, including slow embedding tests
@@ -232,8 +238,12 @@ Ze is a uv-workspace monorepo with a strict one-way dependency graph:
 ```
 ze/
 ├── core/
-│   ├── ze-core/          # Pure infrastructure — routing, memory, orchestration, telemetry
+│   ├── ze-agents/        # Developer API — BaseAgent, @agent, @tool, ZePlugin
+│   ├── ze-proactive/     # Job scheduling framework
+│   ├── ze-sdk/           # Public SDK surface for plugin authors
+│   ├── ze-core/          # Engine — routing, orchestration, telemetry, DI container
 │   ├── ze-memory/        # Memory — facts, episodes, graph, retrieval
+│   ├── ze-onboarding/    # Plugin-extensible onboarding coordinator
 │   ├── ze-google/        # Google OAuth2 credentials (no Ze deps)
 │   ├── ze-browser/       # Playwright browser sidecar client
 │   ├── ze-notifications/ # Push notification abstraction (ntfy)
@@ -246,7 +256,7 @@ ze/
 │   └── ze-news/          # News fetching, RSS sources, news agent
 ├── apps/
 │   ├── ze-api/           # Deployment unit — FastAPI, WebSocket, REST, jobs
-│   └── ze-app/           # Flutter client app
+│   └── ze-web/           # React web client (Vite + TypeScript + Tailwind)
 ├── specs/                # Spec-first design docs (phases, core modules, ADRs)
 ├── docs/                 # Guides and architecture reference
 └── Makefile
@@ -265,7 +275,7 @@ graph TD
     prospecting[ze-prospecting]
     news[ze-news]
     api[ze-api]
-    app[ze-app<br/><i>Flutter</i>]
+    app[ze-web<br/><i>React</i>]
 
     personal --> core
     email --> core
@@ -301,7 +311,7 @@ graph TD
 |---|---|
 | Runtime | Python 3.12 · FastAPI · uvicorn |
 | Orchestration | LangGraph · AsyncPostgresSaver |
-| Client | Flutter (iOS / Android / macOS / web) |
+| Client | React web app (Vite + TypeScript + Tailwind + shadcn/ui) |
 | Transport | WebSocket (`/ws`) + ntfy push notifications |
 | LLM gateway | OpenRouter (Sonnet / Haiku) |
 | Embeddings | `paraphrase-multilingual-MiniLM-L12-v2` (local, 384-dim, multilingual, no API cost) |
@@ -345,6 +355,7 @@ Do not deploy Ze as a shared service without substantial hardening.
 |---|---|
 | [architecture.md](docs/architecture.md) | System design, graph flow, all modules |
 | [package-architecture.md](docs/package-architecture.md) | Monorepo split, the `ZePlugin` extension point |
+| [native-interface.md](docs/native-interface.md) | WebSocket protocol, confirmations, ntfy push |
 | [memory.md](docs/memory.md) | Facts, episodes, profile synthesis, inspection |
 | [goals.md](docs/goals.md) | Goal Engine — milestones, gates, steering, suggestions |
 | [scheduled-jobs.md](docs/scheduled-jobs.md) | Background job schedule and memory lifecycle |

@@ -7,22 +7,24 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 | Module | What it provides |
 |---|---|
 | `api/` | FastAPI app, WebSocket (`/ws`), REST routes, schemas |
-| `agents/` | `EmailAgent`, `CompanionAgent`, `ResearchAgent`, `ProspectingAgent` + bootstrap |
+| `bootstrap.py` | Agent DI wiring via plugin `agent_module_paths()` |
 | `interface/native.py` | `NativeAppInterface` — WebSocket + ntfy delivery |
-| `google/` | `GmailChannel` (imports `GoogleCredentials` from `ze-google`) |
-| `jobs/` | Proactive cron jobs: briefing, insights, contacts, goal narrative, goal suggestions, stuck goals |
-| `hooks/` | Agent harness hooks |
-| `container.py` | `ZeContainer` — DI wiring, registers `PersonalPlugin`, `CalendarPlugin`, `NewsPlugin` |
+| `onboarding/` | Postgres-backed onboarding store, persistence, and reset |
+| `hooks/` | Agent harness hooks (tool-call cap, component collection, cost cap) |
+| `container.py` | `ZeContainer` — DI wiring, registers all `ZePlugin` implementations |
 | `settings.py` | `Settings` (Pydantic BaseSettings + YAML) |
 | `config/config.yaml` | Models, contacts, proactive schedules |
 | `config/persona.yaml` | Persona profiles and dials |
 | `migrations/` | Alembic SQL migrations |
+
+Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`.
 
 ## Dependencies
 
 ```mermaid
 graph LR
     api[ze-api] --> core[ze-core]
+    api --> sdk[ze-sdk]
     api --> personal[ze-personal]
     api --> calendar[ze-calendar]
     api --> google[ze-google]
@@ -30,6 +32,7 @@ graph LR
     api --> news[ze-news]
     api --> notif[ze-notifications]
     api --> comp[ze-components]
+    api --> onboarding[ze-onboarding]
 ```
 
 ## Running
@@ -37,6 +40,7 @@ graph LR
 ```bash
 make dev          # uvicorn --reload on :8000
 make dev-eval     # REST API without background jobs (for running evals)
+make dev-full     # backend + React web app together
 ```
 
 ## WebSocket protocol
@@ -45,29 +49,31 @@ Connect at `ws://<host>:8000/ws` with `Authorization: Bearer <ZE_API_KEY>` heade
 
 **Send** (user turn):
 ```json
-{"type": "invoke", "content": "What's on my calendar today?", "thread_id": "<uuid>"}
+{"type": "message", "text": "What's on my calendar today?", "thread_id": "<uuid>"}
 ```
 
 **Receive** (assistant response):
 ```json
-{"type": "message", "message": {"role": "assistant", "content": "...", "components": [...]}}
+{"type": "message", "message": {"role": "assistant", "text": "...", "components": [...]}}
 ```
 
 **Receive** (confirmation request):
 ```json
-{"type": "confirmation", "id": "<uuid>", "prompt": "...", "options": ["approve", "deny"]}
+{"type": "confirm_request", "id": "<uuid>", "prompt": "...", "actions": [{"label": "Approve", "payload": "yes"}]}
 ```
 
-**Send** (confirmation reply):
+**Send** (confirmation reply — same as a regular message on the original thread):
 ```json
-{"type": "confirm", "id": "<uuid>", "choice": "approve"}
+{"type": "message", "text": "yes", "thread_id": "<original-thread-id>"}
 ```
+
+Full protocol reference: [docs/native-interface.md](../../docs/native-interface.md).
 
 ## REST endpoints
 
 | Route | Description |
 |---|---|
-| `GET /api/messages` | Load message history since a timestamp |
+| `GET /messages` | Unread message list (WebSocket replay fallback) |
 | `GET /capabilities` | List capability overrides |
 | `PATCH /capabilities/{agent}/{action}` | Update a capability mode |
 | `GET /memory/facts` | Inspect stored facts |
