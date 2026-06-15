@@ -6,6 +6,30 @@ if TYPE_CHECKING:
     from ze_agents.plugin import ZePlugin
 
 
+def _compose_pre_route_nodes(fns: list[Callable]) -> Callable:
+    """Return a single async node that calls each pre-route function in order.
+
+    Each function receives the accumulated state (with prior updates merged in)
+    and its returned dict is merged into the running update before the next call.
+    The final merged dict is returned as the combined state update.
+    """
+    async def _composed(state: Any) -> dict:
+        accumulated: dict = {}
+        current = state
+        for fn in fns:
+            result = await fn(current) if _is_async(fn) else fn(current)
+            if result:
+                accumulated.update(result)
+                current = {**state, **accumulated}
+        return accumulated
+
+    def _is_async(f: Callable) -> bool:
+        import asyncio
+        return asyncio.iscoroutinefunction(f)
+
+    return _composed
+
+
 def graph_builder(
     node_overrides: dict[str, Callable] | None = None,
     state_type: type | None = None,

@@ -18,7 +18,7 @@ from ze_agents.hooks import (
     get_hooks,
 )
 from ze_agents.logging import get_logger
-from ze_agents.types import AgentContext, AgentResult, GateDecision, ToolCall
+from ze_agents.types import AgentContext, AgentResult, GateDecision, RetrievalRequest, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
@@ -441,7 +441,6 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
     if store is None:
         return ""
     try:
-        import types as _types
         from uuid import UUID
 
         goal_id_str = ctx.extensions.get("goal_id") if ctx.extensions else None
@@ -452,7 +451,7 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
         embed_fn = getattr(ctx, "embed_fn", None)
         embedding = embed_fn(ctx.prompt) if embed_fn is not None else None
 
-        request = _types.SimpleNamespace(
+        request = RetrievalRequest(
             module="tool_executor",
             agent="tool_executor",
             query_text=ctx.prompt,
@@ -463,7 +462,7 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
             max_tokens=800,
         )
         memory_ctx = await store.retrieve(request)
-    except Exception as exc:
+    except (AttributeError, TypeError, ValueError) as exc:
         log.warning("tool_executor_context_fetch_failed", error=str(exc))
         return ""
 

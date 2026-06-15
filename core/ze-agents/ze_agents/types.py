@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Protocol
+from uuid import UUID
 
 
 # ── Capability types ──────────────────────────────────────────────────────────
@@ -92,6 +93,19 @@ class AgentContext:
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)
     timezone: str = "UTC"
+
+
+@dataclass
+class RetrievalRequest:
+    module: str
+    agent: str
+    query_text: str
+    query_embedding: Any
+    intent: str | None = None
+    task_id: UUID | None = None
+    goal_id: UUID | None = None
+    max_tokens: int = 2000
+    current_session_id: str | None = None
 
 
 @dataclass

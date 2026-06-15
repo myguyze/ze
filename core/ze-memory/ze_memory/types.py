@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from ze_agents.types import RetrievalRequest as RetrievalRequest  # noqa: F401 — re-export
+
 
 @dataclass
 class Entity:
@@ -110,19 +112,6 @@ class MemoryContext:
     profile: list[ProfileFacet] = field(default_factory=list)
     entities: list[Entity] = field(default_factory=list)
     token_estimate: int = 0
-
-
-@dataclass
-class RetrievalRequest:
-    module: str
-    agent: str
-    query_text: str
-    query_embedding: Any
-    intent: str | None = None
-    task_id: UUID | None = None
-    goal_id: UUID | None = None
-    max_tokens: int = 2000
-    current_session_id: str | None = None
 
 
 @dataclass

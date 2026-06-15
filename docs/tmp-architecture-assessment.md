@@ -4,29 +4,41 @@
 >
 > **Date:** 2026-06-15
 >
-> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through [Phase 2](#phase-2--fix-next) first, then remaining items by severity.
+> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through [Phase 3](#phase-3--fix-next) first, then remaining items by severity.
 
 ---
 
 ## How to use this document
 
-1. Pick the next unchecked item from the [Phase 2](#phase-2--fix-next) table.
+1. Pick the next unchecked item from the [Phase 3](#phase-3--fix-next) table.
 2. Fix it in a focused PR.
 3. Mark the item done here (add `✅` and date).
-4. When Phase 2 is complete, promote Phase 3 candidates and update this doc.
+4. When Phase 3 is complete, promote Phase 4 candidates and update this doc.
 5. When all High items are done, delete this file or fold remaining notes into `docs/architecture.md`.
 
 ---
 
-## Phase 2 — fix next
+## Phase 3 — fix next
 
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
-| 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny | ✅ 2026-06-15 |
-| 2 | M2 | Per-subtask capability gate + correct resume semantics | ✅ 2026-06-15 |
-| 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ✅ 2026-06-15 |
-| 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ✅ 2026-06-15 |
-| 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ✅ 2026-06-15 |
+| 1 | M5 | Typed retrieval request Protocol in `ze-agents` (replace `SimpleNamespace`) | ✅ 2026-06-15 |
+| 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch | ☐ |
+| 3 | M7 | Finish session hardening (orphan thread IDs, unify naming, title updates) | ☐ |
+| 4 | M9 | Single `OnboardingError`; implement or remove seed kinds | ☐ |
+| 5 | M4 | Unify `AgentState` / single `initial_state()` factory; use `state_extensions` | ☐ |
+
+---
+
+## Phase 2 — completed 2026-06-15
+
+| # | ID | Summary |
+|---|-----|---------|
+| 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny |
+| 2 | M2 | Per-subtask capability gate + correct resume semantics |
+| 3 | H5 + M8 | Overlay-local thinking state + exhaustive frame/component switches |
+| 4 | M7 | Scoped unread replay via `thread_id` on WS connect |
+| 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage |
 
 ---
 
@@ -35,30 +47,25 @@
 | # | ID | Summary |
 |---|-----|---------|
 | 1 | C1 | Confirmation flow end-to-end (server interrupt → client UI → `resume_turn`) |
-| 2 | C2 | WS protocol type alignment (partial — conformance test deferred to Phase 2) |
+| 2 | C2 | WS protocol type alignment |
 | 3 | H6 | Cancel command inverted logic / `None` dereference |
 | 4 | H1 + H2 | Plugin `rest_stores()` + topological plugin discovery ordering |
 | 5 | H3 | Memory contradiction scoped to `(predicate, subject_id)` + indexed entity lookups |
 
 ---
 
-## Phase 3 — candidates (after Phase 2)
+## Phase 4 — candidates (after Phase 3)
 
 | ID | Summary | Why defer |
 |----|---------|-----------|
-| H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | Large refactor; H3 fixed worst correctness/scaling bugs |
-| M3 | Compose pre-route plugin hooks; remove dead routing branch | Orchestration hygiene, no user-visible bug today |
-| M4 | Unify `AgentState` / single `initial_state()` factory | Important before many new flows; large scope |
-| M5 | Typed retrieval request Protocol in `ze-agents` | Small, isolated — good filler task |
-| M6 | Fire-and-forget memory writes — surface failures | Needs observability design |
-| M9 | Single `OnboardingError`; implement or remove seed kinds | Only bites when providers emit those seeds |
+| H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | Large refactor; H3 fixed worst bugs |
+| H5 (remainder) | Central WS frame dispatcher + shared `useChat(threadId)` hook | Partial fix in Phase 2; overlay still has duplicate message state |
+| M6 | Fire-and-forget memory writes — surface failures | Needs observability/retry design |
 | L1–L7 | Low-severity polish | Batch when touching nearby code |
-
----
 
 ## Critical
 
-> **C1 ✅ · C2 ✅ (partial)** — completed in Phase 1. Conformance test tracked in Phase 2 #5.
+> **All Critical items resolved** in Phase 1–2.
 
 ### C1. Confirmation (Approve/Deny) flow is broken end-to-end ✅ Phase 1
 
@@ -77,7 +84,7 @@
 
 ---
 
-### C2. WebSocket protocol contract diverges between server and client ✅ Phase 1 (partial)
+### C2. WebSocket protocol contract diverges between server and client ✅ Phase 1–2
 
 - **Category:** Correctness / Tech debt
 - **Location:** `apps/ze-api/ze_api/api/ws.py` vs `apps/ze-web/src/ws/protocol.ts`
@@ -93,7 +100,7 @@
 
 ## High
 
-> **H1 ✅ · H2 ✅ · H3 ✅ · H6 ✅** — completed in Phase 1. **H4 · H5** remain (H5 in Phase 2 #3; H4 deferred to Phase 3).
+> **H1 ✅ · H2 ✅ · H3 ✅ · H5 ✅ (partial) · H6 ✅** — completed in Phase 1–2. **H4** deferred to Phase 4.
 
 ### H1. `ZeContainer` hard-codes plugin store types, defeating auto-discovery ✅ Phase 1
 
@@ -127,7 +134,7 @@
 
 ---
 
-### H4. `PostgresMemoryStore` is a god object; `MemoryStore` protocol has drifted
+### H4. `PostgresMemoryStore` is a god object; `MemoryStore` protocol has drifted — Phase 4
 
 - **Category:** Coupling / Tech debt
 - **Location:**
@@ -139,15 +146,16 @@
 
 ---
 
-### H5. React WS layer fragments chat state and broadcasts global "thinking" ✅ Phase 2
+### H5. React WS layer fragments chat state and broadcasts global "thinking" ✅ Phase 2 (partial)
 
 - **Category:** Correctness / Scalability
 - **Location:**
-  - `apps/ze-web/src/ws/useWebSocket.ts:8-24, 62-71`
+  - `apps/ze-web/src/ws/useWebSocket.ts`
   - `apps/ze-web/src/messages/useMessages.ts`
-  - `apps/ze-web/src/overlay/ContextOverlay.tsx:16-33`
-- **Issue:** Three independent `useWebSocket` subscribers; overlay reimplements message handling in own `useState` (no thread filter, no `edit`/`ack`/error). `isThinking` is global — activity in one surface disables input in another. `lastFrame` written on every frame, read nowhere.
-- **Suggested fix:** One frame dispatcher routing by `type`; single `useChat(threadId)` shared by chat and overlay; per-thread `isThinking`; delete `lastFrame`.
+  - `apps/ze-web/src/overlay/ContextOverlay.tsx`
+- **Done in Phase 2:** Removed `lastFrame`; overlay-local `thinking`; exhaustive switches in `ChatScreen` and `ComponentRenderer`.
+- **Remaining (Phase 4):** Central WS frame dispatcher; shared `useChat(threadId)` for main chat + overlay; overlay still maintains separate `useState<Message[]>` without thread filtering.
+- **Suggested fix:** One frame dispatcher routing by `type`; single `useChat(threadId)` hook shared by chat and overlay.
 
 ---
 
@@ -170,7 +178,7 @@
 
 ## Medium
 
-> **M1 ✅ · M2 ✅ · M7 ✅ · M8 ✅** — completed in Phase 2. **M3–M6 · M9** — Phase 3 candidates.
+> **M1 ✅ · M2 ✅ · M8 ✅** — completed in Phase 2. **M3 · M4 · M5 · M7 · M9** — in Phase 3. **M6** — Phase 4.
 
 ### M1. Confirmation timeout doesn't abort paused LangGraph checkpoint ✅ Phase 2
 
@@ -190,7 +198,7 @@
 
 ---
 
-### M3. Single pre-route plugin hook silently drops others; dead routing branch
+### M3. Single pre-route plugin hook silently drops others; dead routing branch — Phase 3 #2
 
 - **Category:** Scalability / Tech debt
 - **Location:** `core/ze-core/ze_core/orchestration/graph.py:88-98`; `core/ze-core/ze_core/orchestration/edges.py:7-11`
@@ -199,7 +207,7 @@
 
 ---
 
-### M4. `AgentState` mixes chat, workflow, and dynamic-plan concerns; three input factories drift
+### M4. `AgentState` mixes chat, workflow, and dynamic-plan concerns; three input factories drift — Phase 3 #5
 
 - **Category:** Coupling / Tech debt
 - **Location:**
@@ -212,7 +220,7 @@
 
 ---
 
-### M5. `_fetch_tool_executor_context` duck-types `RetrievalRequest` via `SimpleNamespace`
+### M5. `_fetch_tool_executor_context` duck-types `RetrievalRequest` via `SimpleNamespace` — Phase 3 #1
 
 - **Category:** Coupling / Tech debt
 - **Location:**
@@ -223,7 +231,7 @@
 
 ---
 
-### M6. Fire-and-forget tasks swallow failures
+### M6. Fire-and-forget tasks swallow failures — Phase 4
 
 - **Category:** Correctness / Testability
 - **Location:**
@@ -235,15 +243,16 @@
 
 ---
 
-### M7. Sessions are a metadata overlay, not a first-class entity ✅ Phase 2 (partial — scoped unread replay)
+### M7. Sessions are a metadata overlay, not a first-class entity — Phase 3 #3
 
 - **Category:** Tech debt
 - **Location:**
   - `apps/ze-api/ze_api/sessions/store.py:25-76`
   - `apps/ze-api/ze_api/api/routes/sessions.py:15-25`
   - `apps/ze-api/ze_api/api/ws.py:233-238, 250`
-- **Issue:** One string under three names (`thread_id`, `session_id`, `sessions.id`). No FK ties sessions ↔ messages ↔ checkpoint ↔ memory episodes. `ws-{uuid}` orphan when client omits `thread_id`. REST list-only; no server-side create. Title never updates once set. `list_unread` ignores `thread_id` — reconnect replay mixes threads.
-- **Suggested fix:** `Session` as authoritative entity with server-issued id; unify naming; scope unread replay by thread.
+- **Done in Phase 2:** Scoped unread replay via `thread_id` on WS connect; client passes `threadId` in WS URL.
+- **Remaining:** One string under three names (`thread_id`, `session_id`, `sessions.id`). No FK ties sessions ↔ messages ↔ checkpoint ↔ memory episodes. Server still mints orphan `ws-{uuid}` when client omits `thread_id`. REST list-only; no server-side create. Title never updates once set (`COALESCE` in upsert).
+- **Suggested fix:** Require client `thread_id` (reject or redirect orphan fallback); unify naming in docs/code; allow title refresh on upsert; document or enforce referential invariants.
 
 ---
 
@@ -260,7 +269,7 @@
 
 ---
 
-### M9. Onboarding has two `OnboardingError` types and unimplemented seed kinds
+### M9. Onboarding has two `OnboardingError` types and unimplemented seed kinds — Phase 3 #4
 
 - **Category:** Tech debt / Correctness
 - **Location:**
@@ -273,7 +282,7 @@
 
 ---
 
-## Low
+## Low — Phase 4 (batch when touching nearby code)
 
 | ID | Category | Location | Issue | Suggested fix |
 |----|----------|----------|-------|---------------|
@@ -287,24 +296,27 @@
 
 ---
 
-## Testing gaps (highest-value coverage)
+## Testing gaps
 
-| Priority | Area | Phase | Would catch |
-|----------|------|-------|-------------|
-| 1 | Confirmation flow E2E (server interrupt → frame → client → approve → resume) | 2 #5 | C1 regressions, M1 |
-| 2 | WS protocol conformance test (server frames vs TS unions) | 2 #5 | C2 permanently |
-| 3 | Plugin discovery with shuffled entry-point order + cross-plugin deps | 1 ✅ | H2 regressions |
-| 4 | Memory contradiction/write paths | 1 ✅ | H3 regressions |
-| 5 | Graph edges + compound capability | 2 #2 / Phase 3 | M2, M3 |
-| 6 | React: `useMessages` thread filtering + frame dispatcher | 2 #3 | H5, M8 |
+| Priority | Area | Phase | Status |
+|----------|------|-------|--------|
+| 1 | Confirmation flow E2E | 2 | ✅ `test_ws_conformance.py` |
+| 2 | WS protocol conformance | 2 | ✅ `test_ws_conformance.py` |
+| 3 | Plugin discovery with shuffled entry-point order | 1 | ☐ |
+| 4 | Memory contradiction/write paths | 1 | ☐ |
+| 5 | Graph edges + compound capability | 3 #2 | ☐ |
+| 6 | Pre-route plugin composition | 3 #2 | ☐ |
+| 7 | React: shared `useChat` + frame dispatcher | 4 | ☐ |
 
-**Note:** React app has vitest configured but zero test files today.
+**Note:** React vitest is configured but has no frontend test files yet.
 
 ---
 
 ## Structural theme (cross-cutting)
 
-The "core" layer has absorbed domain knowledge (workflow fields in `AgentState`, `person_store`/`persona_store` in `fetch_context`, `workflow_planner` in `plan_sequential`) and `container.py` has absorbed per-plugin knowledge. The plugin abstraction (`graph_nodes` / `graph_edges` / `state_extensions` / `agent_deps`) exists to prevent this but is underused. Pushing concerns back behind plugin hooks is the biggest structural lever before the next phase.
+Phases 1–2 addressed correctness (confirmation, capability gate, memory writes, WS protocol) and plugin scalability (`rest_stores`, topological discovery). Phase 3 targets **extensibility before new plugins land** (`ze-finance`, `ze-legal`): compose plugin hooks (M3), unify graph state (M4), and tighten session/onboarding boundaries (M7, M9). Phase 4 is structural cleanup (H4 memory split, H5 WS dispatcher, M6 observability, low-severity polish).
+
+The core layer still absorbs domain knowledge (`person_store`/`persona_store` in `fetch_context`, workflow fields in `AgentState`). M4 is the main lever to push that back behind plugin `state_extensions`.
 
 ---
 
@@ -324,3 +336,4 @@ The "core" layer has absorbed domain knowledge (workflow fields in `AgentState`,
 |------|--------|
 | 2026-06-15 | Initial assessment written |
 | 2026-06-15 | Phase 1 completed (C1, C2 partial, H1, H2, H3, H6); Phase 2 backlog added |
+| 2026-06-15 | Phase 2 completed (M1, M2, H5+M8, M7 partial, C2+tests); Phase 3 backlog added |

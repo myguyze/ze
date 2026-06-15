@@ -6,8 +6,8 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from ze_agents.logging import get_logger
+from ze_agents.types import AgentContext, RetrievalRequest
 from ze_core.orchestration.state import AgentState
-from ze_agents.types import AgentContext
 
 log = get_logger(__name__)
 
@@ -41,8 +41,7 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     embed_text = state.get("image_caption") or state["prompt"]
     prompt_embedding = embedder.encode(embed_text)
 
-    import types as _types
-    _request = _types.SimpleNamespace(
+    _request = RetrievalRequest(
         module=agent_name,
         agent=agent_name,
         query_text=embed_text,

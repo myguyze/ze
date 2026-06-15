@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
+from ze_agents.types import RetrievalRequest
 from ze_memory.types import (
     Fact,
     MemoryContext,
     ProfileFacet,
-    RetrievalRequest,
     TaskState,
 )
 
