@@ -24,7 +24,7 @@
 | 1 | H5 | Central WS frame dispatcher + shared `useChat(threadId)` hook | ✅ 2026-06-15 |
 | 2 | M6 | Surface fire-and-forget memory write failures (done-callbacks or retry queue) | ✅ 2026-06-15 |
 | 3 | H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | ✅ 2026-06-15 |
-| 4 | Tests | Plugin discovery order + memory write path regression tests | ☐ |
+| 4 | Tests | Plugin discovery order + memory write path regression tests | ✅ 2026-06-15 |
 | 5 | L1–L7 | Low-severity polish batch (see [Low](#low--phase-4-5-batch)) | ☐ |
 
 ---
@@ -317,8 +317,8 @@
 |----------|------|-------|--------|
 | 1 | Confirmation flow E2E | 2 | ✅ `test_ws_conformance.py` |
 | 2 | WS protocol conformance | 2 | ✅ `test_ws_conformance.py` |
-| 3 | Plugin discovery with shuffled entry-point order | 4 #4 | ☐ |
-| 4 | Memory contradiction/write paths | 4 #4 | ☐ |
+| 3 | Plugin discovery with shuffled entry-point order | 4 #4 | ✅ `test_plugin_discovery.py` |
+| 4 | Memory contradiction/write paths | 4 #4 | ✅ `test_store_writes.py` |
 | 5 | Graph edges + compound capability | 3 | ✅ M2 |
 | 6 | Pre-route plugin composition | 3 | ✅ M3 |
 | 7 | React: shared `useChat` + frame dispatcher | 4 #1 | ✅ 2026-06-15 |
@@ -356,3 +356,4 @@ After Phase 5, all pre-assessment findings are resolved. New plugin work may sur
 | 2026-06-15 | Phase 4 #1 (H5): central `useFrame` dispatcher + `useChat(threadId)` hook; overlay thread filtering fixed |
 | 2026-06-15 | Phase 4 #2 (M6): `fire_and_forget` utility in `ze_agents.tasks`; replaces bare `create_task` in memory, retriever, router, telemetry, ws |
 | 2026-06-15 | Phase 4 #3 (H4): extracted `PostgresConsolidationStore`; aligned `MemoryStore` protocol; policies use `store.pool` via `MemoryQueryable` |
+| 2026-06-15 | Phase 4 #4 (Tests): `test_plugin_discovery.py` topological sort; contradiction scoping tests in `test_store_writes.py` |

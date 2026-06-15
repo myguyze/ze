@@ -495,3 +495,101 @@ async def test_write_fact_returns_none_on_db_error():
     fact = Fact(id=None, subject_id=None, predicate="mood", value="cheerful", object_text="cheerful", confidence=0.7)
     with pytest.raises(RuntimeError):
         await store._write_fact_with_contradiction_check(fact)
+
+
+# ── contradiction scoping by (predicate, subject_id) ─────────────────────────
+
+def _make_contradiction_store():
+    """Return a store whose connection captures execute() call args."""
+    pool = MagicMock()
+    conn = AsyncMock()
+    conn.execute = AsyncMock()
+    conn.fetchrow = AsyncMock(return_value={"id": uuid4()})
+    pool.acquire = MagicMock(return_value=_async_ctx(conn))
+
+    store = PostgresMemoryStore.__new__(PostgresMemoryStore)
+    store._pool = pool
+    store._embedder = MagicMock()
+    store._embedder.encode = MagicMock(return_value=[0.1] * 384)
+    store._client = None
+    store._graph_store = None
+    store._traversal = None
+    store._settings = None
+    return store, conn
+
+
+async def test_contradiction_update_scoped_to_predicate_and_subject():
+    """The UPDATE must pass exactly (predicate, subject_id) — not a null wildcard."""
+    store, conn = _make_contradiction_store()
+    subject_id = uuid4()
+
+    from ze_memory.types import Fact
+    fact = Fact(
+        id=None,
+        subject_id=subject_id,
+        predicate="preferred_name",
+        value="Alice",
+        object_text="Alice",
+        confidence=0.9,
+    )
+    await store._write_fact_with_contradiction_check(fact)
+
+    conn.execute.assert_awaited_once()
+    _sql, pred_arg, subj_arg = conn.execute.call_args[0]
+    assert pred_arg == "preferred_name"
+    assert subj_arg == subject_id
+
+
+async def test_contradiction_different_subjects_use_different_scope():
+    """Writing the same predicate for two subjects produces two separate UPDATE scopes."""
+    store, conn = _make_contradiction_store()
+    subject_a = uuid4()
+    subject_b = uuid4()
+
+    from ze_memory.types import Fact
+    fact_a = Fact(id=None, subject_id=subject_a, predicate="preferred_name", value="Alice", object_text="Alice", confidence=0.9)
+    fact_b = Fact(id=None, subject_id=subject_b, predicate="preferred_name", value="Bob", object_text="Bob", confidence=0.9)
+
+    await store._write_fact_with_contradiction_check(fact_a)
+    await store._write_fact_with_contradiction_check(fact_b)
+
+    assert conn.execute.await_count == 2
+    first_subj = conn.execute.call_args_list[0][0][2]
+    second_subj = conn.execute.call_args_list[1][0][2]
+    assert first_subj == subject_a
+    assert second_subj == subject_b
+    assert first_subj != second_subj
+
+
+async def test_contradiction_null_subject_scoped_independently():
+    """NULL subject_id facts only contradict other NULL-subject facts for the same predicate."""
+    store, conn = _make_contradiction_store()
+
+    from ze_memory.types import Fact
+    # subject_id=None: global/unattributed fact
+    fact = Fact(id=None, subject_id=None, predicate="user_timezone", value="UTC", object_text="UTC", confidence=0.8)
+    await store._write_fact_with_contradiction_check(fact)
+
+    conn.execute.assert_awaited_once()
+    _sql, pred_arg, subj_arg = conn.execute.call_args[0]
+    assert pred_arg == "user_timezone"
+    assert subj_arg is None
+
+
+async def test_propose_facts_contradicts_per_subject():
+    """propose_facts calls _write_fact_with_contradiction_check for each fact independently."""
+    store, conn = _make_contradiction_store()
+    subject_a = uuid4()
+    subject_b = uuid4()
+
+    from ze_memory.types import Fact
+    facts = [
+        Fact(id=None, subject_id=subject_a, predicate="preferred_name", value="Alice", object_text="Alice", confidence=0.9),
+        Fact(id=None, subject_id=subject_b, predicate="preferred_name", value="Bob", object_text="Bob", confidence=0.9),
+    ]
+    await store.propose_facts(facts)
+
+    # Two UPDATE calls, one per subject
+    assert conn.execute.await_count == 2
+    subjects_seen = {conn.execute.call_args_list[i][0][2] for i in range(2)}
+    assert subjects_seen == {subject_a, subject_b}
