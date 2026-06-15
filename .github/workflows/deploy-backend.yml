@@ -1,19 +1,11 @@
 name: Deploy backend
 
-# Deploys the FastAPI backend to Fly.io (see fly.toml).
+# Manual Fly.io deploy only (Actions → Deploy backend → Run workflow).
+# Or deploy locally: fly deploy --config apps/ze-api/fly.toml --dockerfile apps/ze-api/Dockerfile
 # Required repository secret: FLY_API_TOKEN
 #   fly tokens create deploy -x 999999h
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "core/**"
-      - "plugins/**"
-      - "apps/ze-api/**"
-      - "pyproject.toml"
-      - ".dockerignore"
-      - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
 concurrency:
