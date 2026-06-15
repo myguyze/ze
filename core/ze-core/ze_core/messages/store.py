@@ -15,7 +15,7 @@ class MessageStore(Protocol):
     async def list_since(self, since: datetime, limit: int = 100) -> list[Message]: ...
     async def list_by_thread(self, thread_id: str, limit: int = 200) -> list[Message]: ...
     async def mark_read(self, ids: list[UUID]) -> None: ...
-    async def list_unread(self) -> list[Message]: ...
+    async def list_unread(self, thread_id: str | None = None) -> list[Message]: ...
 
 
 class PostgresMessageStore:
@@ -78,16 +78,27 @@ class PostgresMessageStore:
                 ids,
             )
 
-    async def list_unread(self) -> list[Message]:
+    async def list_unread(self, thread_id: str | None = None) -> list[Message]:
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                """
-                SELECT id, role, text, components, read, thread_id, created_at
-                FROM messages
-                WHERE NOT read
-                ORDER BY created_at ASC
-                """,
-            )
+            if thread_id:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, role, text, components, read, thread_id, created_at
+                    FROM messages
+                    WHERE NOT read AND thread_id = $1
+                    ORDER BY created_at ASC
+                    """,
+                    thread_id,
+                )
+            else:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, role, text, components, read, thread_id, created_at
+                    FROM messages
+                    WHERE NOT read
+                    ORDER BY created_at ASC
+                    """,
+                )
         return [_row_to_message(r) for r in rows]
 
 

@@ -25,8 +25,8 @@
 | 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny | ✅ 2026-06-15 |
 | 2 | M2 | Per-subtask capability gate + correct resume semantics | ✅ 2026-06-15 |
 | 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ✅ 2026-06-15 |
-| 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ☐ |
-| 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ☐ |
+| 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ✅ 2026-06-15 |
+| 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ✅ 2026-06-15 |
 
 ---
 
@@ -170,7 +170,7 @@
 
 ## Medium
 
-> **M1 · M2 · M7 · M8** — in Phase 2. **M3–M6 · M9** — Phase 3 candidates.
+> **M1 ✅ · M2 ✅ · M7 ✅ · M8 ✅** — completed in Phase 2. **M3–M6 · M9** — Phase 3 candidates.
 
 ### M1. Confirmation timeout doesn't abort paused LangGraph checkpoint ✅ Phase 2
 
@@ -235,7 +235,7 @@
 
 ---
 
-### M7. Sessions are a metadata overlay, not a first-class entity — Phase 2 #4
+### M7. Sessions are a metadata overlay, not a first-class entity ✅ Phase 2 (partial — scoped unread replay)
 
 - **Category:** Tech debt
 - **Location:**

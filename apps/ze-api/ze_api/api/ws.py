@@ -35,6 +35,7 @@ class ConnectionManager:
         ws: WebSocket,
         message_store: Any,
         confirmation_store: Any | None = None,
+        thread_id: str | None = None,
     ) -> None:
         async with self._lock:
             if self._ws is not None:
@@ -45,7 +46,7 @@ class ConnectionManager:
             self._ws = ws
             self._busy = False
 
-        unread = await message_store.list_unread()
+        unread = await message_store.list_unread(thread_id)
         async with self._lock:
             for msg in unread:
                 try:
@@ -111,7 +112,7 @@ class ConnectionManager:
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
+async def websocket_endpoint(ws: WebSocket, token: str | None = None, thread_id: str | None = None) -> None:
     settings = ws.app.state.settings
     api_key: str = settings.ze_api_key
 
@@ -130,7 +131,7 @@ async def websocket_endpoint(ws: WebSocket, token: str | None = None) -> None:
     confirmation_store = getattr(ws.app.state, "confirmation_store", None)
     session_store = getattr(ws.app.state, "session_store", None)
 
-    await conn_mgr.connect(ws, msg_store, confirmation_store)
+    await conn_mgr.connect(ws, msg_store, confirmation_store, thread_id=thread_id)
     log.info("ws_connected")
 
     onboarding_cfg = settings.config.get("onboarding", {})

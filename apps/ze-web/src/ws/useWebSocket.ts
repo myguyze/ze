@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { type InboundFrame, type OutboundFrame } from "./protocol";
 import { getConfig } from "@/config/AppConfig";
+import { useSession } from "@/chat/useSession";
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,8 @@ function buildUrl() {
   const cfg = getConfig();
   if (!cfg) return null;
   const base = cfg.serverUrl.replace(/^http/, "ws");
-  return `${base}/ws?token=${encodeURIComponent(cfg.apiKey)}`;
+  const threadId = useSession.getState().threadId;
+  return `${base}/ws?token=${encodeURIComponent(cfg.apiKey)}&thread_id=${encodeURIComponent(threadId)}`;
 }
 
 function scheduleReconnect() {
