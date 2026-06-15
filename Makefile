@@ -225,15 +225,13 @@ test-news:
 	uv run pytest plugins/ze-news/tests -q
 
 test-all:
-	uv run pytest \
-		$(ZE)/tests \
-		$(ZE_CORE)/tests \
-		plugins/ze-personal/tests \
-		plugins/ze-prospecting/tests \
-		plugins/ze-email/tests \
-		plugins/ze-calendar/tests \
-		plugins/ze-news/tests \
-		-q
+	uv run pytest $(ZE)/tests -q && \
+	uv run pytest $(ZE_CORE)/tests -q && \
+	uv run pytest plugins/ze-personal/tests -q && \
+	uv run pytest plugins/ze-prospecting/tests -q && \
+	uv run pytest plugins/ze-email/tests -q && \
+	uv run pytest plugins/ze-calendar/tests -q && \
+	uv run pytest plugins/ze-news/tests -q
 
 # ── Web app ───────────────────────────────────────────────────────────────────
 .PHONY: web-build web-test

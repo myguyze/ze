@@ -4,17 +4,32 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ze_personal.persona.postgres import PostgresPersonaStore as PersonaStore
-from ze_agents.settings import Settings
 from ze_agents.errors import UnknownDialError, UnknownProfileError
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+_PROFILES = {
+    "default": {
+        "traits": ["direct", "warm", "concise"],
+        "verbosity": "concise",
+        "custom_instructions": "",
+        "dials": {"humor": 0.3, "directness": 0.9, "formality": 0.2, "depth": 0.5},
+    },
+    "stoic": {
+        "traits": ["precise", "measured"],
+        "verbosity": "concise",
+        "custom_instructions": "",
+        "dials": {"humor": 0.05, "directness": 1.0, "formality": 0.7, "depth": 0.4},
+    },
+    "playful": {
+        "traits": ["warm", "curious", "witty"],
+        "verbosity": "balanced",
+        "custom_instructions": "",
+        "dials": {"humor": 0.85, "directness": 0.4, "formality": 0.2, "depth": 0.5},
+    },
+}
 
-def make_settings():
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-    )
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 
 def make_conn():
@@ -35,13 +50,11 @@ def make_pool(conn=None):
     return pool
 
 
-def make_store(pool=None, settings=None):
-    s = settings or make_settings()
-    cfg = s.persona_config
+def make_store(pool=None, profiles=None, default_profile="default"):
     return PersonaStore(
         pool=pool or make_pool(),
-        profiles=cfg.get("profiles", {}),
-        default_profile=cfg.get("profile", "default"),
+        profiles=profiles or _PROFILES,
+        default_profile=default_profile,
     )
 
 

@@ -32,6 +32,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-mock>=3.14",
     "anyio[trio]>=4.7",
+    "aiosqlite>=0.19",
     "ruff>=0.8",
 ]
 

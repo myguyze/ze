@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 
+from ze_memory.extractor import gather_fact_proposals
 from ze_memory.types import MemoryContext
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.nodes.memory import synthesize, write_memory
@@ -32,7 +33,14 @@ def _make_embedder(vec=None) -> MagicMock:
     return embedder
 
 
-def _config(store=None, embedder=None, thread_id="s1", client=None, settings=None) -> dict:
+def _config(
+    store=None,
+    embedder=None,
+    thread_id="s1",
+    client=None,
+    settings=None,
+    fact_extractor=None,
+) -> dict:
     return {
         "configurable": {
             "memory_store": store or _make_store(),
@@ -40,6 +48,7 @@ def _config(store=None, embedder=None, thread_id="s1", client=None, settings=Non
             "thread_id": thread_id,
             "openrouter_client": client,
             "settings": settings,
+            "fact_extractor": fact_extractor,
         }
     }
 
@@ -120,10 +129,18 @@ class TestWriteMemory:
             "messages": [],
             "input_modality": "text",
         }
-        await write_memory(state, _config(store=store, client=client, thread_id="s1"))
+        await write_memory(
+            state,
+            _config(
+                store=store,
+                client=client,
+                thread_id="s1",
+                fact_extractor=gather_fact_proposals,
+            ),
+        )
         store.propose_facts.assert_awaited_once()
         proposed = store.propose_facts.call_args[0][0]
-        assert any(f.key == "city" for f in proposed)
+        assert any(f.predicate == "city" for f in proposed)
 
     async def test_compound_synthesizes_result(self):
         store = _make_store()

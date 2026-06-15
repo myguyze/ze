@@ -462,7 +462,7 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
             max_tokens=800,
         )
         memory_ctx = await store.retrieve(request)
-    except (AttributeError, TypeError, ValueError) as exc:
+    except Exception as exc:
         log.warning("tool_executor_context_fetch_failed", error=str(exc))
         return ""
 

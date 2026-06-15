@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
+import ze_prospecting.agents.tools  # noqa: F401 — registers log_outreach_event
 
 from ze_personal.agents.companion.agent import CompanionAgent, _detect_outreach_event
 from ze_agents.types import AgentContext, AgentResult

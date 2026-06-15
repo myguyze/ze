@@ -33,5 +33,11 @@ jobs:
         run: uv run ruff check .
 
       - name: Pytest
-        run: uv run pytest apps/ze-api/tests core/ze-core/tests plugins/ze-personal/tests plugins/ze-email/tests plugins/ze-calendar/tests plugins/ze-news/tests -m 'not slow' -q
+        run: |
+          uv run pytest apps/ze-api/tests -m 'not slow' -q
+          uv run pytest core/ze-core/tests -m 'not slow' -q
+          uv run pytest plugins/ze-personal/tests -m 'not slow' -q
+          uv run pytest plugins/ze-email/tests -m 'not slow' -q
+          uv run pytest plugins/ze-calendar/tests -m 'not slow' -q
+          uv run pytest plugins/ze-news/tests -m 'not slow' -q
 
