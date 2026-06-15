@@ -30,8 +30,8 @@ jobs:
         run: uv sync
 
       - name: Ruff
-        run: uv run ruff check ze tests
+        run: uv run ruff check .
 
       - name: Pytest
-        run: uv run pytest --ignore=tests/test_embeddings.py -q
+        run: uv run pytest apps/ze-api/tests core/ze-core/tests plugins/ze-personal/tests plugins/ze-email/tests plugins/ze-calendar/tests plugins/ze-news/tests -m 'not slow' -q
 
