@@ -43,6 +43,9 @@ class CalendarPlugin(ZePlugin):
         self.reminder_store = ReminderStore(pool=pool)
         self._calendar_reminder_store = CalendarReminderStore(pool=pool)
 
+    def rest_stores(self) -> dict[str, Any]:
+        return {"reminder_store": self.reminder_store}
+
     def agent_deps(self, accumulated: dict) -> dict:
         return {ReminderStore: self.reminder_store}
 

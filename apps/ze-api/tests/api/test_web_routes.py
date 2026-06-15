@@ -40,9 +40,11 @@ def container():
     person_store.list_confirmed = AsyncMock(return_value=[person])
 
     return SimpleNamespace(
-        goal_store=goal_store,
-        reminder_store=reminder_store,
-        person_store=person_store,
+        _plugin_stores={
+            "goal_store": goal_store,
+            "reminder_store": reminder_store,
+            "person_store": person_store,
+        },
     )
 
 

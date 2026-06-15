@@ -213,9 +213,10 @@ async def _build_status_summary(container: Any, *, period_days: int = 1) -> str:
     goals_advanced: list[str] = []
     goals_stalled: list[str] = []
     try:
-        active_goals = await container.goal_store.list_active()
+        goal_store = container._plugin_stores.get("goal_store")
+        active_goals = await goal_store.list_active() if goal_store is not None else []
         for goal in active_goals:
-            milestones = await container.goal_store.list_milestones(goal.id)
+            milestones = await goal_store.list_milestones(goal.id)
             for m in milestones:
                 if m.status.value == "completed" and m.completed_at is not None:
                     from datetime import timedelta

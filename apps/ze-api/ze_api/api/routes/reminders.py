@@ -14,7 +14,7 @@ router = APIRouter(tags=["reminders"])
     description="Returns user reminders for the web client reminders screen.",
 )
 async def list_reminders(request: Request) -> list[ReminderListItem]:
-    store = request.app.state.container.reminder_store
+    store = request.app.state.container._plugin_stores.get("reminder_store")
     if store is None:
         return []
 

@@ -14,7 +14,7 @@ router = APIRouter(tags=["goals"])
     description="Returns active and awaiting-gate goals for the web client goals screen.",
 )
 async def list_goals(request: Request) -> list[GoalListItem]:
-    store = request.app.state.container.goal_store
+    store = request.app.state.container._plugin_stores.get("goal_store")
     if store is None:
         return []
 

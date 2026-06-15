@@ -43,16 +43,16 @@ def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
     """Load and instantiate all Ze plugins declared via entry points.
 
     Reads ``[project.entry-points."ze.plugins"]`` from every installed package,
-    loads each class, and instantiates it via ``_resolve()`` using the provided
-    (or module-level) dep_map.
+    loads each class, topologically sorts by ``cls.depends_on`` (class names),
+    and instantiates via ``_resolve()``.
 
-    Returns the ordered list of plugin instances. Logs every discovered and
-    instantiated plugin at INFO level.
+    Returns the ordered list of plugin instances. Raises ``AgentConfigError`` on
+    missing deps or dependency cycles.
     """
     from importlib.metadata import entry_points
 
     effective_deps = dep_map if dep_map is not None else _dep_map
-    discovered: list[ZePlugin] = []
+    entries: list[tuple[str, type]] = []
 
     for ep in entry_points(group="ze.plugins"):
         log.info("plugin_discovered", name=ep.name, value=ep.value)
@@ -70,13 +70,61 @@ def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
                 f"which is not a ZePlugin subclass."
             )
 
+        entries.append((ep.name, cls))
+
+    if not entries:
+        log.warning("no_plugins_discovered")
+        return []
+
+    sorted_entries = _topological_sort(entries)
+
+    discovered: list[ZePlugin] = []
+    for ep_name, cls in sorted_entries:
         instance = _resolve(cls, effective_deps)
-        log.info("plugin_instantiated", name=ep.name, cls=cls.__qualname__)
+        log.info("plugin_instantiated", name=ep_name, cls=cls.__qualname__)
         discovered.append(instance)
 
-    if not discovered:
-        log.warning("no_plugins_discovered")
     return discovered
+
+
+def _topological_sort(
+    entries: list[tuple[str, type]],
+) -> list[tuple[str, type]]:
+    """Sort plugin entries by ``cls.depends_on`` (class names) using Kahn's algorithm.
+
+    Raises ``AgentConfigError`` on unknown deps or cycles.
+    """
+    name_to_idx: dict[str, int] = {cls.__name__: i for i, (_, cls) in enumerate(entries)}
+    n = len(entries)
+    adj: list[list[int]] = [[] for _ in range(n)]
+    in_degree = [0] * n
+
+    for i, (_, cls) in enumerate(entries):
+        for dep_name in getattr(cls, "depends_on", ()):
+            j = name_to_idx.get(dep_name)
+            if j is None:
+                raise AgentConfigError(
+                    f"Plugin {cls.__name__!r} declares depends_on={dep_name!r} "
+                    f"but no plugin with that class name was discovered."
+                )
+            adj[j].append(i)
+            in_degree[i] += 1
+
+    queue = [i for i in range(n) if in_degree[i] == 0]
+    result: list[tuple[str, type]] = []
+    while queue:
+        node = queue.pop(0)
+        result.append(entries[node])
+        for j in adj[node]:
+            in_degree[j] -= 1
+            if in_degree[j] == 0:
+                queue.append(j)
+
+    if len(result) != n:
+        cycle = [entries[i][1].__name__ for i in range(n) if in_degree[i] > 0]
+        raise AgentConfigError(f"Circular plugin dependency detected among: {cycle}")
+
+    return result
 
 
 def bootstrap_agents(

@@ -28,6 +28,10 @@ class ZePlugin(ABC):
     All methods have default no-op implementations — only override what you need.
     """
 
+    # Class-level: names of other ZePlugin subclasses this plugin depends on.
+    # bootstrap.py topologically sorts plugins by this before instantiation and startup.
+    depends_on: tuple[str, ...] = ()
+
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         _registry.append(cls)
@@ -96,6 +100,15 @@ class ZePlugin(ABC):
     def channels(self) -> list[Any]:
         """Return communication channel instances this plugin provides."""
         return []
+
+    def rest_stores(self) -> dict[str, Any]:
+        """Return named stores this plugin exposes to REST routes.
+
+        Keys are stable string identifiers (e.g. ``"goal_store"``).
+        ZeContainer collects these into ``_plugin_stores`` so routes can access them
+        without ZeContainer needing per-plugin typed fields.
+        """
+        return {}
 
     def register_proactive_jobs(
         self,

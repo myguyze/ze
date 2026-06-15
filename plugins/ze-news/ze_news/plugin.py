@@ -71,6 +71,11 @@ class NewsPlugin(ZePlugin):
     def migrations_path(cls) -> Path | None:
         return Path(__file__).parent / "migrations"
 
+    def rest_stores(self) -> dict[str, Any]:
+        if self._store is None:
+            return {}
+        return {"news_store": self._store}
+
     def agent_deps(self, accumulated: dict) -> dict:
         if self._store is None:
             return {}

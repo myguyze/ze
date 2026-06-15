@@ -158,6 +158,12 @@ class PersonalPlugin(ZePlugin):
             WorkflowPlanner: self.workflow_planner,
         }
 
+    def rest_stores(self) -> dict[str, Any]:
+        return {
+            "goal_store": self.goal_store,
+            "person_store": self.person_store,
+        }
+
     def configurable_services(self) -> dict[str, Any]:
         from ze_personal.persona.identity import build_identity_block
         from ze_personal.graph.memory_hooks import contact_proposal_hook

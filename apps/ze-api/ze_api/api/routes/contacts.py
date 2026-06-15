@@ -14,7 +14,7 @@ router = APIRouter(tags=["contacts"])
     description="Returns confirmed contacts for the web client contacts screen.",
 )
 async def list_contacts(request: Request) -> list[ContactListItem]:
-    store = request.app.state.container.person_store
+    store = request.app.state.container._plugin_stores.get("person_store")
     if store is None:
         return []
 

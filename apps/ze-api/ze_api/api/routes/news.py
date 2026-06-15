@@ -18,7 +18,7 @@ async def list_news(
     limit: int = Query(default=30, ge=1, le=100),
     tag: str | None = Query(default=None, description="Filter by tag"),
 ) -> list[ArticleItem]:
-    store = request.app.state.container.news_store
+    store = request.app.state.container._plugin_stores.get("news_store")
     if store is None:
         return []
 
