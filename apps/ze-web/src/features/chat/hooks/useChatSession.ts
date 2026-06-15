@@ -3,6 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMessages } from "@/features/chat/hooks/useMessages";
 import { useSession } from "@/features/chat/hooks/useSession";
 import { useFrame, useWsStore, send } from "@/features/websocket/useWebSocket";
+import { queryKeys } from "@/lib/queryKeys";
+import { useOnboardingSession } from "@/features/onboarding/useOnboardingSession";
+import { useSendNotice } from "@/features/websocket/useSendNotice";
 import { type ConfirmAction, type Message, type ScreenContext } from "@/features/websocket/protocol";
 
 export interface PendingConfirm {
@@ -10,6 +13,8 @@ export interface PendingConfirm {
   prompt: string;
   actions: ConfirmAction[];
 }
+
+const NOT_CONNECTED_NOTICE = "Not connected. Retry when Ze reconnects.";
 
 interface UseChatSessionOptions {
   /** Overlay chat — no history, clears when opened */
@@ -64,6 +69,13 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     if (!active) return;
     if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
 
+    if (frame.onboarding) {
+      useOnboardingSession.getState().setSession(
+        frame.onboarding.session_id,
+        frame.onboarding.completed,
+      );
+    }
+
     if (ephemeral) {
       setEphemeralMessages((prev) => [...prev, frame.message]);
     } else {
@@ -73,7 +85,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       }
       if (frame.message.role === "assistant") {
         void reload();
-        void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
       }
     }
 
@@ -113,31 +125,49 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     const trimmed = text.trim();
     if (!trimmed || isThinking) return false;
 
-    setThinking(true);
-
     if (ephemeral) {
-      send({ type: "message", text: trimmed, context });
-    } else {
-      upsert({
-        id: crypto.randomUUID(),
-        role: "user",
-        text: trimmed,
-        components: [],
-        read: true,
-        created_at: new Date().toISOString(),
-        thread_id: threadId,
-      });
-      send({ type: "message", text: trimmed, thread_id: threadId });
+      const sent = send({ type: "message", text: trimmed, context });
+      if (!sent) {
+        useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
+        return false;
+      }
+      setThinking(true);
+      return true;
     }
 
+    const optimisticId = crypto.randomUUID();
+    const sent = send({ type: "message", text: trimmed, thread_id: threadId });
+    if (!sent) {
+      useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
+      return false;
+    }
+
+    upsert({
+      id: optimisticId,
+      role: "user",
+      text: trimmed,
+      components: [],
+      read: true,
+      created_at: new Date().toISOString(),
+      thread_id: threadId,
+    });
+
+    setThinking(true);
     return true;
   }
 
   function respondToConfirm(choice: "approve" | "deny") {
     if (!pendingConfirm) return;
-    const { id } = pendingConfirm;
+    const confirm = pendingConfirm;
     setPendingConfirm(null);
-    send({ type: "confirm", id, choice });
+
+    const sent = send({ type: "confirm", id: confirm.id, choice });
+    if (!sent) {
+      setPendingConfirm(confirm);
+      useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
+      return;
+    }
+
     if (choice === "approve") {
       setThinking(true);
     }

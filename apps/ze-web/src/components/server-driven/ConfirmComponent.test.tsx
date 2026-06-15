@@ -5,7 +5,10 @@ import { ConfirmComponent } from "./ConfirmComponent";
 const send = vi.fn();
 
 vi.mock("@/features/websocket/useWebSocket", () => ({
-  send: (...args: unknown[]) => send(...args),
+  send: (...args: unknown[]) => {
+    send(...args);
+    return true;
+  },
 }));
 
 vi.mock("@/features/chat/hooks/useSession", () => ({
@@ -25,8 +28,8 @@ describe("ConfirmComponent", () => {
           type: "confirm",
           prompt: "Proceed?",
           actions: [
-            { label: "Yes", value: "yes" },
-            { label: "No", value: "no" },
+            { label: "Yes", value: "yes", style: "primary" },
+            { label: "No", value: "no", style: "secondary" },
           ],
         }}
       />,

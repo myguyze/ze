@@ -1,16 +1,48 @@
 import { useState, type FormEvent } from "react";
 import { send } from "@/features/websocket/useWebSocket";
+import { useSendNotice } from "@/features/websocket/useSendNotice";
+import { useOnboardingSession } from "@/features/onboarding/useOnboardingSession";
+import { useSession } from "@/features/chat/hooks/useSession";
 import { type FormComponent as T } from "./types";
+
+const NOT_CONNECTED_NOTICE = "Not connected. Retry when Ze reconnects.";
 
 export function FormComponent({ data }: { data: T }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const sessionId = useOnboardingSession((s) => s.sessionId);
+  const completed = useOnboardingSession((s) => s.completed);
+  const threadId = useSession((s) => s.threadId);
+  const stepId = data.id;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submitted) return;
     setSubmitted(true);
-    send({ type: "message", text: `[form] ${JSON.stringify(values)}` });
+
+    let sent = false;
+    if (sessionId && !completed && stepId) {
+      sent = send({
+        type: "component_submit",
+        session_id: sessionId,
+        step_id: stepId,
+        values,
+      });
+    } else if (stepId) {
+      sent = send({
+        type: "component_submit",
+        step_id: stepId,
+        values,
+        thread_id: threadId,
+      });
+    } else {
+      sent = send({ type: "message", text: `[form] ${JSON.stringify(values)}` });
+    }
+
+    if (!sent) {
+      setSubmitted(false);
+      useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
+    }
   }
 
   return (

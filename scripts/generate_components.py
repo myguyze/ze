@@ -66,9 +66,13 @@ def _ts_type(annotation: type) -> str:
     return "string"
 
 
-def _emit_ts_interface(cls: type, lines: list[str]) -> None:
+def _emit_ts_interface(cls: type, lines: list[str], *, emit_type_discriminator: bool = False) -> None:
     hints = typing.get_type_hints(cls)
-    fields = [f for f in dataclasses.fields(cls) if f.init]
+    init_fields = {f.name for f in dataclasses.fields(cls) if f.init}
+    fields = [
+        f for f in dataclasses.fields(cls)
+        if f.name in init_fields or (emit_type_discriminator and f.name == "type")
+    ]
 
     lines.append(f"export interface {cls.__name__} {{")
     for field in fields:
@@ -102,7 +106,7 @@ def _emit_ts_types(out_path: Path) -> None:
         _emit_ts_interface(cls, lines)
 
     for cls in COMPONENT_TYPES:
-        _emit_ts_interface(cls, lines)
+        _emit_ts_interface(cls, lines, emit_type_discriminator=True)
 
     lines.append("export type ComponentDescriptor =")
     for i, cls in enumerate(COMPONENT_TYPES):

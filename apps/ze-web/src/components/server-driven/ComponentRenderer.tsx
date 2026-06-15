@@ -18,6 +18,11 @@ export function ComponentRenderer({ data }: { data: ComponentDescriptor }) {
     case "confirm":  return <ConfirmComponent data={data} />;
     case "form":     return <FormComponent data={data} />;
     case "card":     return <CardComponent data={data} />;
+    case "choice_group":
+    case "consent":
+    case "connect_account":
+    case "review":
+      return null;
     default: {
       const _exhaustive: never = data;
       void _exhaustive;

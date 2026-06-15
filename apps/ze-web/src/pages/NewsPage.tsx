@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, Newspaper, Tag } from "lucide-react";
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { type Article } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ErrorState } from "@/components/layout/ErrorState";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -77,8 +79,8 @@ function ArticleCard({ article }: { article: Article }) {
 }
 
 export function NewsPage() {
-  const { data: articles, isLoading, isError } = useQuery<Article[]>({
-    queryKey: ["news"],
+  const { data: articles, isLoading, isError, refetch } = useQuery<Article[]>({
+    queryKey: queryKeys.news,
     queryFn: () => api.get<Article[]>("/api/news?limit=50"),
     staleTime: 5 * 60_000,
   });
@@ -107,9 +109,11 @@ export function NewsPage() {
       )}
 
       {isError && (
-        <p className="text-sm text-[#9a9a9a] text-center py-12">
-          Could not load news. Check that the news sources are configured.
-        </p>
+        <ErrorState
+          message="Could not load news."
+          detail="Check that the news sources are configured."
+          onRetry={() => void refetch()}
+        />
       )}
 
       {!isLoading && !isError && articles?.length === 0 && (
@@ -120,7 +124,7 @@ export function NewsPage() {
         />
       )}
 
-      {articles && articles.length > 0 && (
+      {!isError && articles && articles.length > 0 && (
         <div className="space-y-3">
           {articles.map((article) => (
             <ArticleCard key={article.url} article={article} />

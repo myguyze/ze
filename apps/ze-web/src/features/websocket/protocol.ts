@@ -46,5 +46,5 @@ export type OutboundFrame =
   | { type: "ack"; ids: string[] }
   | { type: "confirm"; id: string; choice: "approve" | "deny" }
   | { type: "command"; name: "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview" }
-  | { type: "component_submit"; session_id: string; step_id: string; values: Record<string, unknown> }
+  | { type: "component_submit"; step_id: string; values: Record<string, unknown>; session_id?: string; thread_id?: string }
   | { type: "ping" };

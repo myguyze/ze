@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useFrame } from "@/features/websocket/useWebSocket";
-import { queryKeysForRefreshScreen } from "./refreshQueries";
+import { refreshKeysForScreen } from "@/lib/queryKeys";
 
 export function RefreshHandler() {
   const queryClient = useQueryClient();
 
   useFrame("refresh", (frame) => {
-    const keys = queryKeysForRefreshScreen(frame.screen);
+    const keys = refreshKeysForScreen(frame.screen);
     if (keys) {
       void queryClient.invalidateQueries({ queryKey: [...keys] });
     }

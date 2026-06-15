@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
@@ -26,10 +27,15 @@ class ConnectionManager:
         self._ws: WebSocket | None = None
         self._lock = asyncio.Lock()
         self._busy = False
+        self._thread_id: str | None = None
 
     @property
     def connected(self) -> bool:
         return self._ws is not None
+
+    @property
+    def thread_id(self) -> str | None:
+        return self._thread_id
 
     async def connect(
         self,
@@ -46,6 +52,7 @@ class ConnectionManager:
                     pass
             self._ws = ws
             self._busy = False
+            self._thread_id = thread_id
 
         unread = await message_store.list_unread(thread_id)
         async with self._lock:
@@ -78,6 +85,7 @@ class ConnectionManager:
     async def disconnect(self) -> None:
         async with self._lock:
             self._ws = None
+            self._thread_id = None
 
     async def push(self, message: Message) -> None:
         """Send a message frame; silently no-ops if disconnected."""
@@ -182,7 +190,16 @@ async def websocket_endpoint(ws: WebSocket, token: str | None = None, thread_id:
                     await ws.send_json({"type": "error", "detail": "busy"})
                     continue
                 try:
-                    await _handle_component_submit(data, container, conn_mgr)
+                    pending_config = await _handle_component_submit(
+                        ws,
+                        data,
+                        container,
+                        conn_mgr,
+                        msg_store,
+                        pending_config,
+                        confirmation_store=confirmation_store,
+                        session_store=session_store,
+                    )
                 finally:
                     conn_mgr.clear_busy()
 
@@ -558,25 +575,61 @@ def _build_capabilities_summary() -> str:
 
 
 async def _handle_component_submit(
+    ws: WebSocket,
     data: dict,
     container: Any,
     conn_mgr: ConnectionManager,
-) -> None:
-    try:
-        session_id = UUID(str(data.get("session_id")))
-        step_id = str(data.get("step_id") or data.get("component_id") or "")
-        values = data.get("values") or {}
-        if not step_id or not isinstance(values, dict):
-            raise OnboardingError("component_submit requires step_id and object values")
-        view = await container.onboarding_coordinator.submit(
-            session_id=session_id,
-            step_id=step_id,
-            values=values,
-        )
-        await _send_onboarding_view(conn_mgr, view)
-    except Exception as exc:
-        log.warning("ws_component_submit_failed", error=str(exc))
-        await conn_mgr.send_frame({"type": "error", "detail": "Could not submit component."})
+    msg_store: Any,
+    pending_config: dict | None,
+    *,
+    confirmation_store: Any | None = None,
+    session_store: Any | None = None,
+) -> dict | None:
+    step_id = str(data.get("step_id") or data.get("component_id") or "")
+    values = data.get("values") or {}
+    if not step_id or not isinstance(values, dict):
+        await conn_mgr.send_frame({
+            "type": "error",
+            "detail": "component_submit requires step_id and object values",
+        })
+        return pending_config
+
+    session_id_raw = data.get("session_id")
+    if session_id_raw:
+        try:
+            session_id = UUID(str(session_id_raw))
+            view = await container.onboarding_coordinator.submit(
+                session_id=session_id,
+                step_id=step_id,
+                values=values,
+            )
+            await _send_onboarding_view(conn_mgr, view)
+            return pending_config
+        except OnboardingError:
+            pass
+        except ValueError:
+            pass
+        except Exception as exc:
+            log.warning("ws_component_submit_onboarding_failed", error=str(exc))
+            await conn_mgr.send_frame({"type": "error", "detail": "Could not submit component."})
+            return pending_config
+
+    thread_id = data.get("thread_id") or conn_mgr.thread_id
+    if not thread_id:
+        await conn_mgr.send_frame({"type": "error", "detail": "thread_id required"})
+        return pending_config
+
+    text = f"[component_submit:{step_id}] {json.dumps(values)}"
+    return await _handle_message(
+        ws,
+        {"type": "message", "text": text, "thread_id": thread_id},
+        container,
+        msg_store,
+        conn_mgr,
+        pending_config,
+        confirmation_store=confirmation_store,
+        session_store=session_store,
+    )
 
 
 async def _send_onboarding_view(

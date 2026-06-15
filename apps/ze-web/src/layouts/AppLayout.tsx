@@ -4,6 +4,7 @@ import { MessageCircle, Target, Bell, Users, DollarSign, Newspaper, Settings } f
 import { useOverlay } from "@/features/overlay/useOverlay";
 import { ContextOverlay } from "@/features/overlay/ContextOverlay";
 import { RefreshHandler } from "@/features/websocket/RefreshHandler";
+import { NoticeBanner } from "@/components/layout/NoticeBanner";
 import { cn } from "@/lib/cn";
 
 const NAV_ITEMS = [
@@ -77,6 +78,7 @@ export function AppLayout() {
       </nav>
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <NoticeBanner />
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>

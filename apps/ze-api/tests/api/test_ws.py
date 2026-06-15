@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 
+from ze_agents.errors import OnboardingError
 from ze_api.api.ws import ConnectionManager, _message_to_dict
-from ze_api.api.ws import _send_onboarding_view
+from ze_api.api.ws import _handle_component_submit, _send_onboarding_view
 from ze_onboarding import OnboardingView
 from ze_core.messages.types import Message
 
@@ -221,6 +222,17 @@ async def test_connect_works_without_confirmation_store():
     assert mgr.connected
 
 
+async def test_connection_manager_stores_thread_id():
+    mgr = ConnectionManager()
+    ws = _make_ws()
+    store = AsyncMock()
+    store.list_unread = AsyncMock(return_value=[])
+    await mgr.connect(ws, store, thread_id="session-abc")
+    assert mgr.thread_id == "session-abc"
+    await mgr.disconnect()
+    assert mgr.thread_id is None
+
+
 async def test_send_onboarding_view_includes_session_metadata():
     mgr = ConnectionManager()
     ws = _make_ws()
@@ -246,3 +258,67 @@ async def test_send_onboarding_view_includes_session_metadata():
     assert frame["message"]["created_at"]
     assert frame["onboarding"]["session_id"] == str(session_id)
     assert frame["onboarding"]["completed"] is False
+
+
+async def test_component_submit_uses_onboarding_coordinator():
+    mgr = ConnectionManager()
+    ws = _make_ws()
+    msg_store = AsyncMock()
+    session_id = uuid4()
+    view = OnboardingView(session_id=session_id, text="Next", components=[])
+
+    container = AsyncMock()
+    container.onboarding_coordinator.submit = AsyncMock(return_value=view)
+
+    with patch("ze_api.api.ws._send_onboarding_view", new=AsyncMock()) as mock_send_view:
+        await _handle_component_submit(
+            ws,
+            {
+                "session_id": str(session_id),
+                "step_id": "profile.name",
+                "values": {"name": "Ada"},
+            },
+            container,
+            mgr,
+            msg_store,
+            None,
+        )
+
+    container.onboarding_coordinator.submit.assert_awaited_once_with(
+        session_id=session_id,
+        step_id="profile.name",
+        values={"name": "Ada"},
+    )
+    mock_send_view.assert_awaited_once_with(mgr, view)
+
+
+async def test_component_submit_falls_back_to_graph_on_unknown_session():
+    mgr = ConnectionManager()
+    ws = _make_ws()
+    msg_store = AsyncMock()
+    await mgr.connect(ws, msg_store, thread_id="thread-1")
+
+    container = AsyncMock()
+    container.onboarding_coordinator.submit = AsyncMock(
+        side_effect=OnboardingError("Unknown onboarding step"),
+    )
+
+    with patch("ze_api.api.ws._handle_message", new=AsyncMock(return_value=None)) as mock_handle:
+        await _handle_component_submit(
+            ws,
+            {
+                "session_id": str(uuid4()),
+                "step_id": "agent.form",
+                "values": {"field": "value"},
+            },
+            container,
+            mgr,
+            msg_store,
+            None,
+        )
+
+    mock_handle.assert_awaited_once()
+    message_data = mock_handle.call_args[0][1]
+    assert message_data["thread_id"] == "thread-1"
+    assert "[component_submit:agent.form]" in message_data["text"]
+    assert '"field": "value"' in message_data["text"]

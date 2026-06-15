@@ -21,68 +21,133 @@ export interface ProgressStep {
 export interface ConfirmAction {
   label: string;
   value: string;
-  style?: "primary" | "secondary" | "danger";
+  style: "primary" | "secondary" | "danger";
 }
 
 export interface FormField {
   id: string;
   label: string;
-  field_type: "text" | "number" | "date" | "select";
+  field_type: "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "boolean" | "chips";
   placeholder?: string;
   options?: string[];
+  required?: boolean;
+  help_text?: string;
+  default_value?: string;
+}
+
+export interface ChoiceOption {
+  id: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+}
+
+export interface ConsentScope {
+  id: string;
+  label: string;
+  description: string;
+  required?: boolean;
+}
+
+export interface ReviewItem {
+  id: string;
+  label: string;
+  value: string;
+  kind: string;
+  plugin?: string;
 }
 
 export interface TableComponent {
-  type: "table";
   headers: string[];
   rows: string[][];
   title?: string;
   caption?: string;
+  type: "table";
 }
 
 export interface MetricComponent {
-  type: "metric";
   label: string;
   value: string;
   trend?: string;
   note?: string;
+  type: "metric";
 }
 
 export interface ListComponent {
-  type: "list";
   items: ListItem[];
   title?: string;
+  type: "list";
 }
 
 export interface TimelineComponent {
-  type: "timeline";
   events: TimelineEvent[];
   title?: string;
+  type: "timeline";
 }
 
 export interface ProgressComponent {
-  type: "progress";
   title: string;
   steps: ProgressStep[];
+  type: "progress";
 }
 
 export interface ConfirmComponent {
-  type: "confirm";
   prompt: string;
   actions: ConfirmAction[];
+  type: "confirm";
 }
 
 export interface FormComponent {
-  type: "form";
+  id: string;
   title: string;
   fields: FormField[];
+  type: "form";
 }
 
 export interface CardComponent {
-  type: "card";
   body: string;
   title?: string;
-  style?: "info" | "warning" | "success" | "error";
+  style: "info" | "warning" | "success" | "error";
+  type: "card";
+}
+
+export interface ChoiceGroupComponent {
+  id: string;
+  title: string;
+  options: ChoiceOption[];
+  allow_multiple?: boolean;
+  description?: string;
+  submit_label?: string;
+  type: "choice_group";
+}
+
+export interface ConsentComponent {
+  id: string;
+  title: string;
+  body: string;
+  scopes: ConsentScope[];
+  accept_label?: string;
+  reject_label?: string;
+  type: "consent";
+}
+
+export interface ConnectAccountComponent {
+  id: string;
+  provider: string;
+  title: string;
+  description: string;
+  status: "not_connected" | "connected" | "error";
+  action_label?: string;
+  type: "connect_account";
+}
+
+export interface ReviewComponent {
+  id: string;
+  title: string;
+  items: ReviewItem[];
+  approve_label?: string;
+  reject_label?: string;
+  type: "review";
 }
 
 export type ComponentDescriptor =
@@ -93,4 +158,8 @@ export type ComponentDescriptor =
   | ProgressComponent
   | ConfirmComponent
   | FormComponent
-  | CardComponent;
+  | CardComponent
+  | ChoiceGroupComponent
+  | ConsentComponent
+  | ConnectAccountComponent
+  | ReviewComponent;

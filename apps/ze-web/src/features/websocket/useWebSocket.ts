@@ -87,10 +87,12 @@ function connect() {
   };
 }
 
-export function send(frame: OutboundFrame) {
+export function send(frame: OutboundFrame): boolean {
   if (ws?.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(frame));
+    return true;
   }
+  return false;
 }
 
 export function reconnect() {

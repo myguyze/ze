@@ -1,15 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { Target } from "lucide-react";
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { type Goal } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ErrorState } from "@/components/layout/ErrorState";
 import { ListSkeleton } from "@/components/layout/ListSkeleton";
 
 export function GoalsPage() {
-  const { data: goals, isLoading } = useQuery({
-    queryKey: ["goals"],
+  const { data: goals, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.goals,
     queryFn: () => api.get<Goal[]>("/api/goals"),
   });
 
@@ -19,11 +21,18 @@ export function GoalsPage() {
 
       {isLoading && <ListSkeleton />}
 
-      {goals?.length === 0 && (
+      {isError && (
+        <ErrorState
+          message="Could not load goals."
+          onRetry={() => void refetch()}
+        />
+      )}
+
+      {!isError && goals?.length === 0 && (
         <EmptyState icon={Target} message="No active goals. Ask Ze to set one." />
       )}
 
-      {goals && goals.length > 0 && (
+      {!isError && goals && goals.length > 0 && (
         <div className="space-y-3">
           {goals.map((goal) => (
             <div

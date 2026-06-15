@@ -178,10 +178,12 @@ async def render_confirm(
     "placeholder (optional), options (required when field_type='select')}."
 ))
 async def render_form(
+    id: str,
     title: str,
     fields: list,
 ) -> FormComponent:
     return FormComponent(
+        id=id,
         title=title,
         fields=[_coerce(FormField, f) for f in fields],
     )

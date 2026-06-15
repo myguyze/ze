@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { send } from "@/features/websocket/useWebSocket";
+import { useSendNotice } from "@/features/websocket/useSendNotice";
 import { useSession } from "@/features/chat/hooks/useSession";
 import { type ConfirmComponent as T } from "./types";
 import { cn } from "@/lib/cn";
@@ -10,8 +11,12 @@ export function ConfirmComponent({ data }: { data: T }) {
 
   function handleTap(value: string) {
     if (chosen) return;
+    const sent = send({ type: "message", text: value, thread_id: threadId });
+    if (!sent) {
+      useSendNotice.getState().showNotice("Not connected. Retry when Ze reconnects.");
+      return;
+    }
     setChosen(value);
-    send({ type: "message", text: value, thread_id: threadId });
   }
 
   return (

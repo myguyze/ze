@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { type CostSummary } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ErrorState } from "@/components/layout/ErrorState";
 import { ListSkeleton } from "@/components/layout/ListSkeleton";
 
 export function CostsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["costs"],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.costs,
     queryFn: () => api.get<CostSummary>("/api/costs/summary"),
   });
 
@@ -17,7 +19,14 @@ export function CostsPage() {
 
       {isLoading && <ListSkeleton />}
 
-      {data && (
+      {isError && (
+        <ErrorState
+          message="Could not load costs."
+          onRetry={() => void refetch()}
+        />
+      )}
+
+      {!isError && data && (
         <>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-[24px] border border-white/10">

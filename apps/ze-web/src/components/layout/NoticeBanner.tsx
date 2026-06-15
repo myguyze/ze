@@ -1,0 +1,26 @@
+import { X } from "lucide-react";
+import { useSendNotice } from "@/features/websocket/useSendNotice";
+
+export function NoticeBanner() {
+  const notice = useSendNotice((s) => s.notice);
+  const clearNotice = useSendNotice((s) => s.clearNotice);
+
+  if (!notice) return null;
+
+  return (
+    <div className="mx-4 mt-3 flex items-center justify-between gap-3 px-4 py-2 rounded-[24px] border border-[#ffb829]/40 text-[#ffb829] text-xs">
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#ffb829] flex-shrink-0" />
+        <span className="truncate">{notice}</span>
+      </span>
+      <button
+        type="button"
+        onClick={clearNotice}
+        className="text-[#ffb829] hover:text-white transition-colors flex-shrink-0"
+        aria-label="Dismiss"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}

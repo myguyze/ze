@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useSession } from "@/features/chat/hooks/useSession";
 import { type Session } from "@/types/api";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -23,7 +24,7 @@ export function SessionSheet() {
   const selectSession = useSession((s) => s.selectSession);
 
   const { data: sessions, isLoading } = useQuery({
-    queryKey: ["sessions"],
+    queryKey: queryKeys.sessions,
     queryFn: () => api.get<Session[]>("/api/sessions"),
   });
 

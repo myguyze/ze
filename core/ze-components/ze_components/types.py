@@ -129,6 +129,7 @@ class ConfirmComponent:
 
 @dataclass
 class FormComponent:
+    id: str
     title: str
     fields: list[FormField]
     type: Literal["form"] = field(default="form", init=False)
