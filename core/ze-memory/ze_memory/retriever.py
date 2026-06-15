@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from ze_agents.logging import get_logger
+from ze_agents.tasks import fire_and_forget
 
 from ze_memory.defaults import (
     CONTRADICTION_THRESHOLD,
@@ -164,8 +165,9 @@ class PostgresMemoryStore:
                 )
             episode_id: UUID = row["id"]
             if self._graph_store is not None:
-                asyncio.create_task(
-                    self._link_episode_entities(episode_id, f"{prompt} {response}")
+                fire_and_forget(
+                    self._link_episode_entities(episode_id, f"{prompt} {response}"),
+                    label="link_episode_entities",
                 )
         except Exception as exc:
             log.warning("memory_write_episode_failed", error=str(exc))
@@ -209,7 +211,10 @@ class PostgresMemoryStore:
                 json.dumps(state.tool_cursors),
             )
         if self._graph_store is not None and state.goal_id is not None and row is not None:
-            asyncio.create_task(self._link_task_state_to_goal(row["id"], state.goal_id))
+            fire_and_forget(
+                self._link_task_state_to_goal(row["id"], state.goal_id),
+                label="link_task_state_to_goal",
+            )
 
     async def propose_events(self, events: list[Event]) -> None:
         for event in events:
@@ -241,12 +246,14 @@ class PostgresMemoryStore:
                         emb_list,
                     )
                 if self._graph_store is not None and participants:
-                    asyncio.create_task(
-                        self._link_event_participants(row["id"], participants)
+                    fire_and_forget(
+                        self._link_event_participants(row["id"], participants),
+                        label="link_event_participants",
                     )
                 if self._graph_store is not None and event.outcome:
-                    asyncio.create_task(
-                        self._promote_event_outcome(row["id"], event.outcome)
+                    fire_and_forget(
+                        self._promote_event_outcome(row["id"], event.outcome),
+                        label="promote_event_outcome",
                     )
             except Exception as exc:
                 log.warning("memory_propose_event_failed", title=event.title, error=str(exc))
@@ -282,8 +289,9 @@ class PostgresMemoryStore:
                 )
             procedure_id: UUID = row["id"]
             if self._graph_store is not None and linked_task_id is not None:
-                asyncio.create_task(
-                    self._link_procedure_to_task(procedure_id, linked_task_id, linked_task_type)
+                fire_and_forget(
+                    self._link_procedure_to_task(procedure_id, linked_task_id, linked_task_type),
+                    label="link_procedure_to_task",
                 )
             return procedure_id
         except Exception as exc:
@@ -424,7 +432,10 @@ class PostgresMemoryStore:
             fact_id: UUID = row["id"]
 
         if self._graph_store is not None:
-            asyncio.create_task(self._link_fact_relationships(fact, fact_id))
+            fire_and_forget(
+                self._link_fact_relationships(fact, fact_id),
+                label="link_fact_relationships",
+            )
         return fact_id
 
     # ── graph relationship helpers ─────────────────────────────────────────────

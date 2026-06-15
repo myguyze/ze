@@ -22,7 +22,7 @@
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
 | 1 | H5 | Central WS frame dispatcher + shared `useChat(threadId)` hook | ✅ 2026-06-15 |
-| 2 | M6 | Surface fire-and-forget memory write failures (done-callbacks or retry queue) | ☐ |
+| 2 | M6 | Surface fire-and-forget memory write failures (done-callbacks or retry queue) | ✅ 2026-06-15 |
 | 3 | H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | ☐ |
 | 4 | Tests | Plugin discovery order + memory write path regression tests | ☐ |
 | 5 | L1–L7 | Low-severity polish batch (see [Low](#low--phase-4-5-batch)) | ☐ |
@@ -353,3 +353,5 @@ After Phase 5, all pre-assessment findings are resolved. New plugin work may sur
 | 2026-06-15 | Phase 1 completed (C1, C2 partial, H1, H2, H3, H6); Phase 2 backlog added |
 | 2026-06-15 | Phase 2 completed (M1, M2, H5+M8, M7 partial, C2+tests); Phase 3 backlog added |
 | 2026-06-15 | Phase 3 completed (M5, M3, M7, M9, M4); Phase 4 + Phase 5 backlog added |
+| 2026-06-15 | Phase 4 #1 (H5): central `useFrame` dispatcher + `useChat(threadId)` hook; overlay thread filtering fixed |
+| 2026-06-15 | Phase 4 #2 (M6): `fire_and_forget` utility in `ze_agents.tasks`; replaces bare `create_task` in memory, retriever, router, telemetry, ws |

@@ -9,6 +9,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ze_core.messages.types import Message
 from ze_agents.interface.types import RawInput
+from ze_agents.tasks import fire_and_forget
 from ze_api.errors import OnboardingError
 from ze_api.logging import get_logger
 from ze_onboarding import OnboardingView
@@ -299,7 +300,7 @@ async def _handle_message(
         # Push ntfy in case the app is backgrounded.
         notifier = getattr(container, "notifier", None)
         if notifier is not None:
-            asyncio.create_task(_push_confirmation_ntfy(notifier, outcome.draft or ""))
+            fire_and_forget(_push_confirmation_ntfy(notifier, outcome.draft or ""), label="push_confirmation_ntfy")
 
         # Start timeout watchdog.
         if confirmation_store is not None and effective_thread_id:

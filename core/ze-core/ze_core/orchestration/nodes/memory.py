@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
 from ze_agents.logging import get_logger
+from ze_agents.tasks import fire_and_forget
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.state import AgentState
 from ze_agents.types import AgentResult
@@ -40,14 +40,15 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
 
     if not is_eval:
         embedding = embedder.encode(ctx.prompt)
-        asyncio.create_task(
+        fire_and_forget(
             store.write_episode(
                 session_id=ctx.session_id,
                 agent=result.agent,
                 prompt=ctx.prompt,
                 response=result.response,
                 embedding=embedding,
-            )
+            ),
+            label="write_episode",
         )
         fact_extractor = config["configurable"].get("fact_extractor")
         proposals = []
@@ -70,7 +71,7 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
                 response=result.response,
             )
             if events:
-                asyncio.create_task(store.propose_events(events))
+                fire_and_forget(store.propose_events(events), label="propose_events")
 
         entity_extractor = config["configurable"].get("entity_extractor")
         if entity_extractor is not None:
@@ -80,15 +81,13 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
                 response=result.response,
             )
             for entity in entities:
-                async def _upsert(e=entity):
-                    try:
-                        await store.upsert_entity(e)
-                    except Exception as exc:
-                        log.warning("memory_entity_upsert_failed", name=e.canonical_name, error=str(exc))
-                asyncio.create_task(_upsert())
+                fire_and_forget(
+                    store.upsert_entity(entity),
+                    label=f"upsert_entity:{entity.canonical_name}",
+                )
 
         for hook in config["configurable"].get("memory_hooks", []):
-            asyncio.create_task(hook(result, ctx, config))
+            fire_and_forget(hook(result, ctx, config), label="memory_hook")
 
     log.debug(
         "orchestration_memory_write_scheduled",

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from ze_agents.errors import InvalidPromptError, RoutingError
 from ze_agents.logging import get_logger
 from ze_agents.registry import get_enabled_agents
+from ze_agents.tasks import fire_and_forget
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.store import RoutingStore
 from ze_core.routing.types import LLMClient, RouterConfig, RoutingEnvelope, SubTask
@@ -46,7 +46,7 @@ class EmbeddingRouter:
             envelope = await self._score_and_route(prompt)
 
         if self._store is not None:
-            asyncio.create_task(self._store.write_log(session_id, prompt, envelope))
+            fire_and_forget(self._store.write_log(session_id, prompt, envelope), label="routing_write_log")
         return envelope
 
     # ── Private ───────────────────────────────────────────────────────────────

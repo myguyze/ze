@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from ze_agents.logging import get_logger
+from ze_agents.tasks import fire_and_forget
 from ze_core.telemetry.context import get_cost_context
 from ze_core.telemetry.store import CostStore
 from ze_core.telemetry.types import CostRecord
@@ -53,4 +53,4 @@ class CostTracker:
                 duration_ms=rec.duration_ms,
             )
         else:
-            asyncio.create_task(self._store.write(rec))
+            fire_and_forget(self._store.write(rec), label="telemetry_cost_write")
