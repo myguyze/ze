@@ -68,6 +68,57 @@ The graph is compiled once at startup in `ZeContainer` and bound to `NativeAppIn
 Each user message is a separate `graph.ainvoke()` call, keyed by `thread_id`. Ze adds a
 separate `workflow_graph` for multi-step workflow execution.
 
+### Graph input factory
+
+All conversation graph invocations build initial state via
+`make_graph_input()` in `ze_core/conversation.py`. `Container.invoke()` and
+`invoke_raw_turn()` both route through this factory so new `AgentState` fields
+are initialized in one place. Plugin-specific fields belong in plugin
+`state_extensions()` TypedDicts — not in ad-hoc dict literals at call sites.
+
+### Checkpoint serialization
+
+LangGraph persists `AgentState` via `JsonPlusSerializer` + msgpack. Custom
+dataclasses and enums must be registered so checkpoints can be deserialized safely.
+
+Ze builds the allowlist automatically in `build_checkpoint_serde()` (`ze_core/checkpoint_serde.py`):
+
+1. **Core modules** — `ze_core.routing.types`, `ze_agents.types`, `ze_memory.types`
+   are scanned for dataclasses and enums on every startup.
+2. **Plugin modules** — each `ZePlugin` may override `checkpoint_serde_modules()` to
+   return its `types.py` module paths (e.g. `ze_personal.workflow.types`). Ze scans
+   those modules the same way — no manual list in `ze_api/container.py`.
+3. **Driver extras** — types like `asyncpg.pgproto.pgproto.UUID` that appear in
+   payloads but live outside domain modules.
+
+When adding a new plugin, declare checkpointed domain types in `types.py` and list
+that module in `checkpoint_serde_modules()`. Do not store callables, DB pools, or
+live handles in graph state — they cannot be checkpointed.
+
+### Conversation identity
+
+One conversation is identified by a single string that appears under different
+names at different layers:
+
+| Name | Layer | Usage |
+|---|---|---|
+| `thread_id` | LangGraph config, WebSocket protocol, `messages.thread_id`, `sessions.id` | Canonical ID for chat UI threads and graph checkpoints |
+| `session_id` | `AgentState`, `memory_episodes.session_id`, routing log | Same string on main chat turns; retained in graph/memory code for historical reasons |
+
+Special-purpose threads use prefixed IDs and may not have a `sessions` row:
+`workflow:…`, `onboarding:…`, `eval-…`, `consolidator`, etc.
+
+**Referential invariants (application-enforced unless noted):**
+
+- `messages.thread_id` should match `sessions.id` for standard chat threads.
+- LangGraph `checkpoints.thread_id` matches the conversation being resumed.
+- `memory_episodes.session_id` groups episodes for the same conversation.
+- `memory_facts.source_episode_id → memory_episodes.id` (FK, migration 011).
+- `memory_episodes.session_id` has no FK to `sessions` — prefixes and legacy IDs
+  must remain valid without a session row.
+
+See [docs/native-interface.md](native-interface.md) for WebSocket thread handling.
+
 ### Nodes
 
 | Node | Module | Responsibility |

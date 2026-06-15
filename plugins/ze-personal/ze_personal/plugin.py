@@ -180,6 +180,12 @@ class PersonalPlugin(ZePlugin):
         from ze_personal.graph.workflow import WorkflowAgentState
         return WorkflowAgentState
 
+    def checkpoint_serde_modules(self) -> tuple[str, ...]:
+        return (
+            "ze_personal.workflow.types",
+            "ze_personal.contacts.types",
+        )
+
     def pre_route_node(self) -> Callable | None:
         from ze_personal.graph.routing_context import inject_goal_routing_context
         return inject_goal_routing_context

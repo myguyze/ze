@@ -280,6 +280,7 @@ Override only the hooks your plugin needs. All methods have no-op defaults.
 | Method | Signature | Purpose |
 |--------|-----------|---------|
 | `state_extensions()` | `-> type \| None` | A `TypedDict` subclass whose fields are merged into `AgentState`. |
+| `checkpoint_serde_modules()` | `-> tuple[str, ...]` | `types.py` module paths scanned for checkpoint-serializable dataclasses/enums. |
 | `pre_route_node()` | `-> Callable \| None` | An async graph node inserted between preprocess and embed_route. |
 | `graph_nodes()` | `-> dict[str, Callable]` | Additional LangGraph nodes keyed by node name. |
 | `graph_edges(builder)` | `-> None` | Wire plugin nodes into the graph at build time. |

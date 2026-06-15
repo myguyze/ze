@@ -1,3 +1,9 @@
+"""Chat session metadata — one row per conversation thread.
+
+``sessions.id`` is the canonical conversation identifier. It matches
+``messages.thread_id``, LangGraph ``configurable.thread_id``, and
+``AgentState.session_id`` on the same turn.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timezone

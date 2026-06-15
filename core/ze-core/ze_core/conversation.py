@@ -19,6 +19,10 @@ def make_graph_input(
 ) -> dict:
     """Build AgentState input for the main conversation graph from raw transport input.
 
+    ``session_id`` is the conversation identifier — the same string used as
+    ``thread_id`` in LangGraph config and as ``sessions.id`` / ``messages.thread_id``
+    on the API layer.
+
     ``messages`` and ``last_active_at`` are intentionally absent: LangGraph input
     keys overwrite checkpointed channel values, and those two must survive across
     turns so follow-ups keep conversation history (write_memory appends to them).
@@ -95,14 +99,14 @@ def _confirmation_meta(final_state: dict) -> tuple[str, str, str]:
 
 async def invoke_raw_turn(
     container: Container,
-    session_id: str,
+    thread_id: str,
     raw: RawInput,
     *,
     config_extra: dict | None = None,
 ) -> TurnResult:
     """Run the conversation graph once from raw transport input and interpret the outcome."""
-    graph_input = make_graph_input(raw, session_id)
-    config = container._build_config(session_id, **(config_extra or {}))
+    graph_input = make_graph_input(raw, thread_id)
+    config = container._build_config(thread_id, **(config_extra or {}))
 
     final_state = await container.graph.ainvoke(graph_input, config)
     graph_state = await container.graph.aget_state(config)

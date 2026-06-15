@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from ze_api.bootstrap import bootstrap_agents, discover_plugins
 from ze_browser import BrowserClient
@@ -82,7 +81,7 @@ class ZeContainer(CoreContainer):
     _checkpointer: Any  # AsyncPostgresSaver — exposed for plugin startup()
     _push_log_store: Any  # PushLogStore — exposed for PersonalPlugin startup()
 
-    def _build_config(self, session_id: str, **configurable_extra: object) -> dict:
+    def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
         for plugin in self.plugins:
             plugin_services.update(plugin.configurable_services())
@@ -90,7 +89,7 @@ class ZeContainer(CoreContainer):
         from ze_memory.extractor import gather_fact_proposals
 
         configurable: dict = {
-            "thread_id": str(session_id),
+            "thread_id": str(thread_id),
             "router": self.router,
             "capability_gate": self.capability_gate,
             "memory_store": self.memory_store,
@@ -108,12 +107,12 @@ class ZeContainer(CoreContainer):
 
     async def invoke_raw_turn(
         self,
-        session_id: str,
+        thread_id: str,
         raw: RawInput,
         *,
         config_extra: dict | None = None,
     ) -> TurnResult:
-        return await invoke_raw_turn(self, session_id, raw, config_extra=config_extra)
+        return await invoke_raw_turn(self, thread_id, raw, config_extra=config_extra)
 
     async def resume_turn(self, config: dict) -> TurnResult:
         return await resume_turn(self, config)
@@ -163,26 +162,6 @@ async def build_container(settings: Settings) -> ZeContainer:
     checkpointer_pool = await create_checkpointer_pool(settings)
     embedder = get_embedder()
     core_settings = settings.to_core_settings()
-
-    serde = JsonPlusSerializer(
-        allowed_msgpack_modules=[
-            ("ze_core.routing.types", "SubTask"),
-            ("ze_core.routing.types", "RoutingEnvelope"),
-            ("ze_agents.types", "ToolCall"),
-            ("ze_agents.types", "AgentResult"),
-            ("ze_agents.types", "AgentContext"),
-            ("ze_agents.types", "GateDecision"),
-            ("ze_memory.types", "MemoryContext"),
-            ("ze_memory.types", "Fact"),
-            ("ze_memory.types", "Episode"),
-            ("ze_memory.types", "ProfileFacet"),
-            ("ze_personal.contacts.types", "Person"),
-            ("ze_personal.contacts.types", "PersonContext"),
-            ("asyncpg.pgproto.pgproto", "UUID"),
-        ]
-    )
-    checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
-    await checkpointer.setup()
 
     cost_store = PostgresCostStore(pool=pool)
     cost_tracker = CostTracker(store=cost_store)
@@ -287,6 +266,11 @@ async def build_container(settings: Settings) -> ZeContainer:
     }
 
     plugins = discover_plugins(plugin_deps)
+
+    from ze_core.checkpoint_serde import build_checkpoint_serde
+
+    checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=build_checkpoint_serde(plugins))
+    await checkpointer.setup()
 
     # Wire onboarding providers.
     onboarding_providers = [CoreOnboardingProvider()]

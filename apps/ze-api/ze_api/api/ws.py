@@ -262,8 +262,6 @@ async def _handle_message(
     config_extra: dict = {}
     if context:
         config_extra["screen_context"] = context
-    if thread_id:
-        config_extra["thread_id"] = thread_id
 
     try:
         outcome = await container.invoke_raw_turn(

@@ -9,8 +9,10 @@ from pathlib import Path
 from typing import Any, get_type_hints
 
 from ze_agents.errors import AgentConfigError, RoutingError
+from ze_agents.interface.types import RawInput
 from ze_agents.logging import get_logger
 from ze_agents.types import AbortToken
+from ze_core.conversation import make_graph_input
 
 log = get_logger(__name__)
 
@@ -35,15 +37,15 @@ class Container:
     _event_extractor: Any = None   # ze_memory.extractor.gather_event_proposals or None
     _entity_extractor: Any = None  # ze_memory.extractor.gather_entity_proposals or None
 
-    def _build_config(self, session_id: str, **extra: Any) -> dict:
-        """Build the LangGraph configurable dict for a session."""
+    def _build_config(self, thread_id: str, **extra: Any) -> dict:
+        """Build the LangGraph configurable dict for a conversation thread."""
         plugin_services: dict[str, Any] = {}
         for plugin in self.plugins:
             plugin_services.update(plugin.configurable_services())
 
         return {
             "configurable": {
-                "thread_id": session_id,
+                "thread_id": thread_id,
                 "router": self.router,
                 "openrouter_client": self.openrouter_client,
                 "capability_gate": self.capability_gate,
@@ -59,10 +61,9 @@ class Container:
     async def invoke(
         self,
         prompt: str,
-        session_id: str,
+        thread_id: str,
         *,
         session_overrides: dict[str, str] | None = None,
-        input_modality: str = "text",
         audio_data: bytes | None = None,
         audio_mime: str | None = None,
         image_data: bytes | None = None,
@@ -83,40 +84,30 @@ class Container:
         """
         from ze_agents.interface.types import ConfirmationRequest, InvokeResult, OutboundMessage
 
-        graph_input = {
-            "prompt": prompt,
-            "session_id": session_id,
-            "session_overrides": session_overrides or {},
-            "input_modality": input_modality,
-            "audio_data": audio_data,
-            "audio_mime": audio_mime,
-            "image_data": image_data,
-            "image_mime": image_mime,
-            "image_caption": None,
-            "envelope": None,
-            "memory_context": None,
-            "agent_context": None,
-            "gate_decision": None,
-            "agent_result": None,
-            "subtask_results": [],
-            "pending_confirmation": False,
-            "final_response": None,
-            "error": None,
-            "routing_hints": None,
-        }
+        graph_input = make_graph_input(
+            RawInput(
+                text=prompt,
+                audio=audio_data,
+                audio_mime=audio_mime,
+                image=image_data,
+                image_mime=image_mime,
+            ),
+            thread_id,
+            session_overrides=session_overrides,
+        )
         # Only overwrite the checkpointed history when the caller supplies one;
         # otherwise the prior turns persist and write_memory keeps appending.
         if messages is not None:
             graph_input["messages"] = messages
         abort_token = AbortToken()
-        self._abort_tokens[session_id] = abort_token
-        config = self._build_config(session_id, abort_token=abort_token)
+        self._abort_tokens[thread_id] = abort_token
+        config = self._build_config(thread_id, abort_token=abort_token)
 
         try:
             state = await self.graph.ainvoke(graph_input, config)
 
             if state.get("error"):
-                return InvokeResult(session_id=session_id, error=state["error"])
+                return InvokeResult(session_id=thread_id, error=state["error"])
 
             if state.get("pending_confirmation"):
                 agent_result = state.get("agent_result")
@@ -128,19 +119,19 @@ class Container:
                 )
 
                 if self.interface is None:
-                    return InvokeResult(session_id=session_id, confirmation_pending=True)
+                    return InvokeResult(session_id=thread_id, confirmation_pending=True)
 
                 style = getattr(type(self.interface), "confirmation_style", None)
 
                 if style == "async":
                     await self.interface.send_confirmation(request)
-                    return InvokeResult(session_id=session_id, confirmation_pending=True)
+                    return InvokeResult(session_id=thread_id, confirmation_pending=True)
 
                 # inline — block until user responds
                 decision = await self.interface.confirm(request)
                 if not decision.approved:
                     cancelled = decision.edited_content or draft or ""
-                    return InvokeResult(session_id=session_id, response=cancelled)
+                    return InvokeResult(session_id=thread_id, response=cancelled)
 
                 # Resume the graph after approval
                 state = await self.graph.ainvoke(None, config)
@@ -148,9 +139,9 @@ class Container:
             response = state.get("final_response") or ""
             if self.interface and response:
                 await self.interface.send(OutboundMessage(content=response))
-            return InvokeResult(session_id=session_id, response=response)
+            return InvokeResult(session_id=thread_id, response=response)
         finally:
-            self._abort_tokens.pop(session_id, None)
+            self._abort_tokens.pop(thread_id, None)
 
     async def abort_invocation(self, thread_id: str, reason: str | None = None) -> None:
         """Signal the agentic loop running under thread_id to stop cleanly.
@@ -184,8 +175,8 @@ class Container:
 
     async def invoke_raw(
         self,
-        raw: "RawInput",
-        session_id: str,
+        raw: RawInput,
+        thread_id: str,
         *,
         session_overrides: dict[str, str] | None = None,
         messages: list[dict] | None = None,
@@ -196,16 +187,10 @@ class Container:
         ``preprocess`` node handles transcription and vision captioning via
         OpenRouterClient so no LLM calls are made here.
         """
-        modality = (
-            "voice" if raw.audio else
-            "image" if raw.image else
-            "text"
-        )
         return await self.invoke(
             prompt=raw.text or "",
-            session_id=session_id,
+            thread_id=thread_id,
             session_overrides=session_overrides,
-            input_modality=modality,
             audio_data=raw.audio,
             audio_mime=raw.audio_mime,
             image_data=raw.image,
@@ -213,7 +198,7 @@ class Container:
             messages=messages,
         )
 
-    async def resume(self, session_id: str) -> "InvokeResult":
+    async def resume(self, thread_id: str) -> "InvokeResult":
         """Resume a graph that paused at await_confirmation (async style).
 
         Called by the transport callback handler after the user decision has
@@ -221,16 +206,16 @@ class Container:
         """
         from ze_agents.interface.types import InvokeResult, OutboundMessage
 
-        config = self._build_config(session_id)
+        config = self._build_config(thread_id)
         state = await self.graph.ainvoke(None, config)
 
         if state.get("error"):
-            return InvokeResult(session_id=session_id, error=state["error"])
+            return InvokeResult(session_id=thread_id, error=state["error"])
 
         response = state.get("final_response") or ""
         if self.interface and response:
             await self.interface.send(OutboundMessage(content=response))
-        return InvokeResult(session_id=session_id, response=response)
+        return InvokeResult(session_id=thread_id, response=response)
 
     async def close(self) -> None:
         from ze_agents.registry import get_enabled_instances
@@ -394,32 +379,19 @@ class Container:
         # 12. Build LangGraph checkpointer and compile graph
         from ze_core.orchestration.graph import build_graph
 
+        resolved_plugins = plugins or []
         if is_sqlite:
             from langgraph.checkpoint.memory import MemorySaver  # type: ignore[import]
 
             checkpointer = MemorySaver()
         else:
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver  # type: ignore[import]
-            from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer  # type: ignore[import]
+            from ze_core.checkpoint_serde import build_checkpoint_serde
 
-            serde = JsonPlusSerializer(
-                allowed_msgpack_modules=[
-                    ("ze_core.routing.types", "SubTask"),
-                    ("ze_core.routing.types", "RoutingEnvelope"),
-                    ("ze_agents.types", "ToolCall"),
-                    ("ze_agents.types", "AgentResult"),
-                    ("ze_agents.types", "AgentContext"),
-                    ("ze_agents.types", "GateDecision"),
-                    ("ze_memory.types", "MemoryContext"),
-                    ("ze_memory.types", "Fact"),
-                    ("ze_memory.types", "Episode"),
-                    ("ze_memory.types", "ProfileFacet"),
-                ]
-            )
+            serde = build_checkpoint_serde(resolved_plugins)
             checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=serde)
             await checkpointer.setup()
 
-        resolved_plugins = plugins or []
         graph = build_graph(checkpointer, plugins=resolved_plugins)
 
         log.info("container_ready", agents=list(instances.keys()))

@@ -22,28 +22,15 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer  # type: igno
 from ze_agents.types import GateDecision
 from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
 from ze_agents.types import AgentContext, AgentResult, ToolCall
+from ze_core.checkpoint_serde import build_checkpoint_serde
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
 # ── Serde fixture ─────────────────────────────────────────────────────────────
 
-ALLOWED_MODULES = [
-    ("ze_core.routing.types", "SubTask"),
-    ("ze_core.routing.types", "RoutingEnvelope"),
-    ("ze_agents.types", "ToolCall"),
-    ("ze_agents.types", "AgentResult"),
-    ("ze_agents.types", "AgentContext"),
-    ("ze_agents.types", "GateDecision"),
-    ("ze_memory.types", "MemoryContext"),
-    ("ze_memory.types", "Fact"),
-    ("ze_memory.types", "Episode"),
-    ("ze_memory.types", "ProfileFacet"),
-]
-
-
 @pytest.fixture
 def serde() -> JsonPlusSerializer:
-    return JsonPlusSerializer(allowed_msgpack_modules=ALLOWED_MODULES)
+    return build_checkpoint_serde(plugins=[])
 
 
 # ── Builders for realistic domain objects ─────────────────────────────────────
@@ -157,11 +144,10 @@ def test_memory_context_round_trips(serde: JsonPlusSerializer) -> None:
     original = _make_memory_context()
     restored = round_trip(serde, original)
     assert restored.token_estimate == original.token_estimate
-    assert restored.facts[0].key == "name"
+    assert restored.facts[0].predicate == "name"
     assert restored.facts[0].id == original.facts[0].id
-    assert restored.facts[0].updated_at == original.facts[0].updated_at
     assert restored.episodes[0].agent == "research"
-    assert restored.profile.version == 2
+    assert restored.profile[0].key == "preferences"
 
 
 def test_agent_context_round_trips(serde: JsonPlusSerializer) -> None:
@@ -170,7 +156,7 @@ def test_agent_context_round_trips(serde: JsonPlusSerializer) -> None:
     assert restored.session_id == original.session_id
     assert restored.prompt == original.prompt
     assert restored.gate_decision == GateDecision.EXECUTE
-    assert restored.memory.facts[0].key == "name"
+    assert restored.memory.facts[0].predicate == "name"
     assert restored.tool_calls[0].tool_name == "get_events"
     assert restored.extensions == {}
     assert restored.reporter is None

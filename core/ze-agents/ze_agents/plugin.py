@@ -59,6 +59,15 @@ class ZePlugin(ABC):
         """Return a TypedDict subclass whose fields are merged into AgentState."""
         return None
 
+    def checkpoint_serde_modules(self) -> tuple[str, ...]:
+        """Return ``types.py`` module paths whose dataclasses/enums may appear in checkpoints.
+
+        Ze scans each module at startup and registers every dataclass and enum defined
+        there with LangGraph's checkpoint deserializer. Declare one module per domain
+        package (typically ``your_plugin.types``).
+        """
+        return ()
+
     def pre_route_node(self) -> Callable | None:
         """Return an async node to insert between preprocess and embed_route."""
         return None
