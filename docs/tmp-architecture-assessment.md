@@ -4,29 +4,52 @@
 >
 > **Date:** 2026-06-15
 >
-> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through [Phase 3](#phase-3--fix-next) first, then remaining items by severity.
+> **Purpose:** Track architectural issues, tech debt, and structural improvements in priority order. Work through [Phase 4](#phase-4--fix-next) first, then remaining items by severity.
 
 ---
 
 ## How to use this document
 
-1. Pick the next unchecked item from the [Phase 3](#phase-3--fix-next) table.
+1. Pick the next unchecked item from the [Phase 4](#phase-4--fix-next) table.
 2. Fix it in a focused PR.
 3. Mark the item done here (add `✅` and date).
-4. When Phase 3 is complete, promote Phase 4 candidates and update this doc.
-5. When all High items are done, delete this file or fold remaining notes into `docs/architecture.md`.
+4. When Phase 4 is complete, work through [Phase 5](#phase-5--polish--retirement) and delete or fold this file into `docs/architecture.md`.
 
 ---
 
-## Phase 3 — fix next
+## Phase 4 — fix next
 
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
-| 1 | M5 | Typed retrieval request Protocol in `ze-agents` (replace `SimpleNamespace`) | ✅ 2026-06-15 |
-| 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch | ✅ 2026-06-15 |
-| 3 | M7 | Finish session hardening (orphan thread IDs, unify naming, title updates) | ✅ 2026-06-15 |
-| 4 | M9 | Single `OnboardingError`; implement or remove seed kinds | ✅ 2026-06-15 |
-| 5 | M4 | Unify `AgentState` / single `initial_state()` factory; use `state_extensions` | ✅ 2026-06-15 |
+| 1 | H5 | Central WS frame dispatcher + shared `useChat(threadId)` hook | ✅ 2026-06-15 |
+| 2 | M6 | Surface fire-and-forget memory write failures (done-callbacks or retry queue) | ☐ |
+| 3 | H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | ☐ |
+| 4 | Tests | Plugin discovery order + memory write path regression tests | ☐ |
+| 5 | L1–L7 | Low-severity polish batch (see [Low](#low--phase-4-5-batch)) | ☐ |
+
+---
+
+## Phase 5 — polish & retirement
+
+| # | ID | Summary | Status |
+|---|-----|---------|--------|
+| 1 | M7 (remainder) | Unify `thread_id`/`session_id` naming; document or add FK invariants | ☐ |
+| 2 | M4 (remainder) | Route `Container.invoke` through `make_graph_input()` (single factory everywhere) | ☐ |
+| 3 | Doc | Delete this file or fold remaining notes into `docs/architecture.md` | ☐ |
+
+> **After Phase 5 there are no planned phases.** Any new findings from `ze-finance` / `ze-legal` land as a fresh assessment or ad-hoc tickets — not a pre-defined Phase 6.
+
+---
+
+## Phase 3 — completed 2026-06-15
+
+| # | ID | Summary |
+|---|-----|---------|
+| 1 | M5 | Typed `RetrievalRequest` in `ze-agents` (replace `SimpleNamespace`) |
+| 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch |
+| 3 | M7 | Session hardening (orphan thread IDs, `POST /api/sessions`, title refresh) |
+| 4 | M9 | Single `OnboardingError`; remove unimplemented seed kinds |
+| 5 | M4 | Workflow fields moved to `WorkflowAgentState` via `state_extensions` |
 
 ---
 
@@ -53,15 +76,6 @@
 | 5 | H3 | Memory contradiction scoped to `(predicate, subject_id)` + indexed entity lookups |
 
 ---
-
-## Phase 4 — candidates (after Phase 3)
-
-| ID | Summary | Why defer |
-|----|---------|-----------|
-| H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | Large refactor; H3 fixed worst bugs |
-| H5 (remainder) | Central WS frame dispatcher + shared `useChat(threadId)` hook | Partial fix in Phase 2; overlay still has duplicate message state |
-| M6 | Fire-and-forget memory writes — surface failures | Needs observability/retry design |
-| L1–L7 | Low-severity polish | Batch when touching nearby code |
 
 ## Critical
 
@@ -100,7 +114,7 @@
 
 ## High
 
-> **H1 ✅ · H2 ✅ · H3 ✅ · H5 ✅ (partial) · H6 ✅** — completed in Phase 1–2. **H4** deferred to Phase 4.
+> **H1 ✅ · H2 ✅ · H3 ✅ · H5 ✅ (partial) · H6 ✅** — completed in Phase 1–2. **H4** — Phase 4 #3. **H5 (remainder)** — Phase 4 #1.
 
 ### H1. `ZeContainer` hard-codes plugin store types, defeating auto-discovery ✅ Phase 1
 
@@ -134,7 +148,7 @@
 
 ---
 
-### H4. `PostgresMemoryStore` is a god object; `MemoryStore` protocol has drifted — Phase 4
+### H4. `PostgresMemoryStore` is a god object; `MemoryStore` protocol has drifted — Phase 4 #3
 
 - **Category:** Coupling / Tech debt
 - **Location:**
@@ -154,7 +168,7 @@
   - `apps/ze-web/src/messages/useMessages.ts`
   - `apps/ze-web/src/overlay/ContextOverlay.tsx`
 - **Done in Phase 2:** Removed `lastFrame`; overlay-local `thinking`; exhaustive switches in `ChatScreen` and `ComponentRenderer`.
-- **Remaining (Phase 4):** Central WS frame dispatcher; shared `useChat(threadId)` for main chat + overlay; overlay still maintains separate `useState<Message[]>` without thread filtering.
+- **Remaining (Phase 4 #1):** Central WS frame dispatcher; shared `useChat(threadId)` for main chat + overlay; overlay still maintains separate `useState<Message[]>` without thread filtering.
 - **Suggested fix:** One frame dispatcher routing by `type`; single `useChat(threadId)` hook shared by chat and overlay.
 
 ---
@@ -178,7 +192,7 @@
 
 ## Medium
 
-> **M1 ✅ · M2 ✅ · M8 ✅** — completed in Phase 2. **M3 · M4 · M5 · M7 · M9** — in Phase 3. **M6** — Phase 4.
+> **M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ (partial) · M5 ✅ · M7 ✅ (partial) · M8 ✅ · M9 ✅** — completed in Phase 2–3. **M6** — Phase 4 #2. **M4/M7 remainder** — Phase 5.
 
 ### M1. Confirmation timeout doesn't abort paused LangGraph checkpoint ✅ Phase 2
 
@@ -198,7 +212,7 @@
 
 ---
 
-### M3. Single pre-route plugin hook silently drops others; dead routing branch — Phase 3 #2
+### M3. Single pre-route plugin hook silently drops others; dead routing branch ✅ Phase 3
 
 - **Category:** Scalability / Tech debt
 - **Location:** `core/ze-core/ze_core/orchestration/graph.py:88-98`; `core/ze-core/ze_core/orchestration/edges.py:7-11`
@@ -207,20 +221,21 @@
 
 ---
 
-### M4. `AgentState` mixes chat, workflow, and dynamic-plan concerns; three input factories drift — Phase 3 #5
+### M4. `AgentState` mixes chat, workflow, and dynamic-plan concerns ✅ Phase 3 (partial)
 
 - **Category:** Coupling / Tech debt
 - **Location:**
-  - `core/ze-core/ze_core/orchestration/state.py:14-65`
-  - `core/ze-core/ze_core/conversation.py:14-55`
-  - `core/ze-core/ze_core/container.py:86-106`
-  - `plugins/ze-personal/ze_personal/plugin.py:237-257`
-- **Issue:** Workflow fields pollute every chat checkpoint. Three places construct initial state with different field sets. `state_extensions` unused. New state types require checkpoint serde allowlist edit (`apps/ze-api/ze_api/container.py:170-186`).
-- **Suggested fix:** One `initial_state(partial)` factory; namespace workflow/plan fields via plugin `state_extensions`.
+  - `core/ze-core/ze_core/orchestration/state.py`
+  - `core/ze-core/ze_core/conversation.py`
+  - `core/ze-core/ze_core/container.py`
+  - `plugins/ze-personal/ze_personal/plugin.py`
+- **Done in Phase 3:** Workflow fields moved to `WorkflowAgentState` via `PersonalPlugin.state_extensions()`; workflow executor uses `make_graph_input()`.
+- **Remaining (Phase 5 #2):** `Container.invoke` still constructs graph input separately; checkpoint serde allowlist still manual.
+- **Suggested fix:** Route all entry points through `make_graph_input()`; document serde allowlist convention.
 
 ---
 
-### M5. `_fetch_tool_executor_context` duck-types `RetrievalRequest` via `SimpleNamespace` — Phase 3 #1
+### M5. `_fetch_tool_executor_context` duck-types `RetrievalRequest` via `SimpleNamespace` ✅ Phase 3
 
 - **Category:** Coupling / Tech debt
 - **Location:**
@@ -231,7 +246,7 @@
 
 ---
 
-### M6. Fire-and-forget tasks swallow failures — Phase 4
+### M6. Fire-and-forget tasks swallow failures — Phase 4 #2
 
 - **Category:** Correctness / Testability
 - **Location:**
@@ -243,16 +258,16 @@
 
 ---
 
-### M7. Sessions are a metadata overlay, not a first-class entity — Phase 3 #3
+### M7. Sessions are a metadata overlay, not a first-class entity ✅ Phase 3 (partial)
 
 - **Category:** Tech debt
 - **Location:**
-  - `apps/ze-api/ze_api/sessions/store.py:25-76`
-  - `apps/ze-api/ze_api/api/routes/sessions.py:15-25`
-  - `apps/ze-api/ze_api/api/ws.py:233-238, 250`
-- **Done in Phase 2:** Scoped unread replay via `thread_id` on WS connect; client passes `threadId` in WS URL.
-- **Remaining:** One string under three names (`thread_id`, `session_id`, `sessions.id`). No FK ties sessions ↔ messages ↔ checkpoint ↔ memory episodes. Server still mints orphan `ws-{uuid}` when client omits `thread_id`. REST list-only; no server-side create. Title never updates once set (`COALESCE` in upsert).
-- **Suggested fix:** Require client `thread_id` (reject or redirect orphan fallback); unify naming in docs/code; allow title refresh on upsert; document or enforce referential invariants.
+  - `apps/ze-api/ze_api/sessions/store.py`
+  - `apps/ze-api/ze_api/api/routes/sessions.py`
+  - `apps/ze-api/ze_api/api/ws.py`
+- **Done in Phase 2–3:** Scoped unread replay; client passes `threadId` in WS URL; `thread_id` required on messages; `POST /api/sessions`; `update_title` flag on upsert.
+- **Remaining (Phase 5 #1):** `thread_id` / `session_id` / `sessions.id` naming still split; no FK ties sessions ↔ messages ↔ checkpoint ↔ memory episodes.
+- **Suggested fix:** Unify naming in docs/code; document or enforce referential invariants (FKs optional for single-user scale).
 
 ---
 
@@ -269,7 +284,7 @@
 
 ---
 
-### M9. Onboarding has two `OnboardingError` types and unimplemented seed kinds — Phase 3 #4
+### M9. Onboarding has two `OnboardingError` types and unimplemented seed kinds ✅ Phase 3
 
 - **Category:** Tech debt / Correctness
 - **Location:**
@@ -282,16 +297,16 @@
 
 ---
 
-## Low — Phase 4 (batch when touching nearby code)
+## Low — Phase 4 #5 batch
 
 | ID | Category | Location | Issue | Suggested fix |
 |----|----------|----------|-------|---------------|
-| L1 | Correctness | `apps/ze-api/ze_api/api/ws.py:102-107` | `try_set_busy()` outside lock — safe today (no await) but latent footgun | Document invariant or move under lock |
-| L2 | Tech debt | `SettingsScreen.tsx:20-22`, `OnboardingFlow.tsx:28-30` | Raw `fetch` bypasses `api` client | Route through `lib/api.ts` |
-| L3 | Tech debt | Per-screen inline types (e.g. `ContactsScreen.tsx:6-11`) | Duplicated API types | Shared `types/api.ts` |
-| L4 | Correctness | `ChatScreen.tsx:76-84` | Optimistic user message ids may not reconcile with server | Reconcile on server ack |
-| L5 | Tech debt | `apps/ze-api/ze_api/onboarding/reset.py:18-20` | Legacy memory tables in reset lists | Migration cleanup |
-| L6 | Scalability | `core/ze-agents/ze_agents/base_agent.py:488-515` | `_truncate_messages` O(n²) re-serialization | Fine at current sizes; revisit if history grows |
+| L1 | Correctness | `apps/ze-api/ze_api/api/ws.py` | `try_set_busy()` outside lock — safe today (no await) but latent footgun | Document invariant or move under lock |
+| L2 | Tech debt | `SettingsScreen.tsx`, `OnboardingFlow.tsx` | Raw `fetch` bypasses `api` client | Route through `lib/api.ts` |
+| L3 | Tech debt | Per-screen inline types | Duplicated API types | Shared `types/api.ts` |
+| L4 | Correctness | `ChatScreen.tsx` | Optimistic user message ids may not reconcile with server | Reconcile on server ack |
+| L5 | Tech debt | `apps/ze-api/ze_api/onboarding/reset.py` | Legacy memory tables in reset lists | Migration cleanup |
+| L6 | Scalability | `core/ze-agents/ze_agents/base_agent.py` | `_truncate_messages` O(n²) re-serialization | Fine at current sizes; revisit if history grows |
 | L7 | Tech debt | migrations `003` | `memory_episodes.session_id` / `memory_facts.source_episode_id` have no FK | Add FKs or document invariants |
 
 ---
@@ -302,11 +317,11 @@
 |----------|------|-------|--------|
 | 1 | Confirmation flow E2E | 2 | ✅ `test_ws_conformance.py` |
 | 2 | WS protocol conformance | 2 | ✅ `test_ws_conformance.py` |
-| 3 | Plugin discovery with shuffled entry-point order | 1 | ☐ |
-| 4 | Memory contradiction/write paths | 1 | ☐ |
-| 5 | Graph edges + compound capability | 3 #2 | ☐ |
-| 6 | Pre-route plugin composition | 3 #2 | ☐ |
-| 7 | React: shared `useChat` + frame dispatcher | 4 | ☐ |
+| 3 | Plugin discovery with shuffled entry-point order | 4 #4 | ☐ |
+| 4 | Memory contradiction/write paths | 4 #4 | ☐ |
+| 5 | Graph edges + compound capability | 3 | ✅ M2 |
+| 6 | Pre-route plugin composition | 3 | ✅ M3 |
+| 7 | React: shared `useChat` + frame dispatcher | 4 #1 | ✅ 2026-06-15 |
 
 **Note:** React vitest is configured but has no frontend test files yet.
 
@@ -314,9 +329,9 @@
 
 ## Structural theme (cross-cutting)
 
-Phases 1–2 addressed correctness (confirmation, capability gate, memory writes, WS protocol) and plugin scalability (`rest_stores`, topological discovery). Phase 3 targets **extensibility before new plugins land** (`ze-finance`, `ze-legal`): compose plugin hooks (M3), unify graph state (M4), and tighten session/onboarding boundaries (M7, M9). Phase 4 is structural cleanup (H4 memory split, H5 WS dispatcher, M6 observability, low-severity polish).
+Phases 1–3 addressed correctness, plugin extensibility, and session/onboarding boundaries. **Phase 4** is structural cleanup before `ze-finance` / `ze-legal`: frontend WS consolidation (H5), memory observability (M6), memory store split (H4), missing tests, and low-severity polish. **Phase 5** closes partial stragglers (M4/M7 remainder) and retires this document.
 
-The core layer still absorbs domain knowledge (`person_store`/`persona_store` in `fetch_context`, workflow fields in `AgentState`). M4 is the main lever to push that back behind plugin `state_extensions`.
+After Phase 5, all pre-assessment findings are resolved. New plugin work may surface fresh items — track those separately, not as Phase 6.
 
 ---
 
@@ -337,4 +352,4 @@ The core layer still absorbs domain knowledge (`person_store`/`persona_store` in
 | 2026-06-15 | Initial assessment written |
 | 2026-06-15 | Phase 1 completed (C1, C2 partial, H1, H2, H3, H6); Phase 2 backlog added |
 | 2026-06-15 | Phase 2 completed (M1, M2, H5+M8, M7 partial, C2+tests); Phase 3 backlog added |
-| 2026-06-15 | Phase 3 completed (M5, M3, M7, M9, M4) |
+| 2026-06-15 | Phase 3 completed (M5, M3, M7, M9, M4); Phase 4 + Phase 5 backlog added |

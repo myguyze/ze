@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useWebSocket } from "@/ws/useWebSocket";
-import { type InboundFrame } from "@/ws/protocol";
+import { useFrame } from "@/ws/useWebSocket";
 
 const SCREEN_KEY_MAP: Record<string, string[]> = {
   goals:     ["goals"],
@@ -13,8 +12,7 @@ const SCREEN_KEY_MAP: Record<string, string[]> = {
 export function RefreshHandler() {
   const queryClient = useQueryClient();
 
-  useWebSocket((frame: InboundFrame) => {
-    if (frame.type !== "refresh") return;
+  useFrame("refresh", (frame) => {
     const key = SCREEN_KEY_MAP[frame.screen];
     if (key) {
       void queryClient.invalidateQueries({ queryKey: key });

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWebSocket, useWsStore, send } from "@/ws/useWebSocket";
-import { useMessages } from "@/messages/useMessages";
+import { useFrame, useWsStore, send } from "@/ws/useWebSocket";
+import { useChat } from "@/chat/useChat";
 import { useSession } from "@/chat/useSession";
-import { type InboundFrame, type ConfirmAction } from "@/ws/protocol";
+import { type ConfirmAction } from "@/ws/protocol";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
@@ -24,62 +24,38 @@ interface PendingConfirm {
 export function ChatScreen() {
   const threadId = useSession((s) => s.threadId);
   const newSession = useSession((s) => s.newSession);
-  const { messages, upsert, edit, loadHistory } = useMessages(threadId);
+  const { messages, upsert, loadHistory, showTyping } = useChat(threadId);
   const queryClient = useQueryClient();
   const isConnected = useWsStore((s) => s.isConnected);
   const isThinking = useWsStore((s) => s.isThinking);
   const setThinking = useWsStore((s) => s.setThinking);
   const [connState, setConnState] = useState<ConnectionState>("connecting");
-  const [showTyping, setShowTyping] = useState(false);
   const [input, setInput] = useState("");
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     setConnState(isConnected ? "connected" : "connecting");
     if (isConnected) void loadHistory();
   }, [isConnected, threadId, loadHistory]);
 
-  useWebSocket((frame: InboundFrame) => {
-    switch (frame.type) {
-      case "message":
-        if (frame.message.thread_id && frame.message.thread_id !== threadId) break;
-        upsert(frame.message);
-        setThinking(false);
-        setShowTyping(false);
-        void queryClient.invalidateQueries({ queryKey: ["sessions"] });
-        if (frame.message.role === "assistant" && !frame.message.read) {
-          send({ type: "ack", ids: [frame.message.id] });
-        }
-        break;
-      case "edit":
-        edit(frame.id, frame.text, frame.components);
-        break;
-      case "typing":
-        setShowTyping(true);
-        clearTimeout(typingTimer.current);
-        typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
-        break;
-      case "confirm_request":
-        setThinking(false);
-        setShowTyping(false);
-        setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
-        break;
-      case "confirm_cancel":
-        setPendingConfirm(null);
-        break;
-      case "error":
-        setThinking(false);
-        break;
-      case "refresh":
-      case "pong":
-        break;
-      default: {
-        const _exhaustive: never = frame;
-        void _exhaustive;
-      }
-    }
+  useFrame("message", (frame) => {
+    if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
+    setThinking(false);
+    void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+  });
+
+  useFrame("confirm_request", (frame) => {
+    setThinking(false);
+    setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
+  });
+
+  useFrame("confirm_cancel", () => {
+    setPendingConfirm(null);
+  });
+
+  useFrame("error", () => {
+    setThinking(false);
   });
 
   useEffect(() => {
@@ -124,7 +100,6 @@ export function ChatScreen() {
     newSession();
     setInput("");
     setThinking(false);
-    setShowTyping(false);
     setPendingConfirm(null);
   }
 

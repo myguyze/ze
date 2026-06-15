@@ -2,45 +2,44 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowUp } from "lucide-react";
 import { useOverlay } from "./useOverlay";
-import { send } from "@/ws/useWebSocket";
-import { useWebSocket } from "@/ws/useWebSocket";
-import { type InboundFrame, type Message } from "@/ws/protocol";
+import { send, useFrame } from "@/ws/useWebSocket";
+import { useSession } from "@/chat/useSession";
+import { type Message } from "@/ws/protocol";
 import { MessageBubble } from "@/screens/chat/MessageBubble";
 import { TypingIndicator } from "@/screens/chat/TypingIndicator";
 
 export function ContextOverlay() {
   const { open, close, screen, entityId, thinking: isThinking, setThinking } = useOverlay();
+  const threadId = useSession((s) => s.threadId);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [showTyping, setShowTyping] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useWebSocket((frame: InboundFrame) => {
-    if (!open) return;
-    switch (frame.type) {
-      case "message":
-        setMessages((prev) => [...prev, frame.message]);
-        setThinking(false);
-        setShowTyping(false);
-        break;
-      case "typing":
-        setShowTyping(true);
-        clearTimeout(typingTimer.current);
-        typingTimer.current = setTimeout(() => setShowTyping(false), 3000);
-        break;
-      case "edit":
-      case "confirm_request":
-      case "confirm_cancel":
-      case "error":
-      case "refresh":
-      case "pong":
-        break;
-      default: {
-        const _exhaustive: never = frame;
-        void _exhaustive;
-      }
+  // Clear ephemeral messages each time the overlay opens
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      setMessages([]);
+      setShowTyping(false);
     }
+    prevOpenRef.current = open;
+  }, [open]);
+
+  useFrame("message", (frame) => {
+    if (!open) return;
+    if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
+    setMessages((prev) => [...prev, frame.message]);
+    setThinking(false);
+    setShowTyping(false);
+  });
+
+  useFrame("typing", () => {
+    if (!open) return;
+    setShowTyping(true);
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => setShowTyping(false), 3_000);
   });
 
   useEffect(() => {

@@ -20,13 +20,21 @@ export const useWsStore = create<WsStore>((set) => ({
   setThinking: (v) => set({ isThinking: v }),
 }));
 
+// ── Central frame dispatcher ──────────────────────────────────────────────────
+
+type FrameType = InboundFrame["type"];
+const frameHandlers = new Map<FrameType, Set<(f: InboundFrame) => void>>();
+
+function dispatch(frame: InboundFrame) {
+  frameHandlers.get(frame.type)?.forEach((h) => h(frame));
+}
+
 // ── Singleton WS manager (lives outside React) ────────────────────────────────
 
 let ws: WebSocket | null = null;
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 let retryDelay = 1000;
 let pingInterval: ReturnType<typeof setInterval> | null = null;
-let frameListeners: Array<(f: InboundFrame) => void> = [];
 
 function buildUrl() {
   const cfg = getConfig();
@@ -64,7 +72,7 @@ function connect() {
     } catch {
       return;
     }
-    frameListeners.forEach((l) => l(frame));
+    dispatch(frame);
   };
 
   ws.onclose = () => {
@@ -97,20 +105,22 @@ export function reconnect() {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useWebSocket(onFrame: (f: InboundFrame) => void) {
-  const onFrameRef = useRef(onFrame);
-  onFrameRef.current = onFrame;
+export function useFrame<T extends FrameType>(
+  type: T,
+  handler: (f: Extract<InboundFrame, { type: T }>) => void,
+) {
+  const ref = useRef(handler);
+  ref.current = handler;
 
   useEffect(() => {
-    const listener = (f: InboundFrame) => onFrameRef.current(f);
-    frameListeners.push(listener);
-
+    if (!frameHandlers.has(type)) frameHandlers.set(type, new Set());
+    const fn = (f: InboundFrame) => ref.current(f as Extract<InboundFrame, { type: T }>);
+    frameHandlers.get(type)!.add(fn);
     if (!ws && !retryTimeout) connect();
-
     return () => {
-      frameListeners = frameListeners.filter((l) => l !== listener);
+      frameHandlers.get(type)?.delete(fn);
     };
-  }, []);
+  }, [type]);
 }
 
 export function startWs() {
