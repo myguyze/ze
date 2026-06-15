@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFrame, useWsStore, send } from "@/features/websocket/useWebSocket";
+import { useFrame, useWsStore, send, reconnect } from "@/features/websocket/useWebSocket";
 import { useChat } from "@/features/chat/hooks/useChat";
 import { useSession } from "@/features/chat/hooks/useSession";
 import { type ConfirmAction } from "@/features/websocket/protocol";
@@ -128,7 +128,7 @@ export function ChatPage() {
             Could not connect.
           </span>
           <button
-            onClick={() => { setConnState("connecting"); }}
+            onClick={() => { setConnState("connecting"); reconnect(); }}
             className="text-[#8052ff] underline"
           >
             Retry

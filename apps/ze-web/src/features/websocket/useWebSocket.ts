@@ -126,3 +126,11 @@ export function useFrame<T extends FrameType>(
 export function startWs() {
   if (!ws && !retryTimeout) connect();
 }
+
+// Reconnect when the active thread changes so the WS URL picks up the new thread_id.
+let activeThreadId = useSession.getState().threadId;
+useSession.subscribe((state) => {
+  if (state.threadId === activeThreadId) return;
+  activeThreadId = state.threadId;
+  reconnect();
+});
