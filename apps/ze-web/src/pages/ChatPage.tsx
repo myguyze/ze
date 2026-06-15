@@ -1,60 +1,36 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useFrame, useWsStore, send, reconnect } from "@/features/websocket/useWebSocket";
-import { useChat } from "@/features/chat/hooks/useChat";
+import { reconnect, send } from "@/features/websocket/useWebSocket";
+import { useChatSession } from "@/features/chat/hooks/useChatSession";
 import { useSession } from "@/features/chat/hooks/useSession";
-import { type ConfirmAction } from "@/features/websocket/protocol";
 import { ChatMessageList } from "@/features/chat/components/ChatMessageList";
 import { ChatInput } from "@/features/chat/components/ChatInput";
+import { ConfirmBar } from "@/features/chat/components/ConfirmBar";
 import { SessionSheet } from "@/features/chat/components/SessionSheet";
 import { BackgroundBeamsCanvas } from "@/lib/aceternity/background-beams";
 import { GlowingStars } from "@/lib/aceternity/glowing-stars";
-import { cn } from "@/lib/cn";
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
-interface PendingConfirm {
-  id: string;
-  prompt: string;
-  actions: ConfirmAction[];
-}
-
 export function ChatPage() {
-  const threadId = useSession((s) => s.threadId);
   const newSession = useSession((s) => s.newSession);
-  const { messages, upsert, loadHistory, showTyping } = useChat(threadId);
-  const queryClient = useQueryClient();
-  const isConnected = useWsStore((s) => s.isConnected);
-  const isThinking = useWsStore((s) => s.isThinking);
-  const setThinking = useWsStore((s) => s.setThinking);
+  const {
+    messages,
+    showTyping,
+    isThinking,
+    isConnected,
+    pendingConfirm,
+    sendMessage,
+    respondToConfirm,
+    resetInteraction,
+  } = useChatSession();
+
   const [connState, setConnState] = useState<ConnectionState>("connecting");
   const [input, setInput] = useState("");
-  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   useEffect(() => {
     setConnState(isConnected ? "connected" : "connecting");
-    if (isConnected) void loadHistory();
-  }, [isConnected, threadId, loadHistory]);
-
-  useFrame("message", (frame) => {
-    if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
-    setThinking(false);
-    void queryClient.invalidateQueries({ queryKey: ["sessions"] });
-  });
-
-  useFrame("confirm_request", (frame) => {
-    setThinking(false);
-    setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
-  });
-
-  useFrame("confirm_cancel", () => {
-    setPendingConfirm(null);
-  });
-
-  useFrame("error", () => {
-    setThinking(false);
-  });
+  }, [isConnected]);
 
   useEffect(() => {
     const disconnectTimer = setTimeout(() => {
@@ -64,37 +40,15 @@ export function ChatPage() {
   }, [connState]);
 
   function handleSend() {
-    const text = input.trim();
-    if (!text || isThinking) return;
-    setInput("");
-    setThinking(true);
-    upsert({
-      id: crypto.randomUUID(),
-      role: "user",
-      text,
-      components: [],
-      read: true,
-      created_at: new Date().toISOString(),
-      thread_id: threadId,
-    });
-    send({ type: "message", text, thread_id: threadId });
-  }
-
-  function handleConfirm(choice: "approve" | "deny") {
-    if (!pendingConfirm) return;
-    const { id } = pendingConfirm;
-    setPendingConfirm(null);
-    send({ type: "confirm", id, choice });
-    if (choice === "approve") {
-      setThinking(true);
+    if (sendMessage(input)) {
+      setInput("");
     }
   }
 
   function handleNewSession() {
     newSession();
     setInput("");
-    setThinking(false);
-    setPendingConfirm(null);
+    resetInteraction();
   }
 
   const isEmpty = messages.length === 0 && connState === "connected";
@@ -159,31 +113,20 @@ export function ChatPage() {
       )}
 
       {pendingConfirm && (
-        <div className="relative z-10 mx-4 mb-2 p-4 rounded-[24px] border border-[#8052ff]/40 bg-[#8052ff]/5">
-          <p className="text-sm text-white mb-3">{pendingConfirm.prompt}</p>
-          <div className="flex flex-wrap gap-2">
-            {pendingConfirm.actions.map((action) => (
-              <button
-                key={action.value}
-                onClick={() => handleConfirm(action.value as "approve" | "deny")}
-                className={cn(
-                  "px-4 py-2 rounded-[24px] text-xs font-semibold tracking-wide transition-opacity",
-                  action.style === "primary" || !action.style
-                    ? "bg-[#8052ff] text-white"
-                    : action.style === "danger"
-                      ? "border border-[#ffb829] text-[#ffb829]"
-                      : "border border-white/20 text-white",
-                )}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ConfirmBar
+          prompt={pendingConfirm.prompt}
+          actions={pendingConfirm.actions}
+          onConfirm={respondToConfirm}
+        />
       )}
 
       <div className="relative z-10 flex-shrink-0">
-        <ChatInput value={input} onChange={setInput} onSend={handleSend} />
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={handleSend}
+          disabled={isThinking}
+        />
       </div>
     </div>
   );

@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 import { useOverlay } from "@/features/overlay/useOverlay";
+import { useWsStore } from "@/features/websocket/useWebSocket";
 import { cn } from "@/lib/cn";
 
 export function FloatingButton({ screen, entityId }: { screen: string; entityId?: string }) {
   const { openFor } = useOverlay();
-  const isThinking = useOverlay((s) => s.thinking);
+  const isThinking = useWsStore((s) => s.isThinking);
 
   return (
     <motion.button

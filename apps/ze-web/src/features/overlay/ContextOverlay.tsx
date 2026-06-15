@@ -2,20 +2,17 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useOverlay } from "./useOverlay";
-import { send } from "@/features/websocket/useWebSocket";
-import { useSession } from "@/features/chat/hooks/useSession";
-import { useEphemeralChat } from "@/features/chat/hooks/useEphemeralChat";
+import { useChatSession } from "@/features/chat/hooks/useChatSession";
 import { ChatMessageList } from "@/features/chat/components/ChatMessageList";
 import { ChatInput } from "@/features/chat/components/ChatInput";
 
 export function ContextOverlay() {
-  const { open, close, screen, entityId, thinking: isThinking, setThinking } = useOverlay();
-  const threadId = useSession((s) => s.threadId);
+  const { open, close, screen, entityId } = useOverlay();
   const [input, setInput] = useState("");
-  const { messages, showTyping } = useEphemeralChat({
+  const { messages, showTyping, isThinking, sendMessage } = useChatSession({
+    ephemeral: true,
     active: open,
-    threadId,
-    onMessage: () => setThinking(false),
+    context: { screen, ...(entityId && { goal_id: entityId }) },
   });
 
   useEffect(() => {
@@ -27,15 +24,9 @@ export function ContextOverlay() {
   }, [close]);
 
   function handleSend() {
-    const text = input.trim();
-    if (!text || isThinking) return;
-    setInput("");
-    setThinking(true);
-    send({
-      type: "message",
-      text,
-      context: { screen, ...(entityId && { goal_id: entityId }) },
-    });
+    if (sendMessage(input)) {
+      setInput("");
+    }
   }
 
   return (

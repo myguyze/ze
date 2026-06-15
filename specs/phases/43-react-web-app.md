@@ -78,13 +78,13 @@ apps/ze-web/
     features/
       chat/
         hooks/
-          useChat.ts                 ← WS frame handlers + typing state
+          useChatSession.ts          ← unified WS handlers, thinking, confirms, send
           useMessages.ts             ← message cache + REST history load
           useSession.ts              ← thread ID (Zustand + localStorage)
-          useEphemeralChat.ts        ← overlay-only ephemeral message list
         components/
           ChatMessageList.tsx
           ChatInput.tsx
+          ConfirmBar.tsx
           MessageBubble.tsx
           TypingIndicator.tsx
           SessionSheet.tsx
