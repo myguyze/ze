@@ -301,7 +301,7 @@ class PostgresMemoryStore:
                 INSERT INTO memory_entities
                   (entity_type, canonical_name, aliases, attrs, embedding)
                 VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::vector)
-                ON CONFLICT (canonical_name) DO UPDATE SET
+                ON CONFLICT (lower(canonical_name)) DO UPDATE SET
                   aliases = EXCLUDED.aliases,
                   attrs = EXCLUDED.attrs,
                   embedding = COALESCE(EXCLUDED.embedding, memory_entities.embedding),
@@ -309,7 +309,7 @@ class PostgresMemoryStore:
                 RETURNING id
                 """,
                 entity.entity_type,
-                entity.canonical_name,
+                entity.canonical_name.strip(),
                 json.dumps(entity.aliases),
                 json.dumps(entity.attrs),
                 emb_list,
@@ -384,32 +384,23 @@ class PostgresMemoryStore:
     # ── internal ──────────────────────────────────────────────────────────────
 
     async def _write_fact_with_contradiction_check(self, fact: Fact) -> UUID | None:
-        threshold = self._memory_config().get("contradiction_threshold", CONTRADICTION_THRESHOLD)
         value_emb = self._embedder.encode(fact.value)
         emb_list = _to_list(value_emb)
 
         async with self._pool.acquire() as conn:
-            exact = await conn.fetch(
-                "SELECT id FROM memory_facts WHERE predicate = $1 AND contradicted = false",
+            # Invalidate prior facts for the same (predicate, subject).
+            # IS NOT DISTINCT FROM handles NULL subject_id correctly.
+            await conn.execute(
+                """
+                UPDATE memory_facts
+                   SET contradicted = true
+                 WHERE predicate = $1
+                   AND subject_id IS NOT DISTINCT FROM $2
+                   AND contradicted = false
+                """,
                 fact.predicate,
+                fact.subject_id,
             )
-            for row in exact:
-                await conn.execute(
-                    "UPDATE memory_facts SET contradicted = true WHERE id = $1",
-                    row["id"],
-                )
-
-            others = await conn.fetch(
-                "SELECT id, value FROM memory_facts WHERE contradicted = false AND predicate != $1",
-                fact.predicate,
-            )
-            for row in others:
-                other_emb = self._embedder.encode(row["value"])
-                if _cosine_similarity(value_emb, other_emb) > threshold:
-                    await conn.execute(
-                        "UPDATE memory_facts SET contradicted = true WHERE id = $1",
-                        row["id"],
-                    )
 
             row = await conn.fetchrow(
                 "INSERT INTO memory_facts"
@@ -467,23 +458,22 @@ class PostgresMemoryStore:
     async def _link_episode_entities(self, episode_id: UUID, text: str) -> None:
         """Scan episode text for entity name/alias matches; write MENTIONS edges and update linked_entity_ids."""
         try:
+            text_lower = text.lower()
             async with self._pool.acquire() as conn:
                 entity_rows = await conn.fetch(
-                    "SELECT id, canonical_name, aliases FROM memory_entities"
+                    """
+                    SELECT id
+                    FROM memory_entities
+                    WHERE position(lower(canonical_name) in $1) > 0
+                       OR EXISTS (
+                           SELECT 1 FROM jsonb_array_elements_text(aliases) AS alias
+                           WHERE position(lower(alias) in $1) > 0
+                       )
+                    """,
+                    text_lower,
                 )
 
-            text_lower = text.lower()
-            matched_ids: list[UUID] = []
-            for row in entity_rows:
-                name = row["canonical_name"].lower()
-                if name and name in text_lower:
-                    matched_ids.append(row["id"])
-                    continue
-                for alias in (row["aliases"] or []):
-                    if alias and alias.lower() in text_lower:
-                        matched_ids.append(row["id"])
-                        break
-
+            matched_ids: list[UUID] = [row["id"] for row in entity_rows]
             if not matched_ids:
                 return
 
@@ -563,9 +553,35 @@ class PostgresMemoryStore:
             return []
         _GENERIC = frozenset({"the", "a", "an", "all", "everyone", "team", "group", "us", "we", "they", "them"})
 
+        # Filter out empty, too-short, and generic tokens before hitting the DB.
+        candidates: list[str] = []
+        for raw in names:
+            name = raw.strip()
+            lower = name.lower()
+            if not name or len(name) < 2:
+                continue
+            if lower in _GENERIC or any(w.lower() in _GENERIC for w in name.split()):
+                continue
+            candidates.append(name)
+
+        if not candidates:
+            return []
+
+        lower_candidates = [c.lower() for c in candidates]
+
+        # Fetch only entities whose name or alias matches one of our candidates.
         async with self._pool.acquire() as conn:
             entity_rows = await conn.fetch(
-                "SELECT id, canonical_name, aliases FROM memory_entities"
+                """
+                SELECT id, canonical_name, aliases
+                FROM memory_entities
+                WHERE lower(canonical_name) = ANY($1)
+                   OR EXISTS (
+                       SELECT 1 FROM jsonb_array_elements_text(aliases) AS alias
+                       WHERE lower(alias) = ANY($1)
+                   )
+                """,
+                lower_candidates,
             )
 
         existing: dict[str, UUID] = {}
@@ -576,21 +592,10 @@ class PostgresMemoryStore:
                     existing[alias.lower()] = row["id"]
 
         resolved: list[UUID] = []
-        for name in names:
-            name = name.strip()
-            if not name:
-                continue
+        for name in candidates:
             lower = name.lower()
             if lower in existing:
                 resolved.append(existing[lower])
-                continue
-            words = name.split()
-            if (
-                len(words) < 1
-                or len(name) < 2
-                or lower in _GENERIC
-                or any(w.lower() in _GENERIC for w in words)
-            ):
                 continue
             try:
                 entity_id = await self.upsert_entity(Entity(
