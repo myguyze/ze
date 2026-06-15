@@ -26,7 +26,7 @@
 | 2 | M3 | Compose pre-route plugin hooks; remove dead routing branch | ✅ 2026-06-15 |
 | 3 | M7 | Finish session hardening (orphan thread IDs, unify naming, title updates) | ✅ 2026-06-15 |
 | 4 | M9 | Single `OnboardingError`; implement or remove seed kinds | ✅ 2026-06-15 |
-| 5 | M4 | Unify `AgentState` / single `initial_state()` factory; use `state_extensions` | ☐ |
+| 5 | M4 | Unify `AgentState` / single `initial_state()` factory; use `state_extensions` | ✅ 2026-06-15 |
 
 ---
 
@@ -337,3 +337,4 @@ The core layer still absorbs domain knowledge (`person_store`/`persona_store` in
 | 2026-06-15 | Initial assessment written |
 | 2026-06-15 | Phase 1 completed (C1, C2 partial, H1, H2, H3, H6); Phase 2 backlog added |
 | 2026-06-15 | Phase 2 completed (M1, M2, H5+M8, M7 partial, C2+tests); Phase 3 backlog added |
+| 2026-06-15 | Phase 3 completed (M5, M3, M7, M9, M4) |

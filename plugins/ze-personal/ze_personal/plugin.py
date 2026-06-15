@@ -176,6 +176,10 @@ class PersonalPlugin(ZePlugin):
             "workflow_planner": self.workflow_planner,
         }
 
+    def state_extensions(self) -> type | None:
+        from ze_personal.graph.workflow import WorkflowAgentState
+        return WorkflowAgentState
+
     def pre_route_node(self) -> Callable | None:
         from ze_personal.graph.routing_context import inject_goal_routing_context
         return inject_goal_routing_context
@@ -238,28 +242,20 @@ class PersonalPlugin(ZePlugin):
         }
 
         async def _workflow_executor(workflow: Any, execution_id: Any) -> None:
+            from ze_agents.interface.types import RawInput
+            from ze_core.conversation import make_graph_input
             from ze_core.telemetry.context import set_flow_context
             set_flow_context("workflow_execution", session_id=f"workflow:{workflow.id}")
             initial_state = {
-                "prompt": f"[workflow] {workflow.name}",
-                "session_id": f"workflow:{workflow.id}",
-                "session_overrides": {},
-                "envelope": None,
-                "memory_context": None,
-                "agent_context": None,
-                "gate_decision": None,
-                "agent_result": None,
-                "subtask_results": [],
-                "pending_confirmation": False,
-                "messages": [],
-                "last_active_at": None,
+                **make_graph_input(
+                    RawInput(text=f"[workflow] {workflow.name}"),
+                    f"workflow:{workflow.id}",
+                ),
                 "workflow_id": workflow.id,
                 "workflow_execution_id": execution_id,
                 "workflow_steps": workflow.steps,
                 "current_step_index": 0,
                 "workflow_step_results": [],
-                "final_response": None,
-                "error": None,
             }
             run_config = {
                 **workflow_graph_config,

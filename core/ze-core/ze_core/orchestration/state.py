@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypedDict
-from uuid import UUID
 
 if TYPE_CHECKING:
     from ze_agents.plugin import ZePlugin
@@ -48,13 +47,6 @@ class AgentState(TypedDict):
     final_response: str | None
     error: str | None
     components: list[dict]
-
-    # ── Workflow execution (workflow_graph only) ────────────────────────────
-    workflow_id: UUID | None
-    workflow_execution_id: UUID | None
-    workflow_steps: list | None          # list[WorkflowStep]
-    current_step_index: int
-    workflow_step_results: list          # list[StepResult]
 
     # ── Dynamic plan (plan_sequential node) ────────────────────────────────
     dynamic_plan_steps: list | None      # list[WorkflowStep]

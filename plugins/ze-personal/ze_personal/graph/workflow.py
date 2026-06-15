@@ -8,16 +8,31 @@ from __future__ import annotations
 import asyncio
 import json
 from typing import Any
+from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 
 from ze_agents.types import GateDecision
 from ze_agents.defaults import MODEL_WORKFLOW_VERIFY
 from ze_agents.logging import get_logger
+from ze_core.orchestration.state import AgentState
 from ze_personal.workflow.store import WorkflowStore
 from ze_personal.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
+
+
+class WorkflowAgentState(AgentState, total=False):
+    """AgentState extension carrying workflow execution fields.
+
+    Declared with total=False so checkpoints that predate this extension
+    (plain conversation turns) remain valid without these keys.
+    """
+    workflow_id: UUID | None
+    workflow_execution_id: UUID | None
+    workflow_steps: list | None          # list[WorkflowStep]
+    current_step_index: int
+    workflow_step_results: list          # list[StepResult]
 
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────

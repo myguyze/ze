@@ -220,11 +220,6 @@ def test_full_agent_state_dict_round_trips(serde: JsonPlusSerializer) -> None:
         "last_active_at": 1_700_000_000.0,
         "final_response": "You have a standup at 10am.",
         "error": None,
-        "workflow_id": None,
-        "workflow_execution_id": None,
-        "workflow_steps": None,
-        "current_step_index": 0,
-        "workflow_step_results": [],
         "dynamic_plan_steps": None,
         "dynamic_plan_high_risk": [],
     }
