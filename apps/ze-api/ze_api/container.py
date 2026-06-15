@@ -301,7 +301,6 @@ async def build_container(settings: Settings) -> ZeContainer:
             )
     onboarding_store = OnboardingStore(pool=pool)
     onboarding_persistence = OnboardingPersistence(
-        pool=pool,
         memory_store=memory_store,
     )
     onboarding_coordinator = OnboardingCoordinator(

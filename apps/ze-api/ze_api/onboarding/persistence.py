@@ -15,11 +15,9 @@ class OnboardingPersistence:
     def __init__(
         self,
         *,
-        pool: Any,
         memory_store: Any,
         plugin_setting_setters: dict[str, PluginSettingSetter] | None = None,
     ) -> None:
-        self._pool = pool
         self._memory_store = memory_store
         self._plugin_setting_setters = plugin_setting_setters or {}
 
@@ -48,24 +46,12 @@ class OnboardingPersistence:
         ])
 
     async def _apply_profile_facet(self, seed: StoredOnboardingSeed) -> None:
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO memory_profile_facets
-                  (key, value, stability, confidence, source_refs, updated_at)
-                VALUES ($1, $2, 'stable', $3, $4::jsonb, NOW())
-                ON CONFLICT (key) DO UPDATE SET
-                  value = EXCLUDED.value,
-                  stability = EXCLUDED.stability,
-                  confidence = EXCLUDED.confidence,
-                  source_refs = EXCLUDED.source_refs,
-                  updated_at = NOW()
-                """,
-                seed.key,
-                _seed_value_text(seed.value),
-                seed.confidence,
-                json.dumps([]),
-            )
+        await self._memory_store.upsert_profile_facets([{
+            "key": seed.key,
+            "value": _seed_value_text(seed.value),
+            "stability": "stable",
+            "confidence": seed.confidence,
+        }])
 
     async def _apply_plugin_setting(self, seed: StoredOnboardingSeed) -> None:
         if seed.plugin is None:

@@ -144,6 +144,12 @@ class HookAbort(AgentError):
         self.reason = reason
 
 
+# ── Onboarding ────────────────────────────────────────────────────────────────
+
+class OnboardingError(ZeCoreError):
+    """Onboarding flow failed or received an invalid submission."""
+
+
 # ── Channels ──────────────────────────────────────────────────────────────────
 
 class ChannelError(ZeCoreError):

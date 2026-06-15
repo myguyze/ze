@@ -1,6 +1,6 @@
 """Ze application exceptions."""
 
-from ze_agents.errors import ChannelError, ChannelSendError, ZeCoreError as ZeError
+from ze_agents.errors import ChannelError, ChannelSendError, OnboardingError as OnboardingError, ZeCoreError as ZeError  # noqa: F401
 
 # ── Capability ────────────────────────────────────────────────────────────────
 
@@ -33,10 +33,5 @@ class TranscriptionError(ZeError):
 class ImageDownloadError(ZeError):
     """Failed to download image bytes from Telegram's file server."""
 
-
-# ── Onboarding ────────────────────────────────────────────────────────────────
-
-class OnboardingError(ZeError):
-    """Onboarding flow failed or received an invalid submission."""
 
 

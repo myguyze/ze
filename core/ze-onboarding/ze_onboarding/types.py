@@ -18,9 +18,6 @@ SeedKind = Literal[
     "memory_fact",
     "profile_facet",
     "plugin_setting",
-    "capability_request",
-    "contact",
-    "channel_connection",
 ]
 
 OnboardingSessionStatus = Literal["active", "completed", "cancelled"]

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from ze_agents.errors import OnboardingError as OnboardingError  # noqa: F401 — re-export
 from ze_onboarding.types import (
     OnboardingPersistence,
     OnboardingProvider,
@@ -14,10 +15,6 @@ from ze_onboarding.types import (
 
 _REVIEW_STEP_ID = "onboarding.review"
 _REVIEW_COMPONENT_ID = "onboarding.review"
-
-
-class OnboardingError(Exception):
-    """Onboarding flow failed or received an invalid submission."""
 
 
 class OnboardingCoordinator:

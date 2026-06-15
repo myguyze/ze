@@ -7,7 +7,9 @@ name = "ze-onboarding"
 version = "0.1.0"
 description = "Ze onboarding coordinator, provider contracts, and reset domain types"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "ze-agents",
+]
 
 [dependency-groups]
 dev = [
@@ -18,6 +20,9 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.uv.sources]
+ze-agents = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_onboarding"]
