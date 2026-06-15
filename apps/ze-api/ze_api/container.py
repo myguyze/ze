@@ -38,7 +38,7 @@ from ze_core.routing.types import RouterConfig
 from ze_api.settings import Settings, get_settings
 from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_api.interface.native import NativeAppInterface
-from ze_api.api.ws import ConnectionManager
+from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.pending_confirmations import PendingConfirmationStore
 from ze_api.onboarding import (
     CoreOnboardingProvider,

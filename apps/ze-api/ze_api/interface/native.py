@@ -11,7 +11,7 @@ from ze_api.logging import get_logger
 if TYPE_CHECKING:
     from ze_notifications.notifier import Notifier as PushNotifier
     from ze_core.messages.store import MessageStore
-    from ze_api.api.ws import ConnectionManager
+    from ze_api.api.websocket.connection import ConnectionManager
 
 log = get_logger(__name__)
 

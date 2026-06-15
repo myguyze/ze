@@ -6,8 +6,10 @@ from uuid import uuid4
 
 
 from ze_agents.errors import OnboardingError
-from ze_api.api.ws import ConnectionManager, _message_to_dict
-from ze_api.api.ws import _handle_component_submit, _send_onboarding_view
+from ze_api.api.websocket.component_submit import handle_component_submit
+from ze_api.api.websocket.connection import ConnectionManager
+from ze_api.api.websocket.onboarding import send_onboarding_view
+from ze_api.api.websocket.serializers import message_to_dict
 from ze_onboarding import OnboardingView
 from ze_core.messages.types import Message
 
@@ -125,7 +127,7 @@ async def test_message_to_dict_serializes_correctly():
         thread_id="t1",
     )
 
-    d = _message_to_dict(msg)
+    d = message_to_dict(msg)
 
     assert d["id"] == str(msg_id)
     assert d["role"] == "user"
@@ -242,7 +244,7 @@ async def test_send_onboarding_view_includes_session_metadata():
     ws.send_json.reset_mock()
     session_id = uuid4()
 
-    await _send_onboarding_view(
+    await send_onboarding_view(
         mgr,
         OnboardingView(
             session_id=session_id,
@@ -270,8 +272,8 @@ async def test_component_submit_uses_onboarding_coordinator():
     container = AsyncMock()
     container.onboarding_coordinator.submit = AsyncMock(return_value=view)
 
-    with patch("ze_api.api.ws._send_onboarding_view", new=AsyncMock()) as mock_send_view:
-        await _handle_component_submit(
+    with patch("ze_api.api.websocket.component_submit.send_onboarding_view", new=AsyncMock()) as mock_send_view:
+        await handle_component_submit(
             ws,
             {
                 "session_id": str(session_id),
@@ -303,8 +305,8 @@ async def test_component_submit_falls_back_to_graph_on_unknown_session():
         side_effect=OnboardingError("Unknown onboarding step"),
     )
 
-    with patch("ze_api.api.ws._handle_message", new=AsyncMock(return_value=None)) as mock_handle:
-        await _handle_component_submit(
+    with patch("ze_api.api.websocket.component_submit.handle_message", new=AsyncMock(return_value=None)) as mock_handle:
+        await handle_component_submit(
             ws,
             {
                 "session_id": str(uuid4()),
