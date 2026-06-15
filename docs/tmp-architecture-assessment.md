@@ -23,7 +23,7 @@
 | # | ID | Summary | Status |
 |---|-----|---------|--------|
 | 1 | M1 | Abort LangGraph checkpoint on confirmation timeout/deny | ✅ 2026-06-15 |
-| 2 | M2 | Per-subtask capability gate + correct resume semantics | ☐ |
+| 2 | M2 | Per-subtask capability gate + correct resume semantics | ✅ 2026-06-15 |
 | 3 | H5 + M8 | Consolidate React WS/chat state + exhaustive frame/component switches | ☐ |
 | 4 | M7 | Harden sessions (scoped unread replay, no orphan thread IDs, naming) | ☐ |
 | 5 | C2 + tests | WS protocol conformance test + confirmation flow E2E coverage | ☐ |
@@ -181,7 +181,7 @@
 
 ---
 
-### M2. Capability gate only checks primary subtask; resume re-runs as EXECUTE — Phase 2 #2
+### M2. Capability gate only checks primary subtask; resume re-runs as EXECUTE ✅ Phase 2
 
 - **Category:** Correctness
 - **Location:** `core/ze-core/ze_core/orchestration/nodes/execution.py:24-33, 99-105`

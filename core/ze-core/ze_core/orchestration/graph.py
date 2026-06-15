@@ -30,7 +30,7 @@ def graph_builder(
     from langgraph.graph import StateGraph
 
     from ze_core.orchestration import nodes
-    from ze_core.orchestration.edges import after_capability_check, after_execute_tool
+    from ze_core.orchestration.edges import after_await_confirmation, after_capability_check, after_execute_tool
     from ze_core.orchestration.state import AgentState
 
     ov = node_overrides or {}
@@ -68,8 +68,12 @@ def graph_builder(
         after_execute_tool,
         {"synthesize": "synthesize", "write_memory": "write_memory"},
     )
-    builder.add_edge("draft_response",     "await_confirmation")
-    builder.add_edge("await_confirmation", "execute_tool")
+    builder.add_edge("draft_response", "await_confirmation")
+    builder.add_conditional_edges(
+        "await_confirmation",
+        after_await_confirmation,
+        {"execute_tool": "execute_tool", "write_memory": "write_memory"},
+    )
     builder.add_edge("synthesize",         "write_memory")
     builder.add_edge("write_memory",       END)
 

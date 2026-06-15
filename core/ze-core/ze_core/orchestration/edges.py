@@ -36,3 +36,11 @@ def after_execute_tool(state: AgentState) -> str:
     return "write_memory"
 
 
+def after_await_confirmation(state: AgentState) -> str:
+    """Route to write_memory when the draft IS the final response (DRAFT_ONLY ceiling).
+    Otherwise route to execute_tool to perform the approved action."""
+    if state.get("final_response"):
+        return "write_memory"
+    return "execute_tool"
+
+

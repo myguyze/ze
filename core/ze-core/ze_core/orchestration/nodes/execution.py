@@ -16,21 +16,31 @@ from ze_agents.types import AgentContext, AgentResult
 log = get_logger(__name__)
 
 
+_GATE_RANK: dict[GateDecision, int] = {
+    GateDecision.BLOCKED:            0,
+    GateDecision.DRAFT:              1,
+    GateDecision.AWAIT_CONFIRMATION: 2,
+    GateDecision.EXECUTE:            3,
+}
+
+
 async def capability_check(state: AgentState, config: RunnableConfig) -> dict:
     from ze_core.capability.gate import CapabilityGate
 
     gate: CapabilityGate = config["configurable"]["capability_gate"]
     envelope = state.get("envelope")
-    primary = envelope.subtasks[0] if envelope and envelope.subtasks else None
+    subtasks = envelope.subtasks if envelope and envelope.subtasks else []
 
-    if primary is None:
+    if not subtasks:
         return {"gate_decision": GateDecision.BLOCKED}
 
-    decision = gate.evaluate(
-        agent=primary.agent,
-        intent=primary.intent,
-        session_overrides=state.get("session_overrides") or {},
-    )
+    overrides = state.get("session_overrides") or {}
+    decisions = [
+        gate.evaluate(agent=st.agent, intent=st.intent, session_overrides=overrides)
+        for st in subtasks
+    ]
+    # Take the strictest (most restrictive) decision across all subtasks.
+    decision = min(decisions, key=lambda d: _GATE_RANK.get(d, 0))
     return {"gate_decision": decision}
 
 
@@ -102,6 +112,14 @@ async def await_confirmation(state: AgentState, config: RunnableConfig) -> dict:
         session_id=state["session_id"],
         agent=state["envelope"].primary_agent if state.get("envelope") else None,
     )
+    # If the original gate decision was DRAFT (DRAFT_ONLY ceiling), the draft IS
+    # the final response — promoting to EXECUTE would exceed the ceiling.
+    if state.get("gate_decision") == GateDecision.DRAFT:
+        draft = state.get("agent_result")
+        return {
+            "pending_confirmation": False,
+            "final_response": draft.response if draft else "",
+        }
     return {"pending_confirmation": False, "gate_decision": GateDecision.EXECUTE}
 
 
