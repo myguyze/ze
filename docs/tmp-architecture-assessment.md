@@ -25,7 +25,7 @@
 | 2 | M6 | Surface fire-and-forget memory write failures (done-callbacks or retry queue) | ✅ 2026-06-15 |
 | 3 | H4 | Split `PostgresMemoryStore`; align `MemoryStore` protocol | ✅ 2026-06-15 |
 | 4 | Tests | Plugin discovery order + memory write path regression tests | ✅ 2026-06-15 |
-| 5 | L1–L7 | Low-severity polish batch (see [Low](#low--phase-4-5-batch)) | ☐ |
+| 5 | L1–L7 | Low-severity polish batch (see [Low](#low--phase-4-5-batch)) | ✅ 2026-06-15 |
 
 ---
 
@@ -357,3 +357,4 @@ After Phase 5, all pre-assessment findings are resolved. New plugin work may sur
 | 2026-06-15 | Phase 4 #2 (M6): `fire_and_forget` utility in `ze_agents.tasks`; replaces bare `create_task` in memory, retriever, router, telemetry, ws |
 | 2026-06-15 | Phase 4 #3 (H4): extracted `PostgresConsolidationStore`; aligned `MemoryStore` protocol; policies use `store.pool` via `MemoryQueryable` |
 | 2026-06-15 | Phase 4 #4 (Tests): `test_plugin_discovery.py` topological sort; contradiction scoping tests in `test_store_writes.py` |
+| 2026-06-15 | Phase 4 #5 (L1–L7): WS busy invariant docs, shared API types + healthCheck, optimistic message reload, legacy reset cleanup, memory FK migration |

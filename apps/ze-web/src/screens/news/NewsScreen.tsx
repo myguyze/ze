@@ -1,23 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, Newspaper, Tag } from "lucide-react";
 import { api } from "@/lib/api";
+import { type Article } from "@/types/api";
 import { FloatingButton } from "@/overlay/FloatingButton";
-
-interface CredibilityFlag {
-  type: string;
-  label: string;
-  detail: string;
-}
-
-interface Article {
-  url: string;
-  source_key: string;
-  title: string;
-  summary: string;
-  published_at: string;
-  tags: string[];
-  credibility_flags: CredibilityFlag[];
-}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();

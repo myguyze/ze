@@ -102,13 +102,20 @@ class ConnectionManager:
                 self._ws = None
 
     def try_set_busy(self) -> bool:
-        """Attempt to claim the invocation slot. Returns True on success."""
+        """Attempt to claim the invocation slot. Returns True on success.
+
+        Safe without the lock: asyncio runs one coroutine at a time and there
+        is no await between the check and the set, so no other coroutine can
+        interleave here. Moving this under the lock would require making it
+        async, changing all call sites.
+        """
         if self._busy:
             return False
         self._busy = True
         return True
 
     def clear_busy(self) -> None:
+        # Same single-coroutine invariant as try_set_busy — no lock needed.
         self._busy = False
 
 

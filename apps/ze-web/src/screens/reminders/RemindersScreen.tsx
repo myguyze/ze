@@ -1,14 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
+import { type Reminder } from "@/types/api";
 import { FloatingButton } from "@/overlay/FloatingButton";
-
-interface Reminder {
-  id: string;
-  label: string;
-  fire_at: string;
-  fired: boolean;
-}
 
 export function RemindersScreen() {
   const { data: reminders, isLoading } = useQuery({

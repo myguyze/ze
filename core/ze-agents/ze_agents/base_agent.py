@@ -485,7 +485,12 @@ async def _fetch_tool_executor_context(ctx: Any) -> str:
 
 
 def _truncate_messages(messages: list[dict], max_tokens: int) -> None:
-    """Remove oldest tool-call rounds until token estimate is under budget."""
+    """Remove oldest tool-call rounds until token estimate is under budget.
+
+    O(n²) — re-serializes all messages on every eviction pass. Acceptable at
+    current agentic-loop depths (typically <30 messages); revisit if history
+    grows into the hundreds.
+    """
     while True:
         total = sum(len(json.dumps(m)) // 4 for m in messages)
         if total <= max_tokens:

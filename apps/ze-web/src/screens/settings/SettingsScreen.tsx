@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, AlertCircle } from "lucide-react";
 import { getConfig, saveConfig, clearConfig } from "@/config/AppConfig";
 import { reconnect } from "@/ws/useWebSocket";
+import { healthCheck } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -17,12 +18,8 @@ export function SettingsScreen() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`${serverUrl}/api/health`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      setTestResult(res.ok ? "ok" : "error");
-    } catch {
-      setTestResult("error");
+      const ok = await healthCheck(serverUrl, apiKey);
+      setTestResult(ok ? "ok" : "error");
     } finally {
       setTesting(false);
     }

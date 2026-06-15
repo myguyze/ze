@@ -15,9 +15,6 @@ _MEMORY_TABLES = [
     "memory_entities",
     "memory_episodes",
     "memory_profile_facets",
-    "user_facts",
-    "episodes",
-    "user_profile",
 ]
 
 _PERSONAL_STATE_TABLES = [

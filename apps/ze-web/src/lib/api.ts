@@ -34,3 +34,15 @@ export const api = {
   post: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }),
 };
+
+/** Test reachability of an arbitrary server before credentials are saved. */
+export async function healthCheck(serverUrl: string, apiKey: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${serverUrl}/api/health`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

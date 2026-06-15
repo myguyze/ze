@@ -3,7 +3,7 @@ import { useMessages } from "@/messages/useMessages";
 import { useFrame, send } from "@/ws/useWebSocket";
 
 export function useChat(threadId: string) {
-  const { messages, upsert, edit, loadHistory } = useMessages(threadId);
+  const { messages, upsert, edit, loadHistory, reload } = useMessages(threadId);
   const [showTyping, setShowTyping] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -14,6 +14,10 @@ export function useChat(threadId: string) {
     clearTimeout(typingTimer.current);
     if (frame.message.role === "assistant" && !frame.message.read) {
       send({ type: "ack", ids: [frame.message.id] });
+    }
+    // Reload from server to reconcile optimistic user message (temp UUID → real ID).
+    if (frame.message.role === "assistant") {
+      void reload();
     }
   });
 

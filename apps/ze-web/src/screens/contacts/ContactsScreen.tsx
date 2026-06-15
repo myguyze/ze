@@ -1,14 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
+import { type Contact } from "@/types/api";
 import { FloatingButton } from "@/overlay/FloatingButton";
-
-interface Contact {
-  id: string;
-  name: string;
-  email?: string;
-  notes?: string;
-}
 
 export function ContactsScreen() {
   const { data: contacts, isLoading } = useQuery({

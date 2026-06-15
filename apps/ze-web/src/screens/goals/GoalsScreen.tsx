@@ -1,14 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Target } from "lucide-react";
 import { api } from "@/lib/api";
+import { type Goal } from "@/types/api";
 import { FloatingButton } from "@/overlay/FloatingButton";
-
-interface Goal {
-  id: string;
-  objective: string;
-  status: string;
-  created_at: string;
-}
 
 export function GoalsScreen() {
   const { data: goals, isLoading } = useQuery({

@@ -1,13 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { type CostSummary } from "@/types/api";
 import { FloatingButton } from "@/overlay/FloatingButton";
-
-interface CostSummary {
-  total_usd: number;
-  total_tokens: number;
-  by_agent: Record<string, { usd: number; tokens: number }>;
-  period: string;
-}
 
 export function CostsScreen() {
   const { data, isLoading } = useQuery({

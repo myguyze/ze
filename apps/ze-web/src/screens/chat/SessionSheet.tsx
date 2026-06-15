@@ -2,16 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { api } from "@/lib/api";
 import { useSession } from "@/chat/useSession";
+import { type Session } from "@/types/api";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
-
-interface Session {
-  id: string;
-  title: string | null;
-  preview: string | null;
-  created_at: string;
-  last_active_at: string;
-}
 
 function formatRelative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();

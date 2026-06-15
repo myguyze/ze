@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check, AlertCircle } from "lucide-react";
 import { saveConfig } from "@/config/AppConfig";
 import { reconnect } from "@/ws/useWebSocket";
+import { healthCheck } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spotlight } from "@/lib/aceternity/spotlight";
@@ -25,12 +26,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`${serverUrl}/api/health`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      setTestResult(res.ok ? "ok" : "error");
-    } catch {
-      setTestResult("error");
+      const ok = await healthCheck(serverUrl, apiKey);
+      setTestResult(ok ? "ok" : "error");
     } finally {
       setTesting(false);
     }

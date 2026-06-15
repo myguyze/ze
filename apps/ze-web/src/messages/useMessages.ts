@@ -59,9 +59,16 @@ export function useMessages(threadId: string) {
     }
   }, [threadId]);
 
+  // Reload history unconditionally — replaces optimistic temp-UUID messages
+  // with server-issued IDs after the server acks a completed turn.
+  const reload = useCallback(async () => {
+    loadedThreadRef.current = null;
+    await loadHistory();
+  }, [loadHistory]);
+
   const sorted = [...messages.values()].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 
-  return { messages: sorted, upsert, edit, loadHistory };
+  return { messages: sorted, upsert, edit, loadHistory, reload };
 }
