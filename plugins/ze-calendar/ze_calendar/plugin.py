@@ -49,6 +49,14 @@ class CalendarPlugin(ZePlugin):
     def agent_deps(self, accumulated: dict) -> dict:
         return {ReminderStore: self.reminder_store}
 
+    def memory_policies(self) -> dict[str, Any]:
+        from ze_memory.policies import CalendarPolicy, RemindersPolicy
+
+        return {
+            "calendar": CalendarPolicy(),
+            "reminders": RemindersPolicy(),
+        }
+
     def agent_module_paths(self) -> list[str]:
         return [
             "ze_calendar.agents.calendar.agent",

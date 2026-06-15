@@ -92,8 +92,8 @@ Ze builds the allowlist automatically in `build_checkpoint_serde()` (`ze_core/ch
    payloads but live outside domain modules.
 
 When adding a new plugin, declare checkpointed domain types in `types.py` and list
-that module in `checkpoint_serde_modules()`. Do not store callables, DB pools, or
-live handles in graph state — they cannot be checkpointed.
+that module in `checkpoint_serde_modules()`. Register retrieval policies via
+`memory_policies()` — keys must match agent registration names.
 
 ### Conversation identity
 

@@ -268,14 +268,14 @@ See `docs/adding-an-agent.md` for the full authoring guide.
    [project.entry-points."ze.plugins"]
    ze_myplugin = "ze_myplugin.plugin:MyPlugin"
    ```
-3. Wire plugin instantiation in `ze_api/container.py`'s `build_container()` and add
-   it to the `plugins` list passed to `bootstrap_agents()`.
-4. Override `startup(container)` and `shutdown()` on the plugin class for async
-   lifecycle needs (DB connections, schedulers, credential refresh).
+3. Add the package to `apps/ze-api/pyproject.toml` dependencies.
+4. Override `startup(container)` and `shutdown()` for async lifecycle needs.
+5. Implement `memory_policies()` and `checkpoint_serde_modules()` when the plugin
+   adds agents or checkpointed domain types.
 
-The entry point declaration is what tells Ze Core that the plugin exists. The manual
-wiring in `container.py` is temporary — full auto-instantiation via `_resolve()` is
-planned for phase 47b once all plugin constructors use the shared `_dep_map`.
+Plugin discovery, topological ordering, and graph hook merging are automatic.
+Add types to `plugin_deps` in `ze_api/container.py` only when the plugin
+constructor needs a shared service not already in the dep map (phase 47b).
 
 ## LangGraph graph flow
 

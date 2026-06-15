@@ -267,6 +267,10 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     plugins = discover_plugins(plugin_deps)
 
+    from ze_memory.policies import build_policy_registry
+
+    memory_store.apply_policy_registry(build_policy_registry(plugins))
+
     from ze_core.checkpoint_serde import build_checkpoint_serde
 
     checkpointer = AsyncPostgresSaver(checkpointer_pool, serde=build_checkpoint_serde(plugins))

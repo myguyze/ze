@@ -68,6 +68,15 @@ class ZePlugin(ABC):
         """
         return ()
 
+    def memory_policies(self) -> dict[str, Any]:
+        """Return agent module name → retrieval policy for this plugin's agents.
+
+        Keys must match ``@agent`` registration names (e.g. ``"calendar"``, ``"news"``).
+        Policies are merged into the memory store registry at startup; duplicate keys
+        across plugins raise ``AgentConfigError``.
+        """
+        return ()
+
     def pre_route_node(self) -> Callable | None:
         """Return an async node to insert between preprocess and embed_route."""
         return None

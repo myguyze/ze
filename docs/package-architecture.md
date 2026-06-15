@@ -400,22 +400,19 @@ Five plugins are registered in `ze_api/container.py`:
 
 ### Adding a new plugin
 
-1. Create a class that inherits `ZePlugin` in your package.
-2. Override only the methods you need (all have no-op defaults).
-3. Instantiate it in `ze_api/container.py` and pass it to `build_graph()`:
+1. Create a `ZePlugin` subclass in your package.
+2. Declare the entry point in `pyproject.toml` under `[project.entry-points."ze.plugins"]`.
+3. Add the package to `apps/ze-api/pyproject.toml` dependencies.
+4. Override plugin hooks as needed — all methods have no-op defaults.
 
-```python
-from ze_personal.plugin import PersonalPlugin
-from ze_calendar.plugin import CalendarPlugin
-from mypackage.plugin import MyPlugin
+Plugins are discovered via entry points, topologically sorted by `depends_on`, and
+instantiated through the shared dep map. Graph state extensions, memory policies,
+checkpoint serde modules, REST stores, and proactive jobs are collected from each
+plugin at startup — no manual list in `build_graph()`.
 
-plugins = [PersonalPlugin(), CalendarPlugin(), MyPlugin()]
-graph = build_graph(checkpointer=checkpointer, plugins=plugins)
-bootstrap_agents(..., plugins=plugins)
-```
-
-Plugins are applied in order. State extension fields and graph nodes from all plugins
-are merged before the graph is compiled.
+If your plugin constructor requires a new shared service type (e.g. a domain store
+built before plugin discovery), add it to `plugin_deps` in `build_container()`.
+Agent-scoped deps can be contributed via `agent_deps()` without touching the container.
 
 ---
 
@@ -427,7 +424,7 @@ are merged before the graph is compiled.
 | New job scheduling primitive | `ze-proactive` (re-export from `ze_sdk.proactive`) |
 | New onboarding step/seed type, provider contract, or coordinator behavior | `ze-onboarding` (re-export from `ze_sdk.onboarding`) |
 | New engine primitive (routing, graph node, telemetry) | `ze-core` |
-| New memory layer or retrieval policy | `ze-memory` |
+| New memory retrieval policy for a plugin agent | plugin `memory_policies()` hook — not `ze-memory/policies.py` |
 | New domain concept tied to personal assistant | `ze-personal` |
 | New Google integration credential | `ze-google` |
 | New agent (general assistant: research, companion) | `ze-personal` → `ze_personal/agents/<name>/` |

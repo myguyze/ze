@@ -88,6 +88,11 @@ class NewsPlugin(ZePlugin):
             return {}
         return {"news_store": self._store}
 
+    def memory_policies(self) -> dict:
+        from ze_memory.policies import ResearchPolicy
+
+        return {"news": ResearchPolicy()}
+
     def onboarding(self) -> NewsOnboardingProvider | None:
         if not self._enabled:
             return None

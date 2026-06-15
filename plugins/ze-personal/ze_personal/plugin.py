@@ -186,6 +186,23 @@ class PersonalPlugin(ZePlugin):
             "ze_personal.contacts.types",
         )
 
+    def memory_policies(self) -> dict[str, Any]:
+        from ze_memory.policies import (
+            CompanionPolicy,
+            GoalsPolicy,
+            PlannerPolicy,
+            ResearchPolicy,
+            WorkflowPolicy,
+        )
+
+        return {
+            "companion": CompanionPolicy(),
+            "research": ResearchPolicy(),
+            "goals": GoalsPolicy(),
+            "workflow": WorkflowPolicy(),
+            "planner": PlannerPolicy(),
+        }
+
     def pre_route_node(self) -> Callable | None:
         from ze_personal.graph.routing_context import inject_goal_routing_context
         return inject_goal_routing_context

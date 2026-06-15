@@ -81,6 +81,10 @@ class PostgresMemoryStore:
         self._graph_store = graph_store
         self._traversal = self._build_traversal(graph_store, settings)
 
+    def apply_policy_registry(self, registry: Any) -> None:
+        """Replace the retrieval policy registry (called after plugins are discovered)."""
+        self._registry = registry
+
     @property
     def pool(self) -> Any:
         return self._pool

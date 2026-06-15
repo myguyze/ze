@@ -561,24 +561,38 @@ class MemoryUIPolicy:
 
 # ── registry ──────────────────────────────────────────────────────────────────
 
+# Core-only policies (introspection + tool loop). Agent policies are contributed
+# by plugins via ZePlugin.memory_policies().
 _POLICY_MAP: dict[str, Any] = {
-    # orchestration-level (dispatched by agent name)
-    "companion":    CompanionPolicy(),
-    "research":     ResearchPolicy(),
-    "news":         ResearchPolicy(),
-    "goals":        GoalsPolicy(),
-    "workflow":     WorkflowPolicy(),
-    "calendar":     CalendarPolicy(),
-    "reminders":    RemindersPolicy(),
-    "email":        EmailPolicy(),
-    "prospecting":  ProspectingPolicy(),
-    # introspection
-    "profile":      ProfilePolicy(),
-    "memory_ui":    MemoryUIPolicy(),
-    # domain-service-level (called directly, also accessible via registry)
-    "planner":      PlannerPolicy(),
+    "profile":       ProfilePolicy(),
+    "memory_ui":     MemoryUIPolicy(),
     "tool_executor": ToolExecutorPolicy(),
 }
+
+
+def collect_plugin_memory_policies(plugins: list[Any] | None) -> dict[str, Any]:
+    """Merge memory_policies() from all plugins; raise on duplicate agent keys."""
+    from ze_agents.errors import AgentConfigError
+
+    merged: dict[str, Any] = {}
+    for plugin in plugins or []:
+        for module, policy in plugin.memory_policies().items():
+            if module in merged:
+                raise AgentConfigError(
+                    f"Duplicate memory policy for agent {module!r}: "
+                    f"{type(plugin).__name__} conflicts with an earlier plugin."
+                )
+            merged[module] = policy
+    return merged
+
+
+def build_policy_registry(plugins: list[Any] | None = None) -> DefaultPolicyRegistry:
+    """Build a DefaultPolicyRegistry from core policies plus plugin contributions."""
+    extra = collect_plugin_memory_policies(plugins)
+    return DefaultPolicyRegistry(extra=extra)
+
+
+_FALLBACK_POLICY = CompanionPolicy()
 
 
 class DefaultPolicyRegistry:
@@ -592,5 +606,5 @@ class DefaultPolicyRegistry:
         if module not in self._policies:
             from ze_agents.logging import get_logger
             get_logger(__name__).warning("unknown_memory_module_fallback", module=module)
-            return _POLICY_MAP["companion"]
+            return _FALLBACK_POLICY
         return self._policies[module]

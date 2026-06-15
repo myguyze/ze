@@ -151,17 +151,27 @@ def agent_module_paths(self) -> list[str]:
     ]
 ```
 
-### 6. Add the dependency to `container.py` (if new)
+### 6. Add shared deps only when needed
 
-If your agent's `__init__` takes a type that isn't already in the DI map,
-add it in `ze_api/container.py` inside `build_container()`:
+Plugin discovery is automatic via the `ze.plugins` entry point. If your agent's
+`__init__` takes a type that is not already in the bootstrap dep map, either:
+
+- contribute it from an existing plugin via `agent_deps()`, or
+- add the service to `plugin_deps` in `ze_api/container.py` inside `build_container()`
+  when it is a shared infra type constructed before plugins load.
+
+### 7. Register memory and checkpoint hooks
 
 ```python
-my_store = MyStore(pool=pool)
-dep_map[MyStore] = my_store
+def memory_policies(self) -> dict:
+    from ze_memory.policies import MyAgentPolicy
+    return {"my_agent": MyAgentPolicy()}
+
+def checkpoint_serde_modules(self) -> tuple[str, ...]:
+    return ("ze_myplugin.types",)
 ```
 
-### 7. Write tests
+### 8. Write tests
 
 ```
 plugins/<pkg>/tests/agents/<name>/
@@ -251,6 +261,13 @@ class MyPlugin(ZePlugin):
     def configurable_services(self) -> dict:
         return {"my_store": self._store}
 
+    def memory_policies(self) -> dict:
+        from ze_memory.policies import MyAgentPolicy
+        return {"my_agent": MyAgentPolicy()}
+
+    def checkpoint_serde_modules(self) -> tuple[str, ...]:
+        return ("ze_myplugin.types",)
+
     async def startup(self, container) -> None:
         await self._store.connect()
 
@@ -264,22 +281,10 @@ class MyPlugin(ZePlugin):
 
 Override only what you need — all methods have no-op defaults.
 
-### 4. Wire into `ze_api/container.py`
-
-```python
-from ze_myplugin.plugin import MyPlugin
-
-# Inside build_container():
-my_store = MyStore(pool=pool)
-dep_map[MyStore] = my_store
-
-my_plugin = MyPlugin(store=my_store)
-plugins = [..., my_plugin]
-```
-
-### 5. Add to `pyproject.toml` in `ze-api`
+### 4. Add to `ze-api` dependencies
 
 ```toml
+# apps/ze-api/pyproject.toml
 [project]
 dependencies = [
     ...
@@ -287,7 +292,11 @@ dependencies = [
 ]
 ```
 
-### 6. Create a database migration
+Ze discovers and instantiates the plugin at startup via the entry point. Only add
+types to `plugin_deps` in `build_container()` when the plugin constructor needs a
+shared service that is not already in the dep map.
+
+### 5. Create a database migration
 
 ```bash
 make migrate-create msg="add myplugin tables"

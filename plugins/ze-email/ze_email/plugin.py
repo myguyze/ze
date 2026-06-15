@@ -25,6 +25,11 @@ class EmailPlugin(ZePlugin):
         ch = self.gmail_channel
         return [ch] if ch is not None else []
 
+    def memory_policies(self) -> dict:
+        from ze_memory.policies import EmailPolicy
+
+        return {"email": EmailPolicy()}
+
     def agent_module_paths(self) -> list[str]:
         if self._google_credentials is None:
             return []

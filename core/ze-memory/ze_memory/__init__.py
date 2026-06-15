@@ -9,7 +9,7 @@ from ze_memory.errors import (
     UnknownModuleError,
 )
 from ze_memory.extractor import gather_fact_proposals
-from ze_memory.policies import DefaultPolicyRegistry
+from ze_memory.policies import DefaultPolicyRegistry, build_policy_registry
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.store import MemoryPolicyRegistry, MemoryRetrievalPolicy, MemoryStore
 from ze_memory.synthesizer import ProfileSynthesizer
@@ -46,6 +46,7 @@ __all__ = [
     "PostgresMemoryStore",
     "PostgresConsolidationStore",
     "DefaultPolicyRegistry",
+    "build_policy_registry",
     "MemoryConsolidator",
     "ProfileSynthesizer",
     # errors

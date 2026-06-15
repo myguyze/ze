@@ -48,6 +48,11 @@ class ProspectingPlugin(ZePlugin):
             ProspectingSettings: self._prospecting_settings,
         }
 
+    def memory_policies(self) -> dict:
+        from ze_memory.policies import ProspectingPolicy
+
+        return {"prospecting": ProspectingPolicy()}
+
     def agent_module_paths(self) -> list[str]:
         return [
             "ze_browser.tool",
