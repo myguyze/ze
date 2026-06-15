@@ -47,6 +47,7 @@ Guidelines:
 @agent
 class GoalAgent(BaseAgent):
     name = "goals"
+    display_name = "Goals"
     description = """
       Long-term goals and multi-week objectives that Ze executes autonomously.
       Use for: "I want to achieve X over the next month", "help me reach my goal of X",

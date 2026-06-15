@@ -31,6 +31,7 @@ Guidelines:
 @agent
 class CalendarAgent(BaseAgent):
     name = "calendar"
+    display_name = "Calendar"
     description = """
       Google Calendar events, meetings, and appointments.
       Use for: "what's on my calendar today", "what do I have tomorrow", "what's this week",

@@ -37,6 +37,7 @@ Guidelines:
 @agent
 class WorkflowManagerAgent(BaseAgent):
     name = "workflow"
+    display_name = "Workflows"
     description = """
       Named automation workflows and recurring scheduled tasks.
       Use for: "create a workflow that does X every day", "automate X on a schedule",

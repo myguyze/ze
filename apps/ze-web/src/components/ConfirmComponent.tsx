@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { send } from "@/ws/useWebSocket";
+import { useSession } from "@/chat/useSession";
 import { type ConfirmComponent as T } from "./types";
 import { cn } from "@/lib/cn";
 
 export function ConfirmComponent({ data }: { data: T }) {
   const [chosen, setChosen] = useState<string | null>(null);
+  const threadId = useSession((s) => s.threadId);
 
   function handleTap(value: string) {
     if (chosen) return;
     setChosen(value);
-    send({ type: "message", text: value });
+    send({ type: "message", text: value, thread_id: threadId });
   }
 
   return (

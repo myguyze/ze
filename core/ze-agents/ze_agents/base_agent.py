@@ -48,6 +48,7 @@ def _canonical_openrouter_tool_name(name: str) -> str:
 
 class BaseAgent(ABC):
     name: str
+    display_name: str = ""
     description: str
     model: str = MODEL_AGENT_DEFAULT
     model_simple: str | None = None

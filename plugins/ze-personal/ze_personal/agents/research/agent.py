@@ -22,6 +22,7 @@ delegate to the calendar agent using delegate_to_agent rather than guessing.\
 @agent
 class ResearchAgent(BaseAgent):
     name = "research"
+    display_name = "Web research"
     description = """
       Web search and technical fact-finding using live information retrieval.
       Use for: factual comparisons ("what are the differences between X and Y"),

@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWebSocket, useWsStore, send } from "@/ws/useWebSocket";
 import { useMessages } from "@/messages/useMessages";
+import { useSession } from "@/chat/useSession";
 import { type InboundFrame } from "@/ws/protocol";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
+import { SessionSheet } from "./SessionSheet";
 import { BackgroundBeamsCanvas } from "@/lib/aceternity/background-beams";
 import { GlowingStars } from "@/lib/aceternity/glowing-stars";
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
 export function ChatScreen() {
-  const { messages, upsert, edit, loadHistory } = useMessages();
+  const threadId = useSession((s) => s.threadId);
+  const newSession = useSession((s) => s.newSession);
+  const { messages, upsert, edit, loadHistory } = useMessages(threadId);
+  const queryClient = useQueryClient();
   const isConnected = useWsStore((s) => s.isConnected);
   const isThinking = useWsStore((s) => s.isThinking);
   const setThinking = useWsStore((s) => s.setThinking);
@@ -24,13 +31,15 @@ export function ChatScreen() {
   useEffect(() => {
     setConnState(isConnected ? "connected" : "connecting");
     if (isConnected) void loadHistory();
-  }, [isConnected, loadHistory]);
+  }, [isConnected, threadId, loadHistory]);
 
   useWebSocket((frame: InboundFrame) => {
     if (frame.type === "message") {
+      if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
       upsert(frame.message);
       setThinking(false);
       setShowTyping(false);
+      void queryClient.invalidateQueries({ queryKey: ["sessions"] });
       if (frame.message.role === "assistant" && !frame.message.read) {
         send({ type: "ack", ids: [frame.message.id] });
       }
@@ -52,7 +61,6 @@ export function ChatScreen() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, showTyping]);
 
-  // Cmd+K or Ctrl+K → nothing in chat screen (already in chat)
   useEffect(() => {
     const disconnectTimer = setTimeout(() => {
       if (connState === "connecting") setConnState("disconnected");
@@ -65,17 +73,43 @@ export function ChatScreen() {
     if (!text || isThinking) return;
     setInput("");
     setThinking(true);
-    send({ type: "message", text });
+    upsert({
+      id: crypto.randomUUID(),
+      role: "user",
+      text,
+      components: [],
+      read: true,
+      created_at: new Date().toISOString(),
+      thread_id: threadId,
+    });
+    send({ type: "message", text, thread_id: threadId });
+  }
+
+  function handleNewSession() {
+    newSession();
+    setInput("");
+    setThinking(false);
+    setShowTyping(false);
   }
 
   const isEmpty = messages.length === 0 && connState === "connected";
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Ambient background */}
       <BackgroundBeamsCanvas className="opacity-40" />
 
-      {/* Connection banners */}
+      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+        <SessionSheet />
+        <button
+          type="button"
+          onClick={handleNewSession}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-[24px] bg-[#8052ff] text-white text-xs font-medium hover:bg-[#8052ff]/90 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New chat
+        </button>
+      </div>
+
       {connState === "connecting" && (
         <div className="relative z-10 mx-4 mt-3 flex items-center gap-2 px-4 py-2 rounded-[24px] border border-[#ffb829]/40 text-[#ffb829] text-xs">
           <span className="w-1.5 h-1.5 rounded-full bg-[#ffb829] animate-pulse" />
@@ -97,7 +131,6 @@ export function ChatScreen() {
         </div>
       )}
 
-      {/* Empty state */}
       {isEmpty && (
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6">
           <GlowingStars className="rounded-[24px]" count={80} />
@@ -106,7 +139,7 @@ export function ChatScreen() {
           </p>
           <p className="text-sm text-[#9a9a9a]">Your personal AI assistant</p>
           <button
-            onClick={() => setInput("What can you help me with?")}
+            onClick={() => send({ type: "command", name: "capabilities" })}
             className="px-4 py-2 rounded-[24px] border border-[#8052ff]/50 text-[#8052ff] text-xs hover:border-[#8052ff] transition-colors"
           >
             What can you help me with?
@@ -114,7 +147,6 @@ export function ChatScreen() {
         </div>
       )}
 
-      {/* Message list */}
       {!isEmpty && (
         <div className="relative z-10 flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
           {messages.map((msg) => (
@@ -125,7 +157,6 @@ export function ChatScreen() {
         </div>
       )}
 
-      {/* Input */}
       <div className="relative z-10 flex-shrink-0">
         <ChatInput value={input} onChange={setInput} onSend={handleSend} />
       </div>

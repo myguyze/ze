@@ -436,8 +436,33 @@ async def _handle_command(
             await conn_mgr.send_frame({"type": "error", "detail": "Could not reset state."})
         return pending_config
 
+    if name == "capabilities":
+        try:
+            summary = _build_capabilities_summary()
+            await conn_mgr.send_frame({"type": "message", "message": {"role": "assistant", "text": summary, "components": []}})
+        except Exception as exc:
+            log.warning("ws_capabilities_command_failed", error=str(exc))
+        return pending_config
+
     log.warning("ws_unknown_command", name=name)
     return pending_config
+
+
+def _build_capabilities_summary() -> str:
+    from ze_agents.registry import get_registered_agents
+
+    agents = get_registered_agents()
+    lines: list[str] = ["Here's what I can help you with:\n"]
+    for cls in sorted(agents.values(), key=lambda c: getattr(c, "display_name", "") or c.name):
+        if not getattr(cls, "enabled", True):
+            continue
+        label = getattr(cls, "display_name", "") or cls.name.capitalize()
+        raw = getattr(cls, "description", "").strip()
+        summary = raw.splitlines()[0].strip() if raw else ""
+        lines.append(f"**{label}** — {summary}")
+
+    lines.append("\nJust ask — I'll figure out what to use.")
+    return "\n".join(lines)
 
 
 async def _handle_component_submit(

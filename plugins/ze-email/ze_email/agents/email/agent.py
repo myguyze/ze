@@ -32,6 +32,7 @@ Guidelines:
 @agent
 class EmailAgent(BaseAgent):
     name = "email"
+    display_name = "Email"
     description = """
       Gmail inbox and email management.
       Use for: "do I have any emails from X", "check my inbox", "what's in my email",

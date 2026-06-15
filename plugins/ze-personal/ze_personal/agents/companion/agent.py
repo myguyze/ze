@@ -39,6 +39,7 @@ _CHANNEL_KEYWORDS: dict[str, list[str]] = {
 @agent
 class CompanionAgent(BaseAgent):
     name = "companion"
+    display_name = "Conversation & reasoning"
     description = """
       Chat, conversation, and reasoning that needs no external tools or live data.
       Use for: greetings ("hey", "how are you doing"), emotional check-ins ("I'm feeling

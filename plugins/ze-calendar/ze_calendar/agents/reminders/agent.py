@@ -33,6 +33,7 @@ Guidelines:
 @agent
 class RemindersAgent(BaseAgent):
     name = "reminders"
+    display_name = "Reminders"
     description = """
       One-off personal reminders and time-based alerts.
       Use for: "remind me to X at Y time", "remind me to call the dentist on Friday at 10am",

@@ -73,6 +73,7 @@ def _format_candidates(articles: list) -> str:
 @agent
 class NewsAgent(BaseAgent):
     name = "news"
+    display_name = "News"
     description = """
       News headlines and daily briefings from curated sources.
       Use for: "what's in the news today", "any headlines", "morning news briefing",

@@ -39,5 +39,5 @@ export type InboundFrame =
 export type OutboundFrame =
   | { type: "message"; text: string; thread_id?: string; context?: ScreenContext }
   | { type: "ack"; ids: string[] }
-  | { type: "command"; name: "cancel" | "costs" | "memory" | "contacts" }
+  | { type: "command"; name: "cancel" | "costs" | "memory" | "contacts" | "capabilities" }
   | { type: "ping" };

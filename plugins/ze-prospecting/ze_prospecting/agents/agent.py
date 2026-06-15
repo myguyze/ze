@@ -45,6 +45,7 @@ Final output format:
 @agent
 class ProspectingAgent(BaseAgent):
     name = "prospecting"
+    display_name = "Prospecting"
     description = """
       Sales prospecting, lead research, and outreach campaign materials.
       Use for: "find leads in the X industry", "prospect for customers in Y",
