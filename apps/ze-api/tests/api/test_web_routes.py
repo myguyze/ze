@@ -52,7 +52,7 @@ def container():
 def client(container, mock_pool):
     pool, conn = mock_pool
     conn.fetch = AsyncMock(return_value=[])
-    conn.fetchrow = AsyncMock(return_value={"total_tokens": 0, "total_cost_usd": 0})
+    conn.fetchrow = AsyncMock(return_value={"total_tokens": 0, "total_cost_usd": 0, "total_calls": 0})
 
     app = FastAPI()
     app.state.container = container
@@ -110,5 +110,6 @@ def test_web_cost_summary(client):
     data = resp.json()
     assert data["total_usd"] == 0
     assert data["total_tokens"] == 0
+    assert data["total_calls"] == 0
     assert data["period"] == "Last 30 days"
     assert data["by_agent"] == {}

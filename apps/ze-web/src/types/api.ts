@@ -6,10 +6,19 @@ export interface Session {
   last_active_at: string;
 }
 
+export interface AgentUsage {
+  usd: number;
+  tokens: number;
+  calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
 export interface CostSummary {
   total_usd: number;
   total_tokens: number;
-  by_agent: Record<string, { usd: number; tokens: number }>;
+  total_calls: number;
+  by_agent: Record<string, AgentUsage>;
   period: string;
 }
 

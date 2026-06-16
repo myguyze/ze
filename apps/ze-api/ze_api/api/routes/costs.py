@@ -28,8 +28,11 @@ async def web_cost_summary(pool=Depends(get_pool)) -> WebCostSummaryResponse:
         rows = await conn.fetch(
             """
             SELECT agent,
-                   SUM(total_tokens)::int AS total_tokens,
-                   SUM(cost_usd)          AS cost_usd
+                   COUNT(*)::int                AS calls,
+                   SUM(prompt_tokens)::int      AS prompt_tokens,
+                   SUM(completion_tokens)::int  AS completion_tokens,
+                   SUM(total_tokens)::int       AS total_tokens,
+                   SUM(cost_usd)                AS cost_usd
             FROM llm_cost_log
             WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
             GROUP BY agent
@@ -39,8 +42,9 @@ async def web_cost_summary(pool=Depends(get_pool)) -> WebCostSummaryResponse:
         )
         totals = await conn.fetchrow(
             """
-            SELECT SUM(total_tokens)::int AS total_tokens,
-                   SUM(cost_usd)          AS total_cost_usd
+            SELECT COUNT(*)::int           AS total_calls,
+                   SUM(total_tokens)::int  AS total_tokens,
+                   SUM(cost_usd)           AS total_cost_usd
             FROM llm_cost_log
             WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
             """,
@@ -51,12 +55,16 @@ async def web_cost_summary(pool=Depends(get_pool)) -> WebCostSummaryResponse:
         row["agent"]: AgentCostBucket(
             usd=float(row["cost_usd"] or 0),
             tokens=row["total_tokens"] or 0,
+            calls=row["calls"] or 0,
+            prompt_tokens=row["prompt_tokens"] or 0,
+            completion_tokens=row["completion_tokens"] or 0,
         )
         for row in rows
     }
     return WebCostSummaryResponse(
         total_usd=float(totals["total_cost_usd"] or 0),
         total_tokens=int(totals["total_tokens"] or 0),
+        total_calls=int(totals["total_calls"] or 0),
         by_agent=by_agent,
         period=f"Last {_WEB_SUMMARY_DAYS} days",
     )

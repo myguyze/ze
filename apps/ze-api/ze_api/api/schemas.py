@@ -185,11 +185,15 @@ class ContactListItem(BaseModel):
 class AgentCostBucket(BaseModel):
     usd: float
     tokens: int
+    calls: int
+    prompt_tokens: int
+    completion_tokens: int
 
 
 class WebCostSummaryResponse(BaseModel):
     total_usd: float
     total_tokens: int
+    total_calls: int
     by_agent: dict[str, AgentCostBucket]
     period: str
 

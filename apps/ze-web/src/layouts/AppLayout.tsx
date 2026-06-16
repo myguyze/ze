@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { MessageCircle, Target, Bell, Users, DollarSign, Newspaper, Settings } from "lucide-react";
+import { MessageCircle, Target, Bell, Users, BarChart2, Newspaper, Settings } from "lucide-react";
 import { useOverlay } from "@/features/overlay/useOverlay";
 import { ContextOverlay } from "@/features/overlay/ContextOverlay";
 import { RefreshHandler } from "@/features/websocket/RefreshHandler";
@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { to: "/goals", icon: Target, label: "Goals" },
   { to: "/reminders", icon: Bell, label: "Reminders" },
   { to: "/contacts", icon: Users, label: "Contacts" },
-  { to: "/costs", icon: DollarSign, label: "Costs" },
+  { to: "/costs", icon: BarChart2, label: "Usage" },
   { to: "/news", icon: Newspaper, label: "News" },
 ];
 
