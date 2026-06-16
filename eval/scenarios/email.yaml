@@ -1,0 +1,98 @@
+- id: email_read_inbox
+  prompt: "What's in my inbox?"
+  description: Read unread emails — basic inbox retrieval
+  expected_agent: email
+  expected_tools: [list_emails]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should attempt to fetch inbox via Gmail tool
+    - Should summarise emails if present, not just list subjects
+    - If no unread emails, should say so clearly
+
+- id: email_read_from_specific_sender
+  prompt: "Any emails from Ana this week?"
+  description: Filtered email read by sender — tests contact-aware search
+  expected_agent: email
+  expected_tools: [list_emails]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should search for emails from Ana within the current week
+    - Should return relevant email summaries, not raw headers
+    - Should handle "no results" gracefully
+
+- id: email_compose_simple
+  prompt: "Draft an email to pedro@example.com saying I'll be 10 minutes late to our meeting."
+  description: Compose a simple email draft — tests email writing capability
+  expected_agent: email
+  expected_tools: [draft_email]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should draft a short, appropriate email to pedro@example.com
+    - Should present the draft for review before sending
+    - Should not send without confirmation
+
+- id: email_compose_with_tone
+  prompt: "Write a professional follow-up email to a client asking for an update on the contract."
+  description: Email composition with tone guidance — tests writing quality
+  expected_agent: email
+  expected_tools: [draft_email]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Draft should be professional and polite, not overly formal or cold
+    - Should present the draft before sending
+    - Should leave recipient and specifics as placeholders or ask for them
+
+- id: email_reply_to_thread
+  prompt: "Reply to the last email from my manager and say I'll have the report ready by Friday."
+  description: Reply to a specific email — requires reading then composing
+  expected_agent: email
+  expected_tools: [list_emails, draft_email]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should fetch the most recent email from the manager
+    - Should draft a reply with the specified content
+    - Should present the draft before sending, not auto-send
+
+- id: email_summarise_thread
+  prompt: "Summarise the email thread about the Q3 review."
+  description: Summarise a multi-email thread — tests comprehension capability
+  expected_agent: email
+  expected_tools: [list_emails]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should search for a thread matching "Q3 review"
+    - Should provide a coherent summary of the thread, not just list subjects
+    - If not found, should say so clearly
+
+- id: email_credentials_missing
+  prompt: "Check my email."
+  description: Email query without Google credentials — graceful error
+  expected_agent: email
+  tags: [routing, email, graceful_degradation]
+  criteria:
+    - Should route to the email agent
+    - If credentials are missing, should explain what's needed to connect Gmail
+    - Should not crash or return a raw error
+    - Should not pretend to have fetched emails it didn't
+
+- id: email_multi_turn_draft_revise
+  description: "Multi-turn: draft an email, then revise it based on feedback"
+  expected_tools: [draft_email]
+  turns:
+    - prompt: "Draft a short email to my team announcing that tomorrow's sprint review is cancelled."
+      description: "Turn 1: initial draft request"
+    - prompt: "Make it a bit warmer and mention we'll reschedule for next week."
+      description: "Turn 2: revise the draft"
+  expected_agent: email
+  tags: [routing, email, multi_turn]
+  criteria:
+    - Turn 1 should produce a clear draft email
+    - Turn 2 should revise the draft with a warmer tone and reschedule mention
+    - Turn 2 should not forget the core message from turn 1
+    - Ze should present the revised draft, not auto-send

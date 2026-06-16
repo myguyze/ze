@@ -44,7 +44,8 @@ ze/                           # monorepo root
 │   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
 │   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
 │   ├── ze-notifications/     # Push notification abstraction (ntfy)
-│   └── ze-components/        # Server-driven UI component descriptors
+│   ├── ze-components/        # Server-driven UI component descriptors
+│   └── ze-eval/              # Eval infrastructure — runner, judge, verifier, MCP server
 ├── plugins/                  # ZePlugin domain extensions
 │   ├── ze-personal/          # Personal-assistant domain layer (ZePlugin)
 │   │   └── ze_personal/
@@ -91,6 +92,11 @@ ze/                           # monorepo root
 │   │   ├── migrations/       # Alembic SQL migrations
 │   │   └── tests/
 │   └── ze-web/               # React web client (Vite + TypeScript + Tailwind + shadcn/ui)
+├── eval/                     # Eval test data and entrypoints (uses core/ze-eval)
+│   ├── scenarios/            # YAML scenario definitions — edit these to add tests
+│   ├── results/              # JSON run outputs (gitignored)
+│   ├── run.py                # CLI: python eval/run.py [--judge] [--tag X] [report]
+│   └── server.py             # MCP server: python eval/server.py
 ├── specs/                    # Design specs (zc-* ze-core, numbered ze modules)
 ├── docs/                     # architecture.md, configuration.md, …
 └── Makefile                  # make test, make test-core, make dev, …
@@ -106,6 +112,7 @@ ze-notifications(no ze deps)             core/
 ze-components   (no ze deps)             core/
 ze-google       (no ze deps)             core/
 ze-memory     → ze-agents                core/
+ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
 ze-sdk        → ze-agents, ze-proactive, ze-memory         core/  ← plugin entry point
 ze-core       → ze-agents                core/  ← engine; never a plugin dep
 ze-personal   → ze-sdk                   plugins/

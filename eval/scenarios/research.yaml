@@ -1,0 +1,68 @@
+- id: research_factual_technical
+  prompt: "What are the key differences between async/await and threads in Python?"
+  description: Technical factual question requiring substantive depth
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should route to the research agent
+    - Should explain GIL, I/O-bound vs CPU-bound distinction
+    - Should be accurate and not superficial
+    - Should not refuse or deflect
+
+- id: research_coding_question
+  prompt: "How do I implement a debounce function in JavaScript?"
+  description: Specific coding question — research agent should provide a working example
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should route to the research agent
+    - Should provide a working code example
+    - Should explain what debouncing is and when to use it
+    - Should not produce syntactically broken code
+
+- id: research_current_events_specific
+  prompt: "What were the biggest AI model releases in the last 6 months?"
+  description: Current events with web search — answer should be specific and sourced
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should use the research agent with web search
+    - Should name specific models and companies
+    - Should not fabricate release dates or capabilities
+    - Should acknowledge uncertainty if web search is unavailable
+
+- id: research_uncertainty_acknowledgement
+  prompt: "What will the interest rate be in the US next quarter?"
+  description: Unpredictable future event — Ze should acknowledge uncertainty rather than fabricate
+  expected_agent: research
+  tags: [routing, research, graceful_degradation]
+  criteria:
+    - Should acknowledge this is inherently uncertain / speculative
+    - Should not invent a specific number as fact
+    - May provide relevant context (current rate, Fed signals) but should frame it as context
+    - Should not refuse entirely — engagement with the topic is appropriate
+
+- id: research_niche_technical
+  prompt: "What is the difference between B-trees and LSM trees in database storage engines?"
+  description: Niche technical question requiring genuine depth
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should route to research (not companion)
+    - Should cover write amplification, read amplification, compaction
+    - Should correctly identify which storage engines use each
+    - Accuracy matters more than length
+
+- id: research_multi_turn_followup
+  description: "Multi-turn: research question then a follow-up that depends on turn 1"
+  turns:
+    - prompt: "What is the CAP theorem in distributed systems?"
+      description: "Turn 1: initial research question"
+    - prompt: "Which trade-off does Cassandra make and why?"
+      description: "Turn 2: follow-up that requires turn 1 context"
+  expected_agent: research
+  tags: [routing, research, multi_turn]
+  criteria:
+    - Turn 1 should accurately explain CAP theorem (Consistency, Availability, Partition tolerance)
+    - Turn 2 should correctly identify Cassandra as AP and explain the trade-off
+    - Turn 2 should show awareness of turn 1 context — should not re-explain CAP from scratch

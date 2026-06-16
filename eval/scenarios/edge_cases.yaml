@@ -1,0 +1,91 @@
+- id: edge_emoji_only
+  prompt: "🤔"
+  description: Emoji-only message — Ze should handle gracefully without crashing
+  expected_agent: companion
+  tags: [companion, graceful_degradation, edge_case]
+  criteria:
+    - Should not crash or return an error
+    - Should respond in a way that acknowledges the ambiguity
+    - Should invite the user to say more
+    - Should not route to a specialist agent on so little signal
+
+- id: edge_very_short
+  prompt: "help"
+  description: Single-word vague message — Ze should interpret and respond usefully
+  expected_agent: companion
+  tags: [companion, graceful_degradation, edge_case]
+  criteria:
+    - Should not crash
+    - Should offer guidance on what Ze can help with
+    - Should not respond with a wall of text
+    - Should feel natural, not like a help page dump
+
+- id: edge_code_paste_no_context
+  prompt: "def fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)"
+  description: Code pasted with no explanation — Ze should infer intent and respond helpfully
+  tags: [research, companion, edge_case]
+  criteria:
+    - Should not crash or refuse
+    - Should recognise this as code and engage with it
+    - Could ask what the user wants to do, or offer relevant observations (e.g. O(2^n) complexity)
+    - Should not pretend it can't see the code
+
+- id: edge_language_other_than_english
+  prompt: "Olá, como estás? Podes ajudar-me a planear a minha semana?"
+  description: Message in Portuguese — Ze should respond helpfully regardless of language
+  tags: [companion, edge_case]
+  criteria:
+    - Should not refuse or ignore the message
+    - Should respond in a way that addresses the content (planning the week)
+    - Responding in English is acceptable; responding in Portuguese is a bonus
+    - Should not hallucinate a language it doesn't support
+
+- id: edge_very_long_message
+  prompt: "I've been thinking a lot about my productivity lately and I want to make some changes. Every morning I wake up and I feel overwhelmed before I've even started. I have about 20 unread emails, a calendar full of meetings, several ongoing projects at work, a few personal commitments, a gym routine I'm trying to maintain, and some side projects I keep meaning to get to but never do. I feel like I'm always reacting to things rather than being proactive. I've tried to-do lists, time-blocking, Pomodoro, all the usual stuff, but nothing sticks. I think part of the problem is I don't have a clear picture of what matters most. I want to talk through this with you and figure out a better system. Where do I even start?"
+  description: Very long, emotionally complex message — Ze should handle without truncating or ignoring parts
+  expected_agent: companion
+  tags: [companion, edge_case, emotional]
+  criteria:
+    - Should acknowledge the emotional weight (overwhelm) before jumping to productivity advice
+    - Should not ignore significant parts of the message
+    - Should not produce a bullet-pointed productivity framework immediately — connect first
+    - Response should feel like a thoughtful conversation starter, not a blog post
+
+- id: edge_repetition
+  description: "Multi-turn: same question asked twice — Ze should not pretend it hasn't been asked"
+  turns:
+    - prompt: "What is a hash table?"
+      description: "Turn 1: ask a question"
+    - prompt: "What is a hash table?"
+      description: "Turn 2: ask the exact same question again"
+  expected_agent: research
+  tags: [research, edge_case, multi_turn]
+  criteria:
+    - Turn 2 should acknowledge the repetition or respond appropriately (shorter, referencing turn 1)
+    - Should not copy-paste the turn 1 response verbatim without acknowledgement
+    - Should handle gracefully without an error
+
+- id: edge_topic_switch_mid_conversation
+  description: "Multi-turn: abrupt topic switch — Ze should follow the user, not stay stuck"
+  turns:
+    - prompt: "Explain how garbage collection works in Go."
+      description: "Turn 1: technical question"
+    - prompt: "Never mind that. What should I make for dinner tonight?"
+      description: "Turn 2: complete topic switch to a casual question"
+  tags: [research, companion, edge_case, multi_turn]
+  criteria:
+    - Turn 2 should drop the Go topic completely and engage with the dinner question
+    - Should not reference the Go discussion unless the user does
+    - Tone should shift to match the casual register of turn 2
+    - Should not refuse because the topic switch is "off-task"
+
+- id: edge_clarification_request
+  prompt: "Do the thing."
+  description: Extremely vague instruction — Ze should ask for clarification
+  expected_agent: companion
+  tags: [companion, graceful_degradation, edge_case]
+  criteria:
+    - Should ask what "the thing" refers to
+    - Should not make up a task and execute it
+    - Should not return an error
+    - Tone should be friendly, not frustrated

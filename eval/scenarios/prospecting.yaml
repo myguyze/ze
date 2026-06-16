@@ -1,0 +1,68 @@
+- id: prospecting_research_company
+  prompt: "Research Stripe as a potential client. What do they do and who should I reach out to?"
+  description: Company research for outreach — tests browser-based research and contact identification
+  expected_agent: prospecting
+  tags: [routing, prospecting]
+  criteria:
+    - Should route to the prospecting agent
+    - Should research Stripe's business and product offering
+    - Should identify relevant contacts or departments for outreach (e.g. partnerships, sales)
+    - Should not fabricate specific names or titles without evidence
+
+- id: prospecting_draft_outreach
+  prompt: "Draft a cold outreach email to the VP of Engineering at a Series B fintech startup."
+  description: Outreach email draft — tests personalised writing for prospecting
+  expected_agent: prospecting
+  tags: [routing, prospecting]
+  criteria:
+    - Should route to the prospecting agent
+    - Should draft a concise, professional cold email (not generic template spam)
+    - Should acknowledge the vague target and either ask for more detail or leave placeholders
+    - Should present the draft for review, not send it
+
+- id: prospecting_qualify_lead
+  prompt: "Is Notion a good fit for what I'm selling? I build B2B SaaS tools for operations teams."
+  description: Lead qualification — tests business context reasoning
+  expected_agent: prospecting
+  tags: [routing, prospecting]
+  criteria:
+    - Should route to the prospecting agent
+    - Should evaluate Notion as a potential client given the user's product context
+    - Should provide a reasoned answer (fit score, rationale, risks)
+    - Should not give a generic "it depends" non-answer
+
+- id: prospecting_build_target_list
+  prompt: "Find me 5 companies similar to Linear that might need my developer tooling product."
+  description: Target list building — tests market research and company identification
+  expected_agent: prospecting
+  tags: [routing, prospecting]
+  criteria:
+    - Should route to the prospecting agent
+    - Should use web research to identify companies in the dev tooling / project management space
+    - Should return named companies with brief reasoning for each
+    - Should not fabricate company names or invent non-existent products
+
+- id: prospecting_follow_up_sequence
+  prompt: "Write a 3-email follow-up sequence for a prospect who went quiet after our first call."
+  description: Multi-email sequence — tests sequence writing and tone variety
+  expected_agent: prospecting
+  tags: [routing, prospecting]
+  criteria:
+    - Should route to the prospecting agent
+    - Should produce three distinct emails with increasing urgency but not desperation
+    - Each email should feel natural and not copy-paste from the previous
+    - Should leave subject lines and specifics adjustable
+
+- id: prospecting_multi_turn_research_then_draft
+  description: "Multi-turn: research a company, then draft an outreach email using the findings"
+  turns:
+    - prompt: "Research Figma for prospecting purposes. What's their current focus?"
+      description: "Turn 1: research the company"
+    - prompt: "Now draft a short outreach email to their head of design partnerships."
+      description: "Turn 2: use the research to write a personalised email"
+  expected_agent: prospecting
+  tags: [routing, prospecting, multi_turn]
+  criteria:
+    - Turn 1 should surface relevant facts about Figma (product direction, team focus)
+    - Turn 2 email should reference specifics from turn 1, not be a generic template
+    - The outreach should feel personalised and demonstrate that Ze used the research

@@ -4,9 +4,40 @@ Ze has two complementary eval modes:
 
 - **CLI runner** (`make eval`) — standalone, no IDE required. Runs all scenarios,
   measures routing accuracy, and optionally runs an LLM quality judge. Results are
-  stored in `evals/results/` as JSON so you can track trends and detect regressions.
+  stored in `eval/results/` as JSON so you can track trends and detect regressions.
 - **MCP server** (`make eval-server`) — interactive mode for Claude Code / Cursor.
   The IDE's LLM acts as the judge and can run arbitrary prompts or named scenarios.
+
+---
+
+## Package layout
+
+The eval system is split into two parts:
+
+```
+core/ze-eval/          # ze_eval Python package — all eval infrastructure
+  ze_eval/
+    __init__.py        # public surface: ZeEvalClient, load_scenarios
+    types.py           # typed dataclasses: JudgeScore, VerifyResult, SessionMetrics, ScenarioResult
+    scenario.py        # load_scenarios(), load_scenario_by_id()
+    client.py          # ZeEvalClient — HTTP wrapper for /eval/chat
+    judge.py           # LLM-as-judge (structured for DeepEval swap in a follow-up phase)
+    verifier.py        # DB outcome verification
+    metrics.py         # session token + latency metrics from llm_cost_log
+    scoring.py         # routing_correct(), tools_correct(), outcome_correct()
+    runner.py          # orchestration: load → run → score → print → save
+    report.py          # print_summary(), print_diff()
+    server.py          # MCP server: ze_chat, ze_list_scenarios, ze_run_scenario, ze_run_suite
+
+eval/                  # test data and thin entrypoints
+  scenarios/           # YAML scenario definitions — add new ones here
+  results/             # JSON run outputs (gitignored, ephemeral)
+  run.py               # CLI entrypoint
+  server.py            # MCP server entrypoint
+```
+
+`ze_eval` is a standalone package with no Ze package dependencies — it communicates
+with Ze exclusively over the `/eval/chat` HTTP endpoint.
 
 ---
 
@@ -64,7 +95,7 @@ Add the following to your IDE's MCP server config. The exact location varies:
   "mcpServers": {
     "ze-eval": {
       "command": "uv",
-      "args": ["run", "python", "evals/mcp_server.py"],
+      "args": ["run", "python", "eval/server.py"],
       "cwd": "/path/to/ze",
       "env": {
         "ZE_EVAL_URL": "http://localhost:8000",
@@ -76,8 +107,7 @@ Add the following to your IDE's MCP server config. The exact location varies:
 ```
 
 Note the `cwd` field — unlike the Claude Code config (which runs from the project
-root automatically), external IDE configs may need an explicit working directory so
-`evals/mcp_server.py` resolves correctly.
+root automatically), external IDE configs may need an explicit working directory.
 
 ---
 
@@ -161,7 +191,7 @@ curl -X POST http://localhost:8000/eval/chat \
 
 ## Adding scenarios
 
-Create or edit YAML files in `evals/scenarios/`. No code changes required.
+Create or edit YAML files in `eval/scenarios/`. No code changes required.
 
 ### Single-turn scenario
 
@@ -236,12 +266,12 @@ make eval-report               # show last run summary
 make eval-diff                 # compare last two runs (regression detection)
 
 # Fine-grained control
-uv run python -m evals.runner --tag routing          # filter by tag
-uv run python -m evals.runner --judge --tag calendar # judge calendar scenarios only
-uv run python -m evals.report --compare              # same as eval-diff
+uv run python eval/run.py --tag routing          # filter by tag
+uv run python eval/run.py --judge --tag calendar # judge calendar scenarios only
+uv run python eval/run.py report --compare       # same as eval-diff
 ```
 
-Results are saved to `evals/results/<timestamp>.json`. The judge uses
+Results are saved to `eval/results/<timestamp>.json`. The judge uses
 `OPENROUTER_API_KEY` from your `.env` and scores each response on:
 - **quality** (1–5): Does Ze actually answer the question?
 - **tone** (1–5): Is the tone appropriate and in character?
@@ -337,3 +367,5 @@ Available tags: `companion`, `routing`, `persona`, `research`, `reminders`,
   Without them, Ze should return a graceful error — that is itself a valid eval outcome.
 - Reminders scenarios write real rows to the database. Clean up with
   `ze_chat("cancel all my reminders", session_id="cleanup")` after a suite run if needed.
+- `eval/results/` is gitignored. Run results are ephemeral; copy notable runs
+  elsewhere if you want to preserve them for comparison.

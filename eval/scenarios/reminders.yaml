@@ -1,0 +1,106 @@
+- id: reminders_create_absolute
+  prompt: "Remind me to call the dentist on Friday at 10am."
+  description: Create a reminder with an absolute day-and-time reference
+  expected_agent: reminders
+  expected_tools:
+    - name: set_reminder
+      args:
+        label__icontains: dentist
+  verify:
+    - table: user_reminders
+      where: {label__icontains: dentist, sent: false}
+      expect: exists
+  tags: [routing, reminders]
+  criteria:
+    - Should route to the reminders agent
+    - Should confirm the reminder was set with the label "Call the dentist"
+    - Should include the scheduled time in the confirmation
+    - Should not ask for clarification when a clear day+time is provided
+
+- id: reminders_create_relative
+  prompt: "Remind me in 3 hours to check the build pipeline."
+  description: Create a reminder with a relative time reference
+  expected_agent: reminders
+  expected_tools:
+    - name: set_reminder
+      args:
+        label__icontains: build pipeline
+  verify:
+    - table: user_reminders
+      where: {label__icontains: build pipeline, sent: false}
+      expect: exists
+  tags: [routing, reminders]
+  criteria:
+    - Should route to the reminders agent
+    - Should confirm the reminder with label "Check the build pipeline" (or similar)
+    - Should describe the time as approximately 3 hours from now
+    - Should not confuse relative times
+
+- id: reminders_create_no_time
+  prompt: "Remind me to review the PR."
+  description: Reminder without a time — agent should ask for a time
+  expected_agent: reminders
+  tags: [routing, reminders, graceful_degradation]
+  criteria:
+    - Should route to the reminders agent
+    - Should ask for a time since none was provided
+    - Should not fabricate a time
+    - Should keep the request about reviewing the PR, not lose the context
+
+- id: reminders_list
+  prompt: "What reminders do I have?"
+  description: List pending reminders
+  expected_agent: reminders
+  expected_tools: [list_reminders]
+  tags: [routing, reminders]
+  criteria:
+    - Should route to the reminders agent
+    - If no reminders exist, should say so clearly rather than failing silently
+    - If reminders exist, should list them with labels and times
+    - Should not confuse listing reminders with listing calendar events
+
+- id: reminders_cancel
+  prompt: "Cancel my reminder about the dentist."
+  description: Cancel a specific reminder by label hint
+  expected_agent: reminders
+  expected_tools: [list_reminders]
+  tags: [routing, reminders]
+  criteria:
+    - Should route to the reminders agent
+    - If a matching reminder exists, should cancel it and confirm
+    - If no match is found, should list pending reminders and ask which to cancel
+    - Should not silently fail or claim success when no match exists
+
+- id: reminders_past_time
+  prompt: "Remind me yesterday at 5pm to do something."
+  description: Reminder set in the past — should reject gracefully
+  expected_agent: reminders
+  tags: [routing, reminders, graceful_degradation]
+  criteria:
+    - Should route to the reminders agent
+    - Should reject the request because the time is in the past
+    - Should ask for a future time
+    - Should not create a reminder with a past timestamp
+
+- id: reminders_multi_turn_create_then_list
+  description: "Multi-turn: create a reminder then ask to list reminders"
+  expected_tools:
+    - name: set_reminder
+      args:
+        label__icontains: vitamins
+    - list_reminders
+  verify:
+    - table: user_reminders
+      where: {label__icontains: vitamins, sent: false}
+      expect: exists
+  turns:
+    - prompt: "Remind me to take my vitamins tomorrow morning at 8am."
+      description: "Turn 1: create a reminder"
+    - prompt: "What reminders do I have set?"
+      description: "Turn 2: list reminders — should include the just-created one"
+  expected_agent: reminders
+  tags: [routing, reminders, multi_turn]
+  criteria:
+    - Turn 1 should confirm the reminder was created with label "Take my vitamins" (or similar)
+    - Turn 2 should list at minimum the reminder just created
+    - Turn 2 should show the correct time from turn 1

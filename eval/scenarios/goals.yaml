@@ -1,0 +1,175 @@
+- id: goals_create_simple
+  prompt: "I want to read 12 books this year. Can you help me set that as a goal?"
+  description: Create a new goal — Ze should initiate goal setup with milestones
+  expected_agent: goals
+  expected_tools:
+    - name: create_goal
+      args:
+        objective__icontains: books
+  verify:
+    - table: goals
+      where: {objective__icontains: books}
+      expect: exists
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent
+    - Should acknowledge the goal and offer to track it
+    - Should suggest a concrete milestone breakdown (e.g. 1 book/month)
+    - Should not just confirm without any structure or next step
+
+- id: goals_list_active
+  prompt: "What goals am I currently working on?"
+  description: List active goals — tests goal retrieval
+  expected_agent: goals
+  expected_tools: [list_goals]
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent
+    - If goals exist, should list them with current status
+    - If no goals, should say so and invite the user to set one
+    - Should not confuse goals with reminders or calendar events
+
+- id: goals_check_progress
+  prompt: "How am I doing on my fitness goal?"
+  description: Progress check on a specific goal — requires goal lookup by label
+  expected_agent: goals
+  expected_tools: [list_goals]
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent
+    - Should attempt to find a goal matching "fitness"
+    - Should report milestone progress if the goal exists
+    - If no matching goal found, should say so and offer to create one
+
+- id: goals_update_milestone
+  prompt: "I finished reading my third book of the year."
+  description: Mark a milestone as complete via conversation — implicit goal update
+  expected_agent: goals
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent (or companion with goal memory)
+    - Should acknowledge the achievement
+    - Should update or note progress toward the reading goal
+    - Should not ignore the milestone update
+
+- id: goals_add_verification
+  prompt: "Set a goal for me to launch my side project by end of Q3 and check in with me weekly."
+  description: Goal with a verification cadence — tests scheduled check-in setup
+  expected_agent: goals
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent
+    - Should set the goal with the Q3 deadline
+    - Should acknowledge or set up a weekly check-in cadence
+    - Should confirm the goal structure back to the user
+
+- id: goals_close_completed
+  prompt: "I finished my running challenge. Mark it as done."
+  description: Close a completed goal — tests goal state transition
+  expected_agent: goals
+  expected_tools: [list_goals, abandon_goal]
+  tags: [routing, goals]
+  criteria:
+    - Should route to the goals agent
+    - Should find the running challenge goal and mark it complete
+    - Should congratulate the user appropriately (but not excessively)
+    - If goal not found, should list active goals and ask which to close
+
+- id: goals_multi_turn_define_and_confirm
+  description: "Multi-turn: vague goal request → Ze asks clarifying questions → user confirms"
+  expected_tools:
+    - name: create_goal
+      args:
+        objective__icontains: rust
+  verify:
+    - table: goals
+      where: {objective__icontains: rust}
+      expect: exists
+  turns:
+    - prompt: "Help me set a learning goal."
+      description: "Turn 1: vague goal — Ze should ask what to learn"
+    - prompt: "I want to get comfortable with Rust by building a small CLI tool."
+      description: "Turn 2: user clarifies — Ze should structure the goal"
+  expected_agent: goals
+  tags: [routing, goals, multi_turn]
+  criteria:
+    - Turn 1 should ask for specifics (what, by when, how Ze can help)
+    - Turn 2 should create a concrete goal with milestones (e.g. learn basics, build CLI, test)
+    - Ze should not create an empty goal from turn 1 alone
+
+# --- Phase 25: Goal Suggestions ---
+
+- id: goals_suggest_what_next
+  prompt: "I just wrapped up my last goal. What should I focus on next?"
+  description: >
+    Post-completion suggestion request — Ze should engage conversationally and either ask
+    what the user just completed or offer direction. Companion handles this naturally since
+    no goal ID or management action is requested.
+  expected_agent: companion
+  tags: [routing, goals, suggestions]
+  criteria:
+    - Should route to companion (no specific goal to manage; conversational advice)
+    - Should acknowledge the completion and engage about what might come next
+    - Should not fabricate a specific goal suggestion without knowing the user's context
+    - Should invite the user to share what they just finished or what they're interested in
+
+- id: goals_suggest_based_on_context
+  prompt: "Can you suggest a goal for me? Something that fits what I've been working on."
+  description: >
+    Conversational suggestion request — no specific goal to create or manage.
+    Companion handles it by drawing on what it knows about the user.
+  expected_agent: companion
+  tags: [routing, goals, suggestions]
+  criteria:
+    - Should route to companion (open-ended advice, not a goal management request)
+    - Should engage constructively — either suggest something specific or ask for context
+    - Should not just say "I can't suggest goals" — it should try to be helpful
+    - Should not fabricate an implausible suggestion disconnected from the user's context
+
+- id: goals_suggest_accept_conversationally
+  prompt: "You suggested I build a personal finance tracker. I like the idea — let's make it a goal."
+  description: >
+    User accepting a proactively-suggested goal via conversation instead of the Telegram
+    callback. Ze should route to the goals agent and call create_goal. Because the goals
+    agent is CONFIRM-mode, the goal goes to Telegram for approval — it won't be in the DB
+    until the user confirms there (pending_confirmation will be True).
+  expected_agent: goals
+  tags: [routing, goals, suggestions]
+  criteria:
+    - Should route to the goals agent
+    - Should call create_goal with the finance tracker as the objective
+    - Should not ask unnecessary clarifying questions when the user's intent is clear
+    - Should tell the user to check Telegram for the milestone plan and approval
+    - Should not claim the goal is already running — it awaits Telegram confirmation
+
+- id: goals_suggest_routing_recommendation
+  prompt: "What goal would you recommend I set this month?"
+  description: >
+    Open-ended recommendation query — Ze asks for advice, not to manage a specific goal.
+    Companion handles this naturally with what it knows about the user.
+  expected_agent: companion
+  tags: [routing, goals, suggestions]
+  criteria:
+    - Should route to companion (advice request, not goal management)
+    - Should offer a concrete recommendation or ask a clarifying question
+    - Should frame any recommendation as a suggestion, not a directive
+    - Should not just list generic goal categories without any personalisation
+
+- id: goals_suggest_after_dismissal_multi_turn
+  description: >
+    Multi-turn: user dismissed a proactive suggestion but now wants to revisit it
+    conversationally and create the goal manually. Goals agent should handle turn 2
+    and send the plan to Telegram for approval (CONFIRM mode — not in DB until approved).
+  expected_agent: goals
+  turns:
+    - prompt: "I dismissed a goal suggestion last week about starting a newsletter. I think I was wrong — I want to do it."
+      description: "Turn 1: user wants to revisit a dismissed suggestion"
+    - prompt: "Yes, let's go ahead. I want to launch a weekly newsletter about startup life within 3 months."
+      description: "Turn 2: user confirms scope — Ze should create the goal"
+  tags: [routing, goals, suggestions, multi_turn]
+  criteria:
+    - Turn 1 should acknowledge the user wants to revisit the idea and ask for details or scope
+    - Turn 1 should not attempt to look up the dismissed suggestion (Ze has no tool for this)
+    - Turn 2 should call create_goal with the newsletter objective and 3-month horizon
+    - Turn 2 response should tell the user to check Telegram for the milestone plan
+    - Ze should not ask for redundant confirmation once the user has said "yes, let's go"

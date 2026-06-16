@@ -1,0 +1,61 @@
+- id: routing_research_factual
+  prompt: "What are the main differences between PostgreSQL and MySQL?"
+  description: Clear factual research query — should route to research agent
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should be handled by the research agent
+    - Should provide a substantive, accurate comparison
+    - Should not deflect or refuse
+
+- id: routing_research_current_events
+  prompt: "What happened at the last WWDC?"
+  description: Current events research — routing to research agent with web search
+  expected_agent: research
+  tags: [routing, research]
+  criteria:
+    - Should use the research agent with web search
+    - Response should include relevant WWDC details
+    - Should not fabricate specific announcements
+
+- id: routing_calendar_check
+  prompt: "What's on my calendar tomorrow?"
+  description: Calendar read query — should route to calendar agent
+  expected_agent: calendar
+  expected_tools: [list_events]
+  tags: [routing, calendar]
+  criteria:
+    - Should route to the calendar agent
+    - Should attempt to fetch calendar events
+    - If calendar access fails, should explain why gracefully
+
+- id: routing_email_read
+  prompt: "Do I have any unread emails?"
+  description: Email read query — should route to email agent
+  expected_agent: email
+  expected_tools: [list_emails]
+  tags: [routing, email]
+  criteria:
+    - Should route to the email agent
+    - Should attempt to check inbox
+    - Should handle credential errors gracefully
+
+- id: routing_ambiguous_companion
+  prompt: "Tell me something interesting."
+  description: Ambiguous open-ended prompt — companion is most appropriate
+  expected_agent: companion
+  tags: [routing, companion]
+  criteria:
+    - Should not route to research (no specific query)
+    - Companion should respond with something engaging
+    - Response should feel conversational, not like a web search result
+
+- id: routing_compound
+  prompt: "Search for Python async best practices and add a reminder for me to read it tonight."
+  description: Compound task spanning research + reminders — should decompose
+  expected_tools: [set_reminder]
+  tags: [routing, compound]
+  criteria:
+    - Ze should recognise this as a compound task
+    - Should handle both the research and the reminder parts
+    - Should not silently drop either subtask

@@ -162,19 +162,19 @@ logs:
 .PHONY: eval eval-judge eval-report eval-diff eval-server eval-clean
 
 eval:
-	uv run python -m evals.runner
+	uv run python eval/run.py
 
 eval-judge:
-	uv run python -m evals.runner --judge
+	uv run python eval/run.py --judge
 
 eval-report:
-	uv run python -m evals.report
+	uv run python eval/run.py report
 
 eval-diff:
-	uv run python -m evals.report --compare
+	uv run python eval/run.py report --compare
 
 eval-server:
-	uv run python evals/mcp_server.py
+	uv run python eval/server.py
 
 eval-clean:
 	@echo "Removing eval-namespaced rows from routing_log, checkpoints, llm_cost_log..."

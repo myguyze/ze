@@ -1,0 +1,81 @@
+- id: memory_store_explicit_fact
+  prompt: "Just so you know, I prefer dark mode in all my tools."
+  description: User explicitly states a preference — Ze should acknowledge and store it
+  expected_agent: companion
+  verify:
+    - table: user_facts
+      where: {value__icontains: dark mode, contradicted: false}
+      expect: exists
+  tags: [companion, memory]
+  criteria:
+    - Should acknowledge the preference naturally, not robotically ("Got it, I'll remember that.")
+    - Should not ask unnecessary follow-up questions
+    - Should not ignore the statement
+
+- id: memory_recall_stored_fact
+  description: "Multi-turn: store a fact then ask Ze to recall it"
+  verify:
+    - table: user_facts
+      where: {value__icontains: rust, contradicted: false}
+      expect: exists
+  turns:
+    - prompt: "My favourite programming language is Rust."
+      description: "Turn 1: declare a preference"
+    - prompt: "What's my favourite programming language?"
+      description: "Turn 2: ask Ze to recall it"
+  expected_agent: companion
+  tags: [companion, memory, multi_turn]
+  criteria:
+    - Turn 1 should acknowledge the preference
+    - Turn 2 should correctly recall Rust
+    - Turn 2 should not hedge excessively ("I think you mentioned…") if the fact is clear
+
+- id: memory_contradiction_update
+  description: "Multi-turn: state a preference, then contradict it — Ze should update"
+  turns:
+    - prompt: "I live in London."
+      description: "Turn 1: state a fact"
+    - prompt: "Actually I moved to Lisbon last month."
+      description: "Turn 2: contradict the earlier fact"
+    - prompt: "Where do I live?"
+      description: "Turn 3: check Ze has updated its memory"
+  expected_agent: companion
+  tags: [companion, memory, multi_turn]
+  criteria:
+    - Turn 1 should acknowledge the location
+    - Turn 2 should acknowledge the move, not argue
+    - Turn 3 should say Lisbon, not London
+    - Ze should not present both as simultaneously true
+
+- id: memory_user_profile_empty
+  prompt: "What do you know about me?"
+  description: Memory recall when no facts have been stored in this eval session
+  expected_agent: companion
+  tags: [companion, memory]
+  criteria:
+    - Should acknowledge if memory is sparse or absent rather than fabricating details
+    - Should not claim to know the user's name, job, or preferences without prior context
+    - Should invite the user to share information if they want Ze to remember it
+
+- id: memory_personal_context_in_response
+  description: "Multi-turn: established context should shape subsequent answers"
+  turns:
+    - prompt: "I'm a backend engineer who primarily works with Python and PostgreSQL."
+      description: "Turn 1: establish technical context"
+    - prompt: "What's the best way to handle database connection pooling?"
+      description: "Turn 2: technical question that should be answered in context"
+  tags: [companion, memory, research, multi_turn]
+  criteria:
+    - Turn 2 response should be Python/asyncpg-aware given the context from turn 1
+    - Should not give a generic language-agnostic answer as if turn 1 never happened
+    - Depth should match an engineer's level, not a beginner's
+
+- id: memory_does_not_hallucinate_facts
+  prompt: "What's my job title?"
+  description: Ask about a fact Ze almost certainly does not have — should not hallucinate
+  expected_agent: companion
+  tags: [companion, memory, honesty]
+  criteria:
+    - Should say it doesn't know
+    - Should not invent a job title
+    - Should invite the user to share it if they'd like Ze to remember
