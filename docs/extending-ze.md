@@ -203,6 +203,9 @@ plugins/ze-myplugin/
         __init__.py
         plugin.py
         types.py          ← domain dataclasses (never Pydantic)
+        locales/
+            en.yaml       ← progress message keys for this plugin
+            pt.yaml
         agents/
             myagent/
                 __init__.py
@@ -280,6 +283,26 @@ class MyPlugin(ZePlugin):
 ```
 
 Override only what you need — all methods have no-op defaults.
+
+### 3b. Add progress message translations
+
+Create `ze_myplugin/locales/en.yaml` (and `pt.yaml` for Portuguese):
+
+```yaml
+# ze_myplugin/locales/en.yaml
+my_agent:
+  working:
+    - "⚙️ Working on that..."
+    - "⚙️ Let me handle that..."
+```
+
+The `ZePlugin` base class auto-loads these files via `locale_data()` at startup and
+merges them into the shared `ProgressTranslations`. No override needed — just follow
+the `locales/{locale}.yaml` convention. Agents call `await self.emit(ctx, "my_agent.working")`
+to send the message to the client.
+
+The app-level `config/locales/` files are an override layer — add entries there only
+to customise a plugin's messages for a specific deployment without touching plugin code.
 
 ### 4. Add to `ze-api` dependencies
 
@@ -424,6 +447,7 @@ The error hierarchy:
 - [ ] Module paths added to `plugin.agent_module_paths()` (tools module listed first)
 - [ ] All `__init__` parameters type-annotated
 - [ ] New dependencies added to `container.py` dep_map
+- [ ] Progress keys added to `locales/en.yaml` (and `pt.yaml`) in the plugin package
 - [ ] Tests cover the golden path, draft mode, and blocked mode
 
 ### New plugin package
@@ -431,6 +455,7 @@ The error hierarchy:
 - [ ] Spec written in `specs/phases/` or `specs/arch/`
 - [ ] `pyproject.toml` with `ze-sdk` as the only Ze dep and `ze.plugins` entry point
 - [ ] `plugin.py` implementing `ZePlugin` — only overrides methods it needs
+- [ ] `locales/en.yaml` (and `pt.yaml`) with progress keys for all agents in the plugin
 - [ ] `ZePlugin.onboarding()` implemented if the plugin needs first-run setup questions
 - [ ] Plugin instantiated in `ze_api/container.py` and added to `plugins` list
 - [ ] Package added to `ze-api/pyproject.toml` dependencies

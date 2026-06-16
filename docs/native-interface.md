@@ -82,11 +82,29 @@ The client should send `{"type": "ack", "ids": [...]}` frames to mark messages a
 | Frame | Description |
 |---|---|
 | `{"type": "pong"}` | Heartbeat reply |
-| `{"type": "typing"}` | Sent immediately after receiving a user message while Ze is processing |
+| `{"type": "typing"}` | Sent immediately after receiving a user message while Ze is processing. May include an optional `"text"` field with a localized progress string (e.g. `"📡 Fetching the latest news..."`). Re-sent mid-turn by agents to update the status and reset the client's 3-second display timer. |
 | `{"type": "message", "message": Message}` | Outbound message from Ze (see Message shape below) |
 | `{"type": "confirm_request", "id": "...", "prompt": "...", "actions": [...]}` | Capability gate confirmation request |
 | `{"type": "confirm_cancel", "id": "..."}` | Confirmation cancelled (timeout or cancel command) |
 | `{"type": "error", "detail": "..."}` | Error from the server (e.g. "busy") |
+
+### Progress messages
+
+The `typing` frame carries an optional `text` field with a localized human-readable
+status string. The server sends an initial `{ "type": "typing" }` (no text) as soon
+as a user message is received; agents then emit keyed progress messages mid-turn that
+re-send the frame with text.
+
+```json
+{ "type": "typing", "text": "📡 Fetching the latest news..." }
+```
+
+Each `typing` frame resets the client's display timer (default 3 seconds). Long-running
+operations (e.g. RSS fetches, web searches) emit multiple frames to keep the indicator
+alive.
+
+Clients should render `text` when present and fall back to a generic spinner when absent.
+`typingText` is exposed from `useChatSession` for this purpose.
 
 ### Message shape
 

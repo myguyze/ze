@@ -119,7 +119,7 @@ class MyAgent(BaseAgent):
         self._settings = settings
 
     async def run(self, ctx: AgentContext) -> AgentResult:
-        await self.emit(ctx, "<name>.starting")   # optional progress message key
+        await self.emit(ctx, "<name>.working")   # key defined in locales/en.yaml
         system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx)
 
         result = await self.call_tool("tool_one", ctx, param=ctx.prompt, client=self._client)
@@ -141,7 +141,56 @@ class MyAgent(BaseAgent):
 | `self.agentic_loop(ctx, client=…)` | Runs the LLM-driven ReAct tool loop; returns `(response, tool_calls)` |
 | `self.call_tool(name, ctx, **kwargs)` | Executes a single tool with draft-mode suppression and structured logging |
 | `self._model(ctx)` | Returns the correct model string — primary or `model_simple` based on complexity |
-| `self.emit(ctx, key)` | Sends a progress message using a locale translation key |
+| `self.emit(ctx, key)` | Sends a localized progress message to the client mid-turn (see [Progress messages](#progress-messages)) |
+
+### Progress messages
+
+Agents can send localized status strings to the client while they work. The client
+displays them as a typing indicator with text instead of a plain spinner.
+
+Call `self.emit(ctx, key)` at any point inside `run()` or inside a tool that has
+`reporter` in its deps. Each call resets the 3-second typing indicator timer, so
+long-running operations should emit periodically to keep the indicator alive.
+
+**Key convention:** `<domain>.<state>` — e.g. `"news.fetching"`, `"calendar.reading"`.
+
+**Locale files** live inside the plugin's own package at `locales/en.yaml` and
+`locales/pt.yaml`. Add entries for every key your agent emits:
+
+```yaml
+# plugins/ze-myplugin/ze_myplugin/locales/en.yaml
+my_agent:
+  working:
+    - "⚙️ Working on that..."
+    - "⚙️ Let me handle that..."
+  searching:
+    - "🔍 Searching..."
+```
+
+Values can be a single string or a list — list entries are chosen randomly on each
+`emit()` call. Template variables use `{name}` Python-format syntax.
+
+The `ZePlugin` base class auto-loads `locales/{locale}.yaml` from within the plugin
+package at startup — no override needed as long as the file exists. The app-level
+`config/locales/` files are an override layer for deployment-specific customisation.
+
+**Emitting from tools:** pass `reporter` through the agent's deps dict so tools can
+emit mid-operation without exposing it to the LLM:
+
+```python
+# in _grounded_loop or run():
+deps = {"my_store": self._store, "reporter": ctx.reporter}
+
+# in tools.py:
+async def my_long_tool(my_store: MyStore, reporter: Any = None) -> dict:
+    if reporter is not None:
+        await reporter.emit("my_agent.working")
+    result = await my_store.do_work()
+    return result
+```
+
+`reporter` has a non-JSON-primitive type so it is never included in the LLM tool
+schema — it is injected silently from deps.
 
 ### Lifecycle hooks
 
@@ -218,4 +267,5 @@ Conventions:
 - [ ] All `__init__` parameters are type-annotated
 - [ ] All tool calls go through `self.call_tool()` or `self.agentic_loop()`, never direct function calls
 - [ ] `tools.py` — all tools decorated with `@tool` (if applicable)
+- [ ] Progress keys added to `locales/en.yaml` (and `locales/pt.yaml`) in the plugin package
 - [ ] Tests written (including draft + blocked mode)

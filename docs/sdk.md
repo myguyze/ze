@@ -25,7 +25,7 @@ from ze_sdk.errors import ZeError, AgentError, ToolBlockedError, AgentAbortedErr
 
 | Symbol | What it is |
 |--------|-----------|
-| `ZePlugin` | Abstract base class for domain extensions. Override only the hooks you need. |
+| `ZePlugin` | Abstract base class for domain extensions. Override only the hooks you need.|
 | `agent` | Class decorator that registers a `BaseAgent` subclass in the global `AgentRegistry`. |
 | `tool` | Function decorator that registers an async function as a callable tool. |
 | `ToolAccess` | Enum — `READ` or `WRITE`. Controls draft-mode suppression. |
@@ -54,7 +54,7 @@ Passed to every `BaseAgent.run()` call. Contains everything the agent needs for 
 | `messages` | `list[dict]` | Conversation history (OpenAI message format). |
 | `persona` | `dict` | Active persona dials. |
 | `model` | `str \| None` | Override model string. Falls back to agent's class attribute. |
-| `reporter` | `ProgressReporter \| None` | Emit progress messages via `self.emit(ctx, key)`. |
+| `reporter` | `ProgressReporter \| None` | Emit localized progress messages via `self.emit(ctx, key)`. Keys are defined in each plugin's `locales/` YAML files. See [adding-an-agent.md](adding-an-agent.md#progress-messages). |
 | `extensions` | `dict[str, ...]` | Arbitrary msgpack-serializable data (e.g. `goal_id`). |
 
 Fields `identity_builder`, `abort_token`, and `memory_store` are runtime-only — never checkpoint a context where they are set.

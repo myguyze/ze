@@ -339,3 +339,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 48 | Core split — ze-agents (developer API), ze-proactive (job framework) extracted from ze-core | Done |
 | 49 | Ze SDK — `ze-sdk` flat re-export layer; plugins import from `ze_sdk.*`, no direct ze-core dep | Done |
 | 52 | Session-grouped episode consolidation — group episodes by session before archiving, one LLM summary per session | Done |
+| 54 | Progress messages — plugin-local locale files, `ProgressTranslations.build()`, reporter wired end-to-end, `typing` frame carries text, `news.fetching` key for refresh | Done |
