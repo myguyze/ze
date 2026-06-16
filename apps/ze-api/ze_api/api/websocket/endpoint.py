@@ -68,7 +68,14 @@ async def websocket_endpoint(
                 await ws.send_json({"type": "pong"})
 
             elif frame_type == "ack":
-                ids = [UUID(i) for i in data.get("ids", [])]
+                ids: list[UUID] = []
+                for raw in data.get("ids") or []:
+                    if not raw:
+                        continue
+                    try:
+                        ids.append(UUID(str(raw)))
+                    except (TypeError, ValueError):
+                        log.warning("ws_ack_invalid_id", id=raw)
                 await msg_store.mark_read(ids)
 
             elif frame_type == "command":

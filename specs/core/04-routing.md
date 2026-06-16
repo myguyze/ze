@@ -273,17 +273,37 @@ CREATE TABLE routing_log (
 
 ## Usage in the Orchestration Graph
 
-The router is called in the `embed_route` node:
+The router is called in the `embed_route` node. Before scoring, the node enriches
+the prompt with a compact tail of the recent conversation (`_history_hint`) so that
+anaphoric follow-ups ("are these recent?", "got anything from today?") score against
+the right agent even without explicitly naming it. The same enriched text is passed
+to the Haiku fallback in the `decompose` node when embedding confidence is low.
 
 ```python
 async def embed_route(state: AgentState, config: RunnableConfig) -> dict:
     router: EmbeddingRouter = config["configurable"]["router"]
+    routing_text = state.get("image_caption") or state["prompt"]
+    history_hint = _history_hint(state)          # last 4 turns, truncated
+    if history_hint:
+        routing_text = f"{routing_text}\n\n{history_hint}"
     envelope = await router.route(
-        prompt=state["prompt"],
+        prompt=routing_text,
         session_id=state["session_id"],
     )
     return {"envelope": envelope}
 ```
+
+### History hint
+
+`_history_hint(state)` returns a compact block of the last `_HISTORY_HINT_TURNS`
+(default: 4) conversation turns, each truncated to `_HISTORY_HINT_CHARS` (default:
+240) characters. If the session has been inactive for more than
+`_HISTORY_INACTIVITY_MINUTES` (default: 30) minutes, no hint is produced — a
+cold session restart should not be confused with a follow-up.
+
+The hint is appended **after** the message so the actual message content dominates
+the embedding score. The hint is also passed to the Haiku LLM fallback (the
+`decompose` node) so both routing paths see identical context.
 
 The `envelope` drives all downstream routing decisions:
 - `envelope.is_compound` → whether the graph fans out to multiple agents.

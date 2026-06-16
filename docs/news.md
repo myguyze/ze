@@ -12,20 +12,21 @@ from `ze-core` and `ze-personal`.
 config.yaml (news.sources)
         │
         ▼
-SourceRegistry ──► RssSource.fetch() ──► NewsFetchJob
-                                               │
-                        ┌──────────────────────┤
-                        │                      │
-                        ▼                      ▼
-                 NewsStore.upsert()    async credibility scoring
-                        │                      │
-                 (embedding stored)    NewsStore.update_credibility()
-                        │
-           ┌────────────┼────────────┐
-           │            │            │
-           ▼            ▼            ▼
-    get_headlines   search_news   MorningBriefing
-    (news agent)   (news agent)   (briefing job)
+SourceRegistry ──► RssSource.fetch() ──► NewsFetchJob (scheduled every 30 min)
+                                               ▲               │
+                                               │ force=True     │
+                                         refresh_news    ┌──────┤
+                                         (on-demand)     │      │
+                                                         ▼      ▼
+                                               NewsStore.upsert()    async credibility scoring
+                                                        │                      │
+                                               (embedding stored)    NewsStore.update_credibility()
+                                                        │
+                                           ┌────────────┼────────────┐
+                                           │            │            │
+                                           ▼            ▼            ▼
+                                    get_headlines   search_news   MorningBriefing
+                                    (news agent)   (news agent)   (briefing job)
 ```
 
 ---
@@ -45,9 +46,9 @@ plugins/ze-news/
       rss.py          ← RssSource (feedparser + aiohttp)
     agents/
       agent.py        ← NewsAgent(@agent)
-      tools.py        ← get_headlines, search_news tools
+      tools.py        ← refresh_news, get_headlines, search_news tools
     jobs/
-      fetch.py        ← NewsFetchJob(@proactive_job)
+      fetch.py        ← NewsFetchJob(@proactive_job, force= param for on-demand use)
     migrations/
       versions/
         zn001_news_articles.py        ← creates news_articles table
@@ -306,9 +307,15 @@ apply to the news plugin).
 
 ---
 
-## `get_headlines` tool
+## Tools
 
-The news agent exposes two tools:
+The news agent exposes three tools:
+
+**`refresh_news`** — triggers an immediate RSS fetch across all configured sources,
+bypassing the normal 30-minute minimum fetch interval. The agent calls this
+automatically when the user asks for today's news or says headlines are stale.
+Returns `{"status": "ok", "message": "..."}` when all sources have been fetched;
+the agent then calls `get_headlines` to present the fresh articles.
 
 **`get_headlines`** — returns ranked headlines. The LLM schema accepts `limit`,
 `tags`, and `personalized`. When `personalized=true` (default), the tool injects
@@ -372,7 +379,13 @@ Full heuristic parity across all languages is a v2 concern. Heuristic flags carr
 ## Inspecting news data
 
 Use the news agent in conversation to query current news:
-- *"What's in the news today?"* — `get_headlines` with default personalization
+- *"What's in the news today?"* — agent calls `refresh_news` then `get_headlines`
 - *"Any tech news?"* — `get_headlines(tags=["tech"])`
 - *"Search for articles about the budget"* — `search_news(query="budget")`
 - *"Were any of today's headlines flagged?"* — agent surfaces credibility flags with context
+
+The agent calls `refresh_news` automatically when the user asks for today's or recent
+news so the local store is always up-to-date before presenting headlines. The scheduled
+`NewsFetchJob` (every 30 minutes) continues to run in the background for the morning
+briefing and proactive delivery; `refresh_news` bypasses the interval guard for
+on-demand requests.

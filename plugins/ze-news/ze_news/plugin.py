@@ -79,9 +79,10 @@ class NewsPlugin(ZePlugin):
     def agent_deps(self, accumulated: dict) -> dict:
         if self._store is None:
             return {}
+        from ze_news.jobs.fetch import NewsFetchJob
         from ze_news.store import NewsStore
 
-        return {NewsStore: self._store}
+        return {NewsStore: self._store, NewsFetchJob: self._fetch_job}
 
     def configurable_services(self) -> dict[str, Any]:
         if self._store is None:

@@ -43,6 +43,7 @@ def make_agent(articles: list[Article] | None = None) -> NewsAgent:
         memory_store=AsyncMock(),
         goal_provider=AsyncMock(),
         news_store=news_store,
+        news_fetch_job=AsyncMock(),
         settings=make_settings(),
     )
     agent._preference_builder = AsyncMock()

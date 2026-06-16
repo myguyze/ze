@@ -40,10 +40,10 @@ class NewsFetchJob:
         self._credibility_model = credibility_model
         self._min_fetch_interval_minutes = min_fetch_interval_minutes
 
-    async def run(self) -> None:
+    async def run(self, *, force: bool = False) -> None:
         now = datetime.now(timezone.utc)
         for source in self._registry.all():
-            if await self._should_skip_source(source.key, now):
+            if not force and await self._should_skip_source(source.key, now):
                 continue
 
             articles = await source.fetch(limit=50)

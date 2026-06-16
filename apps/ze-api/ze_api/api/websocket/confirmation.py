@@ -9,7 +9,7 @@ from fastapi import WebSocket
 
 from ze_agents.tasks import fire_and_forget
 from ze_api.api.websocket.connection import ConnectionManager
-from ze_api.api.websocket.serializers import extract_thread_id
+from ze_api.api.websocket.serializers import ephemeral_assistant_message, extract_thread_id
 from ze_api.logging import get_logger
 
 log = get_logger(__name__)
@@ -110,7 +110,7 @@ async def confirmation_timeout(
     )
     await conn_mgr.send_frame({
         "type": "message",
-        "message": {"role": "assistant", "text": timeout_msg, "components": []},
+        "message": ephemeral_assistant_message(timeout_msg),
     })
     if notifier is not None:
         try:

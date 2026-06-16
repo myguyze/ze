@@ -17,7 +17,8 @@
 | `NewsStore` (Postgres + embeddings) | ✅ Done |
 | `NewsAgent` + tools | ✅ Done |
 | `NewsPlugin(ZePlugin)` | ✅ Done |
-| `NewsFetchJob` (proactive refresh) | ✅ Done |
+| `NewsFetchJob` (proactive refresh + `force=True` for on-demand) | ✅ Done |
+| `refresh_news` tool (on-demand fetch bypassing interval guard) | ✅ Done |
 | DB migration | ✅ Done |
 | Config schema | ✅ Done |
 | `MorningBriefing` news wiring (`ze/jobs/briefing.py`) | ✅ Done |

@@ -11,6 +11,7 @@ from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
 from ze_agents.settings import Settings as CoreSettings
 from ze_agents.types import AgentContext, AgentResult, ToolCall
+from ze_news.jobs.fetch import NewsFetchJob
 from ze_news.preferences import NewsPreferenceBuilder, is_diagnostic_query
 from ze_news.store import NewsStore
 from ze_news.types import GoalTitleProvider, PersonalizationContext, PersonalizationSettings
@@ -23,6 +24,9 @@ Candidate articles already retrieved from the local store for this request:
 {candidate_articles}
 
 Available tools:
+- refresh_news: trigger an immediate RSS fetch from all sources, bypassing the 30-minute
+  interval. Call this first when the user asks for today's news or says headlines are stale.
+  After it returns, call get_headlines to present the fresh articles.
 - get_headlines: fetch recent headlines personalised to your interests, optionally filtered
   by tag (global, local, tech, etc.). Returns two buckets: 'relevant' (ranked by your
   interests) and 'discovery' (fresh, off-profile articles). Present both sections to the user.
@@ -33,9 +37,11 @@ Grounding rules (these override everything else):
   or from a tool result. NEVER invent, embellish, or recall headlines from your own
   knowledge.
 - Always cite each article with its source, published date, and URL.
-- If the candidate list is empty or irrelevant and tools return nothing useful, say
-  plainly that the local news store has no matching articles and offer to have Ze's
-  research agent search the web instead. Do not fabricate a digest.
+- If the candidate list is empty or irrelevant, call refresh_news to fetch the latest
+  articles before concluding there is nothing to show. After refresh, call get_headlines.
+  Only if tools still return nothing should you tell the user the store has no matching
+  articles and offer to have Ze's research agent search the web instead.
+  Do not fabricate a digest.
 - If asked how you obtained the news or whether it is recent, explain that it comes
   from the local store of curated RSS articles and use the published dates above.
 
@@ -84,7 +90,7 @@ class NewsAgent(BaseAgent):
     model = "openai/gpt-4o-mini"
     vision_capable = False
     timeout = 30
-    tools = ["get_headlines", "search_news"]
+    tools = ["refresh_news", "get_headlines", "search_news"]
     intent_map = {
         "read": "Retrieve and summarise news headlines or articles from the local store.",
     }
@@ -98,12 +104,14 @@ class NewsAgent(BaseAgent):
         memory_store: PostgresMemoryStore,
         goal_provider: GoalTitleProvider,
         news_store: NewsStore,
+        news_fetch_job: NewsFetchJob,
         settings: CoreSettings,
     ) -> None:
         self._client = client
         self._memory_store = memory_store
         self._goal_provider = goal_provider
         self._news_store = news_store
+        self._fetch_job = news_fetch_job
         self._personalization_settings = PersonalizationSettings.from_config(
             settings.config.get("news", {})
         )
@@ -134,6 +142,7 @@ class NewsAgent(BaseAgent):
         candidates = await self._fetch_candidates(ctx.prompt)
         deps = {
             "news_store": self._news_store,
+            "news_fetch_job": self._fetch_job,
             "_personalization_ctx": personalization_ctx,
             "_diagnostic_query": is_diagnostic_query(ctx.prompt),
             "_min_preferences": self._personalization_settings.min_preferences,

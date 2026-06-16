@@ -80,7 +80,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       setEphemeralMessages((prev) => [...prev, frame.message]);
     } else {
       upsert(frame.message);
-      if (frame.message.role === "assistant" && !frame.message.read) {
+      if (frame.message.role === "assistant" && !frame.message.read && frame.message.id) {
         send({ type: "ack", ids: [frame.message.id] });
       }
       if (frame.message.role === "assistant") {

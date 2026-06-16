@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ze_agents.tool import ToolAccess, tool
+from ze_news.jobs.fetch import NewsFetchJob
 from ze_news.store import NewsStore
 from ze_news.types import PersonalizationContext
 
@@ -70,6 +71,20 @@ async def get_headlines(
         "relevant": [_article_dict(a) for a in articles],
         "discovery": [],
     }
+
+
+@tool(
+    access=ToolAccess.READ,
+    description=(
+        "Trigger an immediate refresh of all RSS news sources, bypassing the normal "
+        "30-minute fetch interval. Call this when the user asks for today's news or "
+        "complains that headlines are stale. After calling this, use get_headlines to "
+        "present the freshly fetched articles."
+    ),
+)
+async def refresh_news(news_fetch_job: NewsFetchJob) -> dict:
+    await news_fetch_job.run(force=True)
+    return {"status": "ok", "message": "All news sources have been refreshed."}
 
 
 def _article_dict(a) -> dict:

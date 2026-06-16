@@ -82,8 +82,18 @@ async def decompose(state: AgentState, config: RunnableConfig) -> dict:
     envelope = state.get("envelope")
     raw_scores: dict = envelope.raw_scores if envelope else {}
 
+    # Give the LLM fallback the same history-enriched text that the embedding
+    # router saw, so anaphoric follow-ups route correctly even at low confidence.
+    prompt_for_fallback = state["prompt"]
+    history_hint = _history_hint(state)
+    if history_hint:
+        prompt_for_fallback = f"{prompt_for_fallback}\n\n{history_hint}"
+    routing_hints = state.get("routing_hints")
+    if routing_hints:
+        prompt_for_fallback = f"{prompt_for_fallback}\n\n{routing_hints}"
+
     new_envelope = await fallback.decompose(
-        prompt=state["prompt"],
+        prompt=prompt_for_fallback,
         raw_scores=raw_scores,
         client=client,
         agent_registry=get_enabled_agents(),

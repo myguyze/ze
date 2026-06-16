@@ -6,6 +6,7 @@ from fastapi import WebSocket
 
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.onboarding import send_onboarding_view
+from ze_api.api.websocket.serializers import ephemeral_assistant_message
 from ze_api.logging import get_logger
 
 log = get_logger(__name__)
@@ -54,7 +55,7 @@ async def handle_command(
             summary = await _build_cost_summary(container)
             await conn_mgr.send_frame({
                 "type": "message",
-                "message": {"role": "assistant", "text": summary, "components": []},
+                "message": ephemeral_assistant_message(summary),
             })
         except Exception as exc:
             log.warning("ws_costs_command_failed", error=str(exc))
@@ -67,7 +68,7 @@ async def handle_command(
             summary = await _build_status_summary(container, period_days=period_days)
             await conn_mgr.send_frame({
                 "type": "message",
-                "message": {"role": "assistant", "text": summary, "components": []},
+                "message": ephemeral_assistant_message(summary),
             })
         except Exception as exc:
             log.warning("ws_status_command_failed", error=str(exc))
@@ -90,7 +91,7 @@ async def handle_command(
             text = "Reset preview:\n" + ("\n".join(lines) if lines else "Nothing to delete.")
             await conn_mgr.send_frame({
                 "type": "message",
-                "message": {"role": "assistant", "text": text, "components": []},
+                "message": ephemeral_assistant_message(text),
             })
         except Exception as exc:
             log.warning("ws_reset_preview_failed", error=str(exc))
@@ -106,7 +107,7 @@ async def handle_command(
             text = "Reset complete:\n" + ("\n".join(lines) if lines else "Nothing was deleted.")
             await conn_mgr.send_frame({
                 "type": "message",
-                "message": {"role": "assistant", "text": text, "components": []},
+                "message": ephemeral_assistant_message(text),
             })
         except Exception as exc:
             log.warning("ws_reset_failed", error=str(exc))
@@ -118,7 +119,7 @@ async def handle_command(
             summary = build_capabilities_summary()
             await conn_mgr.send_frame({
                 "type": "message",
-                "message": {"role": "assistant", "text": summary, "components": []},
+                "message": ephemeral_assistant_message(summary),
             })
         except Exception as exc:
             log.warning("ws_capabilities_command_failed", error=str(exc))

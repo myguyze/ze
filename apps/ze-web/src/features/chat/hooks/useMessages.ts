@@ -51,7 +51,7 @@ export function useMessages(threadId: string) {
       setMessages(new Map(history.map((msg) => [msg.id, msg])));
 
       const unread = history
-        .filter((m) => m.role === "assistant" && !m.read)
+        .filter((m) => m.role === "assistant" && !m.read && m.id)
         .map((m) => m.id);
       if (unread.length > 0) send({ type: "ack", ids: unread });
     } catch {

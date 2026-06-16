@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
+from langchain_core.runnables import RunnableConfig
+
 if TYPE_CHECKING:
     from ze_agents.plugin import ZePlugin
 
@@ -13,11 +15,11 @@ def _compose_pre_route_nodes(fns: list[Callable]) -> Callable:
     and its returned dict is merged into the running update before the next call.
     The final merged dict is returned as the combined state update.
     """
-    async def _composed(state: Any) -> dict:
+    async def _composed(state: Any, config: RunnableConfig) -> dict:
         accumulated: dict = {}
         current = state
         for fn in fns:
-            result = await fn(current) if _is_async(fn) else fn(current)
+            result = await fn(current, config) if _is_async(fn) else fn(current, config)
             if result:
                 accumulated.update(result)
                 current = {**state, **accumulated}
