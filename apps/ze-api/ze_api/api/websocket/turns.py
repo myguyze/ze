@@ -75,6 +75,11 @@ async def handle_message(
             sink=_progress_sink,
         )
 
+    async def _token_sink(chunk: str) -> None:
+        await conn_mgr.send_frame({"type": "token", "text": chunk})
+
+    config_extra["token_sink"] = _token_sink
+
     try:
         outcome = await container.invoke_raw_turn(
             thread_id,

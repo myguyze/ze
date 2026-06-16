@@ -9,7 +9,7 @@ import { ChatInput } from "@/features/chat/components/ChatInput";
 export function ContextOverlay() {
   const { open, close, screen, entityId } = useOverlay();
   const [input, setInput] = useState("");
-  const { messages, showTyping, isThinking, sendMessage } = useChatSession({
+  const { messages, showTyping, typingText, streamingText, isThinking, sendMessage } = useChatSession({
     ephemeral: true,
     active: open,
     context: { screen, ...(entityId && { goal_id: entityId }) },
@@ -59,6 +59,8 @@ export function ContextOverlay() {
             <ChatMessageList
               messages={messages}
               showTyping={showTyping}
+              typingText={typingText}
+              streamingText={streamingText}
               className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0"
             />
 

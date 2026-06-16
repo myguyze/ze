@@ -281,13 +281,24 @@ class BaseAgent(ABC):
             if max_history_tokens is not None:
                 _truncate_messages(messages, max_history_tokens)
 
-            text, tool_calls = await client.complete_with_tools(
-                messages=messages,
-                model=ctx.model or self.model,
-                tools=tool_schemas,
-                system=system,
-                max_tokens=max_tokens,
-            )
+            _token_sink = getattr(ctx, "token_sink", None)
+            if _token_sink is not None and hasattr(client, "stream_complete_with_tools"):
+                text, tool_calls = await client.stream_complete_with_tools(
+                    messages=messages,
+                    model=ctx.model or self.model,
+                    tools=tool_schemas,
+                    system=system,
+                    max_tokens=max_tokens,
+                    token_sink=_token_sink,
+                )
+            else:
+                text, tool_calls = await client.complete_with_tools(
+                    messages=messages,
+                    model=ctx.model or self.model,
+                    tools=tool_schemas,
+                    system=system,
+                    max_tokens=max_tokens,
+                )
 
             if text:
                 log.debug(

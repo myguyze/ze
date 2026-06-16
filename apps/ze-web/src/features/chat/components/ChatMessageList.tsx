@@ -6,22 +6,37 @@ import { TypingIndicator } from "./TypingIndicator";
 interface ChatMessageListProps {
   messages: Message[];
   showTyping: boolean;
+  typingText?: string | null;
+  streamingText?: string | null;
   className?: string;
 }
 
-export function ChatMessageList({ messages, showTyping, className }: ChatMessageListProps) {
+export function ChatMessageList({ messages, showTyping, typingText, streamingText, className }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, showTyping]);
+  }, [messages.length, showTyping, streamingText]);
+
+  const streamingMessage: Message | null = streamingText?.trim()
+    ? {
+        id: "__streaming__",
+        role: "assistant",
+        text: streamingText,
+        components: [],
+        read: true,
+        created_at: new Date().toISOString(),
+        thread_id: null,
+      }
+    : null;
 
   return (
     <div className={className ?? "flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"}>
       {messages.map((msg) => (
         <MessageBubble key={msg.id} message={msg} />
       ))}
-      {showTyping && <TypingIndicator />}
+      {streamingMessage && <MessageBubble key="__streaming__" message={streamingMessage} />}
+      {showTyping && !streamingText && <TypingIndicator text={typingText} />}
       <div ref={bottomRef} />
     </div>
   );

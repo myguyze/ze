@@ -2,7 +2,7 @@ import asyncio
 import base64
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import structlog
 from openrouter import OpenRouter
@@ -222,6 +222,133 @@ class OpenRouterClient:
                 return None, tool_call_list
 
             return _extract_message_text(message), None
+
+        raise last_exc or OpenRouterError("All retry attempts exhausted")
+
+    async def stream_complete_with_tools(
+        self,
+        messages: list[dict],
+        model: str,
+        tools: list[dict],
+        system: str | None = None,
+        max_tokens: int = 2000,
+        token_sink: Callable[[str], Awaitable[None]] | None = None,
+    ) -> tuple[str | None, list[dict] | None]:
+        """Like complete_with_tools but streams text tokens to token_sink.
+
+        If the model returns a text response, tokens are sent to token_sink as
+        they arrive and the full text is returned as (text, None).
+        If the model returns tool calls, token_sink is not called and the result
+        is returned as (None, tool_calls).
+        """
+        full_messages = _build_messages(messages, system)
+        start = time.monotonic()
+        last_exc: Exception | None = None
+
+        for attempt, backoff in enumerate(_BACKOFFS, start=1):
+            try:
+                event_stream = await self._sdk.chat.send_async(
+                    messages=full_messages,
+                    model=model,
+                    max_tokens=max_tokens,
+                    stream=True,
+                    tools=tools,
+                )
+            except sdk_errors.OpenRouterError as exc:
+                ze_exc = _map_sdk_error(exc)
+                if not _is_retryable(ze_exc):
+                    raise ze_exc from exc
+                wait = max(backoff, _parse_retry_after(exc))
+                self._log.warning(
+                    "openrouter_stream_tools_retry",
+                    status=ze_exc.status_code,
+                    attempt=attempt,
+                    wait_seconds=wait,
+                )
+                last_exc = ze_exc
+                await asyncio.sleep(wait)
+                continue
+            except sdk_errors.NoResponseError as exc:
+                last_exc = OpenRouterError(f"Request failed: {exc}")
+                if attempt == len(_BACKOFFS):
+                    break
+                await asyncio.sleep(backoff)
+                continue
+
+            if isinstance(event_stream, ChatResult):
+                raise OpenRouterError("Unexpected non-streaming response for streaming call")
+
+            text_parts: list[str] = []
+            # tool_call_map: index → {id, name, arguments_chunks}
+            tool_call_map: dict[int, dict] = {}
+            stream_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+
+            async with event_stream:
+                async for chunk in event_stream:
+                    if chunk.usage is not None:
+                        stream_usage = _extract_stream_usage(chunk)
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+
+                    # Accumulate text
+                    content = _chunk_content(chunk)
+                    if content:
+                        text_parts.append(content)
+                        if token_sink is not None:
+                            await token_sink(content)
+
+                    # Accumulate tool call deltas
+                    if delta.tool_calls:
+                        for tc_delta in delta.tool_calls:
+                            idx = tc_delta.index
+                            if idx not in tool_call_map:
+                                tool_call_map[idx] = {"id": None, "name": None, "arguments": []}
+                            entry = tool_call_map[idx]
+                            if tc_delta.id:
+                                entry["id"] = tc_delta.id
+                            if tc_delta.function:
+                                if tc_delta.function.name:
+                                    entry["name"] = tc_delta.function.name
+                                if tc_delta.function.arguments:
+                                    entry["arguments"].append(tc_delta.function.arguments)
+
+            duration_ms = int((time.monotonic() - start) * 1000)
+            self._log.info(
+                "openrouter_stream_complete_with_tools",
+                model=model,
+                duration_ms=duration_ms,
+                prompt_tokens=stream_usage.prompt_tokens,
+                completion_tokens=stream_usage.completion_tokens,
+                has_tool_calls=bool(tool_call_map),
+                success=True,
+            )
+            if self._cost_tracker is not None and stream_usage.total_tokens > 0:
+                self._cost_tracker.record(
+                    model=model,
+                    prompt_tokens=stream_usage.prompt_tokens,
+                    completion_tokens=stream_usage.completion_tokens,
+                    total_tokens=stream_usage.total_tokens,
+                    duration_ms=duration_ms,
+                )
+
+            if tool_call_map:
+                tool_calls = []
+                for idx in sorted(tool_call_map):
+                    entry = tool_call_map[idx]
+                    raw_args = "".join(entry["arguments"])
+                    try:
+                        args = json.loads(raw_args) if raw_args else {}
+                    except (json.JSONDecodeError, ValueError):
+                        args = {}
+                    tool_calls.append({
+                        "id": entry["id"] or f"call_{idx}",
+                        "name": entry["name"] or "",
+                        "arguments": args,
+                    })
+                return None, tool_calls
+
+            return "".join(text_parts) or None, None
 
         raise last_exc or OpenRouterError("All retry attempts exhausted")
 

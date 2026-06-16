@@ -32,6 +32,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   const [ephemeralMessages, setEphemeralMessages] = useState<Message[]>([]);
   const [showTyping, setShowTyping] = useState(false);
   const [typingText, setTypingText] = useState<string | null>(null);
+  const [streamingText, setStreamingText] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevActiveRef = useRef(active);
@@ -65,6 +66,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   function stopThinking() {
     setThinking(false);
     clearTyping();
+    setStreamingText(null);
   }
 
   useFrame("message", (frame) => {
@@ -108,6 +110,12 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       setShowTyping(false);
       setTypingText(null);
     }, 3_000);
+  });
+
+  useFrame("token", (frame) => {
+    if (!active) return;
+    setShowTyping(false);
+    setStreamingText((prev) => (prev ?? "") + frame.text);
   });
 
   useFrame("confirm_request", (frame) => {
@@ -190,6 +198,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     messages,
     showTyping,
     typingText,
+    streamingText,
     isThinking,
     isConnected,
     pendingConfirm,

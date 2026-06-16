@@ -17,6 +17,8 @@ export function ChatPage() {
   const {
     messages,
     showTyping,
+    typingText,
+    streamingText,
     isThinking,
     isConnected,
     pendingConfirm,
@@ -108,7 +110,7 @@ export function ChatPage() {
 
       {!isEmpty && (
         <div className="relative z-10 flex-1 min-h-0 flex flex-col">
-          <ChatMessageList messages={messages} showTyping={showTyping} />
+          <ChatMessageList messages={messages} showTyping={showTyping} typingText={typingText} streamingText={streamingText} />
         </div>
       )}
 

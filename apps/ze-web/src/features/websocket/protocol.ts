@@ -35,6 +35,7 @@ export type InboundFrame =
   | { type: "confirm_request"; id: string; prompt: string; actions: ConfirmAction[] }
   | { type: "confirm_cancel"; id: string }
   | { type: "typing"; text?: string }
+  | { type: "token"; text: string }
   | { type: "error"; detail: string }
   | { type: "refresh"; screen: string }
   | { type: "pong" };
