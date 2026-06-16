@@ -54,6 +54,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     gate_decision: GateDecision = state.get("gate_decision") or GateDecision.EXECUTE
     reporter = config["configurable"].get("reporter")
     token_queue: asyncio.Queue | None = config["configurable"].get("token_queue")
+    token_sink = config["configurable"].get("token_sink")
     identity_builder = config["configurable"].get("identity_builder")
     abort_token = config["configurable"].get("abort_token")
     component_hook = config["configurable"].get("component_hook")
@@ -72,6 +73,7 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
     return await _execute_single(
         envelope.subtasks[0], base_ctx, gate_decision, state,
         token_queue=token_queue,
+        token_sink=token_sink,
         reporter=reporter,
         identity_builder=identity_builder,
         abort_token=abort_token,
@@ -161,6 +163,7 @@ async def _execute_single(
     gate_decision: GateDecision,
     state: dict,
     token_queue: asyncio.Queue | None = None,
+    token_sink: Any = None,
     reporter: Any = None,
     identity_builder: Any = None,
     abort_token: Any = None,
@@ -181,6 +184,7 @@ async def _execute_single(
         identity_builder=identity_builder,
         abort_token=abort_token,
         embed_fn=embed_fn,
+        token_sink=token_sink,
     )
     result = await _run_with_timeout(subtask.agent, ctx, token_queue=token_queue)
     components: list = []
@@ -238,6 +242,9 @@ async def _run_with_timeout(
     ctx: AgentContext,
     token_queue: asyncio.Queue | None = None,
 ) -> AgentResult:
+    from ze_core.telemetry.context import set_agent_context
+    set_agent_context(agent_name)
+
     instance = get_agent(agent_name)
     timeout = float(getattr(type(instance), "timeout", 30))
 
