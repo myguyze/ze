@@ -80,6 +80,7 @@ explicitly deferred before implementation begins.
 | 51 | [Onboarding Platform](phases/51-onboarding.md) | ✅ Done |
 | 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | 🔄 In Progress |
 | 53 | [Eval Consolidation](phases/53-eval-consolidation.md) | 🔄 Pending |
+| 54 | [Progress Messages](phases/54-progress-messages.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

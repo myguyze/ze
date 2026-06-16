@@ -127,6 +127,7 @@ class NewsAgent(BaseAgent):
         )
 
     async def run(self, ctx: AgentContext) -> AgentResult:
+        await self.emit(ctx, "news.reading")
         response, tool_calls = await self._grounded_loop(ctx)
         return AgentResult(agent=self.name, response=response, tool_calls=tool_calls)
 
@@ -143,6 +144,7 @@ class NewsAgent(BaseAgent):
         deps = {
             "news_store": self._news_store,
             "news_fetch_job": self._fetch_job,
+            "reporter": ctx.reporter,
             "_personalization_ctx": personalization_ctx,
             "_diagnostic_query": is_diagnostic_query(ctx.prompt),
             "_min_preferences": self._personalization_settings.min_preferences,

@@ -64,6 +64,7 @@ log = get_logger(__name__)
 class ZeContainer(CoreContainer):
     """Ze application container — ze-core graph stack plus WebSocket, proactive, workflow."""
 
+    translations: Any  # ProgressTranslations — built from merged plugin locale data
     persona_store: Any
     workflow_store: WorkflowStore
     _plugin_stores: dict  # keyed store name → store; populated from plugin.rest_stores()
@@ -267,6 +268,23 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     plugins = discover_plugins(plugin_deps)
 
+    from ze_agents.progress.translations import ProgressTranslations
+
+    locale: str = settings.config.get("locale", "en")
+    en_layers = [p.locale_data("en") for p in plugins]
+    target_layers = [p.locale_data(locale) for p in plugins] if locale != "en" else en_layers
+    app_en = ProgressTranslations._load_file(settings.config_dir / "locales" / "en.yaml")
+    app_locale = (
+        ProgressTranslations._load_file(settings.config_dir / "locales" / f"{locale}.yaml")
+        if locale != "en"
+        else app_en
+    )
+    translations = ProgressTranslations.build(
+        layers=target_layers + [app_locale],
+        fallback_layers=en_layers + [app_en],
+    )
+    log.info("progress_translations_built", locale=locale)
+
     from ze_memory.policies import build_policy_registry
 
     memory_store.apply_policy_registry(build_policy_registry(plugins))
@@ -340,6 +358,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         memory_consolidator=memory_consolidator,
         graph=graph,
         interface=interface,
+        translations=translations,
         persona_store=persona_store,
         workflow_store=workflow_store,
         _plugin_stores=plugin_stores,

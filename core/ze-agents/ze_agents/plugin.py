@@ -128,6 +128,31 @@ class ZePlugin(ABC):
         """
         return {}
 
+    def locale_data(self, locale: str) -> dict:
+        """Return progress message translations for the given locale.
+
+        Default implementation loads ``locales/{locale}.yaml`` from within the
+        plugin's own package directory. Plugins following this layout need no
+        override. Returns an empty dict when the file is absent or unreadable.
+        """
+        return self._load_locale_file(locale)
+
+    @classmethod
+    def _load_locale_file(cls, locale: str) -> dict:
+        import importlib
+        import yaml
+        from pathlib import Path as _Path
+
+        module = importlib.import_module(cls.__module__)
+        if getattr(module, "__file__", None) is None:
+            return {}
+        pkg_root = _Path(module.__file__).parent
+        locale_path = pkg_root / "locales" / f"{locale}.yaml"
+        try:
+            return yaml.safe_load(locale_path.read_text()) or {}
+        except Exception:
+            return {}
+
     def register_proactive_jobs(
         self,
         scheduler: Any,

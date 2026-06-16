@@ -1,0 +1,9 @@
+news:
+  reading:
+    - "📰 Checking the headlines..."
+    - "📰 Looking through the news..."
+    - "🗞️ Let me check what's in..."
+  fetching:
+    - "📡 Fetching the latest news..."
+    - "🔄 Refreshing news sources..."
+    - "📡 Pulling in fresh headlines..."

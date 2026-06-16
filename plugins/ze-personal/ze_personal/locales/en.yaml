@@ -1,0 +1,27 @@
+research:
+  searching:
+    - "🔍 Searching the web..."
+    - "🌐 Looking that up..."
+    - "📰 Digging through sources..."
+    - "🕵️ Tracking that down..."
+
+companion:
+  thinking:
+    - "💭 Thinking..."
+    - "🧠 Working through this..."
+    - "✍️ Drafting a response..."
+    - "🤔 Mulling it over..."
+
+goals:
+  managing:
+    - "🎯 Working on your goals..."
+    - "📋 Checking your goals..."
+
+workflow:
+  reading:
+    - "⚙️ Checking your workflows..."
+    - "📋 Looking up your tasks..."
+  managing:
+    - "⚙️ Setting that up..."
+    - "🔧 Managing that for you..."
+    - "⚙️ On it..."

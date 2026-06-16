@@ -1,0 +1,14 @@
+calendar:
+  reading:
+    - "📅 A verificar o teu calendário..."
+    - "🗓️ A ver a tua agenda..."
+    - "📅 Deixa-me verificar..."
+  writing:
+    - "📅 A atualizar o teu calendário..."
+    - "🗓️ A fazer essa alteração..."
+
+reminders:
+  thinking:
+    - "⏰ A configurar esse lembrete..."
+    - "🔔 Já a tratar..."
+    - "⏰ Anotado, vou lembrar-te..."

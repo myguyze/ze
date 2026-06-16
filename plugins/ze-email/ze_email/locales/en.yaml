@@ -1,0 +1,9 @@
+email:
+  reading:
+    - "📧 Checking your inbox..."
+    - "✉️ Searching your emails..."
+    - "📬 Looking through your mail..."
+  drafting:
+    - "✉️ Drafting that email..."
+    - "📨 Composing your message..."
+    - "✍️ Writing that up..."

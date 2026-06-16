@@ -1,0 +1,27 @@
+research:
+  searching:
+    - "🔍 A pesquisar na web..."
+    - "🌐 Já a ver isso..."
+    - "📰 A procurar fontes..."
+    - "🕵️ A rastrear essa informação..."
+
+companion:
+  thinking:
+    - "💭 A pensar..."
+    - "🧠 A trabalhar nisso..."
+    - "✍️ A redigir uma resposta..."
+    - "🤔 Deixa-me refletir..."
+
+goals:
+  managing:
+    - "🎯 A trabalhar nos teus objetivos..."
+    - "📋 A verificar os teus objetivos..."
+
+workflow:
+  reading:
+    - "⚙️ A verificar os teus workflows..."
+    - "📋 A procurar as tuas tarefas..."
+  managing:
+    - "⚙️ A configurar isso..."
+    - "🔧 A tratar disso..."
+    - "⚙️ Já a tratar..."

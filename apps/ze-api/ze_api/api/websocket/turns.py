@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import WebSocket
 
 from ze_agents.interface.types import RawInput
+from ze_agents.progress.reporter import ProgressReporter
 from ze_api.api.websocket.confirmation import send_confirmation_request
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.serializers import extract_thread_id
@@ -64,6 +65,15 @@ async def handle_message(
     config_extra: dict = {}
     if context:
         config_extra["screen_context"] = context
+
+    if getattr(container, "translations", None) is not None:
+        async def _progress_sink(text: str) -> None:
+            await conn_mgr.send_frame({"type": "typing", "text": text})
+
+        config_extra["reporter"] = ProgressReporter(
+            translations=container.translations,
+            sink=_progress_sink,
+        )
 
     try:
         outcome = await container.invoke_raw_turn(

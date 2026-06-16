@@ -34,7 +34,7 @@ export type InboundFrame =
   | { type: "edit"; id: string; text?: string; components: ComponentDescriptor[] }
   | { type: "confirm_request"; id: string; prompt: string; actions: ConfirmAction[] }
   | { type: "confirm_cancel"; id: string }
-  | { type: "typing" }
+  | { type: "typing"; text?: string }
   | { type: "error"; detail: string }
   | { type: "refresh"; screen: string }
   | { type: "pong" };

@@ -1,0 +1,9 @@
+news:
+  reading:
+    - "📰 A verificar os títulos..."
+    - "📰 A ver as notícias..."
+    - "🗞️ Deixa-me ver o que há..."
+  fetching:
+    - "📡 A buscar as últimas notícias..."
+    - "🔄 A atualizar as fontes de notícias..."
+    - "📡 A importar títulos frescos..."

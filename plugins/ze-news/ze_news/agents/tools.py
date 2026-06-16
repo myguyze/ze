@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from ze_agents.tool import ToolAccess, tool
 from ze_news.jobs.fetch import NewsFetchJob
@@ -82,7 +83,9 @@ async def get_headlines(
         "present the freshly fetched articles."
     ),
 )
-async def refresh_news(news_fetch_job: NewsFetchJob) -> dict:
+async def refresh_news(news_fetch_job: NewsFetchJob, reporter: Any = None) -> dict:
+    if reporter is not None:
+        await reporter.emit("news.fetching")
     await news_fetch_job.run(force=True)
     return {"status": "ok", "message": "All news sources have been refreshed."}
 

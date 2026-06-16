@@ -1,0 +1,14 @@
+calendar:
+  reading:
+    - "📅 Checking your calendar..."
+    - "🗓️ Looking at your schedule..."
+    - "📅 Let me check..."
+  writing:
+    - "📅 Updating your calendar..."
+    - "🗓️ Making that change..."
+
+reminders:
+  thinking:
+    - "⏰ Setting that reminder..."
+    - "🔔 On it..."
+    - "⏰ Got it, I'll remind you..."
