@@ -79,6 +79,7 @@ explicitly deferred before implementation begins.
 | 50 | [News Preference Model](phases/50-news-preferences.md) | ✅ Done |
 | 51 | [Onboarding Platform](phases/51-onboarding.md) | ✅ Done |
 | 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | 🔄 In Progress |
+| 53 | [Eval Consolidation](phases/53-eval-consolidation.md) | 🔄 Pending |
 
 ## Ze Core specs (`core/`)
 
