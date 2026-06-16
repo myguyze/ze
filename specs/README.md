@@ -81,6 +81,13 @@ explicitly deferred before implementation begins.
 | 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | 🔄 In Progress |
 | 53 | [Eval Consolidation](phases/53-eval-consolidation.md) | 🔄 Pending |
 | 54 | [Progress Messages](phases/54-progress-messages.md) | ✅ Done |
+| 55 | [Signal Substrate](phases/55-signal-substrate.md) | 🔲 Pending (v1) |
+| 56 | [Salience & Relevance Model](phases/56-salience-relevance-model.md) | 🔲 Pending (v1) |
+| 57 | [Correlation Engine](phases/57-correlation-engine.md) | 🔲 Pending (v1) |
+| 58 | [Inline Conversational Correlation](phases/58-inline-correlation.md) | 🔲 Pending (v1 — sole consumer) |
+| 59 | [Proactive Correlation Push](phases/59-proactive-correlation-push.md) | 🔲 Deferred (post-v1) |
+| 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | 🔲 Pending |
+| 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
 
 ## Ze Core specs (`core/`)
 
@@ -103,4 +110,5 @@ explicitly deferred before implementation begins.
 | [Plugin Agents](arch/plugin-agents.md) | ZePlugin ABC, domain agent migration to ze-personal |
 | [Memory Package Extraction](arch/memory-package-split.md) | Hard-cut memory into `ze_memory` with module-specific retrieval, explicit task state, and no shim |
 | [Memory Graph Augmentation](arch/memory-graph-augmentation.md) | Add bounded, provenance-first relationships and traversal inside `ze_memory` |
+| [Correlation Engine](arch/correlation-engine.md) | Bounded relevance-gated correlation over a shared signal/graph substrate; not a world model |
 | [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
