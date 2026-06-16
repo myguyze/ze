@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timezone
 from typing import AsyncIterator
 
 import ze_news.agents.tools  # noqa: F401 — registers @tool decorators
@@ -20,13 +21,15 @@ _AGENT_INSTRUCTIONS = """\
 You are Ze's news capability. You answer questions about current events and headlines
 using a local store of articles fetched from curated RSS sources.
 
+Store freshness: {store_freshness_note}
+
 Candidate articles already retrieved from the local store for this request:
 {candidate_articles}
 
 Available tools:
 - refresh_news: trigger an immediate RSS fetch from all sources, bypassing the 30-minute
-  interval. Call this first when the user asks for today's news or says headlines are stale.
-  After it returns, call get_headlines to present the fresh articles.
+  interval. Only call this when the store freshness note says it is NOT fresh and the
+  candidate list is empty or outdated. After it returns, call get_headlines.
 - get_headlines: fetch recent headlines personalised to your interests, optionally filtered
   by tag (global, local, tech, etc.). Returns two buckets: 'relevant' (ranked by your
   interests) and 'discovery' (fresh, off-profile articles). Present both sections to the user.
@@ -37,23 +40,28 @@ Grounding rules (these override everything else):
   or from a tool result. NEVER invent, embellish, or recall headlines from your own
   knowledge.
 - Always cite each article with its source, published date, and URL.
-- If the candidate list is empty or irrelevant, call refresh_news to fetch the latest
-  articles before concluding there is nothing to show. After refresh, call get_headlines.
-  Only if tools still return nothing should you tell the user the store has no matching
-  articles and offer to have Ze's research agent search the web instead.
+- ONLY call refresh_news when the store freshness note explicitly says the store is NOT
+  fresh. If the note says the store IS fresh, skip refresh_news and call get_headlines
+  directly — even if the user says "more recent" or "today's news". A fresh store
+  already has today's articles; calling refresh_news again wastes time and returns the
+  same articles.
+- If the store is fresh but get_headlines still returns nothing, tell the user the store
+  has no matching articles and offer to have Ze's research agent search the web instead.
   Do not fabricate a digest.
 - If asked how you obtained the news or whether it is recent, explain that it comes
   from the local store of curated RSS articles and use the published dates above.
 
 Guidelines:
-- Use get_headlines for broad digest queries ("what's in the news?", "any headlines today?").
-- Use search_news when the user asks about a specific topic or event not covered by the
-  candidates above.
-- When presenting get_headlines results, show 'relevant' articles first under "📰 For you:"
-  and 'discovery' articles under "🔭 Outside your usual:" if the discovery bucket is non-empty.
+- Use get_headlines for broad digest queries ("what's in the news?", "any headlines today?",
+  "more news", "show me more", "latest news").
+- Use search_news when the user asks about a specific topic or event.
+- When presenting headlines, aim for 8–12 articles in total. Do not arbitrarily stop at
+  4 or 5 — present a proper digest. Show 'relevant' articles first under "📰 For you:"
+  and 'discovery' articles under "🔭 Outside your usual:" if the discovery bucket is
+  non-empty.
 - Do not infer that the user wants more coverage of a topic just because they ask why it
-  was shown. Treat "why did you show X?", "stop showing X", and "show me the fact for X"
-  as diagnostics or preference management, not positive interest.
+  was shown. Treat "why did you show X?", "stop showing X" as diagnostics or preference
+  management.
 - For breaking news or specific facts that require up-to-date accuracy, tell the user
   that the local store may not reflect events from the last 30 minutes and suggest
   they ask Ze to search the web directly.
@@ -74,6 +82,29 @@ def _format_candidates(articles: list) -> str:
             f"published: {a.published_at.isoformat()} | {a.url}"
         )
     return "\n".join(lines)
+
+
+def _freshness_note(candidates: list) -> str:
+    today = date.today()
+    for article in candidates:
+        pub = article.published_at
+        if hasattr(pub, "tzinfo") and pub.tzinfo is not None:
+            pub_date = pub.astimezone(timezone.utc).date()
+        else:
+            pub_date = pub.date()
+        if pub_date >= today:
+            return (
+                f"FRESH — the store contains articles published today ({today}). "
+                "Do NOT call refresh_news."
+            )
+    if candidates:
+        latest = max(a.published_at for a in candidates)
+        return (
+            f"POSSIBLY STALE — the newest candidate article is from "
+            f"{latest.date()}. Consider calling refresh_news if the user "
+            "expects today's headlines."
+        )
+    return "UNKNOWN — no candidates retrieved; call refresh_news then get_headlines."
 
 
 @agent
@@ -153,6 +184,7 @@ class NewsAgent(BaseAgent):
             _AGENT_INSTRUCTIONS,
             ctx,
             candidate_articles=_format_candidates(candidates),
+            store_freshness_note=_freshness_note(candidates),
         )
         response, tool_calls = await self.agentic_loop(
             ctx,
