@@ -171,6 +171,74 @@
         "kind"
       ]
     },
+    "ConnectionEvidence": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "kind"
+      ]
+    },
+    "ConnectionItem": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "narrative": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "kind"
+            ]
+          }
+        }
+      },
+      "required": [
+        "summary",
+        "narrative",
+        "relation",
+        "confidence"
+      ]
+    },
     "TableComponent": {
       "type": "object",
       "properties": {
@@ -595,6 +663,67 @@
         "title",
         "items"
       ]
+    },
+    "ConnectionsComponent": {
+      "type": "object",
+      "properties": {
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "narrative": {
+                "type": "string"
+              },
+              "relation": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "kind"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "narrative",
+              "relation",
+              "confidence"
+            ]
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "connections"
+      ]
     }
   },
   "oneOf": [
@@ -633,6 +762,9 @@
     },
     {
       "$ref": "#/$defs/ReviewComponent"
+    },
+    {
+      "$ref": "#/$defs/ConnectionsComponent"
     }
   ]
 }

@@ -31,6 +31,8 @@ from ze_core.orchestration.graph import build_graph
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
+from ze_correlation import CorrelationEngine, PostgresHypothesisStore
+from ze_memory.relevance import RelevanceModel
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore
@@ -65,6 +67,7 @@ class ZeContainer(CoreContainer):
     """Ze application container — ze-core graph stack plus WebSocket, proactive, workflow."""
 
     translations: Any  # ProgressTranslations — built from merged plugin locale data
+    correlation_engine: CorrelationEngine | None
     persona_store: Any
     workflow_store: WorkflowStore
     _plugin_stores: dict  # keyed store name → store; populated from plugin.rest_stores()
@@ -102,6 +105,7 @@ class ZeContainer(CoreContainer):
             "settings": self.settings,
             "interface": self.interface,
             "component_hook": self.component_hook,
+            "correlation_engine": self.correlation_engine,
             **plugin_services,
         }
         configurable.update(configurable_extra)
@@ -184,6 +188,16 @@ async def build_container(settings: Settings) -> ZeContainer:
         openrouter_client=openrouter_client,
         settings=settings,
         graph_store=graph_store,
+    )
+
+    hypothesis_store = PostgresHypothesisStore(pool=pool)
+    relevance_model = RelevanceModel(memory_store=memory_store)
+    correlation_engine = CorrelationEngine(
+        memory_store=memory_store,
+        relevance_model=relevance_model,
+        llm_client=openrouter_client,
+        hypothesis_store=hypothesis_store,
+        settings=settings,
     )
 
     browser_client = BrowserClient(
@@ -418,6 +432,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         graph=graph,
         interface=interface,
         translations=translations,
+        correlation_engine=correlation_engine,
         persona_store=persona_store,
         workflow_store=workflow_store,
         _plugin_stores=plugin_stores,

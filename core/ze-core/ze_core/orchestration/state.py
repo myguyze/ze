@@ -52,6 +52,9 @@ class AgentState(TypedDict):
     dynamic_plan_steps: list | None      # list[WorkflowStep]
     dynamic_plan_high_risk: list         # indices requiring approval
 
+    # ── Correlation (Phase 58 — populated by correlate node) ──────────────────
+    correlations: list                   # list[Hypothesis]; qualifying inline hypotheses
+
     # ── Routing context (populated by pre-route plugin nodes) ────────────────
     routing_hints: str | None            # injected by inject_goal_routing_context
 

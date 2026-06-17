@@ -81,6 +81,11 @@ proactive:
     stall_days: 3                   # milestone idle days before counted as stalled
 
 correlation:
+  inline:
+    enabled: true
+    timeout_ms: 1500
+    max_connections_shown: 2
+    agents: ["research", "news"]
   engine:
     enabled: true
     max_hops_inline: 1

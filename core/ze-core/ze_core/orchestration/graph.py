@@ -56,7 +56,7 @@ def graph_builder(
     from langgraph.graph import StateGraph
 
     from ze_core.orchestration import nodes
-    from ze_core.orchestration.edges import after_await_confirmation, after_capability_check, after_execute_tool
+    from ze_core.orchestration.edges import after_await_confirmation, after_capability_check, after_correlate, after_execute_tool
     from ze_core.orchestration.state import AgentState
 
     ov = node_overrides or {}
@@ -68,6 +68,7 @@ def graph_builder(
     builder.add_node("fetch_context",      ov.get("fetch_context",      nodes.fetch_context))
     builder.add_node("capability_check",   ov.get("capability_check",   nodes.capability_check))
     builder.add_node("execute_tool",       ov.get("execute_tool",       nodes.execute_tool))
+    builder.add_node("correlate",          ov.get("correlate",          nodes.correlate))
     builder.add_node("draft_response",     ov.get("draft_response",     nodes.draft_response))
     builder.add_node("await_confirmation", ov.get("await_confirmation", nodes.await_confirmation))
     builder.add_node("synthesize",         ov.get("synthesize",         nodes.synthesize))
@@ -92,6 +93,11 @@ def graph_builder(
     builder.add_conditional_edges(
         "execute_tool",
         after_execute_tool,
+        {"correlate": "correlate"},
+    )
+    builder.add_conditional_edges(
+        "correlate",
+        after_correlate,
         {"synthesize": "synthesize", "write_memory": "write_memory"},
     )
     builder.add_edge("draft_response", "await_confirmation")

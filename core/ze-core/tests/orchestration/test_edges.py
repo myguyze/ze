@@ -2,6 +2,7 @@
 from ze_agents.types import GateDecision
 from ze_core.orchestration.edges import (
     after_capability_check,
+    after_correlate,
     after_decompose,
     after_embed_route,
     after_execute_tool,
@@ -107,24 +108,41 @@ def test_after_capability_check_none_goes_to_end_blocked():
 
 # ── after_execute_tool ────────────────────────────────────────────────────────
 
-def test_after_execute_tool_single_goes_to_write_memory():
+def test_after_execute_tool_always_goes_to_correlate():
     state = base_state(subtask_results=[])
-    assert after_execute_tool(state) == "write_memory"
+    assert after_execute_tool(state) == "correlate"
 
 
-def test_after_execute_tool_compound_goes_to_synthesize():
+def test_after_execute_tool_compound_also_goes_to_correlate():
     from ze_agents.types import AgentResult
     results = [AgentResult(agent="research", response="data")]
     state = base_state(
         subtask_results=results,
         envelope=make_envelope(is_compound=True, agents=("research", "companion")),
     )
-    assert after_execute_tool(state) == "synthesize"
+    assert after_execute_tool(state) == "correlate"
 
 
-def test_after_execute_tool_compound_no_results_goes_to_write_memory():
+# ── after_correlate ───────────────────────────────────────────────────────────
+
+def test_after_correlate_single_goes_to_write_memory():
+    state = base_state(subtask_results=[])
+    assert after_correlate(state) == "write_memory"
+
+
+def test_after_correlate_compound_goes_to_synthesize():
+    from ze_agents.types import AgentResult
+    results = [AgentResult(agent="research", response="data")]
+    state = base_state(
+        subtask_results=results,
+        envelope=make_envelope(is_compound=True, agents=("research", "companion")),
+    )
+    assert after_correlate(state) == "synthesize"
+
+
+def test_after_correlate_compound_no_results_goes_to_write_memory():
     state = base_state(
         subtask_results=[],
         envelope=make_envelope(is_compound=True, agents=("research", "companion")),
     )
-    assert after_execute_tool(state) == "write_memory"
+    assert after_correlate(state) == "write_memory"

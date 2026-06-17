@@ -30,6 +30,10 @@ def after_capability_check(state: AgentState) -> str:
 
 
 def after_execute_tool(state: AgentState) -> str:
+    return "correlate"
+
+
+def after_correlate(state: AgentState) -> str:
     envelope = state.get("envelope")
     if envelope and envelope.is_compound and state.get("subtask_results"):
         return "synthesize"

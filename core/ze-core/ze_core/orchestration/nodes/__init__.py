@@ -1,4 +1,5 @@
 from ze_core.orchestration.nodes.context import fetch_context
+from ze_core.orchestration.nodes.correlation import correlate
 from ze_core.orchestration.nodes.execution import (
     await_confirmation,
     capability_check,
@@ -12,6 +13,7 @@ from ze_core.orchestration.nodes.routing import decompose, embed_route, plan_seq
 __all__ = [
     "await_confirmation",
     "capability_check",
+    "correlate",
     "decompose",
     "draft_response",
     "embed_route",

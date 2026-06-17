@@ -57,6 +57,21 @@ export interface ReviewItem {
   plugin?: string;
 }
 
+export interface ConnectionEvidence {
+  label: string;
+  kind: string;
+  date?: string;
+  source?: string;
+}
+
+export interface ConnectionItem {
+  summary: string;
+  narrative: string;
+  relation: string;
+  confidence: number;
+  evidence?: ConnectionEvidence[];
+}
+
 export interface TableComponent {
   headers: string[];
   rows: string[][];
@@ -150,6 +165,12 @@ export interface ReviewComponent {
   type: "review";
 }
 
+export interface ConnectionsComponent {
+  connections: ConnectionItem[];
+  title?: string;
+  type: "connections";
+}
+
 export type ComponentDescriptor =
   | TableComponent
   | MetricComponent
@@ -162,4 +183,5 @@ export type ComponentDescriptor =
   | ChoiceGroupComponent
   | ConsentComponent
   | ConnectAccountComponent
-  | ReviewComponent;
+  | ReviewComponent
+  | ConnectionsComponent;

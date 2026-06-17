@@ -79,6 +79,23 @@ class ReviewItem:
     plugin: str | None = None
 
 
+@dataclass
+class ConnectionEvidence:
+    label: str                # "Fable 5 ban (Jun 12)"
+    kind: str                 # "fact" | "episode" | "signal"
+    date: str | None = None   # pre-formatted ingested/occurred date
+    source: str | None = None # external ref for signals
+
+
+@dataclass
+class ConnectionItem:
+    summary: str              # one-line hedged connection
+    narrative: str            # reasoning with uncertainty
+    relation: str             # "pattern" | "causal_guess" | "tension" | "convergence"
+    confidence: float
+    evidence: list[ConnectionEvidence] = field(default_factory=list)
+
+
 # ── Component types ───────────────────────────────────────────────────────────
 
 @dataclass
@@ -186,15 +203,23 @@ class ReviewComponent:
     type: Literal["review"] = field(default="review", init=False)
 
 
+@dataclass
+class ConnectionsComponent:
+    connections: list[ConnectionItem]
+    title: str = "Connected to your history"
+    type: Literal["connections"] = field(default="connections", init=False)
+
+
 # ── Registry (used by codegen + schema generator) ─────────────────────────────
 
 COMPONENT_TYPES: list[type] = [
     TableComponent, MetricComponent, ListComponent, TimelineComponent,
     ProgressComponent, ConfirmComponent, FormComponent, CardComponent,
     ChoiceGroupComponent, ConsentComponent, ConnectAccountComponent, ReviewComponent,
+    ConnectionsComponent,
 ]
 
 SUB_ITEM_TYPES: list[type] = [
     ListItem, TimelineEvent, ProgressStep, ConfirmAction, FormField,
-    ChoiceOption, ConsentScope, ReviewItem,
+    ChoiceOption, ConsentScope, ReviewItem, ConnectionEvidence, ConnectionItem,
 ]

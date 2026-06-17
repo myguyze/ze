@@ -11,11 +11,11 @@
 
 | Feature | Status |
 | ------- | ------ |
-| Correlation graph node | 🔲 Pending |
-| `AgentState` extension | 🔲 Pending |
-| Response "connections" section | 🔲 Pending |
-| Web rendering component | 🔲 Pending |
-| Tests | 🔲 Pending |
+| Correlation graph node | ✅ Done |
+| `AgentState` extension | ✅ Done |
+| Response "connections" section | ✅ Done |
+| Web rendering component | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 
@@ -148,8 +148,8 @@ correlation:
 
 ## Open Questions
 
-- [ ] **Node vs tool.** (Leaning node — deterministic and uniformly gated.)
-- [ ] **Which turns qualify.** Pre-check on salient entity + capability to disable.
-- [ ] **Latency under load.** Follow-up frame if inline misses budget?
+- [x] **Node vs tool.** Graph node — deterministic and uniformly gated.
+- [x] **Which turns qualify.** Gate on: (1) active agent in configured list (`["research", "news"]`), and (2) at least one resolvable named entity in the turn. Chit-chat/commands have no entities and fall through naturally.
+- [x] **Latency under load.** Silent drop — drop section, log timeout, answer ships normally. No follow-up frame in v1.
 - [x] **v1 scope:** inline-only; proactive push (Phase 59) deferred until inline feedback
   validates the engine.

@@ -7,6 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from ze_agents.logging import get_logger
 from ze_agents.tasks import fire_and_forget
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
+from ze_core.orchestration.nodes.correlation import _format_text_section
 from ze_core.orchestration.state import AgentState
 from ze_agents.types import AgentResult
 
@@ -137,6 +138,10 @@ async def synthesize(state: AgentState, config: RunnableConfig) -> dict:
         messages=[{"role": "user", "content": synthesis_prompt}],
         model=synthesis_model,
     )
+    correlations = state.get("correlations") or []
+    if correlations:
+        response = response + "\n\n" + _format_text_section(correlations)
+
     log.info(
         "orchestration_synthesis_complete",
         session_id=state["session_id"],

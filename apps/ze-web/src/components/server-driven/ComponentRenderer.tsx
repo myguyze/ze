@@ -7,17 +7,19 @@ import { ProgressComponent } from "./ProgressComponent";
 import { ConfirmComponent } from "./ConfirmComponent";
 import { FormComponent } from "./FormComponent";
 import { CardComponent } from "./CardComponent";
+import { ConnectionsComponent } from "./ConnectionsComponent";
 
 export function ComponentRenderer({ data }: { data: ComponentDescriptor }) {
   switch (data.type) {
-    case "table":    return <TableComponent data={data} />;
-    case "metric":   return <MetricComponent data={data} />;
-    case "list":     return <ListComponent data={data} />;
-    case "timeline": return <TimelineComponent data={data} />;
-    case "progress": return <ProgressComponent data={data} />;
-    case "confirm":  return <ConfirmComponent data={data} />;
-    case "form":     return <FormComponent data={data} />;
-    case "card":     return <CardComponent data={data} />;
+    case "table":       return <TableComponent data={data} />;
+    case "metric":      return <MetricComponent data={data} />;
+    case "list":        return <ListComponent data={data} />;
+    case "timeline":    return <TimelineComponent data={data} />;
+    case "progress":    return <ProgressComponent data={data} />;
+    case "confirm":     return <ConfirmComponent data={data} />;
+    case "form":        return <FormComponent data={data} />;
+    case "card":        return <CardComponent data={data} />;
+    case "connections": return <ConnectionsComponent data={data} />;
     case "choice_group":
     case "consent":
     case "connect_account":
