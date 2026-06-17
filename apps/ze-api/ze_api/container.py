@@ -81,6 +81,7 @@ class ZeContainer(CoreContainer):
     reset_service: ResetService
     _checkpointer: Any  # AsyncPostgresSaver — exposed for plugin startup()
     _push_log_store: Any  # PushLogStore — exposed for PersonalPlugin startup()
+    data_portability_service: Any  # DataPortabilityService
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -346,6 +347,55 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
 
+    from ze_api.data.service import DataPortabilityService
+    from ze_agents.plugin import DataDomain
+
+    async def _export_table(tbl: str) -> list[dict]:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"SELECT * FROM {tbl}")
+            return [dict(r) for r in rows]
+
+    async def _delete_table(tbl: str) -> None:
+        async with pool.acquire() as conn:
+            await conn.execute(f"DELETE FROM {tbl}")
+
+    async def _delete_checkpoints() -> None:
+        async with pool.acquire() as conn:
+            for tbl in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
+                await conn.execute(f"DELETE FROM {tbl}")
+
+    async def _export_checkpoints() -> list[dict]:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("SELECT * FROM checkpoints")
+            return [dict(r) for r in rows]
+
+    def _mk_export(tbl: str):
+        async def _export(p) -> list[dict]:
+            return await _export_table(tbl)
+        return _export
+
+    def _mk_delete(*tables: str):
+        async def _delete(p) -> None:
+            for tbl in tables:
+                await _delete_table(tbl)
+        return _delete
+
+    engine_domains: list[DataDomain] = [
+        DataDomain("telemetry.costs", _mk_export("llm_cost_log"), _mk_delete("llm_cost_log"), delete_order=10),
+        DataDomain("telemetry.anomalies", _mk_export("accountability_anomalies"), _mk_delete("accountability_anomalies"), delete_order=10),
+        DataDomain("telemetry.capabilities", _mk_export("capability_overrides"), _mk_delete("capability_overrides"), delete_order=10),
+        DataDomain("routing.log", _mk_export("routing_log"), _mk_delete("routing_log"), delete_order=10),
+        DataDomain("messages.store", _mk_export("messages"), _mk_delete("messages"), delete_order=10),
+        DataDomain("confirmations", _mk_export("pending_confirmations"), _mk_delete("pending_confirmations"), delete_order=10),
+        DataDomain("proactive.log", _mk_export("push_log"), _mk_delete("push_log"), delete_order=10),
+        DataDomain("sessions", _mk_export("sessions"), _mk_delete("sessions"), delete_order=10),
+        DataDomain("onboarding", _mk_export("onboarding_sessions"), _mk_delete("onboarding_steps", "onboarding_sessions", "onboarding_seeds"), delete_order=10),
+        DataDomain("graph.checkpoints", _export_checkpoints, _delete_checkpoints, delete_order=50),
+    ]
+    all_domains = engine_domains + [d for plugin in plugins for d in plugin.data_domains()]
+    data_portability_service = DataPortabilityService(pool=pool, domains=all_domains)
+    log.info("data_portability_service_ready", domains=len(all_domains))
+
     container = ZeContainer(
         settings=settings,
         pool=pool,
@@ -376,6 +426,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         plugins=plugins,
         _checkpointer=checkpointer,
         _push_log_store=push_log_store,
+        data_portability_service=data_portability_service,
     )
 
     for plugin in plugins:

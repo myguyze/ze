@@ -88,7 +88,7 @@ explicitly deferred before implementation begins.
 | 59 | [Proactive Correlation Push](phases/59-proactive-correlation-push.md) | 🔲 Deferred (post-v1) |
 | 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | 🔲 Pending |
 | 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
-| 62 | [Data Portability](phases/62-data-portability.md) | 🔲 Pending |
+| 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

@@ -139,6 +139,54 @@ class PersonalPlugin(ZePlugin):
     def migrations_path(cls) -> Path | None:
         return Path(__file__).parent / "migrations"
 
+    def data_domains(self):
+        from ze_agents.plugin import DataDomain
+
+        def _export(tbl: str):
+            async def _fn(pool) -> list[dict]:
+                async with pool.acquire() as conn:
+                    rows = await conn.fetch(f"SELECT * FROM {tbl}")
+                    return [dict(r) for r in rows]
+            return _fn
+
+        def _delete(*tables: str):
+            async def _fn(pool) -> None:
+                async with pool.acquire() as conn:
+                    for tbl in tables:
+                        await conn.execute(f"DELETE FROM {tbl}")
+            return _fn
+
+        return [
+            # Memory (leaf, no FK dependencies) — order 10
+            DataDomain("memory.facts", _export("user_facts"), _delete("user_facts"), delete_order=10),
+            DataDomain("memory.episodes", _export("episodes"), _delete("episodes"), delete_order=10),
+            DataDomain("memory.profile", _export("user_profile"), _delete("user_profile"), delete_order=10),
+            DataDomain("memory.profile_facets", _export("memory_profile_facets"), _delete("memory_profile_facets"), delete_order=10),
+            DataDomain("memory.entities", _export("memory_entities"), _delete("memory_entities"), delete_order=10),
+            DataDomain("memory.events", _export("memory_events"), _delete("memory_events"), delete_order=10),
+            DataDomain("memory.procedures", _export("memory_procedures"), _delete("memory_procedures"), delete_order=10),
+            DataDomain("memory.relationships", _export("memory_relationships"), _delete("memory_relationships"), delete_order=10),
+            DataDomain("memory.task_state", _export("memory_task_state"), _delete("memory_task_state"), delete_order=10),
+            DataDomain("memory.insights", _export("insights"), _delete("insights"), delete_order=10),
+            DataDomain("persona.state", _export("persona_state"), _delete("persona_state"), delete_order=10),
+            # Contact children (FK to contacts) — order 20
+            DataDomain("contacts.channels", _export("contact_channels"), _delete("contact_channels"), delete_order=20),
+            DataDomain("contacts.sources", _export("contact_sources"), _delete("contact_sources"), delete_order=20),
+            DataDomain("contacts.relationships", _export("contact_relationships"), _delete("contact_relationships"), delete_order=20),
+            # Goal children (FK to goals) — order 20
+            DataDomain("goals.milestones", _export("goal_milestones"), _delete("goal_milestones"), delete_order=20),
+            DataDomain("goals.gates", _export("goal_gates"), _delete("goal_gates"), delete_order=20),
+            DataDomain("goals.learnings", _export("goal_learnings"), _delete("goal_learnings"), delete_order=20),
+            DataDomain("goals.traces", _export("goal_execution_traces"), _delete("goal_execution_traces"), delete_order=20),
+            DataDomain("goals.suggestions", _export("goal_suggestions"), _delete("goal_suggestions"), delete_order=20),
+            # Workflow children (FK to workflows) — order 20
+            DataDomain("workflow.executions", _export("workflow_executions"), _delete("workflow_executions"), delete_order=20),
+            # Parents — order 30
+            DataDomain("contacts.persons", _export("contacts"), _delete("contacts"), delete_order=30),
+            DataDomain("goals.goals", _export("goals"), _delete("goals"), delete_order=30),
+            DataDomain("workflow.workflows", _export("workflows"), _delete("workflows"), delete_order=30),
+        ]
+
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_personal.contacts.store import PersonStore
         from ze_personal.contacts.channel_store import ContactChannelStore

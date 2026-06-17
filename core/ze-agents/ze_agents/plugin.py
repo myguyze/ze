@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 from abc import ABC
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, Awaitable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from langgraph.graph import StateGraph
     from ze_agents.base_agent import BaseAgent
     from ze_onboarding import OnboardingProvider
+
+@dataclass
+class DataDomain:
+    """Describes one data domain that a plugin owns and can export/delete."""
+
+    name: str
+    export: Callable[[Any], Awaitable[list[dict]]]
+    delete: Callable[[Any], Awaitable[None]]
+    # Lower delete_order = deleted first (children before parents).
+    delete_order: int = 50
+
 
 # Auto-populated by ZePlugin.__init_subclass__ when plugin modules are imported.
 _registry: list[type["ZePlugin"]] = []
@@ -152,6 +164,14 @@ class ZePlugin(ABC):
             return yaml.safe_load(locale_path.read_text()) or {}
         except Exception:
             return {}
+
+    def data_domains(self) -> list[DataDomain]:
+        """Return the data domains this plugin owns.
+
+        Each domain declares an async exporter (returns rows as plain dicts) and an
+        async deleter. The export/delete engine calls these in order at runtime.
+        """
+        return []
 
     def register_proactive_jobs(
         self,

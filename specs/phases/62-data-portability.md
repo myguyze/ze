@@ -1,6 +1,6 @@
 # Phase 62 — Data Portability (Export & Deletion)
 
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 49 (ze-sdk), Phase 46 (accountability / confirmation flow), Phase 20 (ZePlugin)
 
 ---
@@ -238,11 +238,32 @@ apps/ze-api/ze_api/
 New **Settings** page (tab in the side nav):
 
 - **Export your data** — primary button → calls `GET /data/export` → browser download.
-- **Delete all data** — destructive button (outlined red) → opens a modal:
-  - Warning text explaining this is irreversible.
-  - Text input: user must type "DELETE" to unlock the confirm button.
-  - On confirm: calls `POST /data/delete-intent` then `DELETE /data`.
-  - On success: shows "All data deleted" and redirects to the empty chat screen.
+- **Delete all data** — destructive button (outlined red) → opens a confirmation modal.
+
+### Deletion modal — UX requirements
+
+The modal must make clear that this action is permanent before the user can proceed.
+It flows in this order:
+
+1. **Headline**: "Delete all data?" in large text.
+2. **Impact summary**: a brief list of what will be erased — memories, goals, contacts,
+   messages, reminders, usage history. No room for ambiguity about scope.
+3. **Irreversibility statement**: explicit sentence that this cannot be undone.
+4. **Export nudge**: a secondary action ("Export your data first") so the user can
+   download a copy without dismissing the modal. Clicking it triggers the same export
+   as the Settings page button and keeps the modal open.
+5. **Challenge input**: labelled `Type DELETE to confirm`. The confirm button remains
+   disabled until the field contains exactly `DELETE` (case-sensitive). This is the
+   proof-of-intent gate — it requires deliberate typed action, not just clicking through.
+6. **Confirm button**: labelled "Delete everything", styled destructive red, enabled
+   only when the challenge passes.
+7. **On success**: modal closes, local config is cleared, page reloads to the empty
+   onboarding / chat screen.
+
+The challenge is intentionally lightweight (typed phrase, no second credential required)
+because Ze is a single-user, self-hosted system where the API key is already embedded in
+the client. The `DELETE` phrase is long enough to prevent accidental confirmation but
+short enough not to be frustrating.
 
 ---
 

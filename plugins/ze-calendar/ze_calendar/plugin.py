@@ -43,6 +43,33 @@ class CalendarPlugin(ZePlugin):
         self.reminder_store = ReminderStore(pool=pool)
         self._calendar_reminder_store = CalendarReminderStore(pool=pool)
 
+    def data_domains(self):
+        from ze_agents.plugin import DataDomain
+
+        async def _export(tbl: str, pool) -> list[dict]:
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(f"SELECT * FROM {tbl}")
+                return [dict(r) for r in rows]
+
+        async def _delete(tbl: str, pool) -> None:
+            async with pool.acquire() as conn:
+                await conn.execute(f"DELETE FROM {tbl}")
+
+        return [
+            DataDomain(
+                "calendar.reminders",
+                lambda p: _export("user_reminders", p),
+                lambda p: _delete("user_reminders", p),
+                delete_order=10,
+            ),
+            DataDomain(
+                "calendar.calendar_reminders",
+                lambda p: _export("calendar_reminders", p),
+                lambda p: _delete("calendar_reminders", p),
+                delete_order=10,
+            ),
+        ]
+
     def rest_stores(self) -> dict[str, Any]:
         return {"reminder_store": self.reminder_store}
 

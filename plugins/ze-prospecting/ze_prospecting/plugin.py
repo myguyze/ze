@@ -42,6 +42,33 @@ class ProspectingPlugin(ZePlugin):
             self._prospecting_settings = ProspectingSettings.from_env()
         self.campaign_store = ProspectCampaignStore(pool=pool)
 
+    def data_domains(self):
+        from ze_agents.plugin import DataDomain
+
+        async def _export(tbl: str, pool) -> list[dict]:
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(f"SELECT * FROM {tbl}")
+                return [dict(r) for r in rows]
+
+        async def _delete(tbl: str, pool) -> None:
+            async with pool.acquire() as conn:
+                await conn.execute(f"DELETE FROM {tbl}")
+
+        return [
+            DataDomain(
+                "prospecting.outreach",
+                lambda p: _export("prospect_outreach", p),
+                lambda p: _delete("prospect_outreach", p),
+                delete_order=10,
+            ),
+            DataDomain(
+                "prospecting.campaigns",
+                lambda p: _export("prospect_campaigns", p),
+                lambda p: _delete("prospect_campaigns", p),
+                delete_order=20,
+            ),
+        ]
+
     def agent_deps(self, accumulated: dict) -> dict:
         return {
             ProspectCampaignStore: self.campaign_store,
