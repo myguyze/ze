@@ -190,7 +190,7 @@ is ever allowed to interrupt.
 | ---- | ------------------ | --- |
 | Surface to user (push) | `ProactiveJob` + `ProactiveNotifier` + `PushLogStore` (dedup/budget) | none — reuse |
 | Surface to user (inline) | orchestration graph node + `AgentState` + response section + web rendering | new node + a "connections" component (Phase 58) |
-| Neighbourhood retrieval | `PostgresGraphStore.expand()`, predicates, `Entity`/`Event`/`Fact`/`Episode` | external signals not yet anchored as `Event`s |
+| Neighbourhood retrieval | `PostgresGraphStore.expand()`, predicates, `Entity`/`Event`/`Fact`/`Episode` | `Signal` is a new first-class node type (Phase 55); not yet in the graph |
 | Pattern synthesis | `InsightEngine` (LLM over facts/episodes) | intra-personal only; reads legacy tables |
 | Relevance signals | profile facets, `NewsPreference` model (Phase 50), active goals | not unified into one relevance score |
 | Plugin contribution | `memory_policies()`, `configurable_services()`, `register_proactive_jobs()` | no `SignalSource` hook |
@@ -213,14 +213,25 @@ is ever allowed to interrupt.
 
 ## Open Questions
 
-- [ ] Should signals be a new first-class node type, or reuse `Event` with a provenance
-  marker? (Leaning reuse `Event` — see Phase 55.)
+- [x] **Signal node type:** `Signal` is a new first-class graph node (alongside
+  `Event`/`Episode`/`Fact`), not a reuse of `Event`. Retrieval policies can explicitly
+  include or exclude `Signal` nodes; `expand()` traversal stays clean. Provenance
+  (`source` + `external_ref`) lets the engine reconstruct evidence from the source table.
+- [x] **Topic entity type:** `Topic` is an entity type (alongside `person`, `org`,
+  `ticker`, `place`, `product`). Coarse tags on the signal are insufficient for graph
+  traversal — `Signal --MENTIONS--> Topic <--MENTIONS-- Episode` is the cross-domain
+  link the engine needs.
+- [x] **Signal retention:** Signals carry their own retention window (`retention_days`,
+  default 90 days), independent of the source table's pruning schedule. The `Signal` node
+  retains `title`, `summary`, and entity edges even after the source row is pruned. Phase
+  57 is responsible for pinning cited signals (bumping `expires_at`) so evidence is never
+  pruned while a live hypothesis references it.
+- [x] **v1 scope:** inline-only (Phase 58). Proactive push (Phase 59) deferred until
+  inline feedback validates the engine.
 - [ ] Is the correlation engine a core package (`ze-correlation`) scheduled by the
   container like consolidation, or a dedicated plugin? (Leaning core package; emission is
   via a plugin hook.)
 - [ ] How is `relevance_to_user` calibrated initially, before any feedback exists?
-- [x] **v1 scope:** inline-only (Phase 58). Proactive push (Phase 59) deferred until
-  inline feedback validates the engine.
 - [ ] Inline placement: graph node (leaning — see Phase 58) vs agent tool.
 - [ ] Inline latency budget: a turn cannot wait on heavy expansion. What's the max hop/
   neighbourhood size for the inline path vs the proactive path?

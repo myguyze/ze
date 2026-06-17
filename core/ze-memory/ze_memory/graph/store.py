@@ -16,6 +16,7 @@ _TYPE_BUCKET = {
     "entity":    "entity_ids",
     "episode":   "episode_ids",
     "procedure": "procedure_ids",
+    "signal":    "signal_ids",
 }
 
 
@@ -169,6 +170,8 @@ class PostgresGraphStore:
                         expansion.episode_ids.append(rel.target_id)
                     elif bucket == "procedure_ids":
                         expansion.procedure_ids.append(rel.target_id)
+                    elif bucket == "signal_ids":
+                        expansion.signal_ids.append(rel.target_id)
 
             frontier = next_frontier
 

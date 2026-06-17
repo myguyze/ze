@@ -63,38 +63,57 @@ downstream is graph traversal over what already exists.
 
 ```
 core/ze-memory/ze_memory/
-    types.py            # + Signal dataclass
-    signals.py          # SignalIngestor: Signal -> Event + entity edges
-    entities/
-        resolver.py     # EntityResolver generalized to org/topic/ticker/place
+    types.py            # + EntityRef, Signal dataclasses; signal_ids on GraphExpansion
+    retriever.py        # ingest_signal on PostgresMemoryStore;
+                        # _resolve_entity_ref helper extracted from _resolve_participant_names
+    store.py            # ingest_signal on MemoryStore Protocol
+    graph/
+        types.py        # signal_ids: list[UUID] on GraphExpansion (already added)
+        store.py        # "signal" in _TYPE_BUCKET (already added)
+apps/ze-api/migrations/
+    versions/NNN_memory_signals.py   # memory_signals table
 plugins/ze-news/ze_news/
-    signals.py          # ArticleSignalAdapter: Article -> Signal
+    signals.py          # article_to_signal(article: Article) -> Signal  (free function)
 ```
 
 ---
 
 ## Data Structures
 
+`Signal` is a **new first-class graph node** (alongside `Event`, `Episode`, `Fact`).
+It is not converted to an `Event` on ingest — it lives in the graph as its own type so
+that retrieval policies can explicitly include or exclude external signals, and so that
+`expand()` traversal stays unambiguous.
+
 ```python
 # core/ze-memory/ze_memory/types.py
 
 @dataclass
+class EntityRef:
+    name: str
+    entity_type: str   # "person" | "org" | "topic" | "ticker" | "place" | "product"
+
+
+@dataclass
 class Signal:
+    id: UUID
     source: str                 # plugin/source key, e.g. "news", "finance"
     external_ref: str           # stable id in the source store (article URL, ticker event id)
     title: str
     summary: str
-    entities: list[str]         # surface forms; resolved to Entity nodes on ingest
-    topics: list[str]           # coarse tags for relevance matching
     occurred_at: datetime
+    entities: list[EntityRef] = field(default_factory=list)   # typed; resolved to Entity nodes on ingest
     magnitude: float = 0.0      # source-supplied intrinsic importance, 0..1
     payload: dict[str, Any] = field(default_factory=dict)
+    expires_at: datetime | None = None   # Phase 57 pins this when a hypothesis cites the signal
+    # graph edges written on ingest: MENTIONS → Entity, PARTICIPATES_IN → Entity
 ```
 
-A `Signal` is converted to an `Event` (existing type) on ingest. No new node type is
-introduced — `Event` already carries participants, summary, and outcome. The
-`external_ref` + `source` pair is stored on the event provenance so evidence is always
-reconstructable.
+Entities are typed at the adapter level — the adapter knows from article structure what is an org, topic, ticker, etc. This type is preserved through to `upsert_entity` so no inference is needed at resolution time.
+
+The `external_ref` + `source` pair lets the engine reconstruct evidence from the source
+table when the row still exists; the `Signal` node itself retains `title`, `summary`, and
+entity edges even after the source row is pruned.
 
 ---
 
@@ -105,36 +124,39 @@ reconstructable.
 
 class MemoryStore(Protocol):
     async def ingest_signal(self, signal: Signal) -> SignalIngestResult | None:
-        """Resolve entities, write an Event, create MENTIONS edges.
-        Returns None if the signal is a duplicate of an existing event
+        """Resolve entities, write a Signal node, create MENTIONS edges.
+        Returns None if the signal is a duplicate of an existing signal
         (same source + external_ref)."""
 ```
 
 ```python
 @dataclass
 class SignalIngestResult:
-    event_id: UUID
+    signal_id: UUID
     entity_ids: list[UUID]
-    created: bool          # False if deduped to an existing event
+    created: bool          # False if deduped to an existing signal
 ```
 
 ### Errors / Edge Cases
 
 | Condition | Behaviour |
 | --------- | --------- |
-| Duplicate `source`+`external_ref` | Return existing event id, `created=False`; no new edges |
+| Duplicate `source`+`external_ref` | Return existing signal id, `created=False`; no new edges |
 | Entity surface form unresolved | Create a low-confidence `Entity` (type inferred), flag for consolidation |
-| Empty `entities` | Anchor event with topic edges only; still ingestable |
-| Source store row later deleted | Event remains; `external_ref` dangling is tolerated (evidence marked stale) |
+| Empty `entities` | Write Signal node with no entity edges; still ingestable |
+| Source store row later deleted | Signal node remains; `external_ref` dangling is tolerated (evidence marked stale) |
 
 ---
 
 ## Entity Resolution
 
-Generalize the existing person-focused resolver:
-
 - `entity_type` extended: `person | org | topic | ticker | place | product`.
-- Reuse alias/embedding matching from contacts consolidation; do not build a new resolver.
+- `Topic` is a proper entity type — not a coarse tag on the signal. This enables
+  cross-domain graph traversal: `Signal --MENTIONS--> Topic <--MENTIONS-- Episode`.
+- Extract the core lookup-and-upsert logic from `_resolve_participant_names` into a private
+  `_resolve_entity_ref(ref: EntityRef) -> UUID | None` helper on `PostgresMemoryStore`.
+  `_resolve_participant_names` delegates to it with `entity_type="person"` — zero behavior
+  change for the existing path. The signal ingest path calls it with the type from `EntityRef`.
 - Conservative: prefer creating a new entity over a wrong merge. Consolidation (existing
   nightly job) can merge later.
 
@@ -144,8 +166,8 @@ Generalize the existing person-focused resolver:
 
 On ingest, create:
 
-- `Event --MENTIONS--> Entity` for each resolved entity.
-- `Event --PARTICIPATES_IN--> Entity` when the source marks an entity as an actor (e.g.
+- `Signal --MENTIONS--> Entity` for each resolved entity (including `Topic` entities).
+- `Signal --PARTICIPATES_IN--> Entity` when the source marks an entity as an actor (e.g.
   the company that is the subject of a sanction), if such a distinction is available.
 
 Predicates already exist (`ze_memory/graph/predicates.py`); no new predicate is required
@@ -179,6 +201,7 @@ signals.
 memory:
   signals:
     enabled: true
+    retention_days: 90           # independent of source table pruning
     force_ingest_sources: []     # e.g. ["news"] to bypass admission in dev
 ```
 
@@ -196,23 +219,29 @@ memory:
 
 ## Test Plan
 
-- `ingest_signal` writes an `Event` and `MENTIONS` edges for resolved entities.
-- Duplicate `source`+`external_ref` dedupes (returns existing id, `created=False`).
-- `expand()` from an entity reaches both a signal-derived event and a prior episode that
-  mentions the same entity (the core cross-domain traversal).
-- Non-person entities (org/topic) resolve and merge conservatively.
-- News article → signal → event round-trips with `external_ref == article.url`.
+- `ingest_signal` writes a `Signal` node and `MENTIONS` edges for resolved entities.
+- Duplicate `source`+`external_ref` dedupes (returns existing signal id, `created=False`).
+- `expand()` from an entity reaches both a signal and a prior episode that mention the
+  same entity (the core cross-domain traversal).
+- `expand()` via a shared `Topic` entity links a signal and an episode that mention the
+  same topic but no common org/person.
+- Non-person entities (`org`, `topic`, `ticker`) resolve and merge conservatively.
+- News article → signal round-trips with `external_ref == article.url`.
+- `Signal.expires_at` is `None` on ingest; remains independent of `news_articles` pruning.
 
 ---
 
 ## Open Questions
 
-- [ ] Reuse `Event` (leaning yes) or add a dedicated `Signal` node type? Reuse keeps the
-  graph simple but conflates "lived event" with "observed external event" — is the
-  provenance marker enough to disambiguate for retrieval policies?
+- [x] **Signal node type:** `Signal` is a new first-class graph node. Reusing `Event`
+  would conflate "lived event" with "observed external event" and make retrieval policies
+  unable to discriminate. See `correlation-engine.md`.
+- [x] **Topic entity type:** `Topic` is a proper entity type. Coarse tags on the signal
+  are insufficient — the cross-domain traversal `Signal --MENTIONS--> Topic <--MENTIONS--
+  Episode` requires `Topic` to be a graph node.
+- [x] **Retention:** `Signal` nodes carry their own `retention_days` (default 90),
+  independent of the source table. The `Signal` node retains `title`, `summary`, and
+  entity edges after source pruning. Phase 57 is responsible for pinning cited signals
+  (`expires_at`) so evidence is never pruned while a hypothesis references it.
 - [ ] Should `magnitude` be normalized per-source (z-scored) so a finance source cannot
   dominate a news source, or globally? (Likely per-source; finalize in Phase 56.)
-- [ ] Do topic edges need a `Topic` entity type, or are coarse tags on the event enough
-  for relevance matching?
-- [ ] Retention: signals inherit source retention (news prunes at 7 days) but the derived
-  event may be referenced by a hypothesis. Should anchoring an event extend retention?
