@@ -204,6 +204,7 @@ models. The point is drift correction, not a recommender.
 # config/config.yaml
 correlation:
   salience:
+    dry_run: false             # true → log admission decisions without writing to graph
     admission:
       tau_admit: 0.55
       tau_watch: 0.35
@@ -258,14 +259,47 @@ correlation:
 
 ## Open Questions
 
-- [ ] Initial calibration: with no feedback history, what are sane default thresholds so
-  Ze is neither silent nor spammy in week one? (Conservative defaults + a dev "dry-run"
-  mode that logs would-be pushes without sending?)
-- [ ] Should the relevance set be a materialized table (refreshed by consolidation) or
-  computed on demand with a cache? (Leaning on-demand + cache for v1.)
-- [ ] Is global threshold tuning enough, or do we need per-topic thresholds to stop one
-  noisy domain from desensitizing all correlation?
-- [ ] How does intrinsic magnitude get normalized across heterogeneous sources fairly
-  (news vs finance vs legal)?
-- [ ] Should engagement weighting risk a feedback loop where Ze over-focuses on whatever
-  the user last reacted to (the "banana" failure from Phase 50, one level up)?
+- [x] **Initial calibration:** Use conservative defaults (`τ_admit=0.55`, `τ_watch=0.35`
+  as specified) plus a `dry_run: true` config flag. In dry-run mode the admission gate
+  runs and logs its decision (`admit` / `watch` / `drop`) with the decomposed score, but
+  does not write to the graph. This lets thresholds be tuned safely before enabling real
+  ingestion.
+- [x] **Relevance set storage:** On-demand computation with a short-lived in-process cache
+  (`cache_ttl_minutes` from config, default 30 min). No materialized table in v1 — the
+  computation is cheap and a stale cache is acceptable within a turn.
+- [x] **Global vs per-topic thresholds:** Global thresholds for this phase. Per-topic
+  thresholds are a planned future enhancement (see "Future: Per-Topic Thresholds" below).
+- [x] **Magnitude normalization:** Per-source z-scoring (decided in Phase 55). Actual
+  normalization deferred until the second source lands; news carries `magnitude=0.0` so
+  admission is relevance-driven only for now. The admission formula already treats
+  `w_magnitude * 0.0 = 0` gracefully.
+- [x] **Engagement feedback loop:** Guard against it by capping the engagement weight at
+  the same level as profile facets (Medium), never above. If the last 3 user reactions all
+  concern the same topic, don't compound — treat subsequent reactions to that topic as
+  neutral. Revisit if the "banana" failure mode recurs empirically.
+
+---
+
+## Future: Per-Topic Thresholds
+
+Global thresholds work for v1 but carry a known failure mode: a high-volume domain (e.g.
+finance tickers) can train the global `τ_push` to be too permissive for all domains, or
+noise from one domain can desensitize the user to pushes across the board.
+
+When there is enough signal volume to observe this in practice (likely after the finance
+and legal sources land, Phase 60+), introduce per-topic threshold overrides:
+
+```yaml
+correlation:
+  salience:
+    per_topic:
+      finance: { tau_admit: 0.65, tau_push: 0.70 }   # higher bar for ticker noise
+      legal:   { tau_admit: 0.60 }
+```
+
+The `RelevanceModel.score` call already returns `contributions` by key; adding per-topic
+thresholds means looking up the topic in the override map before applying the global bar.
+No data model change is required — only the admission gate logic and config schema change.
+
+This is explicitly **not** in scope for Phase 56. It belongs in the phase that introduces
+the second or third signal source.

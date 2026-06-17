@@ -243,5 +243,7 @@ memory:
   independent of the source table. The `Signal` node retains `title`, `summary`, and
   entity edges after source pruning. Phase 57 is responsible for pinning cited signals
   (`expires_at`) so evidence is never pruned while a hypothesis references it.
-- [ ] Should `magnitude` be normalized per-source (z-scored) so a finance source cannot
-  dominate a news source, or globally? (Likely per-source; finalize in Phase 56.)
+- [x] **Magnitude normalization:** Per-source z-scoring. Each source normalizes its own
+  magnitude so a noisy source cannot dominate. Actual normalization is deferred until the
+  second non-news source lands (finance/legal); news signals carry `magnitude=0.0` until
+  then, so admission is driven entirely by relevance. Finalized in Phase 56.
