@@ -17,9 +17,10 @@ ze/
 │   ├── ze-memory/    # Memory package — facts, episodes, graph, retrieval
 │   ├── ze-onboarding/# Onboarding coordinator, provider contracts, reset domain types
 │   ├── ze-browser/   # Browser sidecar HTTP client
-│   ├── ze-google/    # Shared Google OAuth2 credentials (no Ze deps)
 │   ├── ze-notifications/ # Push notification abstraction (ntfy)
 │   └── ze-components/    # Server-driven UI component descriptors
+├── integrations/     # External service wrappers — no Ze domain knowledge
+│   └── ze-google/    # Google OAuth2 credentials and service client factories
 ├── plugins/          # ZePlugin domain extensions
 │   ├── ze-personal/  # Personal-assistant domain layer
 │   ├── ze-email/     # Gmail channel + email agent (ZePlugin)
@@ -42,7 +43,7 @@ ze-agents         ←  ze-onboarding            ← developer API (BaseAgent, @a
 ze-proactive      ←  ze-agents                ← job scheduling framework
 ze-notifications  ←  no ze deps
 ze-components     ←  ze-agents
-ze-google         ←  no ze deps
+ze-google         ←  no ze deps               ← integrations/
 ze-memory         ←  ze-agents
 ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding   ← plugin entry point
 ze-core           ←  ze-agents                            ← engine; never a plugin dep

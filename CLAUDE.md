@@ -42,7 +42,6 @@ ze/                           # monorepo root
 │   │                         # ze_sdk.memory, ze_sdk.errors
 │   ├── ze-memory/            # Memory — facts, episodes, graph, retrieval
 │   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
-│   ├── ze-google/            # Shared Google OAuth2 credentials (no Ze deps)
 │   ├── ze-notifications/     # Push notification abstraction (ntfy)
 │   ├── ze-components/        # Server-driven UI component descriptors
 │   └── ze-eval/              # Eval infrastructure — runner, judge, verifier, MCP server
@@ -78,6 +77,8 @@ ze/                           # monorepo root
 │   ├── ze-news/              # News fetching, RSS sources, NewsAgent, NewsPlugin
 │   ├── ze-finance/           # Finance domain (ZePlugin) — in progress
 │   └── ze-legal/             # Legal domain (ZePlugin) — in progress
+├── integrations/             # External service wrappers — no Ze domain knowledge
+│   └── ze-google/            # Google OAuth2 credentials and service client factories
 ├── apps/                     # Deployment units
 │   ├── ze-api/               # HTTP/WebSocket API, wires all plugins
 │   │   ├── ze_api/
@@ -110,11 +111,11 @@ ze-agents       (no ze deps)             core/
 ze-proactive  → ze-agents                core/
 ze-notifications(no ze deps)             core/
 ze-components   (no ze deps)             core/
-ze-google       (no ze deps)             core/
 ze-memory     → ze-agents                core/
 ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
 ze-sdk        → ze-agents, ze-proactive, ze-memory         core/  ← plugin entry point
 ze-core       → ze-agents                core/  ← engine; never a plugin dep
+ze-google       (no ze deps)             integrations/
 ze-personal   → ze-sdk                   plugins/
 ze-email      → ze-sdk, ze-google, ze-personal             plugins/
 ze-prospecting→ ze-sdk, ze-browser, ze-personal            plugins/

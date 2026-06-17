@@ -17,7 +17,6 @@ logic — only the framework primitives that every other package builds on.
 | [ze-core](ze-core/) | LangGraph orchestration, routing, capability gate, OpenRouter client, telemetry |
 | [ze-memory](ze-memory/) | Memory persistence and retrieval — facts, episodes, graph, consolidation |
 | [ze-browser](ze-browser/) | HTTP client for the Playwright browser sidecar |
-| [ze-google](ze-google/) | Google OAuth2 credentials and service client factories (no Ze deps) |
 | [ze-notifications](ze-notifications/) | Push notification abstraction (ntfy) |
 | [ze-components](ze-components/) | Server-driven UI component descriptors sent to the React web client |
 | [ze-onboarding](ze-onboarding/) | Plugin-extensible onboarding coordinator, provider contracts, reset domain types |
@@ -25,7 +24,6 @@ logic — only the framework primitives that every other package builds on.
 ## Dependency graph
 
 ```
-ze-google         ←  no ze deps
 ze-notifications  ←  no ze deps
 ze-onboarding     ←  no ze deps
 ze-agents         ←  ze-onboarding
@@ -46,7 +44,6 @@ ze-core           ←  ze-agents
 | New push notification backend | `ze-notifications` |
 | New server-driven UI component type | `ze-components` |
 | New setup-flow primitive, onboarding step/seed type, provider contract | `ze-onboarding` |
-| New Google service client factory | `ze-google` |
 | New browser sidecar endpoint | `ze-browser` |
 
 If the code has any dependency on personal-assistant domain concepts (goals,

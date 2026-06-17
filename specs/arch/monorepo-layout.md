@@ -1,8 +1,8 @@
-# Monorepo Layout — Three-Tier Directory Structure
+# Monorepo Layout — Four-Tier Directory Structure
 
 ## Status
 
-Implemented (Phase 47, June 2026)
+Implemented (Phase 47, June 2026; extended with `integrations/` tier, June 2026)
 
 ## Context
 
@@ -20,18 +20,24 @@ Two forces drove the reorganisation:
 
 ## Decision
 
-Dissolve `packages/` and promote three self-describing directories to the repo root:
+Dissolve `packages/` and promote four self-describing directories to the repo root:
 
 ```
-core/       # shared infrastructure — no domain knowledge
-plugins/    # ZePlugin domain extensions
-apps/       # deployment units
+core/           # shared infrastructure — no domain knowledge
+integrations/   # external service wrappers — no Ze domain knowledge
+plugins/        # ZePlugin domain extensions
+apps/           # deployment units
 ```
 
 **`core/`** contains packages that could, in principle, be shipped as a standalone
-"AI assistant framework": `ze-core`, `ze-memory`, `ze-browser`, `ze-google`,
+"AI assistant framework": `ze-core`, `ze-memory`, `ze-browser`,
 `ze-notifications`, `ze-components`. They have no knowledge of Ze's personal
 assistant use-case.
+
+**`integrations/`** contains thin wrappers around external services and APIs —
+`ze-google` (Google OAuth2 / Calendar / Gmail), and future broker or data-provider
+clients. These packages have no Ze domain knowledge and no dependency on `core/`
+framework primitives. `plugins/` consume them; `core/` does not.
 
 **`plugins/`** contains `ZePlugin` implementations — self-contained domain
 subsystems that contribute agents, stores, jobs, and migrations through the plugin
@@ -41,7 +47,7 @@ required to add a new domain subsystem.
 
 **`apps/`** contains runnable units: `ze-api` (the FastAPI/WebSocket backend that
 wires all plugins) and `ze-app` (the Flutter client). These are the only places that
-import from both `core/` and `plugins/`.
+import from both `core/`, `integrations/`, and `plugins/`.
 
 ## Alternatives considered
 
@@ -59,9 +65,11 @@ non-package directories.
 - **No Python import changes.** Package names (`ze_core`, `ze_personal`, …) are
   unchanged. All cross-package deps use `{ workspace = true }` — no path references
   inside `pyproject.toml` files needed updating.
-- **uv workspace glob** updated to `members = ["core/*", "plugins/*", "apps/*"]`.
+- **uv workspace glob** updated to `members = ["core/*", "plugins/*", "apps/*", "integrations/*"]`.
 - **Makefile** path variables updated (`ZE`, `ZE_CORE`, and inline paths).
 - New domain plugins go into `plugins/` — no structural decision required.
 - New shared libraries (no domain knowledge) go into `core/`.
+- New external service wrappers go into `integrations/` — no Ze framework deps allowed.
 - The dependency rule is reinforced by directory placement: `core/` packages must
-  never import from `plugins/` or `apps/`.
+  never import from `plugins/`, `integrations/`, or `apps/`. `integrations/` packages
+  must never import from `core/`, `plugins/`, or `apps/`.
