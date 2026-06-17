@@ -11,11 +11,11 @@
 
 | Feature | Status |
 | ------- | ------ |
-| `SignalSource` protocol + `ZePlugin` hook | 🔲 Pending |
-| SDK re-export | 🔲 Pending |
-| News migrated to the hook | 🔲 Pending |
-| Second emitter (finance or calendar) | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `SignalSource` protocol + `ZePlugin` hook | ✅ Done |
+| SDK re-export | ✅ Done |
+| News migrated to the hook | ✅ Done |
+| Second emitter (calendar) | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

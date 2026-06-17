@@ -67,6 +67,7 @@ class ZeContainer(CoreContainer):
     """Ze application container — ze-core graph stack plus WebSocket, proactive, workflow."""
 
     translations: Any  # ProgressTranslations — built from merged plugin locale data
+    signal_sources: dict  # source_key → SignalSource; collected from all plugins
     correlation_engine: CorrelationEngine | None
     persona_store: Any
     workflow_store: WorkflowStore
@@ -157,6 +158,26 @@ class ZeContainer(CoreContainer):
 
 
 Container = ZeContainer
+
+
+def collect_plugin_signal_sources(plugins: list) -> dict:
+    """Collect and deduplicate SignalSources from all plugins.
+
+    Raises ``AgentConfigError`` on duplicate ``source_key``, matching the
+    duplicate-key rule for memory policies.
+    """
+    from ze_agents.errors import AgentConfigError
+
+    sources: dict = {}
+    for plugin in plugins:
+        for source in plugin.signal_sources():
+            if source.source_key in sources:
+                raise AgentConfigError(
+                    f"Duplicate signal source key {source.source_key!r} "
+                    f"contributed by {type(plugin).__name__}"
+                )
+            sources[source.source_key] = source
+    return sources
 
 
 async def build_container(settings: Settings) -> ZeContainer:
@@ -343,6 +364,10 @@ async def build_container(settings: Settings) -> ZeContainer:
     for plugin in plugins:
         plugin_stores.update(plugin.rest_stores())
 
+    signal_sources = collect_plugin_signal_sources(plugins)
+    if signal_sources:
+        log.info("signal_sources_collected", keys=list(signal_sources))
+
     bootstrap_agents(deps=agent_deps, plugins=plugins)
 
     router = EmbeddingRouter(
@@ -432,6 +457,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         graph=graph,
         interface=interface,
         translations=translations,
+        signal_sources=signal_sources,
         correlation_engine=correlation_engine,
         persona_store=persona_store,
         workflow_store=workflow_store,

@@ -38,6 +38,7 @@ class NewsPlugin(ZePlugin):
         self._source_count: int = 0
 
         self._salience_cfg: dict | None = None
+        self._news_signal_source: Any = None
         if not self._enabled:
             return
 
@@ -59,6 +60,10 @@ class NewsPlugin(ZePlugin):
         self._force_ingest_sources: list[str] = signals_cfg.get("force_ingest_sources", [])
         salience_raw = settings.config.get("correlation", {}).get("salience", {})
         self._salience_cfg = salience_raw if salience_raw else None
+
+        from ze_news.signals import NewsSignalSource
+
+        self._news_signal_source = NewsSignalSource()
         self._fetch_job = NewsFetchJob(
             registry=registry,
             store=self._store,
@@ -71,6 +76,7 @@ class NewsPlugin(ZePlugin):
                 news_cfg.get("min_fetch_interval_minutes", 30)
             ),
             force_ingest_sources=self._force_ingest_sources,
+            signal_source=self._news_signal_source,
         )
 
     @classmethod
@@ -105,6 +111,11 @@ class NewsPlugin(ZePlugin):
             return None
         return NewsOnboardingProvider()
 
+    def signal_sources(self) -> list:
+        if self._news_signal_source is None:
+            return []
+        return [self._news_signal_source]
+
     def agent_module_paths(self) -> list[str]:
         if not self._enabled:
             return []
@@ -115,11 +126,10 @@ class NewsPlugin(ZePlugin):
             return
 
         memory_store = getattr(container, "memory_store", None)
-        if memory_store is not None and self._force_ingest_sources:
+        if memory_store is not None:
             self._fetch_job._memory_store = memory_store
 
         if memory_store is not None and self._salience_cfg is not None:
-            self._fetch_job._memory_store = memory_store
             self._fetch_job._admission_gate = self._build_admission_gate(
                 memory_store, container
             )

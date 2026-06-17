@@ -1,11 +1,13 @@
-"""Tests for ArticleSignalAdapter (Phase 55 news emitter)."""
+"""Tests for ArticleSignalAdapter and NewsSignalSource (Phases 55/60)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from ze_memory.types import EntityRef
 
-from ze_news.signals import ArticleSignalAdapter
+from ze_news.signals import ArticleSignalAdapter, NewsSignalSource
 from ze_news.types import Article
 
 
@@ -100,3 +102,57 @@ def test_entity_refs_are_entity_ref_instances():
     adapter = ArticleSignalAdapter()
     signal = adapter.to_signal(_make_article(tags=["fintech"]))
     assert all(isinstance(e, EntityRef) for e in signal.entities)
+
+
+# ── NewsSignalSource ──────────────────────────────────────────────────────────
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def test_news_signal_source_key():
+    assert NewsSignalSource.source_key == "news"
+
+
+@pytest.mark.asyncio
+async def test_push_then_poll_returns_signals():
+    source = NewsSignalSource()
+    articles = [_make_article(), _make_article(url="https://bbc.co.uk/other")]
+    source.push(articles)
+    signals = await source.poll(_EPOCH)
+    assert len(signals) == 2
+    assert {s.source for s in signals} == {"news"}
+
+
+@pytest.mark.asyncio
+async def test_poll_drains_buffer():
+    source = NewsSignalSource()
+    source.push([_make_article()])
+    await source.poll(_EPOCH)
+    # Second poll must be empty — buffer is cleared
+    second = await source.poll(_EPOCH)
+    assert second == []
+
+
+@pytest.mark.asyncio
+async def test_empty_source_returns_empty_list():
+    source = NewsSignalSource()
+    assert await source.poll(_EPOCH) == []
+
+
+@pytest.mark.asyncio
+async def test_push_parity_with_adapter():
+    """Signals from NewsSignalSource match direct ArticleSignalAdapter output."""
+    article = _make_article()
+    adapter = ArticleSignalAdapter()
+    expected = adapter.to_signal(article)
+
+    source = NewsSignalSource()
+    source.push([article])
+    [signal] = await source.poll(_EPOCH)
+
+    assert signal.source == expected.source
+    assert signal.external_ref == expected.external_ref
+    assert signal.title == expected.title
+    assert signal.summary == expected.summary
+    assert signal.occurred_at == expected.occurred_at
+    assert [e.name for e in signal.entities] == [e.name for e in expected.entities]

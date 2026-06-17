@@ -84,6 +84,11 @@ class CalendarPlugin(ZePlugin):
             "reminders": RemindersPolicy(),
         }
 
+    def signal_sources(self) -> list:
+        from ze_calendar.signals import CalendarSignalSource
+
+        return [CalendarSignalSource(store=self._calendar_reminder_store)]
+
     def agent_module_paths(self) -> list[str]:
         return [
             "ze_calendar.agents.calendar.agent",
@@ -93,6 +98,7 @@ class CalendarPlugin(ZePlugin):
     async def startup(self, container: Any) -> None:
         from ze_calendar.reminders.calendar import CalendarReminderService
         from ze_calendar.jobs.calendar_reminder import CalendarReminderJob
+        from ze_calendar.signals import CalendarSignalSource
 
         calendar_reminder_service = CalendarReminderService(
             notifier=self._notifier,
@@ -103,9 +109,14 @@ class CalendarPlugin(ZePlugin):
             settings=self._settings,
         )
 
+        signal_source = CalendarSignalSource(store=self._calendar_reminder_store)
+        admission_gate = self._build_admission_gate(container)
+
         calendar_reminders = CalendarReminderJob(
             service=calendar_reminder_service,
             credentials=self._google_credentials,
+            signal_source=signal_source if admission_gate is not None else None,
+            admission_gate=admission_gate,
         )
 
         proactive_cfg = self._settings.config.get("proactive", {})
@@ -143,3 +154,33 @@ class CalendarPlugin(ZePlugin):
                 overdue=overdue,
                 scheduled=len(unsent) - overdue,
             )
+
+    def _build_admission_gate(self, container: Any) -> Any:
+        salience_cfg = self._settings.config.get("correlation", {}).get("salience", {})
+        if not salience_cfg:
+            return None
+
+        memory_store = getattr(container, "memory_store", None)
+        if memory_store is None:
+            return None
+
+        from ze_memory.admission import AdmissionGate
+        from ze_memory.relevance import RelevanceModel
+
+        rel_cfg = salience_cfg.get("relevance", {})
+        relevance_model = RelevanceModel(
+            memory_store=memory_store,
+            episode_lookback_days=int(rel_cfg.get("episode_lookback_days", 30)),
+            cache_ttl_minutes=int(rel_cfg.get("cache_ttl_minutes", 30)),
+        )
+        adm_cfg = salience_cfg.get("admission", {})
+        return AdmissionGate(
+            relevance_model=relevance_model,
+            memory_store=memory_store,
+            tau_admit=float(adm_cfg.get("tau_admit", 0.55)),
+            tau_watch=float(adm_cfg.get("tau_watch", 0.35)),
+            w_relevance=float(adm_cfg.get("w_relevance", 0.7)),
+            w_magnitude=float(adm_cfg.get("w_magnitude", 0.3)),
+            watch_buffer_ttl_hours=float(adm_cfg.get("watch_buffer_ttl_hours", 48)),
+            dry_run=bool(salience_cfg.get("dry_run", False)),
+        )

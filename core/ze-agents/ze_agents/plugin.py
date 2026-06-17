@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Awaitable, TYPE_CHECKING
 
+from ze_agents.signals import SignalSource
+
 if TYPE_CHECKING:
     from langgraph.graph import StateGraph
     from ze_agents.base_agent import BaseAgent
@@ -130,6 +132,14 @@ class ZePlugin(ABC):
         plugin's service).
         """
         return {}
+
+    def signal_sources(self) -> list[SignalSource]:
+        """Signal sources this plugin contributes to the admission pipeline.
+
+        Collected by the container at startup; duplicate ``source_key`` values
+        across plugins raise ``AgentConfigError``.  Default: no sources.
+        """
+        return []
 
     def channels(self) -> list[Any]:
         """Return communication channel instances this plugin provides."""

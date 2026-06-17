@@ -12,8 +12,11 @@ from ze_news.types import Article
 
 if TYPE_CHECKING:
     from ze_core.openrouter.client import OpenRouterClient
+    from ze_news.signals import NewsSignalSource
 
 log = get_logger(__name__)
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 @proactive_job
@@ -33,6 +36,7 @@ class NewsFetchJob:
         memory_store: Any = None,
         force_ingest_sources: list[str] | None = None,
         admission_gate: Any = None,
+        signal_source: "NewsSignalSource | None" = None,
     ) -> None:
         self._registry = registry
         self._store = store
@@ -45,6 +49,8 @@ class NewsFetchJob:
         self._memory_store = memory_store
         self._force_ingest_sources: list[str] = force_ingest_sources or []
         self._admission_gate = admission_gate
+        self._signal_source = signal_source
+        self._signal_watermark: datetime = _EPOCH
 
     async def run(self, *, force: bool = False) -> None:
         now = datetime.now(timezone.utc)
@@ -67,11 +73,10 @@ class NewsFetchJob:
             if new_articles and self._credibility_enabled and self._client is not None:
                 asyncio.create_task(self._score_new_articles(new_articles))
 
-            should_emit = new_articles and self._memory_store is not None
-            if should_emit and source.key in self._force_ingest_sources:
-                asyncio.create_task(self._emit_signals(new_articles, bypass_gate=True))
-            elif should_emit and self._admission_gate is not None:
-                asyncio.create_task(self._emit_signals(new_articles, bypass_gate=False))
+            if new_articles and source.key in self._force_ingest_sources and self._memory_store is not None:
+                asyncio.create_task(self._direct_ingest(new_articles))
+            elif new_articles and self._signal_source is not None and self._admission_gate is not None:
+                asyncio.create_task(self._emit_via_source(new_articles))
 
         pruned = await self._store.prune(older_than_days=self._retention_days)
         if pruned:
@@ -114,18 +119,25 @@ class NewsFetchJob:
             except Exception as exc:
                 log.warning("credibility_scoring_failed", url=article.url, error=str(exc))
 
-    async def _emit_signals(
-        self, articles: list[Article], *, bypass_gate: bool = False
-    ) -> None:
+    async def _direct_ingest(self, articles: list[Article]) -> None:
+        """Bypass gate: force-ingest directly into memory (force_ingest_sources path)."""
         from ze_news.signals import ArticleSignalAdapter
 
         adapter = ArticleSignalAdapter()
         for article in articles:
             try:
-                signal = adapter.to_signal(article)
-                if bypass_gate or self._admission_gate is None:
-                    await self._memory_store.ingest_signal(signal)
-                else:
-                    await self._admission_gate.check_and_ingest(signal)
+                await self._memory_store.ingest_signal(adapter.to_signal(article))
             except Exception as exc:
-                log.warning("news_signal_emit_failed", url=article.url, error=str(exc))
+                log.warning("news_direct_ingest_failed", url=article.url, error=str(exc))
+
+    async def _emit_via_source(self, articles: list[Article]) -> None:
+        """Push articles through the SignalSource buffer then gate them."""
+        since = self._signal_watermark
+        self._signal_watermark = datetime.now(timezone.utc)
+        self._signal_source.push(articles)
+        signals = await self._signal_source.poll(since)
+        for signal in signals:
+            try:
+                await self._admission_gate.check_and_ingest(signal)
+            except Exception as exc:
+                log.warning("news_signal_emit_failed", url=signal.external_ref, error=str(exc))

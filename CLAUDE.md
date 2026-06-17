@@ -342,3 +342,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 52 | Session-grouped episode consolidation — group episodes by session before archiving, one LLM summary per session | Done |
 | 54 | Progress messages — plugin-local locale files, `ProgressTranslations.build()`, reporter wired end-to-end, `typing` frame carries text, `news.fetching` key for refresh | Done |
 | 57 | Correlation engine — `ze-correlation` package, `CorrelationEngine`, `PostgresHypothesisStore`, graph neighbourhood expansion, recall guarantee, signal pinning | Done |
+| 60 | Cross-plugin signal contract — `SignalSource` protocol, `ZePlugin.signal_sources()` hook, `NewsSignalSource`, `CalendarSignalSource`, container collection + dedup | Done |
