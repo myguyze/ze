@@ -5,7 +5,7 @@ from typing import AsyncIterator
 
 import ze_news.agents.tools  # noqa: F401 — registers @tool decorators
 
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_sdk.memory import PostgresMemoryStore
 from ze_agents.client import LLMClient
 from ze_agents.base_agent import BaseAgent
@@ -122,11 +122,8 @@ class NewsAgent(BaseAgent):
     vision_capable = False
     timeout = 30
     tools = ["refresh_news", "get_headlines", "search_news"]
-    intent_map = {
-        "read": "Retrieve and summarise news headlines or articles from the local store.",
-    }
-    capabilities = {
-        "read": Mode.AUTONOMOUS,
+    intents = {
+        "read": Intent(Mode.AUTONOMOUS, "Retrieve and summarise news headlines or articles from the local store."),
     }
 
     def __init__(

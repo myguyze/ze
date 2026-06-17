@@ -86,10 +86,10 @@ def _config(gate=None) -> dict:
 
 class TestCapabilityCheck:
     async def test_execute_decision(self):
-        from ze_agents.types import Mode
+        from ze_agents.types import Intent, Mode
         from ze_core.capability import CapabilityGate
         cls = _make_agent_class("alpha")
-        cls.capabilities = {"read": Mode.AUTONOMOUS}
+        cls.intents = {"read": Intent(Mode.AUTONOMOUS)}
         agent(cls)
         register_instance("alpha", object.__new__(cls))
         gate = CapabilityGate()

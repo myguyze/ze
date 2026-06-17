@@ -113,13 +113,9 @@ class MyAgent(BaseAgent):
     model        = "anthropic/claude-sonnet-4-5"
     timeout      = 30
     tools        = ["get_record", "create_record"]
-    intent_map   = {
-        "read":   "Retrieve a record.",
-        "create": "Create a new record.",
-    }
-    capabilities = {
-        "read":   Mode.AUTONOMOUS,
-        "create": Mode.CONFIRM,
+    intents      = {
+        "read":   Intent(Mode.AUTONOMOUS, "Retrieve a record."),
+        "create": Intent(Mode.CONFIRM,    "Create a new record."),
     }
 
     def __init__(self, store: MyStore) -> None:
@@ -397,15 +393,20 @@ Every agent intent maps to a `Mode` that controls what the capability gate allow
 | `DRAFT_ONLY` | `DRAFT` | WRITE tools return `is_draft=True` without executing. |
 | `DISABLED` | `BLOCKED` | All tools raise `ToolBlockedError`. |
 
-Agents declare capabilities per-intent:
+Agents declare capabilities per-intent via `intents`. Only declare intents the
+agent meaningfully uses:
 
 ```python
-capabilities = {
-    "read":   Mode.AUTONOMOUS,
-    "write":  Mode.CONFIRM,
-    "delete": Mode.DISABLED,
+intents = {
+    "read":   Intent(Mode.AUTONOMOUS, "Retrieve records."),
+    "write":  Intent(Mode.CONFIRM,    "Create or update a record."),
+    "delete": Intent(Mode.DISABLED,   "Delete a record."),
 }
 ```
+
+For any intent not listed, the gate falls back to `default_mode` (default:
+`Mode.CONFIRM`). Read-only agents that should never produce a confirmation
+dialog regardless of intent should set `default_mode = Mode.AUTONOMOUS`.
 
 Use `CONFIRM` for any action with real-world consequences (sending email, creating
 calendar events, spending money). Use `AUTONOMOUS` only for read-only operations.
@@ -442,7 +443,7 @@ The error hierarchy:
 ### New agent in an existing plugin
 
 - [ ] Spec written in `specs/phases/`
-- [ ] `agent.py` with `@agent` class — `name`, `description`, `model`, `capabilities`, `intent_map`, `tools` set
+- [ ] `agent.py` with `@agent` class — `name`, `description`, `model`, `intents`, `tools` set
 - [ ] `tools.py` with `@tool` functions — `access` and `description` set on each
 - [ ] Module paths added to `plugin.agent_module_paths()` (tools module listed first)
 - [ ] All `__init__` parameters type-annotated

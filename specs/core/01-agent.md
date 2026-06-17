@@ -81,8 +81,8 @@ The framework reads these at startup; no config file is involved.
 | `vision_capable` | `bool` | `False` | No | If `True`, agent receives raw image bytes alongside the prompt. |
 | `timeout` | `int` | `30` | No | Seconds before the agent run is cancelled with `AgentTimeoutError`. |
 | `enabled` | `bool` | `True` | No | If `False`, excluded from routing and not instantiated. |
-| `capabilities` | `dict[str, Mode]` | `{}` | No | Maps intent names to `Mode`. Unknown intents default to `CONFIRM`. |
-| `intent_map` | `dict[str, str]` | `{}` | No | Maps intent names to human-readable descriptions. First key is the primary intent. |
+| `intents` | `dict[str, Intent]` | `{}` | No | Maps intent names to `Intent(mode, description)`. Only declare intents the agent meaningfully uses. First entry is the primary intent. |
+| `default_mode` | `Mode` | `Mode.CONFIRM` | No | Mode applied to any intent not listed in `intents`. Set to `Mode.AUTONOMOUS` for read-only agents that accept any routed intent without a confirmation prompt. |
 | `tools` | `list[str]` | `[]` | No | Names of tools this agent may call. Validated against the tool registry at startup. |
 
 `name` and `description` with empty values raise `AgentConfigError` during
@@ -113,6 +113,7 @@ class BaseAgent(ABC):
 ```python
 from ze_core.orchestration import BaseAgent, agent
 from ze_core.capability import Mode
+from ze_agents.types import Intent
 
 @agent
 class CalendarAgent(BaseAgent):
@@ -124,18 +125,13 @@ class CalendarAgent(BaseAgent):
         Manages Google Calendar events. Use for creating, reading, updating,
         or deleting events, checking availability, or finding free time.
     """
-    capabilities = {
-        "read":   Mode.AUTONOMOUS,
-        "create": Mode.CONFIRM,
-        "update": Mode.CONFIRM,
-        "delete": Mode.CONFIRM,
+    intents = {
+        "read":   Intent(Mode.AUTONOMOUS, "Search and retrieve calendar events."),
+        "create": Intent(Mode.CONFIRM,    "Create a new calendar event."),
+        "update": Intent(Mode.CONFIRM,    "Modify an existing calendar event."),
+        "delete": Intent(Mode.CONFIRM,    "Remove a calendar event."),
     }
-    intent_map = {
-        "read":   "Search and retrieve calendar events.",
-        "create": "Create a new calendar event.",
-        "update": "Modify an existing calendar event.",
-        "delete": "Remove a calendar event.",
-    }
+    # default_mode omitted — fallback is Mode.CONFIRM, which is safe for a write agent
     tools = ["list_events", "create_event", "update_event", "delete_event"]
     system_prompt = "..."
 
@@ -194,7 +190,6 @@ agent:
 | `name` is non-empty | `AgentConfigError` |
 | `description` is non-empty | `AgentConfigError` |
 | Each name in `tools` exists in the tool registry | `AgentConfigError` |
-| Each key in `intent_map` exists in `capabilities` | `AgentConfigError` |
 | At least one agent has `enabled = True` | `RoutingError` |
 
 Validation failures abort startup. A misconfigured agent must not reach a running
@@ -202,12 +197,16 @@ server.
 
 ---
 
-## The `Mode` Enum
+## The `Intent` Dataclass and `Mode` Enum
 
-Declared in `ze_core/capability/types.py`. Used in `capabilities` dicts on agent
-classes.
+Declared in `ze_agents/types.py`.
 
 ```python
+@dataclass
+class Intent:
+    mode: Mode
+    description: str = ""  # human-readable; not used by the engine
+
 class Mode(str, Enum):
     AUTONOMOUS = "autonomous"   # execute immediately
     CONFIRM    = "confirm"      # pause and ask the user
@@ -215,9 +214,14 @@ class Mode(str, Enum):
     DISABLED   = "disabled"     # block entirely
 ```
 
-`Mode` inherits from `str` so `Mode.AUTONOMOUS == "autonomous"` is `True`. This
-allows `capabilities` dicts to be compared against string values from session
-overrides without explicit conversion.
+Only declare intents the agent meaningfully uses. For any intent the decompose
+node routes to an agent that is not listed in `intents`, the gate falls back to
+`agent_cls.default_mode` (default: `Mode.CONFIRM`). Read-only catch-all agents
+(research, companion) set `default_mode = Mode.AUTONOMOUS` so they never trigger
+spurious confirmations regardless of which intent lands on them.
+
+`Mode` inherits from `str` so `Mode.AUTONOMOUS == "autonomous"` is `True`, which
+allows session override comparisons without explicit conversion.
 
 ---
 
@@ -288,4 +292,3 @@ before startup validation runs.
 | `agents/` directory does not exist | `AgentConfigError` during discovery |
 | No enabled agents after discovery | `RoutingError` during startup |
 | Tool name in `tools` not in tool registry | `AgentConfigError` at startup validation |
-| `intent_map` key not in `capabilities` | `AgentConfigError` at startup validation |

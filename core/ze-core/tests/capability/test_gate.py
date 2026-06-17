@@ -1,6 +1,6 @@
 import pytest
 
-from ze_agents.types import GateDecision, Mode
+from ze_agents.types import GateDecision, Intent, Mode
 from ze_agents.registry import agent, clear_registry
 from ze_core.capability import CapabilityGate
 from ze_agents.types import AgentContext, AgentResult
@@ -27,7 +27,7 @@ def _register(name: str, capabilities: dict, enabled: bool = True) -> None:
     _A.name = name
     _A.description = f"Agent {name}"
     _A.enabled = enabled
-    _A.capabilities = capabilities
+    _A.intents = {k: Intent(v) for k, v in capabilities.items()}
     agent(_A)
 
 
@@ -61,9 +61,22 @@ class TestEdgeCases:
         _register("a", {"read": Mode.AUTONOMOUS}, enabled=False)
         assert gate.evaluate("a", "read", {}) == GateDecision.BLOCKED
 
-    def test_unknown_intent_returns_await_confirmation(self, gate):
+    def test_unknown_intent_uses_default_mode_confirm(self, gate):
         _register("a", {"read": Mode.AUTONOMOUS})
         assert gate.evaluate("a", "nonexistent", {}) == GateDecision.AWAIT_CONFIRMATION
+
+    def test_unknown_intent_uses_default_mode_autonomous(self, gate):
+        class _B:
+            async def run(self, ctx, **_): ...
+        _B.__name__ = "Agent_b"
+        _B.name = "b"
+        _B.description = "Agent b"
+        _B.enabled = True
+        _B.intents = {"reason": Intent(Mode.AUTONOMOUS)}
+        _B.default_mode = Mode.AUTONOMOUS
+        from ze_agents.registry import agent as reg
+        reg(_B)
+        assert gate.evaluate("b", "nonexistent", {}) == GateDecision.EXECUTE
 
     def test_disabled_mode_cannot_be_overridden(self, gate):
         _register("a", {"delete": Mode.DISABLED})

@@ -5,7 +5,7 @@ import pytest
 
 from ze_agents.errors import RoutingError
 from ze_agents.registry import agent, clear_registry
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, Intent, Mode
 from ze_core.routing.fallback import decompose
 
 
@@ -25,7 +25,8 @@ def _register(name: str, intent_map: dict | None = None) -> None:
     _A.name = name
     _A.description = f"The {name} agent"
     _A.enabled = True
-    _A.intent_map = intent_map or {}
+    raw = intent_map or {}
+    _A.intents = {k: Intent(Mode.AUTONOMOUS, v) for k, v in raw.items()}
     agent(_A)
 
 

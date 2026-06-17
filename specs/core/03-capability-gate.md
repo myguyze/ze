@@ -54,7 +54,7 @@ GateDecision  # EXECUTE | DRAFT | AWAIT_CONFIRMATION | BLOCKED
 |---|---|
 | Agent not in registry | Return `AWAIT_CONFIRMATION`, log warning |
 | Agent has `enabled = False` | Return `BLOCKED` immediately, skip intent check |
-| Intent not in `capabilities` dict | Default to `AWAIT_CONFIRMATION`, log warning |
+| Intent not in `intents` dict | Use `agent_cls.default_mode` (default: `CONFIRM`), log debug |
 | `Mode.DISABLED` for intent | Return `BLOCKED` — cannot be overridden by session |
 | Session tries to escalate past `draft_only` | `DRAFT` — ceiling enforced |
 | Unknown session override mode string | Treat as no override, log warning |
@@ -83,7 +83,7 @@ class Mode(str, Enum):
 
 ## Mode → Decision Mapping
 
-| Agent class `capabilities[intent]` | Base decision |
+| `intents[intent].mode` | Base decision |
 |---|---|
 | `Mode.AUTONOMOUS` | `EXECUTE` |
 | `Mode.CONFIRM` | `AWAIT_CONFIRMATION` |
@@ -136,7 +136,8 @@ class CapabilityGate:
         if not agent_cls.enabled:
             return GateDecision.BLOCKED
 
-        mode: Mode | None = agent_cls.capabilities.get(intent)
+        intent_def = agent_cls.intents.get(intent)
+        mode = intent_def.mode if intent_def is not None else agent_cls.default_mode
         if mode is None:
             log.warning("capability_unknown_intent", agent=agent, intent=intent)
             return GateDecision.AWAIT_CONFIRMATION
@@ -190,7 +191,7 @@ Ze Core does not define how overrides are set — only how they are applied.
 Ze's previous gate had `update_permanent()` which rewrote `config.yaml` at runtime.
 This is gone. Capability modes are source code. To change them permanently:
 
-1. Edit the agent's `capabilities` dict in `agent.py`.
+1. Edit the agent's `intents` dict in `agent.py`.
 2. Commit and redeploy.
 
 For non-permanent per-session changes, use session overrides (see above).
@@ -213,7 +214,7 @@ GET /capabilities
 
 | Dependency | Purpose |
 |---|---|
-| `ze_core.orchestration.registry` | `get_agent_class()` — reads `enabled` and `capabilities` |
+| `ze_core.orchestration.registry` | `get_agent_class()` — reads `enabled` and `intents` |
 | `ze_core.capability.types` | `Mode`, `GateDecision` |
 | `ze_core.errors` | `UnknownAgentError` |
 | `ze_core.logging` | Structured logging for unknown agents / intents |

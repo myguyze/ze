@@ -244,7 +244,7 @@ CONFIRM_TIMEOUT_SECONDS=900
 
 ### `config/config.yaml`
 Structural config: model assignments, contacts consolidation settings, proactive
-schedules. Agent config (description, model, capabilities, intent_map) lives on
+schedules. Agent config (description, model, intents) lives on
 `@agent` class attributes in Python — not in YAML.
 
 Hot-reloaded on SIGHUP without restart.
@@ -255,7 +255,7 @@ Hot-reloaded on SIGHUP without restart.
 2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_email/agents/`,
    `ze_prospecting/agents/`, or `ze_calendar/agents/` — decorate with `@agent` from
    `ze_sdk`, subclass `BaseAgent` from `ze_sdk`.
-   Put `description`, `model`, `capabilities`, `intent_map`, `tools`, and `timeout` as class
+   Put `description`, `model`, `intents`, `tools`, and `timeout` as class
    attributes. Define `_AGENT_INSTRUCTIONS` at the top.
 3. Add a `tools.py` alongside the agent if it needs Python tools. Use `@tool` from
    `ze_sdk`. Use `"openrouter:web_search"` in `tools` for web search —

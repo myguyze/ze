@@ -5,7 +5,7 @@ from ze_agents.registry import agent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.client import LLMClient
 from ze_agents.settings import Settings
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's research capability. Use web search to find accurate, up-to-date information.
@@ -37,15 +37,10 @@ class ResearchAgent(BaseAgent):
     vision_capable = True
     timeout = 30
     tools = ["openrouter:web_search", "delegate_to_agent"]
-    intent_map = {"read": "openrouter:web_search"}
-    capabilities = {
-        "read": Mode.AUTONOMOUS,
-        "execute": Mode.CONFIRM,
-        "create": Mode.AUTONOMOUS,
-        "update": Mode.AUTONOMOUS,
-        "delete": Mode.AUTONOMOUS,
-        "reason": Mode.AUTONOMOUS,
+    intents = {
+        "read": Intent(Mode.AUTONOMOUS, "Search the web and retrieve information."),
     }
+    default_mode = Mode.AUTONOMOUS
 
     def __init__(
         self,

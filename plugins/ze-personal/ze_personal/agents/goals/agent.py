@@ -4,7 +4,7 @@ from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.planner import GoalPlanner
@@ -69,17 +69,11 @@ class GoalAgent(BaseAgent):
         "resume_goal",
         "abandon_goal",
     ]
-    intent_map = {
-        "create": "Create a new multi-week goal and decompose it into milestones.",
-        "read": "Inspect goal status, list active goals, or review progress and traces.",
-        "update": "Pause, resume, or redirect (steer) an active goal mid-execution.",
-        "delete": "Abandon a goal.",
-    }
-    capabilities = {
-        "create": Mode.CONFIRM,
-        "read": Mode.AUTONOMOUS,
-        "update": Mode.CONFIRM,
-        "delete": Mode.CONFIRM,
+    intents = {
+        "create": Intent(Mode.CONFIRM,    "Create a new multi-week goal and decompose it into milestones."),
+        "read":   Intent(Mode.AUTONOMOUS, "Inspect goal status, list active goals, or review progress and traces."),
+        "update": Intent(Mode.CONFIRM,    "Pause, resume, or redirect (steer) an active goal mid-execution."),
+        "delete": Intent(Mode.CONFIRM,    "Abandon a goal."),
     }
 
     def __init__(

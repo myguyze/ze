@@ -18,7 +18,7 @@ from ze_agents.hooks import (
     get_hooks,
 )
 from ze_agents.logging import get_logger
-from ze_agents.types import AgentContext, AgentResult, GateDecision, RetrievalRequest, ToolCall
+from ze_agents.types import AgentContext, AgentResult, GateDecision, Intent, Mode, RetrievalRequest, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
@@ -55,8 +55,8 @@ class BaseAgent(ABC):
     vision_capable: bool = False
     timeout: int = MODEL_AGENT_TIMEOUT
     enabled: bool = True
-    capabilities: dict[str, Any] = {}
-    intent_map: dict[str, str] = {}
+    intents: dict[str, Intent] = {}
+    default_mode: Mode = Mode.CONFIRM
     tools: list[str] = []
     system_prompt: str = ""
 

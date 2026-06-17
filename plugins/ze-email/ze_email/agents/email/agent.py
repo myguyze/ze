@@ -2,7 +2,7 @@ from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_email.channel.gmail import GmailChannel
 from ze_personal.contacts.extractors import extract_email_contacts
@@ -44,17 +44,11 @@ class EmailAgent(BaseAgent):
     vision_capable = True
     timeout = 30
     tools = ["list_emails", "get_email", "draft_email", "send_email", "archive_email"]
-    intent_map = {
-        "read": "Search and retrieve emails from Gmail.",
-        "create": "Draft or send an email.",
-        "update": "Draft a reply or forward.",
-        "delete": "Archive or delete an email.",
-    }
-    capabilities = {
-        "read": Mode.AUTONOMOUS,
-        "create": Mode.DRAFT_ONLY,
-        "update": Mode.DRAFT_ONLY,
-        "delete": Mode.CONFIRM,
+    intents = {
+        "read":   Intent(Mode.AUTONOMOUS,  "Search and retrieve emails from Gmail."),
+        "create": Intent(Mode.DRAFT_ONLY,  "Draft or send an email."),
+        "update": Intent(Mode.DRAFT_ONLY,  "Draft a reply or forward."),
+        "delete": Intent(Mode.CONFIRM,     "Archive or delete an email."),
     }
 
     def __init__(

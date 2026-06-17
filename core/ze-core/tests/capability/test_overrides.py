@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_agents.types import GateDecision, Mode
+from ze_agents.types import GateDecision, Intent, Mode
 from ze_core.capability import CapabilityGate, PostgresCapabilityOverrideStore
 from ze_agents.registry import agent, clear_registry
 from ze_agents.types import AgentContext, AgentResult
@@ -28,7 +28,7 @@ def _register(name: str, capabilities: dict, enabled: bool = True) -> None:
     _A.name = name
     _A.description = f"Agent {name}"
     _A.enabled = enabled
-    _A.capabilities = capabilities
+    _A.intents = {k: Intent(v) for k, v in capabilities.items()}
     agent(_A)
 
 

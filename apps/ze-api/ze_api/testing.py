@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ze_core.capability.gate import CapabilityGate
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 import ze_agents.registry as zc_registry
 
 
@@ -27,7 +27,7 @@ def make_gate(
 
     for name, cfg in agents_config.items():
         caps_raw = cfg.get("capabilities", {})
-        capabilities = {intent: Mode(mode_str) for intent, mode_str in caps_raw.items()}
+        intents = {intent: Intent(Mode(mode_str)) for intent, mode_str in caps_raw.items()}
         gate_cls = type(
             f"GateConfig_{name}",
             (),
@@ -35,8 +35,7 @@ def make_gate(
                 "name": name,
                 "description": str(cfg.get("description") or name),
                 "enabled": cfg.get("enabled", True),
-                "capabilities": capabilities,
-                "intent_map": cfg.get("intent_map", {}),
+                "intents": intents,
                 "model": cfg.get("model", "anthropic/claude-sonnet-4-5"),
                 "model_simple": cfg.get("model_simple", ""),
                 "tools": cfg.get("tools", []),

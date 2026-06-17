@@ -1,6 +1,6 @@
 import pytest
 
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.errors import AgentConfigError, UnknownAgentError
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import (
@@ -65,19 +65,23 @@ class TestAgentDecorator:
         with pytest.raises(AgentConfigError, match="non-empty `description`"):
             agent(cls)
 
-    def test_intent_map_key_not_in_capabilities_raises(self):
-        cls = _make_agent("badmap")
-        cls.capabilities = {"read": Mode.AUTONOMOUS}
-        cls.intent_map = {"read": "Read something", "write": "Write something"}
-        with pytest.raises(AgentConfigError, match="intent_map key 'write' not in capabilities"):
-            agent(cls)
-
-    def test_valid_capabilities_and_intent_map_registers(self):
+    def test_intents_with_mixed_modes_registers(self):
         cls = _make_agent("goodmap")
-        cls.capabilities = {"read": Mode.AUTONOMOUS, "write": Mode.CONFIRM}
-        cls.intent_map = {"read": "Read.", "write": "Write."}
+        cls.intents = {
+            "read":  Intent(Mode.AUTONOMOUS, "Read something."),
+            "write": Intent(Mode.CONFIRM, "Write something."),
+        }
         result = agent(cls)
         assert get_registered_agents()["goodmap"] is result
+
+    def test_intents_secondary_entries_without_description_register(self):
+        cls = _make_agent("secondary")
+        cls.intents = {
+            "read":   Intent(Mode.AUTONOMOUS, "Primary routing intent."),
+            "reason": Intent(Mode.AUTONOMOUS),
+        }
+        result = agent(cls)
+        assert get_registered_agents()["secondary"] is result
 
 
 class TestToolNormalisation:

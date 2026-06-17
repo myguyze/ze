@@ -43,14 +43,6 @@ def agent(cls: type) -> type:
             )
     cls.tools = normalised
 
-    capabilities: dict = getattr(cls, "capabilities", {})
-    if capabilities:
-        for intent in getattr(cls, "intent_map", {}):
-            if intent not in capabilities:
-                raise AgentConfigError(
-                    f"Agent {name!r} intent_map key {intent!r} not in capabilities"
-                )
-
     if name in _registry:
         raise AgentConfigError(f"Duplicate agent name {name!r}")
     _registry[name] = cls

@@ -159,7 +159,7 @@ See [docs/native-interface.md](native-interface.md) for the full WebSocket proto
 All agents subclass `BaseAgent` (`ze_agents.base_agent`) and register via `@agent` (`ze_agents.registry`). Plugin code imports these via `ze_sdk`. Each agent owns:
 
 - A system prompt (`_AGENT_INSTRUCTIONS` string at the top of `agent.py`).
-- Class attributes: `description`, `model`, `capabilities`, `intent_map`, `tools`, `timeout`.
+- Class attributes: `description`, `model`, `intents`, `tools`, `timeout`.
 - Optionally a `tools.py` with Python `@tool` functions for local tool execution.
 
 Agents cannot call each other directly. Compound coordination is handled by the

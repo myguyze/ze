@@ -141,8 +141,10 @@ class MyAgent(BaseAgent):
     vision_capable = False              # set True to receive image data in ctx
     timeout      = 30                   # seconds
     tools        = ["tool_a", "tool_b"] # @tool-registered names
-    intent_map   = {"read": "Retrieve info.", "write": "Create something."}
-    capabilities = {"read": Mode.AUTONOMOUS, "write": Mode.CONFIRM}
+    intents      = {
+        "read":  Intent(Mode.AUTONOMOUS, "Retrieve info."),
+        "write": Intent(Mode.CONFIRM,    "Create something."),
+    }
 ```
 
 All attributes except `name` have defaults — only override what differs.

@@ -2,7 +2,7 @@ from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_personal.contacts.extractors import extract_calendar_contacts
 from ze_google.auth import GoogleCredentials
@@ -43,17 +43,11 @@ class CalendarAgent(BaseAgent):
     vision_capable = True
     timeout = 30
     tools = ["list_events", "create_event", "update_event", "delete_event", "world_time"]
-    intent_map = {
-        "read": "Search and retrieve calendar events.",
-        "create": "Create a new calendar event.",
-        "update": "Update an existing calendar event.",
-        "delete": "Delete a calendar event.",
-    }
-    capabilities = {
-        "read": Mode.AUTONOMOUS,
-        "create": Mode.CONFIRM,
-        "update": Mode.CONFIRM,
-        "delete": Mode.CONFIRM,
+    intents = {
+        "read":   Intent(Mode.AUTONOMOUS, "Search and retrieve calendar events."),
+        "create": Intent(Mode.CONFIRM,    "Create a new calendar event."),
+        "update": Intent(Mode.CONFIRM,    "Update an existing calendar event."),
+        "delete": Intent(Mode.CONFIRM,    "Delete a calendar event."),
     }
 
     def __init__(

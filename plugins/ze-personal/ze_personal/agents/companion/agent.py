@@ -9,7 +9,7 @@ from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_personal.contacts.store import PersonStore
 from ze_agents.client import LLMClient
 from ze_agents.settings import Settings
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 
 _AGENT_INSTRUCTIONS = """\
 You reason from what you know and what the user tells you — you do not search the web.
@@ -53,15 +53,10 @@ class CompanionAgent(BaseAgent):
     vision_capable = True
     timeout = 60
     tools = []
-    intent_map = {"reason": "direct_completion"}
-    capabilities = {
-        "reason": Mode.AUTONOMOUS,
-        "read": Mode.AUTONOMOUS,
-        "create": Mode.AUTONOMOUS,
-        "update": Mode.AUTONOMOUS,
-        "delete": Mode.AUTONOMOUS,
-        "execute": Mode.AUTONOMOUS,
+    intents = {
+        "reason": Intent(Mode.AUTONOMOUS, "Reason, converse, and answer questions directly."),
     }
+    default_mode = Mode.AUTONOMOUS
 
     def __init__(
         self,

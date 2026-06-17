@@ -157,11 +157,13 @@ Model is never left empty in the returned envelope.
 
 ```python
 def _primary_intent(self, agent_cls: type[BaseAgent]) -> str:
-    return next(iter(agent_cls.intent_map), "read")
+    intents = getattr(agent_cls, "intents", {})
+    return next((k for k, v in intents.items() if v.description), None) or next(iter(intents), "read")
 ```
 
-The first key in `intent_map` is the agent's primary intent. If `intent_map` is
-empty, `"read"` is used as a safe default.
+The first intent with a non-empty `description` is the primary intent (routing
+target). If none has a description, the first entry is used. Falls back to
+`"read"` if `intents` is empty.
 
 ---
 
@@ -192,8 +194,9 @@ The system prompt is built from `agent_cls.description` values.
 ### Retry and error handling
 
 - Retried once on JSON parse failure.
-- If both attempts fail: falls back to the first enabled agent with `intent_map`
-  key `"reason"`, or the first enabled agent if none has `"reason"`. Logs
+- If both attempts fail: falls back to the first enabled agent with `intents`
+  key `"reason"` and a non-empty description, or the first enabled agent if
+  none qualifies. Logs
   `haiku_fallback_exhausted`. Sets `routing_method = "haiku_fallback"`.
 - If Haiku returns an unknown agent name: raises `RoutingError` immediately
   (no retry) — this indicates a prompt injection or a stale agent list.
@@ -317,7 +320,7 @@ The `envelope` drives all downstream routing decisions:
 
 | Dependency | Purpose |
 |---|---|
-| `ze_core.orchestration.registry` | `get_enabled_agents()` — reads descriptions, intent_map, model |
+| `ze_core.orchestration.registry` | `get_enabled_agents()` — reads descriptions, intents, model |
 | `ze_core.routing.types` | `SubTask`, `RoutingEnvelope` |
 | `ze_core.routing.haiku_fallback` | LLM-based decomposition |
 | `ze_core.routing.complexity` | `ComplexityEstimator` |

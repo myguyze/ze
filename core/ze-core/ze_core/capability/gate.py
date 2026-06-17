@@ -20,7 +20,7 @@ _MODE_TO_DECISION: dict[Mode, GateDecision] = {
 # through draft_response (agent runs in DRAFT mode) then pauses at await_confirmation.
 # The user receives a confirm_request WS frame (persisted in pending_confirmations table).
 # On approval, the graph resumes via graph.ainvoke(None, config) and re-runs with EXECUTE.
-# Changes to the intent_map that shift an agent from CONFIRM to AUTONOMOUS bypass this flow
+# Changes to intents that shift an agent from CONFIRM to AUTONOMOUS bypass this flow
 # entirely — no confirmation, no audit trail. Review capability_configs carefully.
 
 # Maximum GateDecision that a session override may reach for each base mode.
@@ -106,16 +106,17 @@ class CapabilityGate:
             return GateDecision.BLOCKED
 
         # Base mode: persistent DB override > agent class attribute
-        class_mode: Mode | None = getattr(agent_cls, "capabilities", {}).get(intent)
+        intent_def = getattr(agent_cls, "intents", {}).get(intent)
+        class_mode: Mode | None = intent_def.mode if intent_def is not None else None
+        if class_mode is None:
+            class_mode = getattr(agent_cls, "default_mode", Mode.CONFIRM)
+            log.debug("capability_default_mode", agent=agent, intent=intent, mode=class_mode)
         persistent_mode: Mode | None = (
             self._persistent_cache.get((agent, intent))
             if self._persistent_cache is not None
             else None
         )
         mode = persistent_mode or class_mode
-        if mode is None:
-            log.warning("capability_unknown_intent", agent=agent, intent=intent)
-            return GateDecision.AWAIT_CONFIRMATION
 
         if mode == Mode.DISABLED:
             return GateDecision.BLOCKED

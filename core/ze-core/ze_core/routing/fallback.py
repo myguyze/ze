@@ -59,7 +59,7 @@ def _hard_fallback_agent(
 ) -> RoutingEnvelope:
     log.error("fallback_exhausted", error=str(last_exc))
     reason_agent = next(
-        (name for name, cls in agent_registry.items() if "reason" in getattr(cls, "intent_map", {})),
+        (name for name, cls in agent_registry.items() if "reason" in getattr(cls, "intents", {})),
         None,
     )
     fallback_name = reason_agent or next(iter(agent_registry))

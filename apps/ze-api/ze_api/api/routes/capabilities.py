@@ -25,7 +25,7 @@ def _effective_capabilities(
     for name, cls in get_registered_agents().items():
         if not getattr(cls, "enabled", True):
             continue
-        caps = {intent: mode.value for intent, mode in getattr(cls, "capabilities", {}).items()}
+        caps = {intent: v.mode.value for intent, v in getattr(cls, "intents", {}).items()}
         for (a, intent), mode in cache.items():
             if a == name:
                 caps[intent] = mode.value
@@ -71,8 +71,7 @@ async def update_capability(
         raise HTTPException(status_code=422, detail=f"Unknown agent: {agent!r}")
 
     cls = get_registered_agents()[agent]
-    known_intents = set(getattr(cls, "intent_map", {}))
-    known_intents |= {k for k in getattr(cls, "capabilities", {})}
+    known_intents = set(getattr(cls, "intents", {}))
 
     if intent not in known_intents:
         raise HTTPException(status_code=422, detail=f"Unknown intent {intent!r} for agent {agent!r}")

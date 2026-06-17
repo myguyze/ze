@@ -5,7 +5,7 @@ from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.client import LLMClient
 from ze_sdk.proactive import ProactiveNotifier
@@ -45,16 +45,10 @@ class RemindersAgent(BaseAgent):
     vision_capable = False
     timeout = 15
     tools = ["set_reminder", "list_reminders", "cancel_reminder"]
-    intent_map = {"manage": "Set, list, or cancel a one-off reminder."}
-    capabilities = {
-        "manage": Mode.AUTONOMOUS,
-        "create": Mode.AUTONOMOUS,
-        "read": Mode.AUTONOMOUS,
-        "update": Mode.AUTONOMOUS,
-        "delete": Mode.AUTONOMOUS,
-        "execute": Mode.AUTONOMOUS,
-        "reason": Mode.AUTONOMOUS,
+    intents = {
+        "manage": Intent(Mode.AUTONOMOUS, "Set, list, or cancel a one-off reminder."),
     }
+    default_mode = Mode.AUTONOMOUS
 
     def __init__(
         self,

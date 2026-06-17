@@ -153,15 +153,13 @@ def bootstrap_agents(
 
 
 def validate_registry() -> None:
-    """Cross-check declared tools and intent_map entries against registries."""
+    """Cross-check declared tools against the tool registry."""
     from ze_agents.tool import registered_tools
 
     tool_reg = registered_tools()
 
     for name, cls in get_registered_agents().items():
         declared_tools: list[str] = getattr(cls, "tools", [])
-        capabilities: dict = getattr(cls, "capabilities", {})
-        intent_map: dict = getattr(cls, "intent_map", {})
 
         for tool_name in declared_tools:
             if tool_name.startswith("openrouter:"):
@@ -173,14 +171,6 @@ def validate_registry() -> None:
                     f"Agent {name!r} declares unknown tool {tool_name!r}. "
                     f"Ensure the agent's tools module is imported at startup."
                 )
-
-        if capabilities:
-            for intent in intent_map:
-                if intent not in capabilities:
-                    raise AgentConfigError(
-                        f"Agent {name!r} declares intent {intent!r} in intent_map "
-                        f"but {intent!r} is missing from capabilities."
-                    )
 
 
 def _plugin_agent_module_paths(plugins: list[ZePlugin] | None) -> list[str]:

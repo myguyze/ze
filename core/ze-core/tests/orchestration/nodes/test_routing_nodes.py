@@ -7,7 +7,7 @@ import pytest
 from ze_agents.registry import agent, clear_registry
 from ze_agents.base_agent import BaseAgent
 from ze_core.orchestration.nodes.routing import decompose, embed_route
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, Intent, Mode
 from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
 
@@ -26,7 +26,8 @@ def _register(name: str, intent_map: dict | None = None) -> None:
     _A.name = name
     _A.description = f"The {name} agent"
     _A.enabled = True
-    _A.intent_map = intent_map or {"read": "Read"}
+    raw = intent_map or {"read": "Read"}
+    _A.intents = {k: Intent(Mode.AUTONOMOUS, v) for k, v in raw.items()}
     agent(_A)
 
 

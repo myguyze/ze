@@ -9,7 +9,7 @@ import pytest
 
 from ze_agents.errors import InvalidPromptError, RoutingError
 from ze_agents.registry import agent, clear_registry
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, Intent, Mode
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.store import PostgresRoutingStore
 from ze_core.routing.types import RouterConfig
@@ -33,7 +33,8 @@ def _register(name: str, model: str = "m", model_simple: str | None = None, inte
     _A.enabled = True
     _A.model = model
     _A.model_simple = model_simple
-    _A.intent_map = intent_map or {"read": "Read"}
+    raw = intent_map or {"read": "Read"}
+    _A.intents = {k: Intent(Mode.AUTONOMOUS, v) for k, v in raw.items()}
     agent(_A)
 
 

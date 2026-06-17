@@ -4,7 +4,7 @@ from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
-from ze_agents.types import Mode
+from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.client import LLMClient
 from ze_personal.workflow.planner import WorkflowPlanner
@@ -57,13 +57,9 @@ class WorkflowManagerAgent(BaseAgent):
         "delete_workflow",
         "trigger_workflow",
     ]
-    intent_map = {
-        "read": "List or inspect stored workflows.",
-        "manage": "Create, enable, disable, delete, or trigger a workflow.",
-    }
-    capabilities = {
-        "read": Mode.AUTONOMOUS,
-        "manage": Mode.CONFIRM,
+    intents = {
+        "read":   Intent(Mode.AUTONOMOUS, "List or inspect stored workflows."),
+        "manage": Intent(Mode.CONFIRM,    "Create, enable, disable, delete, or trigger a workflow."),
     }
 
     def __init__(

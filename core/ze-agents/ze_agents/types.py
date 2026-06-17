@@ -23,6 +23,13 @@ class GateDecision(str, Enum):
     BLOCKED            = "blocked"
 
 
+@dataclass
+class Intent:
+    """An agent capability: execution mode and a human-readable description."""
+    mode: Mode
+    description: str = ""
+
+
 # ── Orchestration types ───────────────────────────────────────────────────────
 
 @dataclass

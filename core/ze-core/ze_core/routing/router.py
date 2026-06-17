@@ -73,7 +73,7 @@ class EmbeddingRouter:
         agent_cls = enabled.get(agent_name)
         if agent_cls is None:
             return "read"
-        return next(iter(getattr(agent_cls, "intent_map", {})), "read")
+        return next(iter(getattr(agent_cls, "intents", {})), "read")
 
     def _single_agent_envelope(self, prompt: str) -> RoutingEnvelope:
         agent_name = self._agent_names[0]

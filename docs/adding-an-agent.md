@@ -80,7 +80,7 @@ via parameters. They do not import from global state or access `self`.
 
 ```python
 from ze_sdk import agent, BaseAgent
-from ze_sdk.types import AgentContext, AgentResult, Mode
+from ze_sdk.types import AgentContext, AgentResult, Intent, Mode
 from ze_agents.client import LLMClient
 from ze_api.settings import Settings
 
@@ -105,14 +105,11 @@ class MyAgent(BaseAgent):
     vision_capable = False                         # set True if agent should receive image data
     timeout = 30
     tools = ["tool_one", "tool_two"]               # must match @tool-registered names
-    intent_map = {
-        "read": "Retrieve information.",
-        "create": "Create something.",
+    intents = {
+        "read":   Intent(Mode.AUTONOMOUS, "Retrieve information."),
+        "create": Intent(Mode.CONFIRM,    "Create something."),
     }
-    capabilities = {
-        "read":   Mode.AUTONOMOUS,
-        "create": Mode.CONFIRM,
-    }
+    # default_mode = Mode.AUTONOMOUS  # uncomment for read-only agents that accept any intent
 
     def __init__(self, openrouter_client: LLMClient, settings: Settings) -> None:
         self._client = openrouter_client
@@ -262,7 +259,7 @@ Conventions:
 ## Checklist
 
 - [ ] Spec written and reviewed
-- [ ] Agent module in the correct domain package — `@agent` class with `name`, `description`, `model`, `capabilities`, `intent_map`, `tools` class attributes
+- [ ] Agent module in the correct domain package — `@agent` class with `name`, `description`, `model`, `intents`, `tools` class attributes
 - [ ] Module path added to the package's `ZePlugin.agent_module_paths()` (tools module listed first)
 - [ ] All `__init__` parameters are type-annotated
 - [ ] All tool calls go through `self.call_tool()` or `self.agentic_loop()`, never direct function calls
