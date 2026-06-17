@@ -25,6 +25,8 @@ _PROFILE_INCLUDE_KEYS = frozenset(
     {"topics", "preferences", "news_preferences", "news_interests"}
 )
 _PROFILE_EXCLUDE_KEYS = frozenset({"news_exclusions"})
+_PROFILE_DEMOTE_KEY = "topic_relevance_demotions"
+_DEMOTION_MULTIPLIER = 0.5
 _INCLUDE_FACT_PREFIXES = ("news_interest", "interest_news", "topic_interest")
 _EXCLUDE_PATTERNS = (
     "don't show",
@@ -88,14 +90,25 @@ class RelevanceModel:
 
         entries: dict[str, RelevanceEntry] = {}
         exclusions: set[str] = set()
+        demotions: set[str] = set()
 
-        await self._add_profile_entries(entries, exclusions)
+        await self._add_profile_entries(entries, exclusions, demotions)
         await self._add_fact_entries(entries, exclusions)
         await self._add_goal_entries(entries)
         await self._add_episode_entity_entries(entries)
 
         for key in exclusions:
             entries.pop(key, None)
+
+        for key in demotions:
+            if key in entries:
+                e = entries[key]
+                entries[key] = RelevanceEntry(
+                    key=e.key,
+                    kind=e.kind,
+                    weight=e.weight * _DEMOTION_MULTIPLIER,
+                    sources=[*e.sources, "feedback_demoted"],
+                )
 
         rset = RelevanceSet(entries=entries, built_at=now)
         self._cached = rset
@@ -138,6 +151,7 @@ class RelevanceModel:
         self,
         entries: dict[str, RelevanceEntry],
         exclusions: set[str],
+        demotions: set[str],
     ) -> None:
         try:
             profile = await self._memory_store.get_profile()
@@ -155,6 +169,11 @@ class RelevanceModel:
             if key in _PROFILE_EXCLUDE_KEYS:
                 for topic in _split_topics(value):
                     exclusions.add(_normalize(topic))
+                continue
+
+            if key == _PROFILE_DEMOTE_KEY:
+                for topic in _split_topics(value):
+                    demotions.add(_normalize(topic))
                 continue
 
             if key not in _PROFILE_INCLUDE_KEYS:

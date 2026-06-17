@@ -12,11 +12,18 @@ overrides are a Phase 60+ concern.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from typing import Any
 
 from ze_agents.logging import get_logger
 
 log = get_logger(__name__)
+
+
+def _split_topics(value: str) -> list[str]:
+    parts = re.split(r"\s*(?:,|;|\||/|\band\b)\s*", value)
+    return [p.strip(" :.-") for p in parts if p.strip(" :.-")]
 
 
 @dataclass
@@ -53,11 +60,19 @@ class SurfacingGate:
     """Checks whether a hypothesis may be surfaced to the user.
 
     Used by Phase 58 (inline) and Phase 59 (push, deferred post-v1).
-    Feedback reactions tune thresholds in place.
+    Feedback reactions tune thresholds in place and, when memory_store is
+    provided, persist per-topic demotions and exclusions.
     """
 
-    def __init__(self, config: SurfacingConfig) -> None:
+    def __init__(
+        self,
+        config: SurfacingConfig,
+        memory_store: Any | None = None,
+        relevance_model: Any | None = None,
+    ) -> None:
         self._cfg = config
+        self._memory_store = memory_store
+        self._relevance_model = relevance_model
 
     @property
     def config(self) -> SurfacingConfig:
@@ -121,12 +136,14 @@ class SurfacingGate:
             )
         return len(reasons) == 0, reasons
 
-    def apply_feedback(self, reaction: str) -> None:
-        """Nudge global thresholds based on user reaction.
+    async def apply_feedback(self, reaction: str, topic: str | None = None) -> None:
+        """Nudge global thresholds and persist per-topic signals.
 
         useful       → lower thresholds (more like this)
-        not_relevant → raise thresholds (fewer like this)
-        mute_topic   → caller writes a news_exclusion-style preference; gate unchanged
+        not_relevant → raise thresholds; if topic given, halve that topic's
+                       relevance weight via a persistent demotion facet
+        mute_topic   → append topic to the news_exclusions profile facet
+                       (shared taxonomy with Phase 50); does not change thresholds
         """
         step = self._cfg.feedback_step
         lo = self._cfg.tau_min
@@ -142,6 +159,7 @@ class SurfacingGate:
                 tau_push=self._cfg.tau_push,
                 tau_inline=self._cfg.tau_inline,
             )
+
         elif reaction == "not_relevant":
             self._cfg.tau_push = min(hi, self._cfg.tau_push + step)
             self._cfg.tau_inline = min(hi, self._cfg.tau_inline + step)
@@ -152,3 +170,69 @@ class SurfacingGate:
                 tau_push=self._cfg.tau_push,
                 tau_inline=self._cfg.tau_inline,
             )
+            if topic and self._memory_store is not None:
+                await self._demote_topic(topic)
+
+        elif reaction == "mute_topic":
+            if topic and self._memory_store is not None:
+                await self._write_exclusion(topic)
+            elif topic:
+                log.warning("surfacing_mute_topic_no_store", topic=topic)
+
+    # ── persistence helpers ────────────────────────────────────────────────────
+
+    async def _demote_topic(self, topic: str) -> None:
+        """Append topic to the topic_relevance_demotions profile facet (halves its weight)."""
+        try:
+            profile = await self._memory_store.get_profile()
+            existing: list[str] = []
+            for facet in profile:
+                if getattr(facet, "key", "") == "topic_relevance_demotions":
+                    existing = _split_topics(getattr(facet, "value", ""))
+                    break
+
+            normalized_topic = topic.strip()
+            if normalized_topic.lower() not in {t.lower() for t in existing}:
+                existing.append(normalized_topic)
+            else:
+                return  # already demoted — no duplicate write
+
+            await self._memory_store.upsert_profile_facets([{
+                "key": "topic_relevance_demotions",
+                "value": ", ".join(existing),
+                "stability": "dynamic",
+                "confidence": 1.0,
+            }])
+            log.info("surfacing_topic_demoted", topic=normalized_topic)
+            if self._relevance_model is not None:
+                self._relevance_model.invalidate_cache()
+        except Exception as exc:
+            log.warning("surfacing_demote_topic_failed", topic=topic, error=str(exc))
+
+    async def _write_exclusion(self, topic: str) -> None:
+        """Append topic to the news_exclusions profile facet (shared Phase 50 taxonomy)."""
+        try:
+            profile = await self._memory_store.get_profile()
+            existing: list[str] = []
+            for facet in profile:
+                if getattr(facet, "key", "") == "news_exclusions":
+                    existing = _split_topics(getattr(facet, "value", ""))
+                    break
+
+            normalized_topic = topic.strip()
+            if normalized_topic.lower() not in {t.lower() for t in existing}:
+                existing.append(normalized_topic)
+            else:
+                return  # already excluded — no duplicate write
+
+            await self._memory_store.upsert_profile_facets([{
+                "key": "news_exclusions",
+                "value": ", ".join(existing),
+                "stability": "durable",
+                "confidence": 1.0,
+            }])
+            log.info("surfacing_topic_muted", topic=normalized_topic)
+            if self._relevance_model is not None:
+                self._relevance_model.invalidate_cache()
+        except Exception as exc:
+            log.warning("surfacing_mute_topic_failed", topic=topic, error=str(exc))

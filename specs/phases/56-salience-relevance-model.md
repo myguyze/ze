@@ -280,6 +280,38 @@ correlation:
 
 ---
 
+## Deferred: Engagement Source
+
+The relevance set spec lists engagement (follow-up questions, reactions to prior pushes)
+as a Medium→High weight source with slow decay. It is **not implemented in Phase 56**
+because there is no engagement-tracking data yet — pushes are Phase 59 (deferred post-v1)
+and there is no follow-up signal infrastructure.
+
+Pick this up when Phase 59 lands:
+- Track accepted/dismissed push reactions in `push_log` or a dedicated
+  `engagement_signals` table.
+- Add `_add_engagement_entries()` to `RelevanceModel` that reads recent reactions
+  and weights topics involved in accepted pushes at Medium (0.5), capping the
+  engagement weight at the same level as profile facets to avoid the "banana"
+  compounding failure mode (see Open Questions above).
+
+---
+
+## Deferred: Graph Centrality Source
+
+The relevance set spec lists graph centrality (entities already richly connected in the
+user's graph) as a Low weight source with no decay. It is **not implemented in Phase 56**
+because the expected gain is small (Low weight) and the query is non-trivial.
+
+Pick this up in Phase 60+ when signal volume makes centrality meaningful:
+- Add a `_add_graph_centrality_entries()` method to `RelevanceModel`.
+- Query `memory_graph_relationships` for entities with the highest in-degree
+  (`COUNT(*)` where `target_id = entity.id`), normalize to [0, 0.3], and add
+  those entities as Low-weight entries.
+- Gate the query on `graph_store` being available; skip silently if not.
+
+---
+
 ## Future: Per-Topic Thresholds
 
 Global thresholds work for v1 but carry a known failure mode: a high-volume domain (e.g.

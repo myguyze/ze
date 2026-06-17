@@ -62,6 +62,7 @@ def _make_memory_store(
     store.list_recent_facts = AsyncMock(return_value=facts or [])
     store.list_recent_episodes = AsyncMock(return_value=episodes or [])
     store.ingest_signal = AsyncMock(return_value=None)
+    store.upsert_profile_facets = AsyncMock(return_value=None)
     store.pool = pool
     return store
 
@@ -567,7 +568,7 @@ def test_surfacing_push_rejects_exceeded_budget():
 # ── Feedback ──────────────────────────────────────────────────────────────────
 
 
-def test_feedback_not_relevant_raises_thresholds():
+async def test_feedback_not_relevant_raises_thresholds():
     gate = _make_surfacing_gate(
         tau_push=0.6,
         tau_inline=0.45,
@@ -575,13 +576,13 @@ def test_feedback_not_relevant_raises_thresholds():
         feedback_step=0.05,
         tau_max=0.85,
     )
-    gate.apply_feedback("not_relevant")
+    await gate.apply_feedback("not_relevant")
     assert gate.config.tau_push == pytest.approx(0.65)
     assert gate.config.tau_inline == pytest.approx(0.50)
     assert gate.config.tau_relevance == pytest.approx(0.55)
 
 
-def test_feedback_useful_lowers_thresholds():
+async def test_feedback_useful_lowers_thresholds():
     gate = _make_surfacing_gate(
         tau_push=0.6,
         tau_inline=0.45,
@@ -589,13 +590,13 @@ def test_feedback_useful_lowers_thresholds():
         feedback_step=0.05,
         tau_min=0.4,
     )
-    gate.apply_feedback("useful")
+    await gate.apply_feedback("useful")
     assert gate.config.tau_push == pytest.approx(0.55)
     assert gate.config.tau_inline == pytest.approx(0.40)
     assert gate.config.tau_relevance == pytest.approx(0.45)
 
 
-def test_feedback_not_relevant_clamped_at_tau_max():
+async def test_feedback_not_relevant_clamped_at_tau_max():
     gate = _make_surfacing_gate(
         tau_push=0.82,
         tau_inline=0.82,
@@ -603,14 +604,13 @@ def test_feedback_not_relevant_clamped_at_tau_max():
         feedback_step=0.05,
         tau_max=0.85,
     )
-    gate.apply_feedback("not_relevant")
+    await gate.apply_feedback("not_relevant")
     assert gate.config.tau_push == pytest.approx(0.85)
-    gate.apply_feedback("not_relevant")
-    # Should stay clamped at tau_max
+    await gate.apply_feedback("not_relevant")
     assert gate.config.tau_push == pytest.approx(0.85)
 
 
-def test_feedback_useful_clamped_at_tau_min():
+async def test_feedback_useful_clamped_at_tau_min():
     gate = _make_surfacing_gate(
         tau_push=0.42,
         tau_inline=0.42,
@@ -618,17 +618,141 @@ def test_feedback_useful_clamped_at_tau_min():
         feedback_step=0.05,
         tau_min=0.4,
     )
-    gate.apply_feedback("useful")
+    await gate.apply_feedback("useful")
     assert gate.config.tau_push == pytest.approx(0.4)
-    gate.apply_feedback("useful")
+    await gate.apply_feedback("useful")
     assert gate.config.tau_push == pytest.approx(0.4)
 
 
-def test_feedback_mute_topic_no_threshold_change():
+async def test_feedback_mute_topic_no_threshold_change():
     gate = _make_surfacing_gate(tau_push=0.6)
-    gate.apply_feedback("mute_topic")
-    # mute_topic is handled by the caller — gate thresholds unchanged
+    await gate.apply_feedback("mute_topic", topic="crypto")
+    # no memory_store wired → no persistence, thresholds unchanged
     assert gate.config.tau_push == pytest.approx(0.6)
+
+
+# ── mute_topic writes news_exclusions ─────────────────────────────────────────
+
+
+def _make_surfacing_gate_with_store(
+    profile: list[Any] | None = None,
+    **cfg_overrides,
+) -> tuple[SurfacingGate, Any, Any]:
+    from ze_memory.relevance import RelevanceModel
+    memory_store = _make_memory_store(profile=profile)
+    relevance_model = MagicMock(spec=RelevanceModel)
+    relevance_model.invalidate_cache = MagicMock()
+    cfg = SurfacingConfig(**cfg_overrides) if cfg_overrides else SurfacingConfig()
+    gate = SurfacingGate(config=cfg, memory_store=memory_store, relevance_model=relevance_model)
+    return gate, memory_store, relevance_model
+
+
+async def test_mute_topic_writes_news_exclusions_facet():
+    gate, store, _ = _make_surfacing_gate_with_store()
+    await gate.apply_feedback("mute_topic", topic="crypto")
+    store.upsert_profile_facets.assert_awaited_once()
+    written = store.upsert_profile_facets.call_args[0][0]
+    assert written[0]["key"] == "news_exclusions"
+    assert "crypto" in written[0]["value"]
+
+
+async def test_mute_topic_appends_to_existing_exclusions():
+    existing_facet = _make_facet("news_exclusions", "politics")
+    gate, store, _ = _make_surfacing_gate_with_store(profile=[existing_facet])
+    await gate.apply_feedback("mute_topic", topic="crypto")
+    written = store.upsert_profile_facets.call_args[0][0]
+    value = written[0]["value"]
+    assert "politics" in value
+    assert "crypto" in value
+
+
+async def test_mute_topic_no_duplicate_write():
+    existing_facet = _make_facet("news_exclusions", "crypto")
+    gate, store, _ = _make_surfacing_gate_with_store(profile=[existing_facet])
+    await gate.apply_feedback("mute_topic", topic="crypto")
+    # already excluded — no write
+    store.upsert_profile_facets.assert_not_awaited()
+
+
+async def test_mute_topic_invalidates_relevance_cache():
+    gate, _, relevance_model = _make_surfacing_gate_with_store()
+    await gate.apply_feedback("mute_topic", topic="crypto")
+    relevance_model.invalidate_cache.assert_called_once()
+
+
+# ── not_relevant with topic demotes it ────────────────────────────────────────
+
+
+async def test_not_relevant_with_topic_writes_demotion_facet():
+    gate, store, _ = _make_surfacing_gate_with_store()
+    await gate.apply_feedback("not_relevant", topic="AI")
+    store.upsert_profile_facets.assert_awaited_once()
+    written = store.upsert_profile_facets.call_args[0][0]
+    assert written[0]["key"] == "topic_relevance_demotions"
+    assert "AI" in written[0]["value"]
+
+
+async def test_not_relevant_appends_to_existing_demotions():
+    existing = _make_facet("topic_relevance_demotions", "finance")
+    gate, store, _ = _make_surfacing_gate_with_store(profile=[existing])
+    await gate.apply_feedback("not_relevant", topic="AI")
+    written = store.upsert_profile_facets.call_args[0][0]
+    value = written[0]["value"]
+    assert "finance" in value
+    assert "AI" in value
+
+
+async def test_not_relevant_no_duplicate_demotion():
+    existing = _make_facet("topic_relevance_demotions", "AI")
+    gate, store, _ = _make_surfacing_gate_with_store(profile=[existing])
+    await gate.apply_feedback("not_relevant", topic="AI")
+    store.upsert_profile_facets.assert_not_awaited()
+
+
+async def test_not_relevant_without_topic_raises_threshold_only():
+    gate, store, _ = _make_surfacing_gate_with_store(tau_push=0.6, feedback_step=0.05)
+    await gate.apply_feedback("not_relevant")  # no topic
+    store.upsert_profile_facets.assert_not_awaited()
+    assert gate.config.tau_push == pytest.approx(0.65)
+
+
+async def test_not_relevant_invalidates_relevance_cache():
+    gate, _, relevance_model = _make_surfacing_gate_with_store()
+    await gate.apply_feedback("not_relevant", topic="AI")
+    relevance_model.invalidate_cache.assert_called_once()
+
+
+# ── demotion applied in RelevanceModel.build() ────────────────────────────────
+
+
+async def test_relevance_set_demoted_topic_has_halved_weight():
+    demotion_facet = _make_facet("topic_relevance_demotions", "AI")
+    topic_facet = _make_facet("topics", "AI")
+    model = _make_relevance_model(profile=[topic_facet, demotion_facet])
+    rset = await model.build()
+    # profile weight 0.8 × demotion 0.5 = 0.4
+    assert "ai" in rset.entries
+    assert rset.entries["ai"].weight == pytest.approx(0.4)
+    assert "feedback_demoted" in rset.entries["ai"].sources
+
+
+async def test_relevance_set_demotion_does_not_affect_unrelated_topics():
+    demotion_facet = _make_facet("topic_relevance_demotions", "crypto")
+    topic_facet = _make_facet("topics", "AI, robotics")
+    model = _make_relevance_model(profile=[topic_facet, demotion_facet])
+    rset = await model.build()
+    assert rset.entries["ai"].weight == pytest.approx(0.8)
+    assert rset.entries["robotics"].weight == pytest.approx(0.8)
+
+
+async def test_mute_topic_admission_honors_next_run():
+    """mute_topic exclusion zeroes the topic out of the relevance set on next build."""
+    exclusion_facet = _make_facet("news_exclusions", "crypto")
+    topic_facet = _make_facet("topics", "AI, crypto")
+    model = _make_relevance_model(profile=[topic_facet, exclusion_facet])
+    rset = await model.build()
+    assert "ai" in rset.entries
+    assert "crypto" not in rset.entries
 
 
 # ── SurfacingConfig.from_config() ─────────────────────────────────────────────
