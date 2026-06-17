@@ -2,6 +2,25 @@
 
 Autonomous prospect research for Ze. Provides the `ProspectingAgent`, campaign store, browser-driven web research, and stale-campaign recovery.
 
+## Role in Ze
+
+Prospecting is Ze's autonomous outreach research mode. Given a target profile, the agent browses the web, gathers intelligence, drafts outreach messages, and tracks campaigns over multiple iterations — all without the user micromanaging each step.
+
+### Key features
+
+- `ProspectingAgent` — autonomous research loop with browser tools and outreach drafting
+- `ProspectCampaignStore` — Postgres-backed campaign persistence across sessions
+- Stale campaign recovery job — resumes or cleans up abandoned campaigns
+- Server-driven UI components for campaign status and results
+
+### Integration
+
+Entry point `ze_prospecting`. Depends on `ze-browser` for web fetching and `ze-personal` for contact linking. Contributes the prospecting agent, campaign REST store, data domains for reset, and a proactive recovery job. Requires the browser sidecar running for web research.
+
+```python
+from ze_prospecting.plugin import ProspectingPlugin
+```
+
 ## Responsibilities
 
 | Module | What it provides |
@@ -20,19 +39,6 @@ graph LR
     prospecting --> browser[ze-browser]
     prospecting --> personal[ze-personal]
 ```
-
-## Extension point
-
-`ProspectingPlugin` is discovered via entry point and contributes:
-- `ProspectingAgent` to the agent registry
-- `ProspectCampaignStore` as a REST data store
-- Stale campaign recovery job to `ProactiveScheduler`
-
-```python
-from ze_prospecting.plugin import ProspectingPlugin
-```
-
-Requires the browser sidecar (`sidecar/browser/`) for autonomous web research.
 
 ## Configuration
 

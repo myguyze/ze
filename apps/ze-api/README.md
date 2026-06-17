@@ -2,6 +2,25 @@
 
 Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat endpoint and REST management API, runs background jobs, and handles Google integrations.
 
+## Role in Ze
+
+`ze-api` is the only runnable backend. It is where every package meets: the LangGraph is built, plugins are discovered and started, Postgres migrations run, background jobs fire, and the WebSocket/REST interface serves `ze-web` and ntfy push clients.
+
+### Key features
+
+- WebSocket chat at `/ws` — primary user interface, with confirmation flow and message replay
+- REST management API — memory inspection, costs, capabilities, workflows, contacts
+- `ZeContainer` — DI wiring for all plugins, integrations, and shared services
+- Alembic migrations — single migration stream for core and plugin schemas
+- Agent harness hooks — tool-call caps, component collection, cost limits
+- NativeAppInterface — WebSocket delivery when connected, ntfy push when not
+
+### Integration
+
+Depends on every core package and all enabled plugins. Instantiates `ZeContainer`, runs `bootstrap.py` for agent registration and plugin startup, builds the graph, and serves via uvicorn. Nothing in `core/` or `plugins/` runs standalone — `ze-api` is always the entry point.
+
+Collects plugin signal sources via `collect_plugin_signal_sources()` in `container.py` — deduplicates by `source_key` and registers them with the correlation engine. Current emitters: `NewsSignalSource`, `CalendarSignalSource`.
+
 ## Responsibilities
 
 | Module | What it provides |
@@ -11,7 +30,7 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 | `interface/native.py` | `NativeAppInterface` — WebSocket + ntfy delivery |
 | `onboarding/` | Postgres-backed onboarding store, persistence, and reset |
 | `hooks/` | Agent harness hooks (tool-call cap, component collection, cost cap) |
-| `container.py` | `ZeContainer` — DI wiring, registers all `ZePlugin` implementations |
+| `container.py` | `ZeContainer` — DI wiring, plugin signal source collection, registers all `ZePlugin` implementations |
 | `settings.py` | `Settings` (Pydantic BaseSettings + YAML) |
 | `config/config.yaml` | Models, contacts, proactive schedules |
 | `config/persona.yaml` | Persona profiles and dials |

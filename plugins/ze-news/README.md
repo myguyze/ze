@@ -2,6 +2,26 @@
 
 News fetching and personalised headlines for Ze. Fetches articles from curated RSS sources on a schedule, ranks them by the user's interest profile, and exposes them via the `NewsAgent`.
 
+## Role in Ze
+
+Ze keeps the user informed without them having to check feeds manually. RSS sources are fetched on a schedule, ranked by the user's memory profile and interest signals, and surfaced through the `NewsAgent` and the news page in `ze-web`.
+
+### Key features
+
+- Curated RSS ingestion with configurable sources and fetch schedule
+- pgvector-ranked personalisation against the user's memory profile
+- Source credibility scoring (optional LLM-assisted)
+- `NewsAgent` — headline queries and article search
+- News signal source for the correlation engine
+
+### Integration
+
+Entry point `ze_news`. Contributes `NewsAgent`, `NewsFetchJob`, `NewsOnboardingProvider` (source selection during setup), and `NewsSignalSource`. Article storage and ranking depend on `ze-memory` embeddings.
+
+```python
+from ze_news.plugin import NewsPlugin
+```
+
 ## Responsibilities
 
 | Module | What it provides |
@@ -21,16 +41,6 @@ News fetching and personalised headlines for Ze. Fetches articles from curated R
 graph LR
     news[ze-news] --> sdk[ze-sdk]
     news --> memory[ze-memory]
-```
-
-## Extension point
-
-`NewsPlugin` is registered in `ze-api`'s container and contributes:
-- `NewsAgent` to the agent registry
-- `NewsFetchJob` to `ProactiveScheduler`
-
-```python
-from ze_news.plugin import NewsPlugin
 ```
 
 ## Testing

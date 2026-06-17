@@ -61,3 +61,15 @@ ze-core           ←  ze-agents, ze-plugin
 
 If the code has any dependency on personal-assistant domain concepts (goals,
 workflows, contacts, persona), it does not belong here.
+
+## Signal pipeline
+
+Cross-domain correlation is fed by plugin-emitted signals:
+
+```
+plugins (SignalSource)  →  ze-api (collect + dedupe)  →  ze-memory (admission + ingest)
+                                                              ↓
+                                                         ze-correlation (hypotheses)
+```
+
+Implement `SignalSource` in plugins that produce time-stamped domain events worth correlating. See `specs/phases/60-signal-source-contract.md`.

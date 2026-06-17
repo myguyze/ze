@@ -2,6 +2,22 @@
 
 React web client for Ze. Connects to `ze-api` over WebSocket for chat, renders server-driven UI components, and provides management pages for goals, contacts, reminders, news, and costs.
 
+## Role in Ze
+
+`ze-web` is the user's window into Ze. All conversational interaction happens here over WebSocket; management pages (goals, contacts, reminders, news, costs, settings) use the REST API. Server-driven UI components from agents render inline in the chat without requiring frontend deploys.
+
+### Key features
+
+- Real-time chat with confirmation bar, typing indicator, and session management
+- Server-driven UI — cards, forms, tables, timelines rendered from agent component descriptors
+- Management pages — goals, contacts, reminders, news, costs, settings
+- Onboarding flow — multi-step setup coordinated with `ze-onboarding`
+- Context overlay — floating access to background activity
+
+### Integration
+
+Connects to `ze-api` at `/ws` (WebSocket) and REST routes. No Python dependencies — built with Bun, Vite, React, and Tailwind. Runs alongside the backend via `make dev-full` or standalone via `make web`.
+
 ## Responsibilities
 
 | Path | What it provides |

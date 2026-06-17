@@ -2,6 +2,22 @@
 
 Eval infrastructure for Ze — scenario runner, LLM judge, verifier, and MCP server for automated agent testing.
 
+## Role in Ze
+
+Ze's agent behaviour is tested against YAML scenario definitions — routing accuracy, tool selection, response quality. `ze-eval` runs these scenarios against a live backend, scores results with deterministic verifiers and optional LLM judges, and exposes an MCP server for IDE-integrated eval workflows.
+
+### Key features
+
+- YAML scenario loader — scenarios live in `eval/scenarios/`
+- HTTP runner — fires turns against a running `ze-api` instance
+- Deterministic verifiers and optional LLM-as-judge scoring
+- MCP eval server for Cursor / Claude Code integration
+- Regression detection via run comparison reports
+
+### Integration
+
+Standalone from the runtime path — no import from `ze-api` at startup. Invoked via `make eval`, `eval/run.py`, and `make eval-server`. Requires `make dev-eval` (backend without background jobs) before running.
+
 ## Responsibilities
 
 | Module | What it provides |

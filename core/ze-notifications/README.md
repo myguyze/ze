@@ -2,6 +2,20 @@
 
 Push notification abstraction for Ze. Decouples notification delivery from the rest of the system — currently implemented via [ntfy](https://ntfy.sh).
 
+## Role in Ze
+
+When the user is away from the web app, Ze still needs to reach them — morning briefings, calendar reminders, stuck goal alerts, correlation insights. `ze-notifications` abstracts push delivery so the rest of the system doesn't depend on a specific provider.
+
+### Key features
+
+- `Notifier` protocol — swappable delivery backend
+- `NtfyNotifier` — HTTP push via ntfy with priority, tags, and deep-link data
+- Priority levels from silent background sync to urgent alerts
+
+### Integration
+
+`NtfyNotifier` is constructed in `ze-api`'s lifespan and injected into `ProactiveNotifier` and `NativeAppInterface`. When the WebSocket is disconnected, outbound messages fall back to ntfy push; when connected, they flow over WebSocket instead.
+
 ## Responsibilities
 
 | Module | What it provides |

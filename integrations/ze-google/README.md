@@ -2,11 +2,25 @@
 
 Shared Google OAuth2 credentials for Ze. Provides authenticated service client factories for Google APIs — no Ze framework dependencies.
 
+## Role in Ze
+
+Google Calendar and Gmail are the two primary external services Ze integrates with. `ze-google` wraps OAuth2 refresh-token credentials and exposes typed client factories so plugins never handle token refresh or scope management themselves.
+
+### Key features
+
+- Single refresh token covers Calendar and Gmail scopes
+- Automatic access-token refresh — no manual token management
+- `from_settings()` factory — returns `None` when env vars are absent (graceful disable)
+
+### Integration
+
+Satisfies the `ZeIntegration` protocol structurally. Plugins declare `GoogleCredentials` in `integration_types()`; `ze-api` bootstrap calls `from_settings` once and injects the result into `EmailPlugin` and `CalendarPlugin`. Credentials are obtained once via `make google-auth`.
+
 ## Responsibilities
 
 | Module | What it provides |
 |---|---|
-| `auth.py` | `GoogleCredentials`, `SCOPES`, service client factories (`build_calendar_service`, `build_gmail_service`) |
+| `auth.py` | `GoogleCredentials`, `SCOPES`, `calendar()` and `gmail()` client factories |
 
 ## Dependencies
 
@@ -22,8 +36,8 @@ creds = GoogleCredentials(
     client_secret=...,
     refresh_token=...,
 )
-calendar = creds.build_calendar_service()
-gmail = creds.build_gmail_service()
+calendar = creds.calendar()
+gmail = creds.gmail()
 ```
 
 Credentials are wired into the container in `ze-api` and injected into `ze-calendar` and the Gmail channel.

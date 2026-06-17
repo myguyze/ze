@@ -38,7 +38,7 @@ ze-news        ←  ze-sdk, ze-memory
 
 1. Write a spec in `specs/phases/` first.
 2. Create the package directory here: `plugins/ze-<name>/`.
-3. Add a [README](ze-personal/README.md) following the template in `docs/package-readme-template.md`.
+3. Add a [README](ze-personal/README.md) following the template in `docs/package-readme-template.md` (include **Role in Ze** with key features and integration details).
 4. Implement `ZePlugin` in `plugin.py` and declare the entry point in `pyproject.toml`:
    ```toml
    [project.entry-points."ze.plugins"]

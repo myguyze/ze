@@ -2,6 +2,21 @@
 
 Job scheduling framework for Ze — background jobs, push delivery coordination, and APScheduler wiring.
 
+## Role in Ze
+
+Proactive Ze runs on a schedule — morning briefings, calendar reminders, news fetches, goal checks, and correlation runs. `ze-proactive` provides the scheduler, job registration, and push delivery coordination that make this work without blocking the main request path.
+
+### Key features
+
+- `ProactiveScheduler` — APScheduler wrapper started at `ze-api` lifespan
+- `ProactiveJob` ABC with cron and interval registration
+- `ProactiveNotifier` — delivers proactive messages via WebSocket or ntfy push
+- `PushLogStore` — tracks delivery to avoid duplicate pushes
+
+### Integration
+
+Plugins register jobs in `ZePlugin.register_proactive_jobs()`. `ze-api` starts the scheduler after all plugins have started. Re-exported to plugin authors via `ze_sdk.proactive`.
+
 ## Responsibilities
 
 | Module | What it provides |
