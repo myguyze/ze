@@ -31,7 +31,7 @@ from ze_core.orchestration.graph import build_graph
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
-from ze_correlation import CorrelationEngine, PostgresHypothesisStore
+from ze_correlation import CorrelationEngine, CorrelationJob, CorrelationPushConsumer, PostgresHypothesisStore
 from ze_memory.relevance import RelevanceModel
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.router import EmbeddingRouter
@@ -505,6 +505,27 @@ async def build_container(settings: Settings) -> ZeContainer:
             job_id="memory_consolidation",
         )
         log.info("consolidation_scheduled", cron=nightly_cron)
+
+    # Wire correlation push job if configured.
+    raw_cfg = getattr(settings, "config", {}) or {}
+    _push_cfg = raw_cfg.get("correlation", {}).get("push", {})
+    _push_schedule = _push_cfg.get("schedule", "0 */4 * * *")
+    push_consumer = CorrelationPushConsumer(
+        engine=correlation_engine,
+        hypothesis_store=hypothesis_store,
+        memory_store=memory_store,
+        notifier=notifier,
+        push_log=push_log_store,
+        settings=settings,
+        embedder=embedder,
+    )
+    correlation_job = CorrelationJob(push_consumer=push_consumer)
+    container.proactive_scheduler.add_cron_job(
+        fn=correlation_job.run,
+        cron=_push_schedule,
+        job_id=CorrelationJob.job_id,
+    )
+    log.info("correlation_push_job_scheduled", cron=_push_schedule)
 
     # Register plugin proactive jobs.
     for plugin in plugins:

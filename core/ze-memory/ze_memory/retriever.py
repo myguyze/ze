@@ -465,6 +465,18 @@ class PostgresMemoryStore:
             )
         return budget_episodes(rows, DEFAULT_EPISODE_BUDGET_TOKENS * 20)
 
+    async def list_recent_signal_ids(self, since: Any, limit: int) -> list[UUID]:
+        """Return IDs of signals admitted (created_at) after *since*, newest first."""
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id FROM memory_signals"
+                " WHERE created_at >= $1"
+                " ORDER BY created_at DESC LIMIT $2",
+                since,
+                limit,
+            )
+        return [row["id"] for row in rows]
+
     # ── internal ──────────────────────────────────────────────────────────────
 
     async def _write_fact_with_contradiction_check(self, fact: Fact) -> UUID | None:

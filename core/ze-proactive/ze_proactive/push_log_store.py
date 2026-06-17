@@ -31,6 +31,16 @@ class PushLogStore:
             )
         return row is not None
 
+    async def count_sent_within_hours(self, event_type: str, hours: float) -> int:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT COUNT(*) FROM push_log WHERE event_type = $1 "
+                "AND sent_at > NOW() - ($2 * INTERVAL '1 hour')",
+                event_type,
+                hours,
+            )
+        return int(row[0]) if row else 0
+
     async def log(self, event_type: str, payload: str | None = None) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(

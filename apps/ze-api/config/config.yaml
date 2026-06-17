@@ -95,6 +95,13 @@ correlation:
     max_seeds_inline: 5
     timeout_seconds_inline: 5
     model: "anthropic/claude-haiku-4-5"
+  push:
+    enabled: false              # off by default until Phase 58 inline is trusted
+    schedule: "0 */4 * * *"
+    max_seeds_per_run: 20
+    seed_lookback_hours: 8      # look back slightly more than the cron interval
+    dry_run: true               # log would-be pushes during calibration; set false to go live
+    max_pushes_per_day: 3
   salience:
     dry_run: false             # true → log admission decisions without writing to graph
     admission:
