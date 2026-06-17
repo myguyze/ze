@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Header, HTTPException, Request, UploadFile, File, status
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from ze_api.data.service import DataPortabilityService
+from ze_api.data.service import DataPortabilityService, SchemaMismatchError, InstanceNotEmptyError
 from ze_api.logging import get_logger
 
 log = get_logger(__name__)
@@ -36,12 +36,18 @@ class DeleteRequest(BaseModel):
     confirmation_token: str
 
 
+class ImportResponse(BaseModel):
+    domains_imported: list[str]
+    rows_imported: dict[str, int]
+
+
 @router.get(
     "/api/data/export",
     summary="Export all user data",
     description=(
-        "Produces a ZIP archive containing all personal data stored by Ze, "
-        "one JSON file per data domain. Returns the archive as a file download."
+        "Produces a versioned ZIP archive containing all personal data stored by Ze, "
+        "one JSON file per data domain. The manifest includes the current schema revisions "
+        "so the archive can be validated at import time."
     ),
     response_class=Response,
 )
@@ -58,6 +64,36 @@ async def export_data(
         content=archive,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="ze-export-{ts}.zip"'},
+    )
+
+
+@router.post(
+    "/api/data/import",
+    response_model=ImportResponse,
+    summary="Import a data archive",
+    description=(
+        "Restores a previously exported ZIP archive into this Ze instance. "
+        "The archive's schema_revisions must match the current schema exactly. "
+        "The instance must be empty — delete all data first if needed."
+    ),
+)
+async def import_data(
+    request: Request,
+    file: UploadFile = File(...),
+    authorization: str | None = Header(default=None),
+) -> ImportResponse:
+    _auth(request, authorization)
+    log.info("data_import_requested", filename=file.filename)
+    archive_bytes = await file.read()
+    try:
+        result = await _service(request).import_archive(archive_bytes)
+    except SchemaMismatchError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    except InstanceNotEmptyError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return ImportResponse(
+        domains_imported=result.domains_imported,
+        rows_imported=result.rows_imported,
     )
 
 
@@ -106,5 +142,4 @@ async def delete_data(
         )
     log.info("data_deletion_started")
     await _service(request).delete()
-    log.info("data_deletion_complete")
     return Response(status_code=204)

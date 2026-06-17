@@ -348,48 +348,57 @@ async def build_container(settings: Settings) -> ZeContainer:
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
 
     from ze_api.data.service import DataPortabilityService
+    from ze_api.data.assembler import bulk_insert
     from ze_agents.plugin import DataDomain
-
-    async def _export_table(tbl: str) -> list[dict]:
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(f"SELECT * FROM {tbl}")
-            return [dict(r) for r in rows]
-
-    async def _delete_table(tbl: str) -> None:
-        async with pool.acquire() as conn:
-            await conn.execute(f"DELETE FROM {tbl}")
-
-    async def _delete_checkpoints() -> None:
-        async with pool.acquire() as conn:
-            for tbl in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
-                await conn.execute(f"DELETE FROM {tbl}")
-
-    async def _export_checkpoints() -> list[dict]:
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("SELECT * FROM checkpoints")
-            return [dict(r) for r in rows]
 
     def _mk_export(tbl: str):
         async def _export(p) -> list[dict]:
-            return await _export_table(tbl)
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(f"SELECT * FROM {tbl}")
+                return [dict(r) for r in rows]
         return _export
 
     def _mk_delete(*tables: str):
         async def _delete(p) -> None:
-            for tbl in tables:
-                await _delete_table(tbl)
+            async with pool.acquire() as conn:
+                for tbl in tables:
+                    await conn.execute(f"DELETE FROM {tbl}")
         return _delete
 
+    def _mk_import(tbl: str):
+        async def _import(conn, rows: list[dict]) -> int:
+            return await bulk_insert(conn, tbl, rows)
+        return _import
+
+    async def _export_checkpoints(p) -> list[dict]:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("SELECT * FROM checkpoints")
+            return [dict(r) for r in rows]
+
+    async def _delete_checkpoints(p) -> None:
+        async with pool.acquire() as conn:
+            for tbl in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
+                await conn.execute(f"DELETE FROM {tbl}")
+
+    def _engine_domain(name: str, tbl: str) -> DataDomain:
+        return DataDomain(name, _mk_export(tbl), _mk_delete(tbl), delete_order=10, importer=_mk_import(tbl))
+
     engine_domains: list[DataDomain] = [
-        DataDomain("telemetry.costs", _mk_export("llm_cost_log"), _mk_delete("llm_cost_log"), delete_order=10),
-        DataDomain("telemetry.anomalies", _mk_export("accountability_anomalies"), _mk_delete("accountability_anomalies"), delete_order=10),
-        DataDomain("telemetry.capabilities", _mk_export("capability_overrides"), _mk_delete("capability_overrides"), delete_order=10),
-        DataDomain("routing.log", _mk_export("routing_log"), _mk_delete("routing_log"), delete_order=10),
-        DataDomain("messages.store", _mk_export("messages"), _mk_delete("messages"), delete_order=10),
-        DataDomain("confirmations", _mk_export("pending_confirmations"), _mk_delete("pending_confirmations"), delete_order=10),
-        DataDomain("proactive.log", _mk_export("push_log"), _mk_delete("push_log"), delete_order=10),
-        DataDomain("sessions", _mk_export("sessions"), _mk_delete("sessions"), delete_order=10),
-        DataDomain("onboarding", _mk_export("onboarding_sessions"), _mk_delete("onboarding_steps", "onboarding_sessions", "onboarding_seeds"), delete_order=10),
+        _engine_domain("telemetry.costs", "llm_cost_log"),
+        _engine_domain("telemetry.anomalies", "accountability_anomalies"),
+        _engine_domain("telemetry.capabilities", "capability_overrides"),
+        _engine_domain("routing.log", "routing_log"),
+        _engine_domain("messages.store", "messages"),
+        _engine_domain("confirmations", "pending_confirmations"),
+        _engine_domain("proactive.log", "push_log"),
+        _engine_domain("sessions", "sessions"),
+        DataDomain(
+            "onboarding",
+            _mk_export("onboarding_sessions"),
+            _mk_delete("onboarding_steps", "onboarding_sessions", "onboarding_seeds"),
+            delete_order=10,
+            importer=_mk_import("onboarding_sessions"),
+        ),
         DataDomain("graph.checkpoints", _export_checkpoints, _delete_checkpoints, delete_order=50),
     ]
     all_domains = engine_domains + [d for plugin in plugins for d in plugin.data_domains()]

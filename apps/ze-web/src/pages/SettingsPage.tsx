@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Check, AlertCircle } from "lucide-react";
+import { useRef } from "react";
 import { getConfig, saveConfig, clearConfig } from "@/config/AppConfig";
 import { reconnect } from "@/features/websocket/useWebSocket";
-import { healthCheck, downloadExport, api, ApiError } from "@/lib/api";
+import { healthCheck, downloadExport, importArchive, api, ApiError, ImportResult } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,6 +17,11 @@ export function SettingsPage() {
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -57,6 +63,27 @@ export function SettingsPage() {
       setExportError(e instanceof ApiError ? e.message : "Export failed");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const current = getConfig();
+    if (!current) return;
+    setImporting(true);
+    setImportResult(null);
+    setImportError(null);
+    try {
+      const result = await importArchive(current.serverUrl, current.apiKey, file);
+      setImportResult(result);
+    } catch (err) {
+      setImportError(
+        err instanceof ApiError ? err.message : "Import failed",
+      );
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
     }
   }
 
@@ -168,6 +195,36 @@ export function SettingsPage() {
         {exportError && (
           <p className="text-xs text-red-400">{exportError}</p>
         )}
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".zip"
+          className="hidden"
+          onChange={handleImport}
+        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setImportResult(null);
+            setImportError(null);
+            importInputRef.current?.click();
+          }}
+          disabled={importing}
+          className="w-full"
+        >
+          {importing ? "Importing…" : "Import data"}
+        </Button>
+        {importResult && (
+          <p className="text-xs text-[#15846e]">
+            Imported {importResult.domains_imported.length} domains
+            ({Object.values(importResult.rows_imported).reduce((a, b) => a + b, 0)} rows).
+          </p>
+        )}
+        {importError && (
+          <p className="text-xs text-red-400">{importError}</p>
+        )}
+
         <Button
           variant="danger"
           onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); setDeleteError(null); }}

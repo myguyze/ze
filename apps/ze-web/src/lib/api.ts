@@ -59,6 +59,27 @@ export interface DeleteIntent {
   expires_at: string;
 }
 
+export interface ImportResult {
+  domains_imported: string[];
+  rows_imported: Record<string, number>;
+}
+
+export async function importArchive(
+  serverUrl: string,
+  apiKey: string,
+  file: File,
+): Promise<ImportResult> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${serverUrl}/api/data/import`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json() as Promise<ImportResult>;
+}
+
 /** Test reachability of an arbitrary server before credentials are saved. */
 export async function healthCheck(serverUrl: string, apiKey: string): Promise<boolean> {
   try {

@@ -45,6 +45,7 @@ class CalendarPlugin(ZePlugin):
 
     def data_domains(self):
         from ze_agents.plugin import DataDomain
+        from ze_api.data.assembler import bulk_insert
 
         async def _export(tbl: str, pool) -> list[dict]:
             async with pool.acquire() as conn:
@@ -55,19 +56,18 @@ class CalendarPlugin(ZePlugin):
             async with pool.acquire() as conn:
                 await conn.execute(f"DELETE FROM {tbl}")
 
+        def _domain(name: str, tbl: str) -> DataDomain:
+            return DataDomain(
+                name,
+                lambda p, t=tbl: _export(t, p),
+                lambda p, t=tbl: _delete(t, p),
+                delete_order=10,
+                importer=lambda conn, rows, t=tbl: bulk_insert(conn, t, rows),
+            )
+
         return [
-            DataDomain(
-                "calendar.reminders",
-                lambda p: _export("user_reminders", p),
-                lambda p: _delete("user_reminders", p),
-                delete_order=10,
-            ),
-            DataDomain(
-                "calendar.calendar_reminders",
-                lambda p: _export("calendar_reminders", p),
-                lambda p: _delete("calendar_reminders", p),
-                delete_order=10,
-            ),
+            _domain("calendar.reminders", "user_reminders"),
+            _domain("calendar.calendar_reminders", "calendar_reminders"),
         ]
 
     def rest_stores(self) -> dict[str, Any]:

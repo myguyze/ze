@@ -141,6 +141,7 @@ class PersonalPlugin(ZePlugin):
 
     def data_domains(self):
         from ze_agents.plugin import DataDomain
+        from ze_api.data.assembler import bulk_insert
 
         def _export(tbl: str):
             async def _fn(pool) -> list[dict]:
@@ -156,35 +157,43 @@ class PersonalPlugin(ZePlugin):
                         await conn.execute(f"DELETE FROM {tbl}")
             return _fn
 
+        def _import(tbl: str):
+            async def _fn(conn, rows: list[dict]) -> int:
+                return await bulk_insert(conn, tbl, rows)
+            return _fn
+
+        def _domain(name: str, tbl: str, order: int) -> DataDomain:
+            return DataDomain(name, _export(tbl), _delete(tbl), delete_order=order, importer=_import(tbl))
+
         return [
             # Memory (leaf, no FK dependencies) — order 10
-            DataDomain("memory.facts", _export("user_facts"), _delete("user_facts"), delete_order=10),
-            DataDomain("memory.episodes", _export("episodes"), _delete("episodes"), delete_order=10),
-            DataDomain("memory.profile", _export("user_profile"), _delete("user_profile"), delete_order=10),
-            DataDomain("memory.profile_facets", _export("memory_profile_facets"), _delete("memory_profile_facets"), delete_order=10),
-            DataDomain("memory.entities", _export("memory_entities"), _delete("memory_entities"), delete_order=10),
-            DataDomain("memory.events", _export("memory_events"), _delete("memory_events"), delete_order=10),
-            DataDomain("memory.procedures", _export("memory_procedures"), _delete("memory_procedures"), delete_order=10),
-            DataDomain("memory.relationships", _export("memory_relationships"), _delete("memory_relationships"), delete_order=10),
-            DataDomain("memory.task_state", _export("memory_task_state"), _delete("memory_task_state"), delete_order=10),
-            DataDomain("memory.insights", _export("insights"), _delete("insights"), delete_order=10),
-            DataDomain("persona.state", _export("persona_state"), _delete("persona_state"), delete_order=10),
+            _domain("memory.facts", "user_facts", 10),
+            _domain("memory.episodes", "episodes", 10),
+            _domain("memory.profile", "user_profile", 10),
+            _domain("memory.profile_facets", "memory_profile_facets", 10),
+            _domain("memory.entities", "memory_entities", 10),
+            _domain("memory.events", "memory_events", 10),
+            _domain("memory.procedures", "memory_procedures", 10),
+            _domain("memory.relationships", "memory_relationships", 10),
+            _domain("memory.task_state", "memory_task_state", 10),
+            _domain("memory.insights", "insights", 10),
+            _domain("persona.state", "persona_state", 10),
             # Contact children (FK to contacts) — order 20
-            DataDomain("contacts.channels", _export("contact_channels"), _delete("contact_channels"), delete_order=20),
-            DataDomain("contacts.sources", _export("contact_sources"), _delete("contact_sources"), delete_order=20),
-            DataDomain("contacts.relationships", _export("contact_relationships"), _delete("contact_relationships"), delete_order=20),
+            _domain("contacts.channels", "contact_channels", 20),
+            _domain("contacts.sources", "contact_sources", 20),
+            _domain("contacts.relationships", "contact_relationships", 20),
             # Goal children (FK to goals) — order 20
-            DataDomain("goals.milestones", _export("goal_milestones"), _delete("goal_milestones"), delete_order=20),
-            DataDomain("goals.gates", _export("goal_gates"), _delete("goal_gates"), delete_order=20),
-            DataDomain("goals.learnings", _export("goal_learnings"), _delete("goal_learnings"), delete_order=20),
-            DataDomain("goals.traces", _export("goal_execution_traces"), _delete("goal_execution_traces"), delete_order=20),
-            DataDomain("goals.suggestions", _export("goal_suggestions"), _delete("goal_suggestions"), delete_order=20),
+            _domain("goals.milestones", "goal_milestones", 20),
+            _domain("goals.gates", "goal_gates", 20),
+            _domain("goals.learnings", "goal_learnings", 20),
+            _domain("goals.traces", "goal_execution_traces", 20),
+            _domain("goals.suggestions", "goal_suggestions", 20),
             # Workflow children (FK to workflows) — order 20
-            DataDomain("workflow.executions", _export("workflow_executions"), _delete("workflow_executions"), delete_order=20),
+            _domain("workflow.executions", "workflow_executions", 20),
             # Parents — order 30
-            DataDomain("contacts.persons", _export("contacts"), _delete("contacts"), delete_order=30),
-            DataDomain("goals.goals", _export("goals"), _delete("goals"), delete_order=30),
-            DataDomain("workflow.workflows", _export("workflows"), _delete("workflows"), delete_order=30),
+            _domain("contacts.persons", "contacts", 30),
+            _domain("goals.goals", "goals", 30),
+            _domain("workflow.workflows", "workflows", 30),
         ]
 
     def agent_deps(self, accumulated: dict) -> dict:

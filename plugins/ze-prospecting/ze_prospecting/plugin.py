@@ -44,6 +44,7 @@ class ProspectingPlugin(ZePlugin):
 
     def data_domains(self):
         from ze_agents.plugin import DataDomain
+        from ze_api.data.assembler import bulk_insert
 
         async def _export(tbl: str, pool) -> list[dict]:
             async with pool.acquire() as conn:
@@ -54,19 +55,18 @@ class ProspectingPlugin(ZePlugin):
             async with pool.acquire() as conn:
                 await conn.execute(f"DELETE FROM {tbl}")
 
+        def _domain(name: str, tbl: str, order: int) -> DataDomain:
+            return DataDomain(
+                name,
+                lambda p, t=tbl: _export(t, p),
+                lambda p, t=tbl: _delete(t, p),
+                delete_order=order,
+                importer=lambda conn, rows, t=tbl: bulk_insert(conn, t, rows),
+            )
+
         return [
-            DataDomain(
-                "prospecting.outreach",
-                lambda p: _export("prospect_outreach", p),
-                lambda p: _delete("prospect_outreach", p),
-                delete_order=10,
-            ),
-            DataDomain(
-                "prospecting.campaigns",
-                lambda p: _export("prospect_campaigns", p),
-                lambda p: _delete("prospect_campaigns", p),
-                delete_order=20,
-            ),
+            _domain("prospecting.outreach", "prospect_outreach", 10),
+            _domain("prospecting.campaigns", "prospect_campaigns", 20),
         ]
 
     def agent_deps(self, accumulated: dict) -> dict:
