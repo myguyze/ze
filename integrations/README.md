@@ -4,8 +4,10 @@ External service integration packages. Each package wraps a third-party API or
 protocol and exposes a clean interface for Ze packages to consume.
 
 **Rule:** an `integrations/` package has no Ze domain knowledge and no dependency
-on `plugins/` or `apps/`. It depends only on third-party libraries (and optionally
-other `integrations/` or `core/` packages).
+on `plugins/` or `apps/`. It depends only on third-party libraries.
+
+Package READMEs follow [docs/package-readme-template.md](../docs/package-readme-template.md).
+Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md](../docs/testing.md).
 
 ---
 
@@ -35,7 +37,7 @@ by `apps/ze-api` (which wires everything together).
 ## Integration contract
 
 Every credentials class in an integration package must satisfy the `ZeIntegration`
-protocol (defined in `ze_agents.integration`) **structurally** — no import required:
+protocol (defined in `ze_plugin.integration`) **structurally** — no import required:
 
 ```python
 @classmethod

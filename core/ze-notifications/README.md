@@ -50,3 +50,13 @@ The React web app (`ze-web`) uses browser URL routing for in-app navigation. ntf
 | 3 | default |
 | 4 | high |
 | 5 | urgent — stuck goals, critical alerts |
+
+## Testing
+
+From the repo root:
+
+```bash
+make test-notifications
+```
+
+See [docs/testing.md](../../docs/testing.md).

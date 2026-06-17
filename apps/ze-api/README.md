@@ -25,8 +25,12 @@ Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `z
 graph LR
     api[ze-api] --> core[ze-core]
     api --> sdk[ze-sdk]
+    api --> memory[ze-memory]
+    api --> correlation[ze-correlation]
     api --> personal[ze-personal]
+    api --> email[ze-email]
     api --> calendar[ze-calendar]
+    api --> prospecting[ze-prospecting]
     api --> google[ze-google]
     api --> browser[ze-browser]
     api --> news[ze-news]
@@ -90,8 +94,11 @@ See the root [README](../../README.md#configuration) for all environment variabl
 
 ## Testing
 
+From the repo root:
+
 ```bash
-make test
-# or
-uv run pytest apps/ze-api/tests -q
+make test        # alias for test-api
+make test-api
 ```
+
+See [docs/testing.md](../../docs/testing.md).

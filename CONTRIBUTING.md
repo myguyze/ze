@@ -36,11 +36,12 @@ make web           # React web app on :5173
 
 3. **Run the test suite** before pushing:
    ```bash
-   make test      # fast (skips embedding model load) — must pass
-   make lint      # ruff — must pass
-   make web-test  # React web app tests (vitest) — must pass if you changed ze-web
-   make test-all  # optional, includes slow embedding tests
+   make test        # ze-api (skips slow) — must pass
+   make lint        # ruff — must pass
+   make test-web    # vitest — must pass if you changed ze-web
+   make test-all    # optional, all packages including slow
    ```
+   Per-package targets: `make test-<name>` from repo root. Full list: [docs/testing.md](docs/testing.md).
 
 4. **Open a PR** against `main`. The PR description should say *why* the change is needed,
    not just what it does.

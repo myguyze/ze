@@ -152,11 +152,10 @@ make dev-full        # backend + web app together; Ctrl-C stops both
 make logs            # tail the server log file
 
 # Testing
-make test            # ze-api tests, fast (skips slow embedding tests)
-make test-all        # all packages, including slow ones
-make test-personal   # ze-personal tests only
-make test-calendar   # ze-calendar tests only
-make web-test        # React web app tests (vitest)
+make test            # ze-api tests (skips slow embedding tests)
+make test-<name>     # any package — see docs/testing.md
+make test-all        # all packages, including slow
+make test-web        # React web app (vitest)
 
 # Code quality
 make lint            # ruff lint across all Python packages
@@ -208,9 +207,10 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
   `ze_core` from a plugin package. Never import from `ze_plugin.*` directly in plugin
   code — always go through `ze_sdk.*`; `ze_plugin` is for engine and SDK use only.
 
-### Testing
+# Testing
 
-- Tests live in `tests/` mirroring `ze/` structure.
+- Tests live in `<package>/tests/` (Python) or `src/**/*.test.ts(x)` (ze-web).
+- Run from the **repo root** via `make test-<short-name>`. See [docs/testing.md](docs/testing.md).
 - `asyncio_mode = "auto"` — all async tests just work, no `@pytest.mark.asyncio`.
 - No real DB in unit tests. Mock asyncpg pools with `AsyncMock`.
 - No real OpenRouter calls. Mock `client.complete` and `client.stream`.
@@ -218,10 +218,8 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
   `config_dir=tmp_path/config`. Never monkey-patch Pydantic internals.
 - Embedder in tests: use `make_embedder(agent_vecs, prompt_vec)` pattern (dict-keyed,
   sorted alphabetically) to match production load order.
-- Slow tests (embedding model): mark with `@pytest.mark.slow`, skipped by default via
-  `-m 'not slow'` in `make test`. Run with `make test-all`.
-- Per-package test targets: `make test-core`, `make test-personal`, `make test-prospecting`,
-  `make test-email`, `make test-calendar`, `make test-news`.
+- Slow tests (embedding model): mark with `@pytest.mark.slow`, skipped by default.
+  Pass `SLOW=1` (e.g. `make test-core SLOW=1`) or run `make test-all`.
 
 ### Native app interface
 

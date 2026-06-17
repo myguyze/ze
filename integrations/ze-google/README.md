@@ -37,3 +37,13 @@ make google-auth
 ```
 
 This writes a refresh token to `.env`.
+
+## Testing
+
+From the repo root:
+
+```bash
+make test-google
+```
+
+See [docs/testing.md](../../docs/testing.md).

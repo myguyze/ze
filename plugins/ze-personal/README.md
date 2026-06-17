@@ -17,7 +17,7 @@ Personal-assistant domain layer for Ze. Implements the user-facing features that
 
 ```mermaid
 graph LR
-    personal[ze-personal] --> core[ze-core]
+    personal[ze-personal] --> sdk[ze-sdk]
 ```
 
 ## Extension point
@@ -33,6 +33,10 @@ from ze_personal.plugin import PersonalPlugin
 
 ## Testing
 
+From the repo root:
+
 ```bash
-uv run pytest plugins/ze-personal/tests -q
+make test-personal
 ```
+
+See [docs/testing.md](../../docs/testing.md).

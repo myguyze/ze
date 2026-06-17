@@ -16,7 +16,7 @@ Calendar, reminders, and timezone domain for Ze. Provides the `CalendarAgent`, `
 
 ```mermaid
 graph LR
-    calendar[ze-calendar] --> core[ze-core]
+    calendar[ze-calendar] --> sdk[ze-sdk]
     calendar --> google[ze-google]
     calendar --> personal[ze-personal]
 ```
@@ -33,8 +33,10 @@ from ze_calendar.plugin import CalendarPlugin
 
 ## Testing
 
+From the repo root:
+
 ```bash
 make test-calendar
-# or
-uv run pytest plugins/ze-calendar/tests -q
 ```
+
+See [docs/testing.md](../../docs/testing.md).

@@ -44,7 +44,7 @@ help:
 	@echo "    web-install      Install React web app dependencies (bun install)"
 	@echo "    web              Start React web dev server (:5173)"
 	@echo "    web-build        Build React web app for production"
-	@echo "    web-test         Run React web app tests (vitest)"
+	@echo "    web-test         Run React web app tests (vitest) — alias for test-web"
 	@echo ""
 	@echo "  Eval (requires 'make dev-eval' running)"
 	@echo "    eval             Run full eval suite — routing accuracy only (cheap)"
@@ -54,15 +54,28 @@ help:
 	@echo "    eval-server      Start MCP eval server (for Claude Code / Cursor / Codex)"
 	@echo "    eval-clean       Delete eval-namespaced rows from DB"
 	@echo ""
-	@echo "  Testing"
-	@echo "    test             Run ze-api tests (skips slow embedding tests)"
-	@echo "    test-core        Run ze-core tests"
-	@echo "    test-personal    Run ze-personal tests"
-	@echo "    test-prospecting Run ze-prospecting tests"
-	@echo "    test-email       Run ze-email tests"
-	@echo "    test-calendar    Run ze-calendar tests"
-	@echo "    test-news        Run ze-news tests"
-	@echo "    test-all         Run all tests across all packages (includes slow)"
+	@echo "  Testing (see docs/testing.md)"
+	@echo "    test / test-api      Run ze-api tests (skips slow)"
+	@echo "    test-core            Run ze-core tests"
+	@echo "    test-agents          Run ze-agents tests"
+	@echo "    test-plugin          Run ze-plugin tests"
+	@echo "    test-sdk             Run ze-sdk tests"
+	@echo "    test-proactive       Run ze-proactive tests"
+	@echo "    test-memory          Run ze-memory tests"
+	@echo "    test-onboarding      Run ze-onboarding tests"
+	@echo "    test-correlation     Run ze-correlation tests"
+	@echo "    test-browser         Run ze-browser tests"
+	@echo "    test-notifications   Run ze-notifications tests"
+	@echo "    test-components      Run ze-components tests"
+	@echo "    test-eval            Run ze-eval tests"
+	@echo "    test-google          Run ze-google tests"
+	@echo "    test-personal        Run ze-personal tests"
+	@echo "    test-email           Run ze-email tests"
+	@echo "    test-calendar        Run ze-calendar tests"
+	@echo "    test-prospecting     Run ze-prospecting tests"
+	@echo "    test-news            Run ze-news tests"
+	@echo "    test-web / web-test  Run ze-web tests (vitest)"
+	@echo "    test-all             Run all package tests (includes slow)"
 	@echo ""
 	@echo "  Code quality"
 	@echo "    lint             Lint all packages with ruff"
@@ -201,46 +214,108 @@ eval-clean:
 		"DELETE FROM contacts WHERE name ILIKE '%pedro%' OR name ILIKE '%maria%';"
 
 # ── Testing ───────────────────────────────────────────────────────────────────
-.PHONY: test test-core test-personal test-prospecting test-email test-calendar test-news test-all
+# Convention: make test-<short-name> from repo root. See docs/testing.md.
+PYTEST      := uv run pytest
+PYTEST_SLOW := $(PYTEST) -q
+PYTEST_FAST := $(PYTEST) -m 'not slow' -q
+pytest_pkg  = $(if $(SLOW),$(PYTEST_SLOW),$(PYTEST_FAST)) $(1)
 
-test:
-	uv run pytest $(ZE)/tests -m 'not slow' -q
+# Ordered list for test-all (core → integrations → plugins → apps)
+TEST_PY_PACKAGES := \
+	test-agents \
+	test-plugin \
+	test-sdk \
+	test-proactive \
+	test-memory \
+	test-onboarding \
+	test-correlation \
+	test-browser \
+	test-notifications \
+	test-components \
+	test-eval \
+	test-google \
+	test-core \
+	test-personal \
+	test-email \
+	test-calendar \
+	test-prospecting \
+	test-news \
+	test-api
+
+.PHONY: test test-api test-core test-agents test-plugin test-sdk test-proactive \
+	test-memory test-onboarding test-correlation test-browser test-notifications \
+	test-components test-eval test-google test-personal test-prospecting test-email \
+	test-calendar test-news test-all test-web web-test
+
+test test-api:
+	$(call pytest_pkg,apps/ze-api/tests)
 
 test-core:
-	uv run pytest $(ZE_CORE)/tests -q
+	$(call pytest_pkg,core/ze-core/tests)
+
+test-agents:
+	$(call pytest_pkg,core/ze-agents/tests)
+
+test-plugin:
+	$(call pytest_pkg,core/ze-plugin/tests)
+
+test-sdk:
+	$(call pytest_pkg,core/ze-sdk/tests)
+
+test-proactive:
+	$(call pytest_pkg,core/ze-proactive/tests)
+
+test-memory:
+	$(call pytest_pkg,core/ze-memory/tests)
+
+test-onboarding:
+	$(call pytest_pkg,core/ze-onboarding/tests)
+
+test-correlation:
+	$(call pytest_pkg,core/ze-correlation/tests)
+
+test-browser:
+	$(call pytest_pkg,core/ze-browser/tests)
+
+test-notifications:
+	$(call pytest_pkg,core/ze-notifications/tests)
+
+test-components:
+	$(call pytest_pkg,core/ze-components/tests)
+
+test-eval:
+	$(call pytest_pkg,core/ze-eval/tests)
+
+test-google:
+	$(call pytest_pkg,integrations/ze-google/tests)
 
 test-personal:
-	uv run pytest plugins/ze-personal/tests -q
+	$(call pytest_pkg,plugins/ze-personal/tests)
 
 test-prospecting:
-	uv run pytest plugins/ze-prospecting/tests -q
+	$(call pytest_pkg,plugins/ze-prospecting/tests)
 
 test-email:
-	uv run pytest plugins/ze-email/tests -q
+	$(call pytest_pkg,plugins/ze-email/tests)
 
 test-calendar:
-	uv run pytest plugins/ze-calendar/tests -q
+	$(call pytest_pkg,plugins/ze-calendar/tests)
 
 test-news:
-	uv run pytest plugins/ze-news/tests -q
+	$(call pytest_pkg,plugins/ze-news/tests)
 
 test-all:
-	uv run pytest $(ZE)/tests -q && \
-	uv run pytest $(ZE_CORE)/tests -q && \
-	uv run pytest plugins/ze-personal/tests -q && \
-	uv run pytest plugins/ze-prospecting/tests -q && \
-	uv run pytest plugins/ze-email/tests -q && \
-	uv run pytest plugins/ze-calendar/tests -q && \
-	uv run pytest plugins/ze-news/tests -q
+	@set -e; for t in $(TEST_PY_PACKAGES); do $(MAKE) SLOW=1 $$t; done
+	$(MAKE) test-web
 
-# ── Web app ───────────────────────────────────────────────────────────────────
-.PHONY: web-build web-test
+test-web web-test:
+	cd $(ZE_WEB) && bun run test
+
+# ── Web app build ─────────────────────────────────────────────────────────────
+.PHONY: web-build
 
 web-build:
 	cd $(ZE_WEB) && bun run build
-
-web-test:
-	cd $(ZE_WEB) && bun run test
 
 # ── Code generation ───────────────────────────────────────────────────────────
 .PHONY: generate-components

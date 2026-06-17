@@ -19,7 +19,8 @@ News fetching and personalised headlines for Ze. Fetches articles from curated R
 
 ```mermaid
 graph LR
-    news[ze-news] --> core[ze-core]
+    news[ze-news] --> sdk[ze-sdk]
+    news --> memory[ze-memory]
 ```
 
 ## Extension point
@@ -34,6 +35,10 @@ from ze_news.plugin import NewsPlugin
 
 ## Testing
 
+From the repo root:
+
 ```bash
-uv run pytest plugins/ze-news/tests -q
+make test-news
 ```
+
+See [docs/testing.md](../../docs/testing.md).

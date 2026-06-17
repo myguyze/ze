@@ -1,46 +1,50 @@
 # ze-core
 
-Pure infrastructure package for Ze. Contains no personal-assistant domain logic — only the framework primitives shared by all other packages.
+LangGraph orchestration engine for Ze. Pure infrastructure — routing, graph execution, capability gate, OpenRouter client, telemetry, and DI container. Contains no personal-assistant domain logic.
 
 ## Responsibilities
 
 | Module | What it provides |
 |---|---|
-| `orchestration/` | `BaseAgent`, `@agent`, `@tool`, `agent_registry`, `graph_builder`, `AgentState`, graph nodes |
-| `routing/` | `EmbeddingRouter`, `ComplexityEstimator`, `PostgresRoutingStore`, fallback logic |
-| `memory/` | `PostgresMemoryStore`, `MemoryConsolidator`, extractor, types |
+| `orchestration/` | `graph_builder`, `AgentState`, graph nodes and edges |
+| `routing/` | `EmbeddingRouter`, `ComplexityEstimator`, `PostgresRoutingStore`, fallback |
 | `capability/` | `CapabilityGate`, `PostgresCapabilityOverrideStore`, permission modes |
-| `channels/` | `Channel` ABC, `ChannelRegistry`, types |
-| `interface/` | `AppInterface` ABC, `InputPreprocessor`, validation, types |
-| `openrouter/` | `OpenRouterClient`, streaming, types |
-| `proactive/` | `ProactiveScheduler`, `ProactiveNotifier`, `ProactiveJob`, `PushLogStore` |
-| `progress/` | `ProgressReporter`, locale-key translations |
+| `openrouter/` | `OpenRouterClient`, streaming, transcription |
 | `telemetry/` | `CostTracker`, `CostReconciler`, `PostgresCostStore`, context var |
 | `messages/` | `MessageStore`, message types |
 | `conversation.py` | `invoke_raw_turn`, `resume_turn` entry points |
-| `plugin.py` | `ZePlugin` ABC — container and graph extension seam |
 | `container.py` | Base `Container` with DI wiring |
 | `embeddings.py` | Shared `paraphrase-multilingual-MiniLM-L12-v2` singleton |
+| `checkpoint_serde.py` | LangGraph checkpoint serialisation for plugin types |
+
+Agent execution (`BaseAgent`, `@agent`, `@tool`), plugin framework (`ZePlugin`, channels), and memory live in sibling packages — `ze-agents`, `ze-plugin`, and `ze-memory`.
 
 ## Dependencies
 
-No Ze package dependencies. Depends only on: `langgraph`, `asyncpg`, `openai`, `sentence-transformers`, `structlog`, `pydantic`.
+```mermaid
+graph LR
+    core[ze-core] --> agents[ze-agents]
+    core --> plugin[ze-plugin]
+```
+
+Third-party: `langgraph`, `openrouter`, `numpy`, `structlog`.
 
 ## Usage
 
-This package is not used directly by application code — it is consumed by `ze-personal`, `ze-calendar`, `ze-news`, and `ze-api`.
+Consumed by `ze-api` and never imported directly from plugin packages:
 
 ```python
-from ze_core.orchestration.registry import agent, get_agent
-from ze_core.orchestration.base_agent import BaseAgent
-from ze_core.orchestration.tool import tool
-from ze_core.plugin import ZePlugin
+from ze_core.orchestration.graph import graph_builder
+from ze_core.container import Container
+from ze_core.routing.router import EmbeddingRouter
 ```
 
 ## Testing
 
+From the repo root:
+
 ```bash
 make test-core
-# or
-uv run pytest core/ze-core/tests -q
 ```
+
+Pass `SLOW=1` to include embedding model tests. See [docs/testing.md](../../docs/testing.md).

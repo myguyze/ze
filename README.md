@@ -213,11 +213,12 @@ Minimum required environment variables:
 make help            # full target list
 
 make dev-full        # backend + React web app
-make web-test        # React web app tests (vitest)
+make web-test        # React web app tests (vitest) — alias for test-web
 
 make test            # fast ze-api tests (skips embedding model load)
-make test-core       # ze-core tests only
+make test-<name>     # any package — see docs/testing.md
 make test-all        # everything, including slow embedding tests
+make test-web        # React web app tests (vitest)
 make lint            # ruff
 
 make migrate         # apply pending migrations

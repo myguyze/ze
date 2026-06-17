@@ -37,6 +37,10 @@ result = await client.fetch("https://example.com")
 
 ## Testing
 
+From the repo root:
+
 ```bash
-uv run pytest core/ze-browser/tests -q
+make test-browser
 ```
+
+See [docs/testing.md](../../docs/testing.md).

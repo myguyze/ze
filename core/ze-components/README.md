@@ -35,3 +35,13 @@ make generate-components
 ```
 
 TypeScript types for the web client are generated alongside the JSON schema.
+
+## Testing
+
+From the repo root:
+
+```bash
+make test-components
+```
+
+See [docs/testing.md](../../docs/testing.md).
