@@ -37,6 +37,7 @@ class NewsPlugin(ZePlugin):
         self._fetch_cron: str = news_cfg.get("fetch_schedule", "*/30 * * * *")
         self._source_count: int = 0
 
+        self._salience_cfg: dict | None = None
         if not self._enabled:
             return
 
@@ -56,6 +57,8 @@ class NewsPlugin(ZePlugin):
         credibility_cfg = news_cfg.get("credibility", {})
         signals_cfg = settings.config.get("memory", {}).get("signals", {})
         self._force_ingest_sources: list[str] = signals_cfg.get("force_ingest_sources", [])
+        salience_raw = settings.config.get("correlation", {}).get("salience", {})
+        self._salience_cfg = salience_raw if salience_raw else None
         self._fetch_job = NewsFetchJob(
             registry=registry,
             store=self._store,
@@ -110,9 +113,17 @@ class NewsPlugin(ZePlugin):
     async def startup(self, container: Any) -> None:
         if self._fetch_job is None or self._store is None:
             return
+
         memory_store = getattr(container, "memory_store", None)
         if memory_store is not None and self._force_ingest_sources:
             self._fetch_job._memory_store = memory_store
+
+        if memory_store is not None and self._salience_cfg is not None:
+            self._fetch_job._memory_store = memory_store
+            self._fetch_job._admission_gate = self._build_admission_gate(
+                memory_store, container
+            )
+
         container.proactive_scheduler.register(
             self._fetch_job, cron=self._fetch_cron
         )
@@ -120,4 +131,35 @@ class NewsPlugin(ZePlugin):
             "news_fetch_scheduled",
             cron=self._fetch_cron,
             sources=self._source_count,
+        )
+
+    def _build_admission_gate(self, memory_store: Any, container: Any) -> Any:
+        from ze_memory.admission import AdmissionGate
+        from ze_memory.relevance import RelevanceModel
+
+        goal_provider = None
+        for plugin in getattr(container, "plugins", []):
+            gs = getattr(plugin, "goal_store", None)
+            if gs is not None:
+                goal_provider = gs
+                break
+
+        rel_cfg = self._salience_cfg.get("relevance", {})
+        relevance_model = RelevanceModel(
+            memory_store=memory_store,
+            goal_provider=goal_provider,
+            episode_lookback_days=int(rel_cfg.get("episode_lookback_days", 30)),
+            cache_ttl_minutes=int(rel_cfg.get("cache_ttl_minutes", 30)),
+        )
+
+        adm_cfg = self._salience_cfg.get("admission", {})
+        return AdmissionGate(
+            relevance_model=relevance_model,
+            memory_store=memory_store,
+            tau_admit=float(adm_cfg.get("tau_admit", 0.55)),
+            tau_watch=float(adm_cfg.get("tau_watch", 0.35)),
+            w_relevance=float(adm_cfg.get("w_relevance", 0.7)),
+            w_magnitude=float(adm_cfg.get("w_magnitude", 0.3)),
+            watch_buffer_ttl_hours=float(adm_cfg.get("watch_buffer_ttl_hours", 48)),
+            dry_run=bool(self._salience_cfg.get("dry_run", False)),
         )

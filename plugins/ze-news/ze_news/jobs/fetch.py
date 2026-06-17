@@ -32,6 +32,7 @@ class NewsFetchJob:
         min_fetch_interval_minutes: int = 30,
         memory_store: Any = None,
         force_ingest_sources: list[str] | None = None,
+        admission_gate: Any = None,
     ) -> None:
         self._registry = registry
         self._store = store
@@ -43,6 +44,7 @@ class NewsFetchJob:
         self._min_fetch_interval_minutes = min_fetch_interval_minutes
         self._memory_store = memory_store
         self._force_ingest_sources: list[str] = force_ingest_sources or []
+        self._admission_gate = admission_gate
 
     async def run(self, *, force: bool = False) -> None:
         now = datetime.now(timezone.utc)
@@ -65,8 +67,11 @@ class NewsFetchJob:
             if new_articles and self._credibility_enabled and self._client is not None:
                 asyncio.create_task(self._score_new_articles(new_articles))
 
-            if new_articles and self._memory_store is not None and source.key in self._force_ingest_sources:
-                asyncio.create_task(self._emit_signals(new_articles))
+            should_emit = new_articles and self._memory_store is not None
+            if should_emit and source.key in self._force_ingest_sources:
+                asyncio.create_task(self._emit_signals(new_articles, bypass_gate=True))
+            elif should_emit and self._admission_gate is not None:
+                asyncio.create_task(self._emit_signals(new_articles, bypass_gate=False))
 
         pruned = await self._store.prune(older_than_days=self._retention_days)
         if pruned:
@@ -109,13 +114,18 @@ class NewsFetchJob:
             except Exception as exc:
                 log.warning("credibility_scoring_failed", url=article.url, error=str(exc))
 
-    async def _emit_signals(self, articles: list[Article]) -> None:
+    async def _emit_signals(
+        self, articles: list[Article], *, bypass_gate: bool = False
+    ) -> None:
         from ze_news.signals import ArticleSignalAdapter
 
         adapter = ArticleSignalAdapter()
         for article in articles:
             try:
                 signal = adapter.to_signal(article)
-                await self._memory_store.ingest_signal(signal)
+                if bypass_gate or self._admission_gate is None:
+                    await self._memory_store.ingest_signal(signal)
+                else:
+                    await self._admission_gate.check_and_ingest(signal)
             except Exception as exc:
                 log.warning("news_signal_emit_failed", url=article.url, error=str(exc))

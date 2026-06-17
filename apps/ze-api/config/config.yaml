@@ -80,6 +80,31 @@ proactive:
     anomaly_retention_days: 30      # how long to keep anomaly records
     stall_days: 3                   # milestone idle days before counted as stalled
 
+correlation:
+  salience:
+    dry_run: false             # true → log admission decisions without writing to graph
+    admission:
+      tau_admit: 0.55
+      tau_watch: 0.35
+      w_relevance: 0.7
+      w_magnitude: 0.3
+      watch_buffer_ttl_hours: 48
+    surfacing:
+      tau_push: 0.6            # interrupt bar (proactive push, Phase 59 — deferred)
+      tau_inline: 0.45         # low bar (inline section, Phase 58 — v1); must be < tau_push
+      tau_relevance: 0.5
+      min_evidence: 2
+      novelty_similarity_max: 0.85
+    budget:
+      max_pushes_per_day: 3
+    feedback:
+      step: 0.05
+      tau_min: 0.4
+      tau_max: 0.85
+    relevance:
+      episode_lookback_days: 30
+      cache_ttl_minutes: 30
+
 news:
   enabled: true
   fetch_schedule: "*/30 * * * *"

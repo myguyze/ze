@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from ze_agents.types import RetrievalRequest as RetrievalRequest  # noqa: F401 â€” re-export
@@ -12,6 +12,26 @@ from ze_agents.types import RetrievalRequest as RetrievalRequest  # noqa: F401 â
 class EntityRef:
     name: str
     entity_type: str   # "person" | "org" | "topic" | "ticker" | "place" | "product"
+
+
+@dataclass
+class RelevanceEntry:
+    key: str                          # entity id or normalized topic
+    kind: Literal["entity", "topic"]
+    weight: float                     # 0..1
+    sources: list[str]                # why: ["profile:topics", "goal:...", "episode:recent"]
+
+
+@dataclass
+class RelevanceSet:
+    entries: dict[str, RelevanceEntry]
+    built_at: datetime
+
+
+@dataclass
+class RelevanceScore:
+    value: float           # 0..1
+    contributions: list[str]  # explainable: matched keys and their weights
 
 
 @dataclass

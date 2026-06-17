@@ -2,7 +2,7 @@
 
 > **Package:** `ze-memory`, `ze-correlation` (consumer)
 > **Phase:** 56
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Signal Substrate ([55-signal-substrate.md](55-signal-substrate.md)), News Preferences ([50-news-preferences.md](50-news-preferences.md)), User Profile ([14-user-profile.md](14-user-profile.md)), Core Memory ([../core/06-memory.md](../core/06-memory.md))
 
 ---
@@ -11,11 +11,11 @@
 
 | Feature | Status |
 | ------- | ------ |
-| Relevance set projection | 🔲 Pending |
-| Signal admission gate | 🔲 Pending |
-| Surfacing bar | 🔲 Pending |
-| Feedback-driven threshold tuning | 🔲 Pending |
-| Tests | 🔲 Pending |
+| Relevance set projection | ✅ Done |
+| Signal admission gate | ✅ Done |
+| Surfacing bar | ✅ Done |
+| Feedback-driven threshold tuning | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 
