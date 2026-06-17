@@ -42,13 +42,16 @@ This phase specifies **only the engine core**. No graph wiring, no push job, no 
 
 - Accept seeds (entity/event ids) and a `mode` that bounds cost (`inline` = tighter hops/
   neighbourhood + latency budget; `proactive` = wider bounds for the future push consumer).
-- Expand the graph neighbourhood around each seed (prior events, facts, episodes, goals).
+- Expand the graph neighbourhood around each seed (prior events, facts, episodes, goals,
+  signals) and materialize the rows needed to build a prompt context.
 - Run a single, tightly-scoped, **graph-only** LLM correlation step over the bounded
   neighbourhood.
 - Require grounded evidence (ids) and a confidence rating from the model.
 - Tag every piece of evidence with its **provenance** (`graph_recall` vs `live_search` vs
   `prompt_supplied`) and enforce the recall guarantee.
 - Persist all formed hypotheses for on-demand recall, inline rendering, and (later) push.
+- **Pin cited signals:** bump `expires_at` on every `memory_signals` row cited as evidence
+  so the source record is never pruned while a live hypothesis references it.
 
 ---
 
@@ -239,7 +242,9 @@ correlation:
     max_hops_proactive: 2
     neighbourhood_limit_inline: 15
     neighbourhood_limit_proactive: 30
-    model: "anthropic/claude-haiku"
+    max_seeds_inline: 5          # top-N seeds by relevance when turn yields more
+    timeout_seconds_inline: 5    # hard timeout; drop silently if exceeded
+    model: "anthropic/claude-haiku-4-5"
 ```
 
 Scheduling, push thresholds, and `dry_run` live in Phase 59.
@@ -277,14 +282,59 @@ Scheduling, push thresholds, and `dry_run` live in Phase 59.
 
 ## Open Questions
 
-- [ ] How to bound cost as the graph grows — cap neighbourhoods, batch seeds into one
-  call, or cluster seeds by shared entities before calling?
-- [ ] Should hypotheses themselves be written back into the memory graph (as `Event`s with
-  a `derived` provenance) so future correlations can build on prior ones?
-- [ ] Confidence calibration: LLM self-rated confidence is unreliable. Is feedback-driven
-  tuning (via Phase 58 inline) sufficient before Phase 59 push?
+- [x] **Cost bounding:** cap per-seed neighbourhood using `BoundedExpansionPolicy`
+  (already exists). Inline uses tight bounds (max_hops=1, limit=15); proactive uses wider
+  bounds (max_hops=2, limit=30) — both already in config. If the seed set exceeds 5
+  entities, take the top-N by relevance score before expanding. No batching or clustering
+  in v1 — inline seed sets are naturally small (one turn's entities).
+- [x] **Hypotheses written back to graph:** No in v1. The `correlation_hypothesis` table
+  is the persistence layer. Writing derived nodes back into the graph risks feedback loops
+  and pollutes the recall guarantee (graph-recalled evidence must be *observed*, not
+  derived). Revisit post-v1 if building on prior hypotheses proves valuable.
+- [x] **Confidence calibration:** LLM self-rated confidence is used as-is in v1. The
+  inline bar is deliberately low (τ_inline=0.45 from Phase 56) so the engine shows
+  connections frequently; inline feedback (useful/not_relevant) provides calibration signal
+  before Phase 59 push is enabled. Sufficient for v1.
 - [x] **Evidence provenance:** required; graph-only correlation step; recall guarantee
   gates hypothesis formation. (Confirmed from motivating session logs.)
 - [x] **`live_search` in v1:** no — v1 is recall-only and unambiguous.
-- [ ] Is the ≥2-distinct-`graph_recall` threshold right, or should a single strong recall
-  ever qualify? (Start strict; relax only with evidence.)
+- [x] **≥2 distinct `graph_recall` threshold:** Keep strict in v1. A single recalled item
+  is indistinguishable from `prompt_supplied` from the user's perspective; two distinct
+  items are the minimum for "I noticed a connection". Relax only with empirical evidence
+  from inline feedback data.
+
+---
+
+## Implementation Notes (resolved before coding)
+
+**Package placement:** `ze-correlation` is a new core package (not a plugin). The engine
+is infrastructure — it does not know about any domain. Plugins contribute signals via
+Phase 60. Adding it as a plugin would invert the dependency.
+
+**Migration:** The `correlation_hypothesis` table migration lives in
+`apps/ze-api/migrations/` (same pattern as `memory_signals`), not inside the package.
+
+**Neighbourhood materialization:** After `GraphStore.expand()` returns bucketed IDs, the
+engine fetches actual rows from the appropriate tables via `memory_store` methods:
+- Facts: `PostgresMemoryStore.list_recent_facts()` filtered by ID (add `get_facts_by_ids`)
+- Episodes: similar
+- Signals: query `memory_signals` by the `signal_ids` from `GraphExpansion`
+The goal is to build a rich prompt context; each item is rendered as a short text block
+with its ID, type, and timestamp so the LLM can cite it.
+
+**Signal pinning:** When a hypothesis is formed, bump `expires_at` on every cited
+`memory_signals` row so the evidence is never pruned while a live hypothesis references it.
+Add a `pin_signals(signal_ids, until)` helper to `PostgresMemoryStore`.
+
+**Inline latency budget:** Add `timeout_seconds_inline: 5` to the config. If the
+correlation call exceeds this, drop silently — Phase 58 must not block the main response.
+
+**Seed source (for Phase 58):** Seeds are entity UUIDs extracted from the user's current
+turn context — specifically the `linked_entity_ids` available in `AgentState` after
+`fetch_context`. Phase 58 passes these to `correlate()`. If no entities are in context,
+skip correlation.
+
+**`InsightEngine` separation:** InsightEngine stays separate. It is intra-personal
+(synthesises facts about the user) and runs as a weekly job. The correlation engine is
+cross-domain (connects external events to user history) and runs inline. They answer
+different questions with different lifecycles; no absorption.

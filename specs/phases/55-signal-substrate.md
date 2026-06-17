@@ -2,7 +2,7 @@
 
 > **Package:** `ze-memory`, `ze-news` (first emitter)
 > **Phase:** 55
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Core Memory ([../core/06-memory.md](../core/06-memory.md)), Memory Graph Augmentation ([../arch/memory-graph-augmentation.md](../arch/memory-graph-augmentation.md)), Correlation Engine ADR ([../arch/correlation-engine.md](../arch/correlation-engine.md))
 
 ---
@@ -11,11 +11,11 @@
 
 | Feature | Status |
 | ------- | ------ |
-| `Signal` provenance on graph events | 🔲 Pending |
-| Entity resolution for non-person entities | 🔲 Pending |
-| `MemoryStore.ingest_signal()` | 🔲 Pending |
-| News plugin emits signals | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `Signal` provenance on graph events | ✅ Done |
+| Entity resolution for non-person entities | ✅ Done |
+| `MemoryStore.ingest_signal()` | ✅ Done |
+| News plugin emits signals | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

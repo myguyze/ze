@@ -228,12 +228,25 @@ is ever allowed to interrupt.
   pruned while a live hypothesis references it.
 - [x] **v1 scope:** inline-only (Phase 58). Proactive push (Phase 59) deferred until
   inline feedback validates the engine.
-- [ ] Is the correlation engine a core package (`ze-correlation`) scheduled by the
-  container like consolidation, or a dedicated plugin? (Leaning core package; emission is
-  via a plugin hook.)
-- [ ] How is `relevance_to_user` calibrated initially, before any feedback exists?
-- [ ] Inline placement: graph node (leaning — see Phase 58) vs agent tool.
-- [ ] Inline latency budget: a turn cannot wait on heavy expansion. What's the max hop/
-  neighbourhood size for the inline path vs the proactive path?
-- [ ] Does `InsightEngine` get absorbed into the correlation engine, or stay separate as
-  the purely-personal synthesiser?
+- [x] **Core package vs plugin:** `ze-correlation` is a core package. The engine is
+  infrastructure — it has no domain knowledge. Plugins contribute signals via the Phase 60
+  `SignalSource` hook; the engine just runs. Putting it in a plugin would invert the
+  dependency (a plugin would own infrastructure that other plugins consume).
+- [x] **Initial relevance calibration:** Phase 56 defaults work without feedback.
+  Onboarding always collects profile facets; goals contribute if active. If the relevance
+  set is empty (fresh user, no onboarding), admission falls back to magnitude-only, which
+  is 0.0 for news in v1 — so nothing gets in. The engine degrades gracefully to a no-op
+  rather than flooding with uncalibrated signals.
+- [x] **Inline placement:** Graph node (not agent tool). A graph node runs unconditionally
+  after `execute_tool` and before `write_memory`, so correlation always fires when the
+  conditions are met — not only when the agent happens to call a tool. The node checks the
+  relevance prefilter and drops silently if there is nothing to correlate. Phase 58 specifies
+  the exact node and where it splices into the orchestration graph.
+- [x] **Inline latency budget:** max_hops=1, neighbourhood_limit=15 for inline mode.
+  The LLM correlation call is the expensive part; a hard 5-second timeout is applied
+  (`timeout_seconds_inline: 5` in config). If the call exceeds this, the node drops
+  silently — correlation must never block the main response.
+- [x] **InsightEngine absorption:** InsightEngine stays separate. It is intra-personal
+  (synthesises facts and episodes about the user themselves, weekly job) while the
+  correlation engine is cross-domain (connects external events to user history, per-turn).
+  They answer different questions with different lifecycles. No absorption.
