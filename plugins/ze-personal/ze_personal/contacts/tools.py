@@ -1,7 +1,7 @@
 import time
 from uuid import UUID
 
-from ze_agents.channels.types import ChannelHandle, ChannelType
+from ze_sdk.channels import ChannelHandle, ChannelType
 from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_agents.logging import get_logger
 from ze_agents.tool import ToolAccess, tool

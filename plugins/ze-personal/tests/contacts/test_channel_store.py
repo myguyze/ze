@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_agents.channels.types import ChannelHandle, ChannelType
+from ze_sdk.channels import ChannelHandle, ChannelType
 from ze_personal.contacts.channel_store import ContactChannelStore, _handle_from_row
 
 

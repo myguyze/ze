@@ -13,7 +13,7 @@ from ze_agents.registry import (
     get_registered_agents,
     register_instance,
 )
-from ze_agents.plugin import ZePlugin
+from ze_plugin.plugin import ZePlugin
 
 log = get_logger(__name__)
 
@@ -95,7 +95,7 @@ def build_integrations(
     calls from_settings once per unique type, and returns a dep_map fragment.
     Returning None from from_settings is allowed — plugins receive None via DI.
     """
-    from ze_agents.integration import ZeIntegration
+    from ze_plugin.integration import ZeIntegration
 
     seen: dict[type, Any] = {}
     for _name, cls in plugin_classes:

@@ -1,5 +1,5 @@
-from ze_agents.channels.base import Channel
-from ze_agents.channels.types import ChannelType
+from ze_plugin.channels.base import Channel
+from ze_plugin.channels.types import ChannelType
 from ze_agents.errors import ChannelNotFoundError
 
 

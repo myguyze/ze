@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import importlib
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Awaitable, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, TYPE_CHECKING
 
-from ze_agents.signals import SignalSource
+import yaml
+
+from ze_plugin.registry import _registry
+from ze_plugin.signals import SignalSource
 
 if TYPE_CHECKING:
     from langgraph.graph import StateGraph
     from ze_agents.base_agent import BaseAgent
     from ze_onboarding import OnboardingProvider
+
 
 @dataclass
 class DataDomain:
@@ -25,14 +30,6 @@ class DataDomain:
     # None means this domain is not importable (e.g. opaque LangGraph checkpoint blobs).
     # Receives an asyncpg Connection (not pool) so importers run inside one transaction.
     importer: Callable[[Any, list[dict]], Awaitable[int]] | None = None
-
-
-# Auto-populated by ZePlugin.__init_subclass__ when plugin modules are imported.
-_registry: list[type["ZePlugin"]] = []
-
-
-def get_plugin_registry() -> list[type["ZePlugin"]]:
-    return list(_registry)
 
 
 class ZePlugin(ABC):
@@ -165,14 +162,10 @@ class ZePlugin(ABC):
 
     @classmethod
     def _load_locale_file(cls, locale: str) -> dict:
-        import importlib
-        import yaml
-        from pathlib import Path as _Path
-
         module = importlib.import_module(cls.__module__)
         if getattr(module, "__file__", None) is None:
             return {}
-        pkg_root = _Path(module.__file__).parent
+        pkg_root = Path(module.__file__).parent
         locale_path = pkg_root / "locales" / f"{locale}.yaml"
         try:
             return yaml.safe_load(locale_path.read_text()) or {}

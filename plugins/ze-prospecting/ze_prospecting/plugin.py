@@ -5,7 +5,7 @@ from typing import Any
 import asyncpg
 
 from ze_agents.logging import get_logger
-from ze_agents.plugin import ZePlugin
+from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
 from ze_sdk.proactive import ProactiveScheduler
 from ze_prospecting.jobs.campaigns import recover_stale_campaigns
@@ -43,7 +43,7 @@ class ProspectingPlugin(ZePlugin):
         self.campaign_store = ProspectCampaignStore(pool=pool)
 
     def data_domains(self):
-        from ze_agents.plugin import DataDomain
+        from ze_sdk import DataDomain
         from ze_api.data.assembler import bulk_insert
 
         async def _export(tbl: str, pool) -> list[dict]:

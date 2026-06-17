@@ -6,8 +6,8 @@ from email.mime.text import MIMEText
 
 import structlog
 
-from ze_agents.channels.base import Channel
-from ze_agents.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_sdk.channels import Channel
+from ze_sdk.channels import ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_agents.errors import ChannelSendError
 from ze_google.auth import GoogleCredentials
 

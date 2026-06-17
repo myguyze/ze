@@ -84,14 +84,14 @@ def test_returned_sources_are_original_objects():
 # ── SignalSource protocol ──────────────────────────────────────────────────────
 
 def test_news_signal_source_satisfies_protocol():
-    from ze_agents.signals import SignalSource
+    from ze_plugin.signals import SignalSource
     from ze_news.signals import NewsSignalSource
 
     assert isinstance(NewsSignalSource(), SignalSource)
 
 
 def test_calendar_signal_source_satisfies_protocol():
-    from ze_agents.signals import SignalSource
+    from ze_plugin.signals import SignalSource
     from ze_calendar.signals import CalendarSignalSource
 
     store = MagicMock()

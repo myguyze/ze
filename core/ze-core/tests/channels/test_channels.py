@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 
 import pytest
 
-from ze_agents.channels.base import Channel
-from ze_agents.channels.registry import ChannelRegistry
-from ze_agents.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_plugin.channels.base import Channel
+from ze_plugin.channels.registry import ChannelRegistry
+from ze_plugin.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_agents.errors import ChannelError, ChannelNotFoundError
 
 

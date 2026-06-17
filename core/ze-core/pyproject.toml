@@ -8,6 +8,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-plugin",
     "openrouter>=0.9.1",
     "numpy>=2.0",
     "structlog>=24.4",
@@ -45,6 +46,7 @@ markers = [
 
 [tool.uv.sources]
 ze-agents = { workspace = true }
+ze-plugin = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_core"]

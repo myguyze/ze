@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 
 from ze_agents.client import LLMClient
 from ze_agents.logging import get_logger
-from ze_agents.plugin import ZePlugin
+from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
 from ze_news.onboarding import NewsOnboardingProvider
 

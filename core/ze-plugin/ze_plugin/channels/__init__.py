@@ -1,21 +1,21 @@
 from ze_plugin.channels.base import Channel
+from ze_plugin.channels.registry import ChannelRegistry
 from ze_plugin.channels.types import (
-    ChannelType,
     ChannelHandle,
+    ChannelType,
     Message,
     SentMessage,
     Thread,
     ThreadMessage,
 )
-from ze_agents.errors import ChannelSendError
 
 __all__ = [
     "Channel",
-    "ChannelType",
     "ChannelHandle",
+    "ChannelRegistry",
+    "ChannelType",
     "Message",
     "SentMessage",
     "Thread",
     "ThreadMessage",
-    "ChannelSendError",
 ]

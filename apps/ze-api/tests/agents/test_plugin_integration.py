@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from langgraph.checkpoint.memory import MemorySaver
 
-from ze_agents.plugin import ZePlugin
+from ze_plugin.plugin import ZePlugin
 from ze_core.checkpoint_serde import build_checkpoint_serde, collect_checkpoint_allowlist
 from ze_core.orchestration.graph import build_graph
 from ze_memory.policies import CompanionPolicy, build_policy_registry

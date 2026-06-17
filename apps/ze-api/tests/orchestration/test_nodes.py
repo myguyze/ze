@@ -285,7 +285,7 @@ async def test_write_memory_no_crash_if_no_agent_context():
 # ── memory._write_contact_proposals ──────────────────────────────────────────
 
 async def test_write_contact_proposals_writes_email_to_channel_store():
-    from ze_agents.channels.types import ChannelType
+    from ze_sdk.channels import ChannelType
     from ze_personal.contacts.types import ContactProposal
     from ze_personal.graph.memory_hooks import _write_contact_proposals
 
@@ -360,7 +360,7 @@ async def test_write_contact_proposals_works_without_channel_store():
 
 
 async def test_write_contact_proposals_writes_channel_for_existing_contact():
-    from ze_agents.channels.types import ChannelType
+    from ze_sdk.channels import ChannelType
     from ze_personal.contacts.types import ContactProposal, Person
     from ze_personal.graph.memory_hooks import _write_contact_proposals
     from datetime import datetime, timezone

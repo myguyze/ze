@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ze_agents.plugin import ZePlugin
+from ze_sdk import ZePlugin
 from ze_email.channel.gmail import GmailChannel
 
 if TYPE_CHECKING:

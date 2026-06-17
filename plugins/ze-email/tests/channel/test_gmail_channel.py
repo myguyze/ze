@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from ze_email.channel.gmail import GmailChannel
-from ze_agents.channels.types import ChannelType, Message, SentMessage
+from ze_sdk.channels import ChannelType, Message, SentMessage
 from ze_agents.errors import ChannelSendError
 
 

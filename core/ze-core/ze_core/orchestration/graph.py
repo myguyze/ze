@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from langchain_core.runnables import RunnableConfig
 
 if TYPE_CHECKING:
-    from ze_agents.plugin import ZePlugin
+    from ze_plugin.plugin import ZePlugin
 
 
 def _compose_pre_route_nodes(fns: list[Callable]) -> Callable:

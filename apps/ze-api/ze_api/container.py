@@ -12,7 +12,7 @@ from ze_browser import BrowserClient
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
-from ze_agents.channels.registry import ChannelRegistry
+from ze_plugin.channels.registry import ChannelRegistry
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_core.embeddings import get_embedder
 from ze_core.messages.store import PostgresMessageStore
@@ -387,7 +387,7 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     from ze_api.data.service import DataPortabilityService
     from ze_api.data.assembler import bulk_insert
-    from ze_agents.plugin import DataDomain
+    from ze_plugin.plugin import DataDomain
 
     def _mk_export(tbl: str):
         async def _export(p) -> list[dict]:

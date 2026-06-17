@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from itertools import groupby
 
-from ze_agents.plugin import DataDomain
+from ze_plugin.plugin import DataDomain
 from ze_api.data.assembler import ExportAssembler, ImportAssembler
 from ze_api.data.types import ImportResult
 from ze_api.logging import get_logger

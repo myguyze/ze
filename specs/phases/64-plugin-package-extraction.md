@@ -2,7 +2,7 @@
 
 > **Package:** `ze_plugin` (new) · `ze_agents` (trimmed)
 > **Phase:** 64
-> **Status:** Pending
+> **Status:** Done
 
 ---
 
@@ -10,17 +10,17 @@
 
 | Feature | Status |
 |---------|--------|
-| `ze-plugin` package scaffold | 🔲 Pending |
-| Move `ZePlugin` + registry | 🔲 Pending |
-| Move `ZeIntegration` protocol | 🔲 Pending |
-| Move `SignalSource` protocol | 🔲 Pending |
-| Move `channels/` subpackage | 🔲 Pending |
-| Trim `ze-agents` | 🔲 Pending |
-| Update `ze-sdk` re-exports | 🔲 Pending |
-| Update `ze-core` imports | 🔲 Pending |
-| Update all plugin imports | 🔲 Pending |
-| Update `ze-api` imports | 🔲 Pending |
-| Tests green | 🔲 Pending |
+| `ze-plugin` package scaffold | ✅ Done |
+| Move `ZePlugin` + registry | ✅ Done |
+| Move `ZeIntegration` protocol | ✅ Done |
+| Move `SignalSource` protocol | ✅ Done |
+| Move `channels/` subpackage | ✅ Done |
+| Trim `ze-agents` | ✅ Done |
+| Update `ze-sdk` re-exports | ✅ Done |
+| Update `ze-core` imports | ✅ Done |
+| Update all plugin imports | ✅ Done |
+| Update `ze-api` imports | ✅ Done |
+| Tests green | ✅ Done |
 
 ---
 
