@@ -43,6 +43,11 @@ class CalendarPlugin(ZePlugin):
         self.reminder_store = ReminderStore(pool=pool)
         self._calendar_reminder_store = CalendarReminderStore(pool=pool)
 
+    @classmethod
+    def integration_types(cls) -> list[type]:
+        from ze_google.auth import GoogleCredentials
+        return [GoogleCredentials]
+
     def data_domains(self):
         from ze_agents.plugin import DataDomain
         from ze_api.data.assembler import bulk_insert

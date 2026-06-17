@@ -7,7 +7,7 @@ from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from ze_api.bootstrap import bootstrap_agents, discover_plugins
+from ze_api.bootstrap import bootstrap_agents, build_integrations, _load_plugin_classes, _instantiate_plugins
 from ze_browser import BrowserClient
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_core.capability.gate import CapabilityGate
@@ -17,7 +17,6 @@ from ze_api.db import create_checkpointer_pool, create_pool
 from ze_core.embeddings import get_embedder
 from ze_core.messages.store import PostgresMessageStore
 from ze_api.sessions.store import PostgresSessionStore
-from ze_google.auth import GoogleCredentials
 from ze_api.logging import get_logger
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.graph import PostgresGraphStore
@@ -269,8 +268,6 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     workflow_store = PostgresWorkflowStore(db_pool=pool)
 
-    google_credentials = GoogleCredentials.from_settings(settings)
-
     # WorkflowScheduler: executor is configured in PersonalPlugin.startup() once the
     # workflow graph is available. Must be built here so CalendarPlugin can reference
     # it during its startup().
@@ -292,7 +289,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         LLMClient: openrouter_client,
         Settings: settings,
         CoreSettings: core_settings,
-        GoogleCredentials: google_credentials,
         ProactiveNotifier: notifier,
         PushLogStore: push_log_store,
         PostgresMemoryStore: memory_store,
@@ -302,7 +298,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         BrowserClient: browser_client,
     }
 
-    plugins = discover_plugins(plugin_deps)
+    plugin_classes = _load_plugin_classes()
+    integration_deps = build_integrations(plugin_classes, settings)
+    plugin_deps.update(integration_deps)
+    plugins = _instantiate_plugins(plugin_classes, plugin_deps)
 
     from ze_agents.progress.translations import ProgressTranslations
 

@@ -30,6 +30,11 @@ class EmailPlugin(ZePlugin):
 
         return {"email": EmailPolicy()}
 
+    @classmethod
+    def integration_types(cls) -> list[type]:
+        from ze_google.auth import GoogleCredentials
+        return [GoogleCredentials]
+
     def agent_module_paths(self) -> list[str]:
         if self._google_credentials is None:
             return []

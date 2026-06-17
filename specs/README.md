@@ -89,7 +89,7 @@ explicitly deferred before implementation begins.
 | 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | 🔲 Pending |
 | 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
 | 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
-| 63 | [Integration Framework](phases/63-integration-framework.md) | 🔲 Pending |
+| 63 | [Integration Framework](phases/63-integration-framework.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

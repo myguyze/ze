@@ -187,6 +187,17 @@ class ZePlugin(ABC):
         """
         return []
 
+    @classmethod
+    def integration_types(cls) -> list[type]:
+        """Return integration credential types this plugin needs.
+
+        Each type must satisfy ZeIntegration (implement from_settings). Must be a
+        classmethod so the bootstrapper can collect types before plugin instantiation.
+        The bootstrapper deduplicates across plugins, calls from_settings once per
+        unique type, and adds results to plugin_deps.
+        """
+        return []
+
     def register_proactive_jobs(
         self,
         scheduler: Any,

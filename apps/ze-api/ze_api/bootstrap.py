@@ -39,21 +39,15 @@ _DEFAULT_AGENT_MODULE_PATHS = [
 _dep_map: dict[type, Any] = {}
 
 
-def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
-    """Load and instantiate all Ze plugins declared via entry points.
+def _load_plugin_classes() -> list[tuple[str, type[ZePlugin]]]:
+    """Load and topologically sort plugin classes from entry points.
 
-    Reads ``[project.entry-points."ze.plugins"]`` from every installed package,
-    loads each class, topologically sorts by ``cls.depends_on`` (class names),
-    and instantiates via ``_resolve()``.
-
-    Returns the ordered list of plugin instances. Raises ``AgentConfigError`` on
-    missing deps or dependency cycles.
+    Does not instantiate. Safe to call before plugin_deps is fully populated.
+    Returns list of (ep_name, cls) pairs in dependency order.
     """
     from importlib.metadata import entry_points
 
-    effective_deps = dep_map if dep_map is not None else _dep_map
     entries: list[tuple[str, type]] = []
-
     for ep in entry_points(group="ze.plugins"):
         log.info("plugin_discovered", name=ep.name, value=ep.value)
         try:
@@ -69,22 +63,80 @@ def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
                 f"Entry point {ep.name!r} points to {cls!r}, "
                 f"which is not a ZePlugin subclass."
             )
-
         entries.append((ep.name, cls))
 
     if not entries:
         log.warning("no_plugins_discovered")
         return []
 
-    sorted_entries = _topological_sort(entries)
+    return _topological_sort(entries)
 
+
+def _instantiate_plugins(
+    sorted_entries: list[tuple[str, type[ZePlugin]]],
+    dep_map: dict[type, Any],
+) -> list[ZePlugin]:
+    """Instantiate topologically sorted plugin classes via _resolve()."""
     discovered: list[ZePlugin] = []
     for ep_name, cls in sorted_entries:
-        instance = _resolve(cls, effective_deps)
+        instance = _resolve(cls, dep_map)
         log.info("plugin_instantiated", name=ep_name, cls=cls.__qualname__)
         discovered.append(instance)
-
     return discovered
+
+
+def build_integrations(
+    plugin_classes: list[tuple[str, type[ZePlugin]]],
+    settings: Any,
+) -> dict[type, Any]:
+    """Collect and build all integration deps declared by plugin classes.
+
+    Deduplicates types across plugins, validates each satisfies ZeIntegration,
+    calls from_settings once per unique type, and returns a dep_map fragment.
+    Returning None from from_settings is allowed — plugins receive None via DI.
+    """
+    from ze_agents.integration import ZeIntegration
+
+    seen: dict[type, Any] = {}
+    for _name, cls in plugin_classes:
+        for itype in cls.integration_types():
+            if itype in seen:
+                continue
+            if not (isinstance(itype, type) and isinstance(itype, ZeIntegration)):
+                raise AgentConfigError(
+                    f"Integration type {itype!r} declared by {cls.__name__} does not "
+                    f"satisfy ZeIntegration (missing from_settings classmethod)."
+                )
+            instance = itype.from_settings(settings)
+            seen[itype] = instance
+            if instance is None:
+                log.warning(
+                    "integration_not_configured",
+                    type=itype.__name__,
+                    hint="check .env for missing credentials",
+                )
+            else:
+                log.info("integration_built", type=itype.__name__)
+    return seen
+
+
+def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
+    """Load and instantiate all Ze plugins declared via entry points.
+
+    Reads ``[project.entry-points."ze.plugins"]`` from every installed package,
+    loads each class, topologically sorts by ``cls.depends_on`` (class names),
+    and instantiates via ``_resolve()``.
+
+    Returns the ordered list of plugin instances. Raises ``AgentConfigError`` on
+    missing deps or dependency cycles.
+
+    Note: does not build integrations automatically. In production, call
+    _load_plugin_classes() → build_integrations() → _instantiate_plugins() to
+    ensure integration deps are in dep_map before plugin constructors run.
+    """
+    effective_deps = dep_map if dep_map is not None else _dep_map
+    sorted_entries = _load_plugin_classes()
+    return _instantiate_plugins(sorted_entries, effective_deps)
 
 
 def _topological_sort(

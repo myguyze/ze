@@ -10,14 +10,14 @@
 
 | Feature | Status |
 |---------|--------|
-| `ZeIntegration` Protocol in `ze_agents` | 🔲 Pending |
-| `ZePlugin.integration_types()` classmethod | 🔲 Pending |
-| Bootstrapper split: `_load_plugin_classes` + `instantiate_plugins` | 🔲 Pending |
-| `build_integrations()` helper | 🔲 Pending |
-| Remove manual `GoogleCredentials` wiring from `build_container` | 🔲 Pending |
-| `ze-google` declared by consuming plugins | 🔲 Pending |
-| `integrations/README.md` updated | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `ZeIntegration` Protocol in `ze_agents` | ✅ Done |
+| `ZePlugin.integration_types()` classmethod | ✅ Done |
+| Bootstrapper split: `_load_plugin_classes` + `instantiate_plugins` | ✅ Done |
+| `build_integrations()` helper | ✅ Done |
+| Remove manual `GoogleCredentials` wiring from `build_container` | ✅ Done |
+| `ze-google` declared by consuming plugins | ✅ Done |
+| `integrations/README.md` updated | ✅ Done |
+| Tests | ✅ Done (262 passing) |
 
 ---
 
