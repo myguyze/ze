@@ -10,6 +10,8 @@ from ze_memory.types import (
     MemoryContext,
     Procedure,
     ProfileFacet,
+    Signal,
+    SignalIngestResult,
     TaskState,
 )
 
@@ -79,3 +81,5 @@ class MemoryStore(Protocol):
     async def get_profile(self) -> list[ProfileFacet]: ...
 
     async def upsert_profile_facets(self, facets: list[dict]) -> None: ...
+
+    async def ingest_signal(self, signal: Signal) -> SignalIngestResult | None: ...

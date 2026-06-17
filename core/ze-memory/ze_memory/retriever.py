@@ -35,12 +35,15 @@ from ze_memory.projection import (
 )
 from ze_memory.types import (
     Entity,
+    EntityRef,
     Event,
     Fact,
     MemoryContext,
     Procedure,
     ProfileFacet,
     RetrievalRequest,
+    Signal,
+    SignalIngestResult,
     TaskState,
 )
 
@@ -542,13 +545,37 @@ class PostgresMemoryStore:
         except Exception as exc:
             log.warning("graph_link_task_state_failed", task_state_id=str(task_state_id), error=str(exc))
 
+    async def _resolve_entity_ref(
+        self,
+        ref: EntityRef,
+        existing: dict[str, UUID],
+    ) -> UUID | None:
+        """Look up or create an entity for a typed EntityRef, updating the shared cache."""
+        lower = ref.name.strip().lower()
+        if not lower or len(lower) < 2:
+            return None
+        if lower in existing:
+            return existing[lower]
+        try:
+            entity_id = await self.upsert_entity(Entity(
+                id=None,
+                entity_type=ref.entity_type,
+                canonical_name=ref.name.strip(),
+                aliases=[],
+                attrs={},
+            ))
+            existing[lower] = entity_id
+            return entity_id
+        except Exception as exc:
+            log.warning("entity_ref_upsert_failed", name=ref.name, type=ref.entity_type, error=str(exc))
+            return None
+
     async def _resolve_participant_names(self, names: list[str]) -> list[UUID]:
         """Resolve participant name strings to entity UUIDs, auto-creating when unmatched."""
         if not names:
             return []
         _GENERIC = frozenset({"the", "a", "an", "all", "everyone", "team", "group", "us", "we", "they", "them"})
 
-        # Filter out empty, too-short, and generic tokens before hitting the DB.
         candidates: list[str] = []
         for raw in names:
             name = raw.strip()
@@ -564,7 +591,6 @@ class PostgresMemoryStore:
 
         lower_candidates = [c.lower() for c in candidates]
 
-        # Fetch only entities whose name or alias matches one of our candidates.
         async with self._pool.acquire() as conn:
             entity_rows = await conn.fetch(
                 """
@@ -588,22 +614,12 @@ class PostgresMemoryStore:
 
         resolved: list[UUID] = []
         for name in candidates:
-            lower = name.lower()
-            if lower in existing:
-                resolved.append(existing[lower])
-                continue
-            try:
-                entity_id = await self.upsert_entity(Entity(
-                    id=None,
-                    entity_type="person",
-                    canonical_name=name,
-                    aliases=[],
-                    attrs={},
-                ))
+            entity_id = await self._resolve_entity_ref(
+                EntityRef(name=name, entity_type="person"),
+                existing,
+            )
+            if entity_id is not None:
                 resolved.append(entity_id)
-                existing[lower] = entity_id
-            except Exception as exc:
-                log.warning("participant_entity_upsert_failed", name=name, error=str(exc))
         return resolved
 
     async def _promote_event_outcome(self, event_id: UUID, outcome: str) -> None:
@@ -676,6 +692,81 @@ class PostgresMemoryStore:
                     facet.get("stability", "dynamic"),
                     facet.get("confidence", 0.8),
                 )
+
+    async def ingest_signal(self, signal: Signal) -> SignalIngestResult | None:
+        """Resolve entities, write a Signal node, create MENTIONS edges.
+
+        Returns None on unexpected error; returns result with created=False when deduped.
+        """
+        try:
+            async with self._pool.acquire() as conn:
+                existing_row = await conn.fetchrow(
+                    "SELECT id FROM memory_signals WHERE source = $1 AND external_ref = $2",
+                    signal.source,
+                    signal.external_ref,
+                )
+                if existing_row is not None:
+                    return SignalIngestResult(
+                        signal_id=existing_row["id"],
+                        entity_ids=[],
+                        created=False,
+                    )
+
+                row = await conn.fetchrow(
+                    """
+                    INSERT INTO memory_signals
+                      (id, source, external_ref, title, summary, occurred_at,
+                       magnitude, payload, expires_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+                    RETURNING id
+                    """,
+                    signal.id,
+                    signal.source,
+                    signal.external_ref,
+                    signal.title,
+                    signal.summary,
+                    signal.occurred_at,
+                    signal.magnitude,
+                    json.dumps(signal.payload),
+                    signal.expires_at,
+                )
+            signal_id: UUID = row["id"]
+
+            entity_ids: list[UUID] = []
+            if self._graph_store is not None and signal.entities:
+                existing_cache: dict[str, UUID] = {}
+                for ref in signal.entities:
+                    entity_id = await self._resolve_entity_ref(ref, existing_cache)
+                    if entity_id is not None:
+                        entity_ids.append(entity_id)
+                        try:
+                            await self._graph_store.upsert_relationship(Relationship(
+                                source_id=signal_id,
+                                source_type="signal",
+                                predicate=MENTIONS,
+                                target_id=entity_id,
+                                target_type="entity",
+                                creation_method="extracted",
+                                confidence=0.9,
+                            ))
+                        except Exception as exc:
+                            log.warning(
+                                "signal_entity_edge_failed",
+                                signal_id=str(signal_id),
+                                entity_id=str(entity_id),
+                                error=str(exc),
+                            )
+
+            log.info(
+                "signal_ingested",
+                signal_id=str(signal_id),
+                source=signal.source,
+                entities=len(entity_ids),
+            )
+            return SignalIngestResult(signal_id=signal_id, entity_ids=entity_ids, created=True)
+        except Exception as exc:
+            log.warning("signal_ingest_failed", external_ref=signal.external_ref, error=str(exc))
+            return None
 
     @staticmethod
     def _build_traversal(

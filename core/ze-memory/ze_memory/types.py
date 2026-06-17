@@ -9,6 +9,33 @@ from ze_agents.types import RetrievalRequest as RetrievalRequest  # noqa: F401 â
 
 
 @dataclass
+class EntityRef:
+    name: str
+    entity_type: str   # "person" | "org" | "topic" | "ticker" | "place" | "product"
+
+
+@dataclass
+class Signal:
+    id: UUID
+    source: str                  # plugin/source key, e.g. "news"
+    external_ref: str            # stable id in the source store (article URL, etc.)
+    title: str
+    summary: str
+    occurred_at: datetime
+    entities: list[EntityRef] = field(default_factory=list)
+    magnitude: float = 0.0
+    payload: dict[str, Any] = field(default_factory=dict)
+    expires_at: datetime | None = None
+
+
+@dataclass
+class SignalIngestResult:
+    signal_id: UUID
+    entity_ids: list[UUID]
+    created: bool   # False if deduped to an existing signal
+
+
+@dataclass
 class Entity:
     id: UUID | None
     entity_type: str

@@ -54,6 +54,8 @@ class NewsPlugin(ZePlugin):
         self._source_count = len(source_configs)
 
         credibility_cfg = news_cfg.get("credibility", {})
+        signals_cfg = settings.config.get("memory", {}).get("signals", {})
+        self._force_ingest_sources: list[str] = signals_cfg.get("force_ingest_sources", [])
         self._fetch_job = NewsFetchJob(
             registry=registry,
             store=self._store,
@@ -65,6 +67,7 @@ class NewsPlugin(ZePlugin):
             min_fetch_interval_minutes=int(
                 news_cfg.get("min_fetch_interval_minutes", 30)
             ),
+            force_ingest_sources=self._force_ingest_sources,
         )
 
     @classmethod
@@ -107,6 +110,9 @@ class NewsPlugin(ZePlugin):
     async def startup(self, container: Any) -> None:
         if self._fetch_job is None or self._store is None:
             return
+        memory_store = getattr(container, "memory_store", None)
+        if memory_store is not None and self._force_ingest_sources:
+            self._fetch_job._memory_store = memory_store
         container.proactive_scheduler.register(
             self._fetch_job, cron=self._fetch_cron
         )

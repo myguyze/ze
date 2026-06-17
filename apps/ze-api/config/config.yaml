@@ -21,6 +21,10 @@ memory:
     enabled: true
     max_hops: 1
     max_relationships: 20
+  signals:
+    enabled: true
+    retention_days: 90
+    force_ingest_sources: []   # e.g. ["news"] to bypass admission gate in dev
 
 contacts:
   consolidation:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ze_agents.logging import get_logger
 from ze_sdk.proactive import proactive_job
@@ -30,6 +30,8 @@ class NewsFetchJob:
         credibility_llm_enabled: bool = True,
         credibility_model: str = "openai/gpt-4o-mini",
         min_fetch_interval_minutes: int = 30,
+        memory_store: Any = None,
+        force_ingest_sources: list[str] | None = None,
     ) -> None:
         self._registry = registry
         self._store = store
@@ -39,6 +41,8 @@ class NewsFetchJob:
         self._credibility_llm_enabled = credibility_llm_enabled
         self._credibility_model = credibility_model
         self._min_fetch_interval_minutes = min_fetch_interval_minutes
+        self._memory_store = memory_store
+        self._force_ingest_sources: list[str] = force_ingest_sources or []
 
     async def run(self, *, force: bool = False) -> None:
         now = datetime.now(timezone.utc)
@@ -60,6 +64,9 @@ class NewsFetchJob:
 
             if new_articles and self._credibility_enabled and self._client is not None:
                 asyncio.create_task(self._score_new_articles(new_articles))
+
+            if new_articles and self._memory_store is not None and source.key in self._force_ingest_sources:
+                asyncio.create_task(self._emit_signals(new_articles))
 
         pruned = await self._store.prune(older_than_days=self._retention_days)
         if pruned:
@@ -101,3 +108,14 @@ class NewsFetchJob:
                 await self._store.update_credibility(article.url, report)
             except Exception as exc:
                 log.warning("credibility_scoring_failed", url=article.url, error=str(exc))
+
+    async def _emit_signals(self, articles: list[Article]) -> None:
+        from ze_news.signals import ArticleSignalAdapter
+
+        adapter = ArticleSignalAdapter()
+        for article in articles:
+            try:
+                signal = adapter.to_signal(article)
+                await self._memory_store.ingest_signal(signal)
+            except Exception as exc:
+                log.warning("news_signal_emit_failed", url=article.url, error=str(exc))
