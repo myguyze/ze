@@ -90,6 +90,7 @@ explicitly deferred before implementation begins.
 | 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
 | 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
 | 63 | [Integration Framework](phases/63-integration-framework.md) | ✅ Done |
+| 64 | [Plugin Package Extraction](phases/64-plugin-package-extraction.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 

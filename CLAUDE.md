@@ -21,20 +21,25 @@ ze/                           # monorepo root
 │   │       ├── telemetry/    # CostTracker, CostReconciler, PostgresCostStore, ContextVar
 │   │       ├── container.py  # Base Container with DI wiring and invoke/resume entry points
 │   │       └── embeddings.py # Shared paraphrase-multilingual-MiniLM-L12-v2 singleton
-│   ├── ze-agents/            # Developer API — BaseAgent, @agent, @tool, ZePlugin, shared types
+│   ├── ze-agents/            # Developer API — BaseAgent, @agent, @tool, shared types
 │   │   └── ze_agents/
-│   │       ├── channels/     # Channel ABC, ChannelRegistry, types
 │   │       ├── interface/    # AppInterface ABC, InputPreprocessor, validation, types
 │   │       ├── progress/     # ProgressReporter, translations
 │   │       ├── base_agent.py # BaseAgent ABC with agentic_loop
 │   │       ├── client.py     # LLMClient Protocol
 │   │       ├── db.py         # DBPool Protocol
 │   │       ├── errors.py     # Full ZeError hierarchy
-│   │       ├── hooks.py      # HarnessHook ABC
-│   │       ├── plugin.py     # ZePlugin ABC
+│   │       ├── hooks.py      # HarnessHook ABC (agentic loop — not a plugin concern)
 │   │       ├── registry.py   # @agent decorator + AgentRegistry
 │   │       ├── settings.py   # Settings dataclass
 │   │       └── tool.py       # @tool decorator, ToolAccess
+│   ├── ze-plugin/            # Plugin extension framework — ZePlugin ABC, channels, signals
+│   │   └── ze_plugin/
+│   │       ├── channels/     # Channel ABC, ChannelRegistry, types
+│   │       ├── integration.py# ZeIntegration protocol
+│   │       ├── plugin.py     # ZePlugin ABC + DataDomain
+│   │       ├── registry.py   # plugin registry (_registry, get_plugin_registry)
+│   │       └── signals.py    # SignalSource protocol
 │   ├── ze-proactive/         # Job scheduling framework
 │   │   └── ze_proactive/     # ProactiveJob, ProactiveScheduler, ProactiveNotifier, PushLogStore
 │   ├── ze-sdk/               # Public SDK surface — flat re-export layer for plugin authors
@@ -108,13 +113,14 @@ ze/                           # monorepo root
 ```
 ze-browser      (no ze deps)             core/
 ze-agents       (no ze deps)             core/
+ze-plugin     → ze-agents                core/
 ze-proactive  → ze-agents                core/
 ze-notifications(no ze deps)             core/
 ze-components   (no ze deps)             core/
 ze-memory     → ze-agents                core/
 ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
-ze-sdk        → ze-agents, ze-proactive, ze-memory         core/  ← plugin entry point
-ze-core       → ze-agents                core/  ← engine; never a plugin dep
+ze-sdk        → ze-agents, ze-plugin, ze-proactive, ze-memory  core/  ← plugin entry point
+ze-core       → ze-agents, ze-plugin     core/  ← engine; never a plugin dep
 ze-google       (no ze deps)             integrations/
 ze-personal   → ze-sdk                   plugins/
 ze-email      → ze-sdk, ze-google, ze-personal             plugins/
@@ -199,7 +205,8 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
   channels, errors). Domain types from `ze_personal.*` (contacts, goals, workflow, persona).
   Calendar/reminder domain from `ze_calendar.*`. Google credentials from `ze_google.*`.
   Engine internals (`ze_core.*`) are for `ze_api/` and `ze_core/` only — never import
-  `ze_core` from a plugin package.
+  `ze_core` from a plugin package. Never import from `ze_plugin.*` directly in plugin
+  code — always go through `ze_sdk.*`; `ze_plugin` is for engine and SDK use only.
 
 ### Testing
 
@@ -343,3 +350,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 54 | Progress messages — plugin-local locale files, `ProgressTranslations.build()`, reporter wired end-to-end, `typing` frame carries text, `news.fetching` key for refresh | Done |
 | 57 | Correlation engine — `ze-correlation` package, `CorrelationEngine`, `PostgresHypothesisStore`, graph neighbourhood expansion, recall guarantee, signal pinning | Done |
 | 60 | Cross-plugin signal contract — `SignalSource` protocol, `ZePlugin.signal_sources()` hook, `NewsSignalSource`, `CalendarSignalSource`, container collection + dedup | Done |
+| 64 | Plugin package extraction — `ze-plugin` package carved from `ze-agents`; `ZePlugin`, `channels/`, `SignalSource`, `ZeIntegration` in their own package; `ze-agents` focused on agent execution API | Pending |
