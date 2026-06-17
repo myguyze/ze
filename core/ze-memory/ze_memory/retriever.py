@@ -343,6 +343,95 @@ class PostgresMemoryStore:
 
     # ── convenience methods for jobs/introspection ────────────────────────────
 
+    @property
+    def graph_store(self) -> GraphStore | None:
+        return self._graph_store
+
+    # ── neighbourhood fetch helpers (used by ze-correlation) ─────────────────
+
+    async def get_entities_by_ids(self, ids: list[UUID]) -> list[Entity]:
+        if not ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, entity_type, canonical_name, aliases, attrs"
+                " FROM memory_entities WHERE id = ANY($1::uuid[])",
+                ids,
+            )
+        return [
+            Entity(
+                id=row["id"],
+                entity_type=row["entity_type"],
+                canonical_name=row["canonical_name"],
+                aliases=list(row["aliases"] or []),
+                attrs=dict(row["attrs"] or {}),
+            )
+            for row in rows
+        ]
+
+    async def get_facts_by_ids(self, ids: list[UUID]) -> list[Fact]:
+        if not ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, subject_id, predicate, object_text, object_id, value,"
+                "       confidence, reviewed, contradicted, source_episode_id, source_refs"
+                " FROM memory_facts WHERE id = ANY($1::uuid[]) AND contradicted = false",
+                ids,
+            )
+        return budget_facts(rows, DEFAULT_FACT_BUDGET_TOKENS * 20)
+
+    async def get_episodes_by_ids(self, ids: list[UUID]) -> list[Any]:
+        if not ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, session_id, agent, prompt, response, summary,"
+                "       relevance, created_at, linked_entity_ids, linked_fact_ids"
+                " FROM memory_episodes WHERE id = ANY($1::uuid[])",
+                ids,
+            )
+        return budget_episodes(rows, DEFAULT_EPISODE_BUDGET_TOKENS * 20)
+
+    async def get_signals_by_ids(self, ids: list[UUID]) -> list[tuple[Signal, Any]]:
+        """Return (Signal, created_at) pairs for the given signal IDs."""
+        if not ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, source, external_ref, title, summary, occurred_at,"
+                "       magnitude, payload, expires_at, created_at"
+                " FROM memory_signals WHERE id = ANY($1::uuid[])",
+                ids,
+            )
+        results = []
+        for row in rows:
+            sig = Signal(
+                id=row["id"],
+                source=row["source"],
+                external_ref=row["external_ref"],
+                title=row["title"],
+                summary=row["summary"],
+                occurred_at=row["occurred_at"],
+                magnitude=row["magnitude"],
+                payload=dict(row["payload"] or {}),
+                expires_at=row["expires_at"],
+            )
+            results.append((sig, row["created_at"]))
+        return results
+
+    async def pin_signals(self, signal_ids: list[UUID], until: Any) -> None:
+        """Bump expires_at so cited signals are never pruned while a hypothesis references them."""
+        if not signal_ids:
+            return
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE memory_signals SET expires_at = GREATEST(expires_at, $1)"
+                " WHERE id = ANY($2::uuid[])",
+                until,
+                signal_ids,
+            )
+
     async def list_recent_facts(self, days: int, limit: int) -> list[Fact]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(

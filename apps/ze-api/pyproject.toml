@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ze-core",
     "ze-memory",
+    "ze-correlation",
     "ze-personal",
     "ze-email",
     "ze-prospecting",
@@ -51,6 +52,7 @@ dev = [
 [tool.uv.sources]
 ze-core          = { workspace = true }
 ze-memory        = { workspace = true }
+ze-correlation   = { workspace = true }
 ze-personal      = { workspace = true }
 ze-email         = { workspace = true }
 ze-prospecting   = { workspace = true }

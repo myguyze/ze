@@ -11,12 +11,12 @@
 
 | Feature | Status |
 | ------- | ------ |
-| `Hypothesis` type + store | 🔲 Pending |
-| Neighbourhood retrieval | 🔲 Pending |
-| LLM correlation step | 🔲 Pending |
-| Provenance + recall guarantee | 🔲 Pending |
-| `correlate()` entrypoint | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `Hypothesis` type + store | ✅ Done |
+| Neighbourhood retrieval | ✅ Done |
+| LLM correlation step | ✅ Done |
+| Provenance + recall guarantee | ✅ Done |
+| `correlate()` entrypoint | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

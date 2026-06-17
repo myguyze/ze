@@ -81,6 +81,15 @@ proactive:
     stall_days: 3                   # milestone idle days before counted as stalled
 
 correlation:
+  engine:
+    enabled: true
+    max_hops_inline: 1
+    max_hops_proactive: 2
+    neighbourhood_limit_inline: 15
+    neighbourhood_limit_proactive: 30
+    max_seeds_inline: 5
+    timeout_seconds_inline: 5
+    model: "anthropic/claude-haiku-4-5"
   salience:
     dry_run: false             # true → log admission decisions without writing to graph
     admission:

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ze-correlation"
+version = "0.1.0"
+description = "Ze correlation engine — cross-domain hypothesis formation from memory graph"
+requires-python = ">=3.11"
+dependencies = [
+    "ze-agents",
+    "ze-memory",
+    "asyncpg>=0.29",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.uv.sources]
+ze-agents = { workspace = true }
+ze-memory  = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["ze_correlation"]
+include = ["ze_correlation/py.typed"]
