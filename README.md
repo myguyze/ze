@@ -214,4 +214,4 @@ Single-user by design. Strong `ZE_API_KEY`, secrets out of git, non-guessable nt
 
 Ze is built to compound: specs, plugins, signals, goals that run for weeks. The license says take it anywhere — zero conditions, dedicated to the public domain *"to the detriment of our heirs and successors."*
 
-Make no mistakes in the architecture. Make whatever you want with the code.
+Make whatever you want with the code.
