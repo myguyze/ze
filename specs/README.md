@@ -92,6 +92,8 @@ explicitly deferred before implementation begins.
 | 63 | [Integration Framework](phases/63-integration-framework.md) | ✅ Done |
 | 64 | [Plugin Package Extraction](phases/64-plugin-package-extraction.md) | 🔲 Pending |
 | 65 | [Eager Session Summaries](phases/65-eager-session-summaries.md) | 🔲 Pending |
+| 66 | [Primitive UI](phases/66-primitive-ui.md) | 🔲 Pending |
+| 67 | [Finance Plugin](phases/67-finance-plugin.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
