@@ -4,7 +4,7 @@
 
 **Jarvis. Make no mistakes.**
 
-A self-hosted personal AI **platform** that works across weeks, connects everything it knows, and keeps getting sharper — not a chat window that resets when you close the tab.
+A self-hosted personal AI assistant. Single-user, spec-first, somewhere in the middle of becoming something genuinely useful.
 
 <p>
   <a href="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml"><img src="https://github.com/joaoajmatos/ze/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -18,83 +18,45 @@ A self-hosted personal AI **platform** that works across weeks, connects everyth
 
 ---
 
-## The vision
+## What this is
 
-> I want to make Jarvis, make no mistakes.
+An honest attempt at building a personal AI that does more than answer questions.
 
-That's the whole brief. Everything else is engineering.
+The objective: an assistant that holds context across weeks, works in the background, and connects things that happen in separate parts of your life — calendar, email, news, long-running projects. Not a chat window that resets. Something closer to Jarvis. That's the whole brief.
 
-In 2026, memory and confirmations are table stakes. Ze is built for what comes after: **standing work** — objectives that run for weeks, background jobs that compound, domains that talk to each other, and a codebase designed to keep evolving without collapsing into a monolith.
-
-Single-user. Self-hosted. Yours entirely.
+It isn't there yet. But 60+ shipped phases in, the infrastructure is real and it's getting closer.
 
 ---
 
-## What makes Ze different
+## Where it is now
 
-Most AI apps optimise for the next reply. Ze optimises for the **next month**.
+Python/FastAPI backend, LangGraph orchestration, React web client, plugin-per-domain architecture. Routing uses local embeddings — zero LLM calls until an agent actually needs to act. All LLM traffic goes through OpenRouter. Graph state is checkpointed in Postgres and survives restarts.
 
-| | Typical AI app | Ze |
-|---|---|---|
-| **Horizon** | This conversation | Multi-week goals with milestones, replanning, retrospectives |
-| **Operation** | You drive every turn | A background fleet — briefings, goal sweeps, news fetch, correlation runs |
-| **Intelligence** | Retrieval over a flat memory | Memory **graph** + cross-domain **correlation** (news × calendar × goals) |
-| **Shape** | Product you configure | **Platform** you extend — plugins, channels, signals, server-driven UI |
-| **Evolution** | Wait for the vendor | Spec-first monorepo, 60+ shipped phases, public domain — fork it, extend it |
+### Goal engine
 
-Ze doesn't wait to be asked. It researches, plans, executes, consolidates what it learned overnight, and reaches out when something actually matters.
+The center of gravity. Hand Ze an objective and it decomposes into milestones, dispatches them to specialist agents on a schedule, pauses at verification gates with a progress narrative, replans on failure, and writes a retrospective when it finishes. Steer mid-flight by talking — no slash commands. Background sweep runs every 15 minutes regardless of whether you're online.
 
----
+This is the bet. Everything else compounds on top of it.
 
-## Three things worth building on
+### Memory
 
-### 1. Work that outlasts the session
+Facts and episodes extracted after each turn, consolidated nightly, profile synthesised weekly. Goal learnings promoted to long-term memory on completion. `pgvector` for retrieval.
 
-The goal engine is the centre of gravity. Hand Ze an objective and it decomposes into milestones, dispatches them to specialist agents on a schedule, pauses at verification gates with a progress narrative, replans when things fail, and pushes a real retrospective when it's done. Steer mid-flight by talking — no slash commands.
+### Proactive surface
 
-Graph state is checkpointed in Postgres. Confirmations and in-progress goals survive restarts. A sweep advances active goals every 15 minutes whether you're online or not.
+Ze doesn't wait to be asked. Morning briefings, calendar reminders, weekly insights, goal suggestions, stuck-goal alerts, news fetch — all background jobs, configurable in `config.yaml`.
 
-### 2. A mind that connects domains
+### Correlation engine
 
-Facts and episodes are the foundation. On top of that, Ze builds something rarer: **cross-plugin signals** ingested into a memory graph, scored by a relevance gate, and reasoned over by a correlation engine.
-
-A calendar event, a news headline, and an active goal aren't three separate features — they're inputs to the same substrate. Ze can surface "this article relates to the milestone you're stuck on" and push it proactively when salience is high.
+The most experimental part. Plugins emit `SignalSource` events → admission gate → memory graph → correlation reasoning → push when salience is high. The idea: a calendar event, a news headline, and an active goal aren't three separate features — they're inputs to the same substrate. News and calendar signal today; the pipeline is the extensible part.
 
 ```
 plugins (SignalSource)  →  admission gate  →  memory graph  →  correlation engine  →  push
 ```
 
-News and calendar emit signals today. Finance and legal plugins are next. The pipeline is the product.
+### Agents
 
-### 3. A platform that keeps growing
-
-Ze isn't a single app with feature flags — it's **20+ packages** with a strict dependency graph, a plugin SDK, and spec-first development (`specs/phases/`). Domain logic lives in plugins; the engine handles routing, orchestration, memory, correlation, and delivery.
-
-| Extension | Add |
-|---|---|
-| `ZePlugin` | Agents, graph nodes, jobs, memory policies, migrations |
-| `SignalSource` | Domain events for correlation |
-| `Channel` | Outbound comms (Gmail today; more tomorrow) |
-| `@agent` / `@tool` | Capabilities with local embedding routing |
-| Server-driven UI | Components in chat without a frontend deploy |
-
-Plugins self-register via entry points. The bootstrapper sorts dependencies, merges graph contributions, collects signal sources. You extend Ze; you don't patch the engine.
-
-See [docs/package-architecture.md](docs/package-architecture.md) · [docs/extending-ze.md](docs/extending-ze.md)
-
----
-
-## The stack (today)
-
-**Agents** — research, companion, calendar, email, reminders, workflow, goals, prospecting, news. Local embeddings route before any LLM call.
-
-**Proactive surface** — morning briefings, calendar reminders, weekly insights, goal narratives and suggestions, news fetch, cost reconciliation, stuck-goal alerts. Configurable in `config.yaml`.
-
-**Memory lifecycle** — extraction after each turn, nightly consolidation, profile synthesis, weekly insight generation. Goal learnings promoted to long-term memory on completion.
-
-**Platform plumbing** — LangGraph orchestration, capability modes, cost telemetry, eval suite with MCP server, multimodal input, persona dials, contact extraction, browser sidecar for autonomous research.
-
-Trust mechanics (approved facts, confirmation flows, per-action capability modes) are built in — they're the floor, not the ceiling.
+Research, companion, calendar, email, reminders, workflow, goals, prospecting, news. Each runs in a ReAct loop via `BaseAgent`; tool access is gated per-agent.
 
 <details>
 <summary>Agent reference</summary>
@@ -113,11 +75,23 @@ Trust mechanics (approved facts, confirmation flows, per-action capability modes
 
 </details>
 
+### Platform layer
+
+Plugin SDK (`ze_sdk`), `ZePlugin` ABC, `Channel` abstraction, server-driven UI component descriptors, eval suite with MCP server, cost telemetry, multimodal input, persona dials, browser sidecar for autonomous research.
+
+---
+
+## Where it's going
+
+The goal engine needs to carry a full personal project across weeks with minimal intervention — research, plan, execute, verify, iterate, report. That's the target.
+
+Near-term: finance and legal plugins, richer correlation reasoning, deeper signal coverage.
+
 ---
 
 ## How a message flows
 
-Every turn runs through a LangGraph checkpointed in Postgres. Routing uses local embeddings — zero LLM calls until an agent actually needs to act.
+Every turn runs through a LangGraph graph checkpointed in Postgres.
 
 ```mermaid
 flowchart TD
@@ -142,7 +116,7 @@ apps/           ze-api · ze-web
 plugins/        personal · email · calendar · news · prospecting · finance* · legal*
 core/           ze-core · ze-agents · ze-plugin · ze-sdk · ze-memory · ze-correlation · …
 integrations/   ze-google · …
-specs/          spec-first design — continuous development, one phase at a time
+specs/          one spec per phase, written before the code
 ```
 
 | Layer | Tech |
@@ -181,7 +155,7 @@ make test-all          # full suite
 make eval              # agent evals (make dev-eval first)
 ```
 
-60+ phases shipped. Every package has a README. Conventions: [CONTRIBUTING.md](CONTRIBUTING.md) · Roadmap ideas: [docs/roadmap-brainstorm.md](docs/roadmap-brainstorm.md)
+Every package has a README. Conventions: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
@@ -196,7 +170,6 @@ make eval              # agent evals (make dev-eval first)
 | [memory.md](docs/memory.md) | Facts, episodes, graph |
 | [sdk.md](docs/sdk.md) | `ze_sdk` reference |
 | [specs/](specs/) | Design specs — where Ze is going next |
-| [VISION.md](VISION.md) | One sentence |
 
 Deploy: [docs/deployment.md](docs/deployment.md)
 
@@ -210,8 +183,4 @@ Single-user by design. Strong `ZE_API_KEY`, secrets out of git, non-guessable nt
 
 ## License
 
-[The Unlicense](UNLICENSE) — public domain.
-
-Ze is built to compound: specs, plugins, signals, goals that run for weeks. The license says take it anywhere — zero conditions, dedicated to the public domain *"to the detriment of our heirs and successors."*
-
-Make whatever you want with the code.
+[The Unlicense](UNLICENSE) — public domain. Take it anywhere, zero conditions.
