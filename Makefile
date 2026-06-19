@@ -145,7 +145,7 @@ migrate-history:
 # Stamp existing DB at all current heads after migration restructure.
 # Run once on existing DBs that were on the old ze001–ze014 layout.
 migrate-stamp:
-	$(ZE_MIGRATE) stamp --purge zc013 ze014 zn002 zm008 zo001 zcor001 zcal001 zpros001 zpro001
+	$(ZE_MIGRATE) stamp --purge zc013 008 zn002 zm008 zo001 zcor001 zcal001 zpros001 zpro001
 
 # ── Development ───────────────────────────────────────────────────────────────
 .PHONY: dev web dev-full dev-eval logs

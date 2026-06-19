@@ -1,8 +1,7 @@
 """Chat sessions table — tracks distinct conversation threads.
 
 Revision ID: 008
-Revises: 007
-Depends on: 007
+Revises: 006
 """
 from __future__ import annotations
 
@@ -11,7 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 
 revision: str = "008"
-down_revision: Union[str, Sequence[str], None] = "007"
+down_revision: Union[str, Sequence[str], None] = "006"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

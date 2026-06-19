@@ -1,12 +1,12 @@
 """Add accountability_anomalies and pending_confirmations tables.
 
 Revision ID: 006
-Revises: 005
+Revises: ze002
 """
 from alembic import op
 
 revision = "006"
-down_revision = "005"
+down_revision = "ze002"
 branch_labels = None
 depends_on = None
 
