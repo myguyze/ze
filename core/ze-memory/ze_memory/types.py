@@ -97,6 +97,18 @@ class Episode:
 
 
 @dataclass
+class SessionSummary:
+    id: UUID
+    session_id: str
+    summary: str
+    episode_count: int
+    last_turn_at: datetime
+    created_at: datetime
+    summary_updated_at: datetime
+    embedding: Any = field(default=None, repr=False, compare=False)
+
+
+@dataclass
 class Event:
     id: UUID | None
     event_type: str
@@ -153,6 +165,7 @@ class ProfileFacet:
 class MemoryContext:
     facts: list[Fact] = field(default_factory=list)
     episodes: list[Episode] = field(default_factory=list)
+    session_summaries: list[SessionSummary] = field(default_factory=list)
     events: list[Event] = field(default_factory=list)
     procedures: list[Procedure] = field(default_factory=list)
     task_state: TaskState | None = None

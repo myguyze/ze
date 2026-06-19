@@ -19,6 +19,7 @@ from ze_core.messages.store import PostgresMessageStore
 from ze_api.sessions.store import PostgresSessionStore
 from ze_api.logging import get_logger
 from ze_memory.consolidator import MemoryConsolidator
+from ze_memory.session_summary import SessionSummariser
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
@@ -266,6 +267,13 @@ async def build_container(settings: Settings) -> ZeContainer:
         settings=settings,
     )
 
+    session_summariser = SessionSummariser(
+        pool=pool,
+        embedder=embedder,
+        openrouter_client=openrouter_client,
+        settings=settings,
+    )
+
     workflow_store = PostgresWorkflowStore(db_pool=pool)
 
     # WorkflowScheduler: executor is configured in PersonalPlugin.startup() once the
@@ -504,6 +512,18 @@ async def build_container(settings: Settings) -> ZeContainer:
             job_id="memory_consolidation",
         )
         log.info("consolidation_scheduled", cron=nightly_cron)
+
+        from ze_memory.defaults import SESSION_SUMMARY_CHECK_INTERVAL_MINUTES
+        _ss_cfg = (getattr(settings, "config", {}) or {}).get("memory", {}).get("session_summary", {})
+        _ss_interval = int(_ss_cfg.get("check_interval_minutes", SESSION_SUMMARY_CHECK_INTERVAL_MINUTES))
+        _ss_enabled = _ss_cfg.get("enabled", True)
+        if _ss_enabled:
+            container.proactive_scheduler.add_cron_job(
+                fn=session_summariser.run,
+                cron=f"*/{_ss_interval} * * * *",
+                job_id=SessionSummariser.job_id,
+            )
+            log.info("session_summary_scheduled", interval_minutes=_ss_interval)
 
     # Wire correlation push job if configured.
     raw_cfg = getattr(settings, "config", {}) or {}

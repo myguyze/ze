@@ -51,6 +51,21 @@ async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> l
     )
 
 
+async def _fetch_session_summary_rows(conn: Any, emb: str, limit: int = 10) -> list:
+    return await conn.fetch(
+        """
+        SELECT id, session_id, summary, episode_count, last_turn_at,
+               created_at, summary_updated_at
+        FROM memory_session_summaries
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        """,
+        emb,
+        limit,
+    )
+
+
 # ── orchestration-level policies ──────────────────────────────────────────────
 
 class CompanionPolicy:
@@ -82,6 +97,7 @@ class CompanionPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
+                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
                 """,
@@ -106,18 +122,21 @@ class CompanionPolicy:
                 emb,
             )
             event_rows = await _fetch_events_by_similarity(conn, emb)
+            session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
         from ze_memory.projection import (
             budget_episodes, budget_facts, entities_from_rows, events_from_rows,
-            facets_from_rows, token_estimate,
+            facets_from_rows, session_summaries_from_rows, token_estimate,
         )
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile, entities=entities, events=events)
+        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, profile=profile, entities=entities, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -148,6 +167,7 @@ class ResearchPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
+                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
                 """,
@@ -156,13 +176,16 @@ class ResearchPolicy:
                 EPISODES_FETCH_LIMIT,
             )
             event_rows = await _fetch_events_by_similarity(conn, emb)
+            session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, events_from_rows, token_estimate
+        from ze_memory.projection import budget_episodes, budget_facts, events_from_rows, session_summaries_from_rows, token_estimate
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, events=events)
+        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -326,6 +349,7 @@ class EmailPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
+                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
@@ -345,16 +369,20 @@ class EmailPolicy:
                 emb,
             )
             event_rows = await _fetch_events_by_similarity(conn, emb)
+            session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
         from ze_memory.projection import (
-            budget_episodes, budget_facts, entities_from_rows, events_from_rows, token_estimate,
+            budget_episodes, budget_facts, entities_from_rows, events_from_rows,
+            session_summaries_from_rows, token_estimate,
         )
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, entities=entities, events=events)
+        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, entities=entities, events=events)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -385,18 +413,22 @@ class ProspectingPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
+                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
                 emb,
                 cur_sid,
             )
+            session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, token_estimate
+        from ze_memory.projection import budget_episodes, budget_facts, session_summaries_from_rows, token_estimate
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        ctx = MemoryContext(facts=facts, episodes=episodes)
+        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries)
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 

@@ -190,6 +190,18 @@ class MemoryConsolidator:
 
         for session in sessions:
             session_id = session["session_id"]
+
+            if await self._store.session_has_eager_summary(session_id):
+                deleted = await self._store.delete_raw_session_episodes(session_id, recency_days)
+                if deleted:
+                    archived += 1
+                    log.info(
+                        "memory_session_eager_summary_reused",
+                        session_id=session_id,
+                        deleted=deleted,
+                    )
+                continue
+
             episodes = await self._store.fetch_raw_session_episodes(session_id, recency_days)
             if len(episodes) < min_session_episodes:
                 continue

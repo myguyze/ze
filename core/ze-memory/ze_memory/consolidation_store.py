@@ -259,3 +259,26 @@ class PostgresConsolidationStore:
                     facet.get("stability", "dynamic"),
                     facet.get("confidence", 0.8),
                 )
+
+    async def session_has_eager_summary(self, session_id: str) -> bool:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT 1 FROM memory_session_summaries WHERE session_id = $1",
+                session_id,
+            )
+        return row is not None
+
+    async def delete_raw_session_episodes(self, session_id: str, recency_days: int) -> int:
+        async with self._pool.acquire() as conn:
+            result = await conn.execute(
+                """
+                DELETE FROM memory_episodes
+                WHERE session_id = $1
+                  AND summary IS NULL
+                  AND created_at < now() - ($2 || ' days')::interval
+                """,
+                session_id,
+                str(recency_days),
+            )
+        deleted = int(result.split()[-1]) if result else 0
+        return deleted

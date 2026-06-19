@@ -42,6 +42,7 @@ from ze_memory.types import (
     Procedure,
     ProfileFacet,
     RetrievalRequest,
+    SessionSummary,
     Signal,
     SignalIngestResult,
     TaskState,
@@ -476,6 +477,67 @@ class PostgresMemoryStore:
                 limit,
             )
         return [row["id"] for row in rows]
+
+    async def upsert_session_summary(
+        self,
+        session_id: str,
+        summary: str,
+        episode_count: int,
+        last_turn_at: Any,
+        embedding: Any,
+    ) -> None:
+        emb_list = _to_list(embedding)
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO memory_session_summaries
+                    (session_id, summary, episode_count, last_turn_at, summary_updated_at, embedding)
+                VALUES ($1, $2, $3, $4, now(), $5::vector)
+                ON CONFLICT (session_id) DO UPDATE SET
+                    summary            = EXCLUDED.summary,
+                    episode_count      = EXCLUDED.episode_count,
+                    last_turn_at       = EXCLUDED.last_turn_at,
+                    summary_updated_at = now(),
+                    embedding          = EXCLUDED.embedding
+                """,
+                session_id,
+                summary,
+                episode_count,
+                last_turn_at,
+                emb_list,
+            )
+
+    async def get_session_summary(self, session_id: str) -> SessionSummary | None:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, session_id, summary, episode_count, last_turn_at,"
+                "       created_at, summary_updated_at"
+                " FROM memory_session_summaries WHERE session_id = $1",
+                session_id,
+            )
+        if row is None:
+            return None
+        from ze_memory.projection import _session_summary_from_row
+        return _session_summary_from_row(row)
+
+    async def search_session_summaries(self, embedding: Any, limit: int) -> list[SessionSummary]:
+        emb_list = _to_list(embedding)
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, session_id, summary, episode_count, last_turn_at,
+                       created_at, summary_updated_at
+                FROM memory_session_summaries
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> $1::vector
+                LIMIT $2
+                """,
+                emb_list,
+                limit,
+            )
+        from ze_memory.projection import session_summaries_from_rows
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        return session_summaries_from_rows(list(rows), DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
 
     # ── internal ──────────────────────────────────────────────────────────────
 

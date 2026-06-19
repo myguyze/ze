@@ -13,6 +13,7 @@ from ze_memory.types import (
     MemoryContext,
     Procedure,
     ProfileFacet,
+    SessionSummary,
     TaskState,
 )
 
@@ -86,6 +87,18 @@ def events_from_rows(rows: list[Any]) -> list[Event]:
     return [_event_from_row(row) for row in rows]
 
 
+def session_summaries_from_rows(rows: list[Any], budget_tokens: int) -> list[SessionSummary]:
+    summaries: list[SessionSummary] = []
+    used = 0
+    for row in rows:
+        cost = len(row["summary"]) // 4
+        if used + cost > budget_tokens:
+            break
+        summaries.append(_session_summary_from_row(row))
+        used += cost
+    return summaries
+
+
 def entities_from_rows(rows: list[Any]) -> list[Entity]:
     return [_entity_from_row(row) for row in rows]
 
@@ -93,10 +106,11 @@ def entities_from_rows(rows: list[Any]) -> list[Entity]:
 def token_estimate(ctx: MemoryContext) -> int:
     fact_tokens = sum(len(f.value) // 4 for f in ctx.facts)
     episode_tokens = sum(len(e.summary or e.response[:200]) // 4 for e in ctx.episodes)
+    session_summary_tokens = sum(len(s.summary) // 4 for s in ctx.session_summaries)
     profile_tokens = sum(len(p.value) // 4 for p in ctx.profile)
     proc_tokens = sum(sum(len(s) // 4 for s in p.steps) for p in ctx.procedures)
     event_tokens = sum(len(e.title) // 4 for e in ctx.events)
-    return fact_tokens + episode_tokens + profile_tokens + proc_tokens + event_tokens
+    return fact_tokens + episode_tokens + session_summary_tokens + profile_tokens + proc_tokens + event_tokens
 
 
 def _fact_from_row(row: Any) -> Fact:
@@ -154,6 +168,18 @@ def _event_from_row(row: Any) -> Event:
         summary=row.get("summary"),
         outcome=row.get("outcome"),
         source_episode_id=row.get("source_episode_id"),
+    )
+
+
+def _session_summary_from_row(row: Any) -> SessionSummary:
+    return SessionSummary(
+        id=row["id"],
+        session_id=row["session_id"],
+        summary=row["summary"],
+        episode_count=row["episode_count"],
+        last_turn_at=row["last_turn_at"],
+        created_at=row["created_at"],
+        summary_updated_at=row["summary_updated_at"],
     )
 
 
