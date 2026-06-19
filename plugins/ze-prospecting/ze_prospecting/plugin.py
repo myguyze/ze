@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import asyncpg
@@ -79,6 +80,10 @@ class ProspectingPlugin(ZePlugin):
         from ze_memory.policies import ProspectingPolicy
 
         return {"prospecting": ProspectingPolicy()}
+
+    @classmethod
+    def migrations_path(cls) -> Path | None:
+        return Path(__file__).parent / "migrations"
 
     def agent_module_paths(self) -> list[str]:
         return [

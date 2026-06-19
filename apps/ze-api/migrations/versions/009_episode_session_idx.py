@@ -20,12 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.execute("""
-            CREATE INDEX CONCURRENTLY IF NOT EXISTS memory_episodes_session_id_idx
-                ON memory_episodes (session_id, created_at DESC)
-        """)
+    pass  # Migrated to ze-memory (zm007)
 
 
 def downgrade() -> None:
-    op.execute("DROP INDEX IF EXISTS memory_episodes_session_id_idx")
+    pass  # Migrated to ze-memory (zm007)

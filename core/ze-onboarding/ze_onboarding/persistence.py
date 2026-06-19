@@ -4,9 +4,8 @@ import json
 from typing import Any, Awaitable, Callable
 
 from ze_memory.types import Fact
-from ze_onboarding import StoredOnboardingSeed
-
-from ze_api.errors import OnboardingError
+from ze_onboarding.coordinator import OnboardingError
+from ze_onboarding.types import StoredOnboardingSeed
 
 PluginSettingSetter = Callable[[str, Any], Awaitable[None]]
 

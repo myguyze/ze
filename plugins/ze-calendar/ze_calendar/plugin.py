@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 import asyncpg
@@ -93,6 +94,10 @@ class CalendarPlugin(ZePlugin):
         from ze_calendar.signals import CalendarSignalSource
 
         return [CalendarSignalSource(store=self._calendar_reminder_store)]
+
+    @classmethod
+    def migrations_path(cls) -> Path | None:
+        return Path(__file__).parent / "migrations"
 
     def agent_module_paths(self) -> list[str]:
         return [

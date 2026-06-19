@@ -5,7 +5,7 @@ from dataclasses import asdict
 from typing import Any
 from uuid import UUID
 
-from ze_onboarding import (
+from ze_onboarding.types import (
     OnboardingSeed,
     OnboardingStep,
     OnboardingSession,

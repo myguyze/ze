@@ -25,23 +25,32 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import engine_from_config, pool
 import ze_core
+import ze_memory
+import ze_onboarding
+import ze_correlation
+import ze_proactive
 
 from ze_api.errors import MigrationReadinessError
 
 # Ordered list of plugin modules to import before collecting migration paths.
 # Importing triggers __init_subclass__ registration in ze_plugin.registry._registry.
-# Add new plugin packages here when they are introduced.
 _PLUGIN_MODULES: list[str] = [
     "ze_personal.plugin",
     "ze_calendar.plugin",
+    "ze_email.plugin",
     "ze_news.plugin",
+    "ze_prospecting.plugin",
 ]
 
 # Fixed script_location: the ze migrations directory contains env.py and script.py.mako.
 _SCRIPT_LOCATION = Path(__file__).parent.parent / "migrations"
 
-# Fixed version paths: ze-core and ze are always present.
+# Core package version paths (not ZePlugin subclasses — registered explicitly).
 _ZE_CORE_VERSIONS = Path(ze_core.__file__).parent / "migrations" / "versions"
+_ZE_MEMORY_VERSIONS = Path(ze_memory.__file__).parent / "migrations" / "versions"
+_ZE_ONBOARDING_VERSIONS = Path(ze_onboarding.__file__).parent / "migrations" / "versions"
+_ZE_CORRELATION_VERSIONS = Path(ze_correlation.__file__).parent / "migrations" / "versions"
+_ZE_PROACTIVE_VERSIONS = Path(ze_proactive.__file__).parent / "migrations" / "versions"
 _ZE_VERSIONS = _SCRIPT_LOCATION / "versions"
 
 
@@ -58,7 +67,14 @@ def _collect_version_locations() -> list[Path]:
 
     from ze_plugin.registry import get_plugin_registry
 
-    paths: list[Path] = [_ZE_CORE_VERSIONS, _ZE_VERSIONS]
+    paths: list[Path] = [
+        _ZE_CORE_VERSIONS,
+        _ZE_MEMORY_VERSIONS,
+        _ZE_ONBOARDING_VERSIONS,
+        _ZE_CORRELATION_VERSIONS,
+        _ZE_PROACTIVE_VERSIONS,
+        _ZE_VERSIONS,
+    ]
     for plugin_cls in get_plugin_registry():
         plugin_path = plugin_cls.migrations_path()
         if plugin_path is not None:

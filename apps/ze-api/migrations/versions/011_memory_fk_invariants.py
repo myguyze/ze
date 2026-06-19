@@ -19,25 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Nullify any dangling references before adding the constraint.
-    op.execute("""
-        UPDATE memory_facts
-           SET source_episode_id = NULL
-         WHERE source_episode_id IS NOT NULL
-           AND source_episode_id NOT IN (SELECT id FROM memory_episodes)
-    """)
-
-    op.execute("""
-        ALTER TABLE memory_facts
-            ADD CONSTRAINT memory_facts_source_episode_id_fkey
-            FOREIGN KEY (source_episode_id)
-            REFERENCES memory_episodes (id)
-            ON DELETE SET NULL
-    """)
+    pass  # Migrated to ze-memory (zm005)
 
 
 def downgrade() -> None:
-    op.execute("""
-        ALTER TABLE memory_facts
-            DROP CONSTRAINT IF EXISTS memory_facts_source_episode_id_fkey
-    """)
+    pass  # Migrated to ze-memory (zm005)
