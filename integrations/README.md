@@ -16,11 +16,13 @@ Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md]
 | Package | Description |
 |---------|-------------|
 | [ze-google](ze-google/) | Google OAuth2 credentials and service client factories (Calendar, Gmail) |
+| [ze-trading212](ze-trading212/) | Trading212 REST API v0 client (portfolio, orders, history, instruments) |
 
 ## Dependency graph
 
 ```
-ze-google  ←  no ze deps
+ze-google      ←  no ze deps
+ze-trading212  ←  no ze deps
 ```
 
 ## Where new code goes
