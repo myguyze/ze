@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ze_api.errors import OnboardingError
-from ze_api.onboarding.reset import ResetService
+from ze_onboarding import ResetService
 
 
 async def test_reset_requires_explicit_confirmation():

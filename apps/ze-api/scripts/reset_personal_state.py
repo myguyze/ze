@@ -5,7 +5,7 @@ import argparse
 import asyncio
 
 from ze_api.db import create_pool, dispose_pool
-from ze_api.onboarding.reset import ResetService
+from ze_onboarding import ResetService
 from ze_api.settings import Settings
 
 

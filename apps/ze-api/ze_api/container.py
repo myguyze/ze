@@ -42,11 +42,11 @@ from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_api.interface.native import NativeAppInterface
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.pending_confirmations import PendingConfirmationStore
-from ze_api.onboarding import (
+from ze_onboarding import (
     CoreOnboardingProvider,
     OnboardingCoordinator,
-    OnboardingPersistence,
-    OnboardingStore,
+    PostgresOnboardingPersistence as OnboardingPersistence,
+    PostgresOnboardingStore as OnboardingStore,
     ResetService,
 )
 from ze_agents.interface.types import RawInput
