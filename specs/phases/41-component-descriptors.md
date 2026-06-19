@@ -2,8 +2,14 @@
 
 > **Package:** `ze-components` (new package, no ze deps) + `ze` (hook wiring, AgentState propagation)
 > **Phase:** 41
-> **Status:** Done
+> **Status:** Done — component type model superseded by Phase 66 ([66-primitive-ui.md](66-primitive-ui.md))
 > **Depends on:** Phase 42 ([42-native-ui-foundation.md](42-native-ui-foundation.md)), Phase 21 ([30-agent-harness.md](30-agent-harness.md))
+
+> **Note:** Phase 41 established the infrastructure (ContextVar side-channel, `@render_tool` decorator,
+> `ComponentCollectionHook`, `AgentState.components` propagation). That infrastructure is kept.
+> What changes in Phase 66 is the *payload*: named component types (`TableComponent`, `MetricComponent`, …)
+> are replaced by a fixed vocabulary of layout/content **primitives** composed into trees.
+> The frontend renders primitives recursively and never needs to change when new semantic patterns are added.
 
 ---
 

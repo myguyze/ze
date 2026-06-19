@@ -403,6 +403,48 @@ receive only the routing caption as text.
 
 ---
 
+## Server-Driven UI
+
+**Package:** `ze-components`
+
+Ze agents emit structured UI as **primitive trees**, not named component types. The frontend
+renders a fixed vocabulary of primitives recursively — the switch in `PrimitiveRenderer.tsx`
+covers exactly nine types and never grows. New semantic UI patterns are Python functions
+(builder helpers) that compose these primitives; no frontend changes are required.
+
+### Primitive vocabulary
+
+| Primitive | Kind | Description |
+|---|---|---|
+| `col` | Layout | Vertical stack; `variant` controls surface style (`default\|card\|section`) |
+| `row` | Layout | Horizontal stack with configurable gap and alignment |
+| `text` | Content | Styled string — `heading\|subheading\|body\|label\|caption\|code` |
+| `badge` | Content | Small coloured label |
+| `divider` | Content | Horizontal rule |
+| `spacer` | Content | Blank gap |
+| `button` | Interactive | Tappable action; emits `action` string back to backend as a message |
+| `progress` | Content | Horizontal progress bar (0.0–1.0) |
+| `table` | Structured | Header row + data rows (the one primitive that can't be cleanly composed) |
+
+### How it works
+
+1. An agent calls a named render tool (`render_table`, `render_metric`, `render_list`, …).
+2. The render tool calls a **builder helper** in `ze_components/builders.py` that returns a `Primitive` tree.
+3. The `@render_tool` decorator appends the tree (as `asdict()`) to a `ContextVar` side-channel.
+4. `ComponentCollectionHook.on_loop_end` drains the side-channel into `AgentState.components`.
+5. `NativeAppInterface.send_message(components=[...])` delivers the trees alongside the text response.
+6. `PrimitiveRenderer` in `ze-web` renders each tree recursively.
+
+### Adding a new component pattern
+
+Add a builder function in `ze_components/builders.py` that returns a `Primitive` tree.
+Add a named render tool in `ze_components/tools.py` if the LLM should call it directly.
+No React changes required.
+
+See [specs/phases/66-primitive-ui.md](../specs/phases/66-primitive-ui.md) for the full design.
+
+---
+
 ## Communication Channels
 
 **Module:** `ze_agents/channels/`
