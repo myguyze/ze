@@ -38,7 +38,7 @@ class Fact:
 
 ### `Episode`
 
-Summaries of individual conversation turns.
+Raw per-turn records of individual conversation exchanges.
 
 ```python
 @dataclass
@@ -56,6 +56,26 @@ class Episode:
 ```
 
 **Table:** `memory_episodes` — pgvector embedding on `prompt + response`.
+
+### `SessionSummary`
+
+Narrative summary of a closed conversation session, generated eagerly by
+`SessionSummaryJob` once the session becomes inactive. Replaces per-turn episodes as
+the retrieval unit for closed sessions.
+
+```python
+@dataclass
+class SessionSummary:
+    id: UUID
+    session_id: str
+    summary: str
+    episode_count: int
+    last_turn_at: datetime
+    created_at: datetime
+    summary_updated_at: datetime   # updated if the user reopens the session
+```
+
+**Table:** `memory_session_summaries` — pgvector embedding on `summary` text.
 
 ### `Event`
 
@@ -159,7 +179,8 @@ Assembled retrieval result injected into every agent's system prompt.
 @dataclass
 class MemoryContext:
     facts: list[Fact] = ...
-    episodes: list[Episode] = ...
+    episodes: list[Episode] = ...            # raw turns — current session excluded
+    session_summaries: list[SessionSummary] = ...  # closed-session narratives
     events: list[Event] = ...
     procedures: list[Procedure] = ...
     task_state: TaskState | None = None
@@ -192,6 +213,16 @@ After every agent run, `write_memory` calls `store.write_episode()`. The episode
 embedded and written to `memory_episodes`. The graph layer asynchronously scans the
 episode text for known entity names and creates `MENTIONS` edges.
 
+### Session summaries (automatic, near-real-time)
+
+`SessionSummaryJob` runs every 10 minutes (configurable). For each session that has
+been inactive for ≥ `session_inactivity_minutes` (default: 30) and has no up-to-date
+summary, Haiku generates a single narrative covering the full session and writes it to
+`memory_session_summaries`. If the user reopens the session and adds new turns, the
+summary is regenerated on the next job tick. Raw episode rows are kept until the nightly
+Phase 52 consolidation deletes them (after 7 days), at which point it skips the LLM
+call since the eager summary already exists.
+
 ### Events
 
 Written explicitly by agents (e.g. calendar agent writes events when syncing). Events
@@ -216,9 +247,12 @@ Before every agent execution, `fetch_context` runs:
 
 1. **Policy lookup** — `DefaultPolicyRegistry.for_module(request.module)` returns the
    appropriate retrieval policy for the calling context.
-2. **Semantic search** — pgvector cosine similarity over `memory_facts` and
-   `memory_episodes` against the current prompt embedding. Token-budgeted results are
-   projected via `budget_facts` and `budget_episodes`.
+2. **Semantic search** — pgvector cosine similarity over `memory_facts`,
+   `memory_episodes` (raw turns, current session excluded), and
+   `memory_session_summaries` (closed-session narratives) against the current prompt
+   embedding. Sessions with a summary row are excluded from the raw episode query via
+   subquery so the caller never receives both fragments and summary for the same session.
+   Token-budgeted results are projected via `budget_facts` and `budget_episodes`.
 3. **Profile injection** — all `memory_profile_facets` rows are fetched (highest
    confidence first) and included in the context.
 4. **Graph augmentation** — when `memory.graph.enabled: true` (default), entity and
@@ -316,9 +350,12 @@ Reviewed facts are **never** touched by consolidation.
 
 ### 3. Episode archival
 
-Episodes older than `episode_recency_days` (14d default) are archived in batches.
-When at least `episode_min_archive_batch` (10 default) candidates exist, Haiku
-summarises the batch into one archive row and the originals are deleted.
+Episodes older than `episode_recency_days` (14d default) are candidates for archival.
+Sessions that already have an entry in `memory_session_summaries` skip the LLM call —
+the consolidator deletes their raw rows directly. Sessions without an eager summary
+are archived via the existing batch path: when at least `episode_min_archive_batch`
+(10 default) candidates exist, Haiku summarises the batch into one archive row and
+the originals are deleted.
 
 ### 4. Profile facet synthesis
 
@@ -375,6 +412,14 @@ memory:
     episode_min_archive_batch: 10
     nightly_cron: "0 2 * * *"
 
+  session_summary:
+    enabled: true
+    check_interval_minutes: 10     # how often the job polls for closed sessions
+    min_episodes: 2                # sessions shorter than this are skipped
+    max_sessions_per_run: 5        # cap LLM calls per job execution
+    max_transcript_tokens: 6000    # oldest turns dropped first when exceeded
+    model: anthropic/claude-haiku-4-5
+
   profile:
     min_facts: 3
     episode_limit: 50
@@ -387,7 +432,8 @@ memory:
 | Table | Purpose |
 |-------|---------|
 | `memory_facts` | Facts with pgvector embeddings, review/contradicted status, expiry |
-| `memory_episodes` | Conversation turn summaries with pgvector embeddings |
+| `memory_episodes` | Raw per-turn records with pgvector embeddings |
+| `memory_session_summaries` | Eager per-session narrative summaries with pgvector embeddings |
 | `memory_entities` | Named entities with canonical names, aliases, pgvector embeddings |
 | `memory_relationships` | Typed graph edges between memory objects |
 | `memory_events` | Discrete real-world events with participants and outcomes |

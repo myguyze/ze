@@ -91,6 +91,7 @@ explicitly deferred before implementation begins.
 | 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
 | 63 | [Integration Framework](phases/63-integration-framework.md) | ✅ Done |
 | 64 | [Plugin Package Extraction](phases/64-plugin-package-extraction.md) | 🔲 Pending |
+| 65 | [Eager Session Summaries](phases/65-eager-session-summaries.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 

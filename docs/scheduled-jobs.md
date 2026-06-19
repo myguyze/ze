@@ -16,7 +16,9 @@ richer:
 ```mermaid
 flowchart TD
     A([Conversations]) --> B[User facts + Episodes\nstored per graph run]
-    B --> C[Nightly consolidation\n2 AM UTC\ndedup · expire · archive]
+    B --> G[Session summary\nevery 10 min\nwhen session closes]
+    G --> C[Nightly consolidation\n2 AM UTC\ndedup · expire · archive]
+    B --> C
     C --> D[User profile synthesis\nend of each consolidation pass]
     D --> E[Weekly insight generation\nSunday 7 AM UTC]
     E --> F([Morning briefing\n8 AM UTC daily])
@@ -36,16 +38,26 @@ flow.
 
 **Episodes** (`ze_memory/retriever.py`)
 
-A summary of the conversation turn (what was asked, what Ze did, what was decided)
-is written automatically as an episode after every run. Episodes don't require user
-approval.
+A raw record of the conversation turn (prompt + response) is written automatically as
+an episode after every run. Episodes don't require user approval.
+
+**Session summaries** (`ze_api/jobs/session_summary_job.py`)
+
+`SessionSummaryJob` runs every 10 minutes. When a session has been inactive for ≥ 30
+minutes, Haiku generates a single narrative summary of the full session and writes it
+to `memory_session_summaries`. If the user returns and adds more turns before the
+session is archived, the summary is regenerated on the next tick. Raw episodes are
+kept until nightly archival (Phase 52) removes them — at that point the LLM call is
+skipped because the eager summary already exists.
 
 **Memory injection**
 
-On the _next_ conversation, `fetch_context` runs a pgvector semantic search over
-both facts and episodes, injecting the top-k most relevant results into the agent's
-system prompt as `memory_context`. The user profile (see below) is also injected
-into every system prompt — not just similar facts, but a synthesised portrait.
+On the _next_ conversation, `fetch_context` runs pgvector semantic searches over
+facts, raw episodes (current session only), and session summaries (closed sessions),
+injecting the top-k most relevant results into the agent's system prompt as
+`memory_context`. Sessions with a summary are excluded from the raw episode query so
+the agent never sees both fragments and the narrative for the same session. The user
+profile is also injected into every system prompt.
 
 ---
 
@@ -365,6 +377,7 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 |---|---|---|
 | 2:00 AM daily | Memory consolidation + profile synthesis | `ze_memory/consolidator.py` |
 | 3:00 AM daily | Contacts consolidation (dedup + merge) | `ze_personal/contacts/consolidator.py` |
+| Every 10 min | Session summary generation | `ze_api/jobs/session_summary_job.py` |
 | 7:00 AM Sun | Weekly insight generation | `ze_personal/jobs/insights.py` |
 | 7:45 AM daily | Calendar sync + reminder scheduling | `ze_calendar/jobs/calendar_reminder.py` |
 | 8:00 AM daily | Morning briefing (with personalised headlines) | `ze_personal/jobs/briefing.py` |
