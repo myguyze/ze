@@ -101,7 +101,7 @@ web-install:
 	cd $(ZE_WEB) && bun install
 
 google-auth:
-	uv run python $(ZE)/scripts/google_auth.py
+	uv run python scripts/google_auth.py
 
 generate-ze-api-key:
 	uv run python $(ZE)/scripts/generate_ze_api_key.py $(if $(ZE_API_TOKEN),--token $(ZE_API_TOKEN))
@@ -128,7 +128,7 @@ reset-personal-state:
 		echo "Refusing to reset. Re-run with CONFIRM=RESET"; \
 		exit 1; \
 	fi
-	cd $(ZE) && uv run python scripts/reset_personal_state.py --scope personal_state --confirm RESET
+	uv run python scripts/reset_personal_state.py --scope personal_state --confirm RESET
 
 migrate:
 	$(ZE_MIGRATE) upgrade
