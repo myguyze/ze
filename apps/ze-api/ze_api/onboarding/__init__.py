@@ -3,8 +3,8 @@ from ze_onboarding import (
     OnboardingCoordinator,
     PostgresOnboardingPersistence as OnboardingPersistence,
     PostgresOnboardingStore as OnboardingStore,
+    ResetService,
 )
-from ze_api.onboarding.reset import ResetService
 
 __all__ = [
     "CoreOnboardingProvider",

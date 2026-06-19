@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ze_onboarding import ResetPreview, ResetResult, ResetScope
-
-from ze_api.errors import OnboardingError
+from ze_onboarding.types import ResetPreview, ResetResult, ResetScope
+from ze_agents.errors import OnboardingError
 
 _MEMORY_TABLES = [
     "memory_relationships",
