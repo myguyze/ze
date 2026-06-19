@@ -1,11 +1,10 @@
-import type { ComponentDescriptor } from "@/components/server-driven/types";
-export type { ComponentDescriptor } from "@/components/server-driven/types";
+import type { Primitive } from "@/components/server-driven/types";
 
 export interface Message {
   id: string;
   role: "user" | "assistant";
   text: string | null;
-  components: ComponentDescriptor[];
+  components: Primitive[];
   read: boolean;
   created_at: string;
   thread_id: string | null;
@@ -31,7 +30,7 @@ export interface OnboardingMeta {
 
 export type InboundFrame =
   | { type: "message"; message: Message; onboarding?: OnboardingMeta }
-  | { type: "edit"; id: string; text?: string; components: ComponentDescriptor[] }
+  | { type: "edit"; id: string; text?: string; components: Primitive[] }
   | { type: "confirm_request"; id: string; prompt: string; actions: ConfirmAction[] }
   | { type: "confirm_cancel"; id: string }
   | { type: "typing"; text?: string }

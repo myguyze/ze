@@ -1,74 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Ze Component Descriptors",
+  "title": "Ze UI Primitives",
   "$defs": {
-    "ListItem": {
-      "type": "object",
-      "properties": {
-        "text": {
-          "type": "string"
-        },
-        "subtext": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "text"
-      ]
-    },
-    "TimelineEvent": {
-      "type": "object",
-      "properties": {
-        "time": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "time",
-        "title"
-      ]
-    },
-    "ProgressStep": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "label"
-      ]
-    },
-    "ConfirmAction": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        },
-        "style": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "label",
-        "value"
-      ]
-    },
     "FormField": {
       "type": "object",
       "properties": {
@@ -100,75 +33,6 @@
       "required": [
         "id",
         "label"
-      ]
-    },
-    "ChoiceOption": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "recommended": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "id",
-        "label"
-      ]
-    },
-    "ConsentScope": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "required": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "description"
-      ]
-    },
-    "ReviewItem": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        },
-        "kind": {
-          "type": "string"
-        },
-        "plugin": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "value",
-        "kind"
       ]
     },
     "ConnectionEvidence": {
@@ -239,7 +103,116 @@
         "confidence"
       ]
     },
-    "TableComponent": {
+    "Col": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "string"
+        },
+        "gap": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "children"
+      ]
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "string"
+        },
+        "gap": {
+          "type": "string"
+        },
+        "align": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "children"
+      ]
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "style": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+    "Badge": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ]
+    },
+    "Divider": {
+      "type": "object",
+      "properties": {}
+    },
+    "Spacer": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string"
+        }
+      }
+    },
+    "Button": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "style": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "action"
+      ]
+    },
+    "ProgressBar": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ]
+    },
+    "Table": {
       "type": "object",
       "properties": {
         "headers": {
@@ -269,153 +242,7 @@
         "rows"
       ]
     },
-    "MetricComponent": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        },
-        "trend": {
-          "type": "string"
-        },
-        "note": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "label",
-        "value"
-      ]
-    },
-    "ListComponent": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {
-                "type": "string"
-              },
-              "subtext": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "text"
-            ]
-          }
-        },
-        "title": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "items"
-      ]
-    },
-    "TimelineComponent": {
-      "type": "object",
-      "properties": {
-        "events": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "time": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "time",
-              "title"
-            ]
-          }
-        },
-        "title": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "events"
-      ]
-    },
-    "ProgressComponent": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "type": "string"
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "label": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "label"
-            ]
-          }
-        }
-      },
-      "required": [
-        "title",
-        "steps"
-      ]
-    },
-    "ConfirmComponent": {
-      "type": "object",
-      "properties": {
-        "prompt": {
-          "type": "string"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "label": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              },
-              "style": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "label",
-              "value"
-            ]
-          }
-        }
-      },
-      "required": [
-        "prompt",
-        "actions"
-      ]
-    },
-    "FormComponent": {
+    "Form": {
       "type": "object",
       "properties": {
         "id": {
@@ -467,204 +294,7 @@
         "fields"
       ]
     },
-    "CardComponent": {
-      "type": "object",
-      "properties": {
-        "body": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "style": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "body"
-      ]
-    },
-    "ChoiceGroupComponent": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "options": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "recommended": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "id",
-              "label"
-            ]
-          }
-        },
-        "allow_multiple": {
-          "type": "boolean"
-        },
-        "description": {
-          "type": "string"
-        },
-        "submit_label": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "options"
-      ]
-    },
-    "ConsentComponent": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "body": {
-          "type": "string"
-        },
-        "scopes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "required": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "id",
-              "label",
-              "description"
-            ]
-          }
-        },
-        "accept_label": {
-          "type": "string"
-        },
-        "reject_label": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "body",
-        "scopes"
-      ]
-    },
-    "ConnectAccountComponent": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "provider": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "action_label": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "provider",
-        "title",
-        "description"
-      ]
-    },
-    "ReviewComponent": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string"
-              },
-              "plugin": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "label",
-              "value",
-              "kind"
-            ]
-          }
-        },
-        "approve_label": {
-          "type": "string"
-        },
-        "reject_label": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "items"
-      ]
-    },
-    "ConnectionsComponent": {
+    "Connections": {
       "type": "object",
       "properties": {
         "connections": {
@@ -728,43 +358,37 @@
   },
   "oneOf": [
     {
-      "$ref": "#/$defs/TableComponent"
+      "$ref": "#/$defs/Col"
     },
     {
-      "$ref": "#/$defs/MetricComponent"
+      "$ref": "#/$defs/Row"
     },
     {
-      "$ref": "#/$defs/ListComponent"
+      "$ref": "#/$defs/Text"
     },
     {
-      "$ref": "#/$defs/TimelineComponent"
+      "$ref": "#/$defs/Badge"
     },
     {
-      "$ref": "#/$defs/ProgressComponent"
+      "$ref": "#/$defs/Divider"
     },
     {
-      "$ref": "#/$defs/ConfirmComponent"
+      "$ref": "#/$defs/Spacer"
     },
     {
-      "$ref": "#/$defs/FormComponent"
+      "$ref": "#/$defs/Button"
     },
     {
-      "$ref": "#/$defs/CardComponent"
+      "$ref": "#/$defs/ProgressBar"
     },
     {
-      "$ref": "#/$defs/ChoiceGroupComponent"
+      "$ref": "#/$defs/Table"
     },
     {
-      "$ref": "#/$defs/ConsentComponent"
+      "$ref": "#/$defs/Form"
     },
     {
-      "$ref": "#/$defs/ConnectAccountComponent"
-    },
-    {
-      "$ref": "#/$defs/ReviewComponent"
-    },
-    {
-      "$ref": "#/$defs/ConnectionsComponent"
+      "$ref": "#/$defs/Connections"
     }
   ]
 }

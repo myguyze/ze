@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import { type Message } from "@/features/websocket/protocol";
-import { ComponentRenderer } from "@/components/server-driven/ComponentRenderer";
+import { PrimitiveRenderer } from "@/components/server-driven/PrimitiveRenderer";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -47,7 +47,7 @@ export function MessageBubble({ message }: { message: Message }) {
         )}
 
         {message.components.map((c, i) => (
-          <ComponentRenderer key={i} data={c} />
+          <PrimitiveRenderer key={i} node={c} />
         ))}
 
         <p className="mt-1 px-1 text-[10px] text-[#9a9a9a]">

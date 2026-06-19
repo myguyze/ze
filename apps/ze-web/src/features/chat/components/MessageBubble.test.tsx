@@ -10,7 +10,15 @@ describe("MessageBubble", () => {
           id: "msg-1",
           role: "assistant",
           text: "Hello there",
-          components: [{ type: "metric", label: "Spend", value: "$2.00" }],
+          components: [
+            {
+              type: "col",
+              children: [
+                { type: "text", content: "$2.00", style: "heading" },
+                { type: "text", content: "Spend", style: "label" },
+              ],
+            },
+          ],
           read: true,
           created_at: "2026-06-15T12:00:00.000Z",
           thread_id: "ze-thread",

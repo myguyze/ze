@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate JSON schema and TypeScript types from Python component types.
+"""Generate JSON schema and TypeScript types from Python primitive types.
 
 Usage:
     uv run scripts/generate_components.py
@@ -22,7 +22,7 @@ sys.path.insert(0, str(repo_root / "core" / "ze-components"))
 sys.path.insert(0, str(repo_root / "core" / "ze-core"))
 
 from ze_components.schema import export_json_schema  # noqa: E402
-from ze_components.types import COMPONENT_TYPES, SUB_ITEM_TYPES  # noqa: E402
+from ze_components import PRIMITIVE_TYPES, PRIMITIVE_SUB_TYPES  # noqa: E402
 
 _DOCS_DIR = repo_root / "docs"
 _TS_OUT = repo_root / "apps" / "ze-web" / "src" / "components" / "server-driven" / "types.ts"
@@ -44,13 +44,20 @@ def _unwrap_optional(annotation: type) -> tuple[type, bool]:
     return annotation, False
 
 
-def _ts_type(annotation: type) -> str:
+def _ts_type(annotation: type, field_name: str = "") -> str:
     annotation, _ = _unwrap_optional(annotation)
     origin = typing.get_origin(annotation)
     args = typing.get_args(annotation)
 
+    # children fields on Col/Row carry Primitive trees
+    if field_name == "children":
+        return "Primitive[]"
+
     if annotation in _PY_TO_TS:
         return _PY_TO_TS[annotation]
+
+    if annotation is list:
+        return "unknown[]"
 
     if origin is list:
         item = args[0] if args else str
@@ -59,28 +66,31 @@ def _ts_type(annotation: type) -> str:
     if dataclasses.is_dataclass(annotation):
         return annotation.__name__
 
-    # Literal type — emit a union of string literals
     if origin is typing.Literal:
         return " | ".join(f'"{v}"' for v in args)
 
     return "string"
 
 
-def _emit_ts_interface(cls: type, lines: list[str], *, emit_type_discriminator: bool = False) -> None:
+def _ts_name(cls: type) -> str:
+    return cls.__name__ + "Primitive"
+
+
+def _emit_ts_interface(cls: type, lines: list[str], *, is_primitive: bool = False) -> None:
     hints = typing.get_type_hints(cls)
     init_fields = {f.name for f in dataclasses.fields(cls) if f.init}
     fields = [
         f for f in dataclasses.fields(cls)
-        if f.name in init_fields or (emit_type_discriminator and f.name == "type")
+        if f.name in init_fields or (is_primitive and f.name == "type")
     ]
 
-    lines.append(f"export interface {cls.__name__} {{")
+    iface_name = _ts_name(cls) if is_primitive else cls.__name__
+    lines.append(f"export interface {iface_name} {{")
     for field in fields:
         annotation = hints[field.name]
         inner, is_optional = _unwrap_optional(annotation)
-        ts_t = _ts_type(annotation)
+        ts_t = _ts_type(annotation, field.name)
 
-        # Literal type discriminator — emit as literal, not optional
         origin = typing.get_origin(inner)
         is_literal = origin is typing.Literal
 
@@ -102,17 +112,19 @@ def _emit_ts_types(out_path: Path) -> None:
         "",
     ]
 
-    for cls in SUB_ITEM_TYPES:
+    for cls in PRIMITIVE_SUB_TYPES:
         _emit_ts_interface(cls, lines)
 
-    for cls in COMPONENT_TYPES:
-        _emit_ts_interface(cls, lines, emit_type_discriminator=True)
+    for cls in PRIMITIVE_TYPES:
+        _emit_ts_interface(cls, lines, is_primitive=True)
 
-    lines.append("export type ComponentDescriptor =")
-    for i, cls in enumerate(COMPONENT_TYPES):
-        sep = ";" if i == len(COMPONENT_TYPES) - 1 else ""
-        prefix = "  | " if i > 0 else "  | "
-        lines.append(f"{prefix}{cls.__name__}{sep}")
+    lines.append("export type Primitive =")
+    for i, cls in enumerate(PRIMITIVE_TYPES):
+        sep = ";" if i == len(PRIMITIVE_TYPES) - 1 else ""
+        lines.append(f"  | {_ts_name(cls)}{sep}")
+    lines.append("")
+    lines.append("// Alias kept for protocol.ts compat")
+    lines.append("export type ComponentDescriptor = Primitive;")
     lines.append("")
 
     out_path.write_text("\n".join(lines))

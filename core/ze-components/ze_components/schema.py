@@ -64,16 +64,16 @@ def build_render_schema(component_cls: type) -> dict:
 
 
 def export_json_schema() -> dict:
-    """Generate a full JSON schema document with $defs for all component types."""
-    from ze_components.types import COMPONENT_TYPES, SUB_ITEM_TYPES
+    """Generate a full JSON schema document with $defs for all primitive types."""
+    from ze_components import PRIMITIVE_TYPES, PRIMITIVE_SUB_TYPES
 
     defs: dict = {}
-    for cls in SUB_ITEM_TYPES + COMPONENT_TYPES:
+    for cls in PRIMITIVE_SUB_TYPES + PRIMITIVE_TYPES:
         defs[cls.__name__] = _dataclass_schema(cls)
 
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "Ze Component Descriptors",
+        "title": "Ze UI Primitives",
         "$defs": defs,
-        "oneOf": [{"$ref": f"#/$defs/{cls.__name__}"} for cls in COMPONENT_TYPES],
+        "oneOf": [{"$ref": f"#/$defs/{cls.__name__}"} for cls in PRIMITIVE_TYPES],
     }
