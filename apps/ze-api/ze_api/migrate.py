@@ -39,6 +39,7 @@ _PLUGIN_MODULES: list[str] = [
     "ze_calendar.plugin",
     "ze_email.plugin",
     "ze_news.plugin",
+    "ze_finance.plugin",
     "ze_prospecting.plugin",
 ]
 

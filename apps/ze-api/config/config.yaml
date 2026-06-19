@@ -179,3 +179,8 @@ news:
       type: rss
       url: "https://observador.pt/feed/"
       tags: [local, pt, national]
+
+finance:
+  snapshot_schedule: "0 8 * * *"
+  large_transaction_threshold: 500
+  llm_categorization: false

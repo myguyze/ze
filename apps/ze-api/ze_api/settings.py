@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     prospecting_max_loop_tokens: int = 24_000
     prospecting_stale_timeout_minutes: int = 10
 
+    # ── Finance ───────────────────────────────────────────────────────────────
+    trading212_api_key: str = ""
+    trading212_demo: bool = False
+
     # ── Ntfy push notifications ───────────────────────────────────────────────
     ntfy_base_url: str = "https://ntfy.sh"
     ntfy_topic: str = ""

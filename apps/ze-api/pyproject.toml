@@ -12,6 +12,7 @@ dependencies = [
     "ze-prospecting",
     "ze-browser",
     "ze-news",
+    "ze-finance",
     "ze-notifications",
     "ze-components",
     "ze-onboarding",
@@ -58,6 +59,7 @@ ze-email         = { workspace = true }
 ze-prospecting   = { workspace = true }
 ze-browser       = { workspace = true }
 ze-news          = { workspace = true }
+ze-finance       = { workspace = true }
 ze-notifications = { workspace = true }
 ze-components    = { workspace = true }
 ze-onboarding    = { workspace = true }
