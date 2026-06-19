@@ -43,7 +43,7 @@ _PLUGIN_MODULES: list[str] = [
 ]
 
 # Fixed script_location: the ze migrations directory contains env.py and script.py.mako.
-_SCRIPT_LOCATION = Path(__file__).parent.parent / "migrations"
+_SCRIPT_LOCATION = Path(__file__).parent / "migrations"
 
 # Core package version paths (not ZePlugin subclasses — registered explicitly).
 _ZE_CORE_VERSIONS = Path(ze_core.__file__).parent / "migrations" / "versions"
