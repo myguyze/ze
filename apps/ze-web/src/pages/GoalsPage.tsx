@@ -37,10 +37,10 @@ export function GoalsPage() {
           {goals.map((goal) => (
             <div
               key={goal.id}
-              className="p-4 rounded-[24px] border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+              className="p-4 rounded-pill border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
             >
               <p className="text-sm text-white">{goal.objective}</p>
-              <span className="mt-2 inline-block px-2 py-0.5 rounded-full border border-[#8052ff]/50 text-[#8052ff] text-xs">
+              <span className="mt-2 inline-block px-2 py-0.5 rounded-full border border-plum-voltage/50 text-plum-voltage text-xs">
                 {goal.status}
               </span>
             </div>

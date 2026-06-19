@@ -12,7 +12,7 @@ export interface Message {
 
 export interface ConfirmAction {
   label: string;
-  value: string;
+  value: "approve" | "deny";
   style?: "primary" | "secondary" | "danger";
 }
 

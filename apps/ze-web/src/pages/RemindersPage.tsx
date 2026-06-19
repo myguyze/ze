@@ -36,9 +36,9 @@ export function RemindersPage() {
       )}
 
       {!isError && pending.map((r) => (
-        <div key={r.id} className="flex items-center justify-between p-4 rounded-[24px] border border-white/10">
+        <div key={r.id} className="flex items-center justify-between p-4 rounded-pill border border-white/10">
           <p className="text-sm text-white">{r.label}</p>
-          <p className="text-xs text-[#9a9a9a]">
+          <p className="text-xs text-smoke">
             {new Date(r.fire_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
           </p>
         </div>
@@ -46,9 +46,9 @@ export function RemindersPage() {
 
       {!isError && past.length > 0 && (
         <div>
-          <p className="text-xs text-[#9a9a9a] tracking-widest uppercase mb-3">Past</p>
+          <p className="text-xs text-smoke tracking-widest uppercase mb-3">Past</p>
           {past.slice(0, 5).map((r) => (
-            <div key={r.id} className="flex items-center justify-between p-4 rounded-[24px] opacity-40">
+            <div key={r.id} className="flex items-center justify-between p-4 rounded-pill opacity-40">
               <p className="text-sm text-white line-through">{r.label}</p>
             </div>
           ))}

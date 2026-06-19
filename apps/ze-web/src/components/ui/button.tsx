@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[24px] text-xs font-semibold tracking-widest uppercase transition-all disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8052ff]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-pill text-xs font-semibold tracking-widest uppercase transition-all disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-plum-voltage",
   {
     variants: {
       variant: {
-        default: "bg-[#8052ff] text-white hover:bg-[#6d3fe0]",
+        default: "bg-plum-voltage text-white hover:bg-[#6d3fe0]",
         ghost:   "border border-white/20 text-white hover:border-white/40",
-        outline: "border border-[#8052ff]/50 text-[#8052ff] hover:border-[#8052ff]",
-        amber:   "border border-[#ffb829] text-[#ffb829] hover:border-[#ffb829]/80",
+        outline: "border border-plum-voltage/50 text-plum-voltage hover:border-plum-voltage",
+        amber:   "border border-amber-spark text-amber-spark hover:border-amber-spark/80",
         danger:  "border border-red-500 text-red-500 hover:border-red-400",
-        link:    "text-[#9a9a9a] hover:text-white underline-offset-4 hover:underline",
+        link:    "text-smoke hover:text-white underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

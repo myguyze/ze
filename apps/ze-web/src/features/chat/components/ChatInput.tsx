@@ -42,7 +42,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder }: Ch
         placeholder={placeholder ?? (isThinking ? "Ze is thinking…" : "Message Ze")}
         rows={1}
         className={cn(
-          "flex-1 resize-none bg-transparent text-sm text-white placeholder:text-[#9a9a9a] focus:outline-none disabled:opacity-50",
+          "flex-1 resize-none bg-transparent text-sm text-white placeholder:text-smoke focus:outline-none disabled:opacity-50",
           "max-h-40 overflow-y-auto leading-relaxed",
         )}
         style={{ height: "auto" }}
@@ -50,7 +50,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder }: Ch
       <motion.button
         onClick={onSend}
         disabled={!value.trim() || isDisabled}
-        className="w-8 h-8 rounded-full bg-[#8052ff] text-white flex items-center justify-center disabled:opacity-40 flex-shrink-0 transition-opacity"
+        className="w-8 h-8 rounded-full bg-plum-voltage text-white flex items-center justify-center disabled:opacity-40 flex-shrink-0 transition-opacity"
         whileTap={{ scale: 0.9 }}
       >
         <ArrowUp className="w-4 h-4" />

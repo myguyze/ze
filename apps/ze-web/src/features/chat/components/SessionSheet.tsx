@@ -33,7 +33,7 @@ export function SessionSheet() {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-[24px] border border-white/10 text-xs text-[#9a9a9a] hover:text-white hover:border-white/20 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-pill border border-white/10 text-xs text-smoke hover:text-white hover:border-white/20 transition-colors"
           aria-label="Session history"
         >
           <History className="w-3.5 h-3.5" />
@@ -43,22 +43,18 @@ export function SessionSheet() {
 
       <SheetContent side="right" className="flex flex-col p-0">
         <div className="px-4 py-5 border-b border-white/10 pr-12">
-          <p className="text-xs font-semibold tracking-widest uppercase text-[#9a9a9a] mb-1">
-            Sessions
-          </p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-smoke mb-1">Sessions</p>
           <p className="text-lg font-extralight text-white">Past conversations</p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
           {isLoading &&
             [1, 2, 3].map((i) => (
-              <div key={i} className="h-14 rounded-[24px] border border-white/10 animate-pulse" />
+              <div key={i} className="h-14 rounded-pill border border-white/10 animate-pulse" />
             ))}
 
           {sessions?.length === 0 && (
-            <p className="px-3 py-8 text-center text-sm text-[#9a9a9a]">
-              No past sessions yet.
-            </p>
+            <p className="px-3 py-8 text-center text-sm text-smoke">No past sessions yet.</p>
           )}
 
           {sessions?.map((session) => {
@@ -70,19 +66,17 @@ export function SessionSheet() {
                 type="button"
                 onClick={() => selectSession(session.id)}
                 className={cn(
-                  "w-full text-left px-4 py-3 rounded-[24px] transition-colors",
+                  "w-full text-left px-4 py-3 rounded-pill transition-colors",
                   active
-                    ? "bg-[#8052ff]/15 border border-[#8052ff]/30"
+                    ? "bg-plum-voltage/15 border border-plum-voltage/30"
                     : "border border-transparent hover:border-white/10 hover:bg-white/5",
                 )}
               >
                 <p className="text-sm text-white truncate">{label}</p>
                 {session.preview && session.title && (
-                  <p className="text-xs text-[#9a9a9a] truncate mt-0.5">{session.preview}</p>
+                  <p className="text-xs text-smoke truncate mt-0.5">{session.preview}</p>
                 )}
-                <p className="text-[10px] text-[#9a9a9a] mt-1">
-                  {formatRelative(session.last_active_at)}
-                </p>
+                <p className="text-[10px] text-smoke mt-1">{formatRelative(session.last_active_at)}</p>
               </button>
             );
           })}

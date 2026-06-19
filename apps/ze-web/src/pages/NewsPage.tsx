@@ -29,20 +29,18 @@ function ArticleCard({ article }: { article: Article }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8052ff]">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-plum-voltage">
               {article.source_key}
             </span>
-            <span className="text-[10px] text-[#9a9a9a]">
-              {timeAgo(article.published_at)}
-            </span>
+            <span className="text-[10px] text-smoke">{timeAgo(article.published_at)}</span>
           </div>
 
-          <h3 className="text-sm font-medium text-white leading-snug group-hover:text-[#8052ff] transition-colors line-clamp-2">
+          <h3 className="text-sm font-medium text-white leading-snug group-hover:text-plum-voltage transition-colors line-clamp-2">
             {article.title}
           </h3>
 
           {article.summary && (
-            <p className="text-xs text-[#9a9a9a] mt-1 line-clamp-2 leading-relaxed">
+            <p className="text-xs text-smoke mt-1 line-clamp-2 leading-relaxed">
               {article.summary}
             </p>
           )}
@@ -51,7 +49,7 @@ function ArticleCard({ article }: { article: Article }) {
             {article.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 text-[10px] text-[#9a9a9a] bg-white/5 px-2 py-0.5 rounded-full"
+                className="inline-flex items-center gap-1 text-[10px] text-smoke bg-white/5 px-2 py-0.5 rounded-full"
               >
                 <Tag className="w-2.5 h-2.5" />
                 {tag}
@@ -72,7 +70,7 @@ function ArticleCard({ article }: { article: Article }) {
           </div>
         </div>
 
-        <ExternalLink className="w-3.5 h-3.5 text-[#9a9a9a] flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <ExternalLink className="w-3.5 h-3.5 text-smoke flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     </a>
   );
@@ -88,17 +86,14 @@ export function NewsPage() {
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <Newspaper className="w-5 h-5 text-[#8052ff]" />
+        <Newspaper className="w-5 h-5 text-plum-voltage" />
         <h1 className="text-lg font-semibold text-white">News</h1>
       </div>
 
       {isLoading && (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="border border-white/10 rounded-xl p-4 animate-pulse"
-            >
+            <div key={i} className="border border-white/10 rounded-xl p-4 animate-pulse">
               <div className="h-2.5 bg-white/10 rounded w-24 mb-2" />
               <div className="h-4 bg-white/10 rounded w-3/4 mb-1.5" />
               <div className="h-3 bg-white/10 rounded w-full mb-1" />

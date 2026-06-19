@@ -64,7 +64,7 @@ export function ChatPage() {
         <button
           type="button"
           onClick={handleNewSession}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-[24px] bg-[#8052ff] text-white text-xs font-medium hover:bg-[#8052ff]/90 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-pill bg-plum-voltage text-white text-xs font-medium hover:bg-plum-voltage/90 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           New chat
@@ -72,20 +72,20 @@ export function ChatPage() {
       </div>
 
       {connState === "connecting" && (
-        <div className="relative z-10 mx-4 mt-3 flex items-center gap-2 px-4 py-2 rounded-[24px] border border-[#ffb829]/40 text-[#ffb829] text-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#ffb829] animate-pulse" />
+        <div className="relative z-10 mx-4 mt-3 flex items-center gap-2 px-4 py-2 rounded-pill border border-amber-spark/40 text-amber-spark text-xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-spark animate-pulse" />
           Connecting to Ze…
         </div>
       )}
       {connState === "disconnected" && (
-        <div className="relative z-10 mx-4 mt-3 flex items-center justify-between px-4 py-2 rounded-[24px] border border-white/15 text-white text-xs">
+        <div className="relative z-10 mx-4 mt-3 flex items-center justify-between px-4 py-2 rounded-pill border border-white/15 text-white text-xs">
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
             Could not connect.
           </span>
           <button
             onClick={() => { setConnState("connecting"); reconnect(); }}
-            className="text-[#8052ff] underline"
+            className="text-plum-voltage underline"
           >
             Retry
           </button>
@@ -94,14 +94,14 @@ export function ChatPage() {
 
       {isEmpty && (
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6">
-          <GlowingStars className="rounded-[24px]" count={80} />
+          <GlowingStars className="rounded-pill" count={80} />
           <p className="text-[48px] font-extralight tracking-tight text-white leading-none select-none">
             Ze
           </p>
-          <p className="text-sm text-[#9a9a9a]">Your personal AI assistant</p>
+          <p className="text-sm text-smoke">Your personal AI assistant</p>
           <button
             onClick={() => send({ type: "command", name: "capabilities" })}
-            className="px-4 py-2 rounded-[24px] border border-[#8052ff]/50 text-[#8052ff] text-xs hover:border-[#8052ff] transition-colors"
+            className="px-4 py-2 rounded-pill border border-plum-voltage/50 text-plum-voltage text-xs hover:border-plum-voltage transition-colors"
           >
             What can you help me with?
           </button>

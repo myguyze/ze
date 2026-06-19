@@ -12,8 +12,8 @@ export function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "items-start gap-2"}`}>
       {!isUser && (
-        <div className="w-6 h-6 rounded-full bg-[#8052ff]/20 flex items-center justify-center flex-shrink-0 mt-1">
-          <span className="text-[10px] text-[#8052ff] font-semibold">Z</span>
+        <div className="w-6 h-6 rounded-full bg-plum-voltage/20 flex items-center justify-center flex-shrink-0 mt-1">
+          <span className="text-[10px] text-plum-voltage font-semibold">Z</span>
         </div>
       )}
 
@@ -22,7 +22,7 @@ export function MessageBubble({ message }: { message: Message }) {
           <div
             className={`px-4 py-2.5 rounded-[20px] text-sm leading-relaxed ${
               isUser
-                ? "bg-[#8052ff] text-white rounded-br-[6px]"
+                ? "bg-plum-voltage text-white rounded-br-[6px]"
                 : "border border-white/10 text-white rounded-bl-[6px]"
             }`}
           >
@@ -50,7 +50,7 @@ export function MessageBubble({ message }: { message: Message }) {
           <PrimitiveRenderer key={i} node={c} />
         ))}
 
-        <p className="mt-1 px-1 text-[10px] text-[#9a9a9a]">
+        <p className="mt-1 px-1 text-[10px] text-smoke">
           {formatTime(message.created_at)}
         </p>
       </div>

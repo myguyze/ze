@@ -29,28 +29,28 @@ export interface ConnectionItem {
 
 export interface ColPrimitive {
   children: Primitive[];
-  gap: "none" | "sm" | "md" | "lg";
-  variant: "default" | "card" | "section";
+  gap?: "none" | "sm" | "md" | "lg";
+  variant?: "default" | "card" | "section";
   type: "col";
 }
 
 export interface RowPrimitive {
   children: Primitive[];
-  gap: "none" | "sm" | "md" | "lg";
-  align: "start" | "center" | "end" | "between";
+  gap?: "none" | "sm" | "md" | "lg";
+  align?: "start" | "center" | "end" | "between";
   type: "row";
 }
 
 export interface TextPrimitive {
   content: string;
-  style: "heading" | "subheading" | "body" | "label" | "caption" | "code";
-  color: "default" | "muted" | "success" | "warning" | "error";
+  style?: "heading" | "subheading" | "body" | "label" | "caption" | "code";
+  color?: "default" | "muted" | "success" | "warning" | "error";
   type: "text";
 }
 
 export interface BadgePrimitive {
   label: string;
-  color: "default" | "success" | "warning" | "error" | "info";
+  color?: "default" | "success" | "warning" | "error" | "info";
   type: "badge";
 }
 
@@ -59,18 +59,18 @@ export interface DividerPrimitive {
 }
 
 export interface SpacerPrimitive {
-  size: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg";
   type: "spacer";
 }
 
 export interface ButtonPrimitive {
   label: string;
   action: string;
-  style: "primary" | "secondary" | "danger";
+  style?: "primary" | "secondary" | "danger";
   type: "button";
 }
 
-export interface ProgressBarPrimitive {
+export interface ProgressPrimitive {
   value: number;
   label?: string;
   type: "progress";
@@ -105,7 +105,7 @@ export type Primitive =
   | DividerPrimitive
   | SpacerPrimitive
   | ButtonPrimitive
-  | ProgressBarPrimitive
+  | ProgressPrimitive
   | TablePrimitive
   | FormPrimitive
   | ConnectionsPrimitive;

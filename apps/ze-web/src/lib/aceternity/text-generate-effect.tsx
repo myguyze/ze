@@ -37,7 +37,7 @@ export function TypingDots({ className }: { className?: string }) {
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-[#8052ff]"
+          className="w-1.5 h-1.5 rounded-full bg-plum-voltage"
           animate={{ opacity: [0.2, 1, 0.2] }}
           transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
         />

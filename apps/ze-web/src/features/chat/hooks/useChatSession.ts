@@ -2,17 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMessages } from "@/features/chat/hooks/useMessages";
 import { useSession } from "@/features/chat/hooks/useSession";
+import { useTypingState } from "@/features/chat/hooks/useTypingState";
+import { useConfirmation } from "@/features/chat/hooks/useConfirmation";
 import { useFrame, useWsStore, send } from "@/features/websocket/useWebSocket";
 import { queryKeys } from "@/lib/queryKeys";
 import { useOnboardingSession } from "@/features/onboarding/useOnboardingSession";
 import { useSendNotice } from "@/features/websocket/useSendNotice";
-import { type ConfirmAction, type Message, type ScreenContext } from "@/features/websocket/protocol";
+import { type Message, type ScreenContext } from "@/features/websocket/protocol";
 
-export interface PendingConfirm {
-  id: string;
-  prompt: string;
-  actions: ConfirmAction[];
-}
+export type { PendingConfirm } from "@/features/chat/hooks/useConfirmation";
 
 const NOT_CONNECTED_NOTICE = "Not connected. Retry when Ze reconnects.";
 
@@ -30,23 +28,21 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   const { messages: persistedMessages, upsert, edit, loadHistory, reload } = useMessages(threadId);
 
   const [ephemeralMessages, setEphemeralMessages] = useState<Message[]>([]);
-  const [showTyping, setShowTyping] = useState(false);
-  const [typingText, setTypingText] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState<string | null>(null);
-  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
-  const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevActiveRef = useRef(active);
 
   const isThinking = useWsStore((s) => s.isThinking);
   const setThinking = useWsStore((s) => s.setThinking);
   const isConnected = useWsStore((s) => s.isConnected);
 
+  const { showTyping, typingText, clearTyping } = useTypingState(active);
+  const { pendingConfirm, respond: respondToConfirm, clear: clearConfirm } = useConfirmation(active, ephemeral);
+
   const messages = ephemeral ? ephemeralMessages : persistedMessages;
 
   useEffect(() => {
     if (ephemeral && active && !prevActiveRef.current) {
       setEphemeralMessages([]);
-      setShowTyping(false);
     }
     prevActiveRef.current = active;
   }, [active, ephemeral]);
@@ -56,12 +52,6 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       void loadHistory();
     }
   }, [ephemeral, isConnected, active, threadId, loadHistory]);
-
-  function clearTyping() {
-    setShowTyping(false);
-    setTypingText(null);
-    clearTimeout(typingTimer.current);
-  }
 
   function stopThinking() {
     setThinking(false);
@@ -101,33 +91,9 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     edit(frame.id, frame.text, frame.components);
   });
 
-  useFrame("typing", (frame) => {
-    if (!active) return;
-    setShowTyping(true);
-    setTypingText(frame.text ?? null);
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => {
-      setShowTyping(false);
-      setTypingText(null);
-    }, 3_000);
-  });
-
   useFrame("token", (frame) => {
     if (!active) return;
-    setShowTyping(false);
     setStreamingText((prev) => (prev ?? "") + frame.text);
-  });
-
-  useFrame("confirm_request", (frame) => {
-    if (!active || ephemeral) return;
-    setThinking(false);
-    clearTyping();
-    setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
-  });
-
-  useFrame("confirm_cancel", () => {
-    if (!active || ephemeral) return;
-    setPendingConfirm(null);
   });
 
   useFrame("error", () => {
@@ -170,26 +136,9 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     return true;
   }
 
-  function respondToConfirm(choice: "approve" | "deny") {
-    if (!pendingConfirm) return;
-    const confirm = pendingConfirm;
-    setPendingConfirm(null);
-
-    const sent = send({ type: "confirm", id: confirm.id, choice });
-    if (!sent) {
-      setPendingConfirm(confirm);
-      useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
-      return;
-    }
-
-    if (choice === "approve") {
-      setThinking(true);
-    }
-  }
-
   function resetInteraction() {
     setThinking(false);
-    setPendingConfirm(null);
+    clearConfirm();
     clearTyping();
   }
 

@@ -42,7 +42,7 @@ export function ContextOverlay() {
           />
 
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-black border-t border-white/10 rounded-t-[24px] max-h-[50vh]"
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-black border-t border-white/10 rounded-t-pill max-h-[50vh]"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -50,8 +50,8 @@ export function ContextOverlay() {
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
               <div className="w-8 h-1 rounded-full bg-white/20 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
-              <span className="text-xs text-[#9a9a9a] tracking-widest uppercase">Ze · {screen}</span>
-              <button onClick={close} className="text-[#9a9a9a] hover:text-white transition-colors">
+              <span className="text-xs text-smoke tracking-widest uppercase">Ze · {screen}</span>
+              <button onClick={close} className="text-smoke hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>

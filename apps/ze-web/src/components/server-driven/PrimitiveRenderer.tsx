@@ -61,8 +61,8 @@ export function PrimitiveRenderer({ node }: { node: Primitive }) {
 
 const COL_VARIANT: Record<string, string> = {
   default: "",
-  card:    "mt-2 p-4 rounded-[24px] border border-white/10",
-  section: "mt-2 p-4 rounded-[24px] border border-white/10 border-l-4 border-l-[#ffb829]",
+  card:    "mt-2 p-4 rounded-pill border border-white/10",
+  section: "mt-2 p-4 rounded-pill border border-white/10 border-l-4 border-l-amber-spark",
 };
 
 function ColRenderer({ node }: { node: ColPrimitive }) {
@@ -91,16 +91,16 @@ const TEXT_STYLE: Record<string, string> = {
   heading:    "text-[48px] font-extralight leading-none tracking-tight text-white",
   subheading: "text-sm font-semibold text-white",
   body:       "text-sm text-white",
-  label:      "text-xs tracking-wide text-[#9a9a9a]",
-  caption:    "text-xs text-[#bdbdbd]",
+  label:      "text-xs tracking-wide text-smoke",
+  caption:    "text-xs text-ash",
   code:       "font-mono text-xs bg-white/5 rounded px-1 py-0.5 text-white",
 };
 
 const TEXT_COLOR: Record<string, string> = {
   default: "",
-  muted:   "text-[#9a9a9a]",
-  success: "text-[#15846e]",
-  warning: "text-[#ffb829]",
+  muted:   "text-smoke",
+  success: "text-lichen",
+  warning: "text-amber-spark",
   error:   "text-red-400",
 };
 
@@ -112,10 +112,10 @@ function TextRenderer({ node }: { node: TextPrimitive }) {
 
 const BADGE_COLOR: Record<string, string> = {
   default: "border-white/20 text-white",
-  success: "border-[#15846e]/50 text-[#15846e]",
-  warning: "border-[#ffb829]/50 text-[#ffb829]",
+  success: "border-lichen/50 text-lichen",
+  warning: "border-amber-spark/50 text-amber-spark",
   error:   "border-red-400/50 text-red-400",
-  info:    "border-[#8052ff]/50 text-[#8052ff]",
+  info:    "border-plum-voltage/50 text-plum-voltage",
 };
 
 function BadgeRenderer({ node }: { node: BadgePrimitive }) {
@@ -149,9 +149,9 @@ function ButtonRenderer({ node }: { node: ButtonPrimitive }) {
 
   const styleClass =
     node.style === "primary"
-      ? "bg-[#8052ff] text-white"
+      ? "bg-plum-voltage text-white"
       : node.style === "danger"
-        ? "border border-[#ffb829] text-[#ffb829]"
+        ? "border border-amber-spark text-amber-spark"
         : "border border-white/20 text-white";
 
   return (
@@ -159,7 +159,7 @@ function ButtonRenderer({ node }: { node: ButtonPrimitive }) {
       onClick={handleClick}
       disabled={used}
       className={cn(
-        "px-4 py-2 rounded-[24px] text-xs font-semibold tracking-wide transition-opacity disabled:opacity-40",
+        "px-4 py-2 rounded-pill text-xs font-semibold tracking-wide transition-opacity disabled:opacity-40",
         styleClass,
         used && "opacity-100",
       )}
@@ -173,10 +173,10 @@ function ProgressRenderer({ node }: { node: ProgressPrimitive }) {
   const pct = Math.round(Math.max(0, Math.min(1, node.value)) * 100);
   return (
     <div className="w-full">
-      {node.label && <p className="mb-1 text-xs text-[#9a9a9a]">{node.label}</p>}
+      {node.label && <p className="mb-1 text-xs text-smoke">{node.label}</p>}
       <div className="h-1.5 w-full rounded-full bg-white/10">
         <div
-          className="h-1.5 rounded-full bg-[#8052ff] transition-all"
+          className="h-1.5 rounded-full bg-plum-voltage transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -188,9 +188,9 @@ function ProgressRenderer({ node }: { node: ProgressPrimitive }) {
 
 function TableRenderer({ node }: { node: TablePrimitive }) {
   return (
-    <div className="mt-2 overflow-auto max-h-72 rounded-[24px] border border-white/10">
+    <div className="mt-2 overflow-auto max-h-72 rounded-pill border border-white/10">
       {node.title && (
-        <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-[#9a9a9a]">
+        <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-smoke">
           {node.title}
         </p>
       )}
@@ -198,7 +198,7 @@ function TableRenderer({ node }: { node: TablePrimitive }) {
         <thead>
           <tr className="border-b border-white/10">
             {node.headers.map((h) => (
-              <th key={h} className="px-4 py-2 text-left text-xs font-semibold tracking-wide text-[#bdbdbd] whitespace-nowrap">
+              <th key={h} className="px-4 py-2 text-left text-xs font-semibold tracking-wide text-ash whitespace-nowrap">
                 {h}
               </th>
             ))}
@@ -217,7 +217,7 @@ function TableRenderer({ node }: { node: TablePrimitive }) {
         </tbody>
       </table>
       {node.caption && (
-        <p className="px-4 py-2 text-xs text-[#9a9a9a]">{node.caption}</p>
+        <p className="px-4 py-2 text-xs text-smoke">{node.caption}</p>
       )}
     </div>
   );
@@ -252,17 +252,17 @@ function FormRenderer({ node }: { node: FormPrimitive }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 p-4 rounded-[24px] border border-white/10 space-y-3">
+    <form onSubmit={handleSubmit} className="mt-2 p-4 rounded-pill border border-white/10 space-y-3">
       <p className="text-sm font-semibold text-white">{node.title}</p>
       {node.fields.map((field) => (
         <div key={field.id}>
-          <label className="block text-xs text-[#9a9a9a] mb-1 tracking-wide">{field.label}</label>
+          <label className="block text-xs text-smoke mb-1 tracking-wide">{field.label}</label>
           {field.field_type === "select" ? (
             <select
               value={values[field.id] ?? ""}
               onChange={(e) => setValues((v) => ({ ...v, [field.id]: e.target.value }))}
               disabled={submitted}
-              className="w-full bg-transparent border border-white/20 rounded-[24px] px-3 py-2 text-sm text-white focus:outline-none focus:border-[#8052ff] disabled:opacity-40"
+              className="w-full bg-transparent border border-white/20 rounded-pill px-3 py-2 text-sm text-white focus:outline-none focus:border-plum-voltage disabled:opacity-40"
             >
               <option value="">Select…</option>
               {field.options?.map((o) => (
@@ -276,7 +276,7 @@ function FormRenderer({ node }: { node: FormPrimitive }) {
               value={values[field.id] ?? ""}
               onChange={(e) => setValues((v) => ({ ...v, [field.id]: e.target.value }))}
               disabled={submitted}
-              className="w-full bg-transparent border border-white/20 rounded-[24px] px-3 py-2 text-sm text-white placeholder-[#9a9a9a] focus:outline-none focus:border-[#8052ff] disabled:opacity-40"
+              className="w-full bg-transparent border border-white/20 rounded-pill px-3 py-2 text-sm text-white placeholder-smoke focus:outline-none focus:border-plum-voltage disabled:opacity-40"
             />
           )}
         </div>
@@ -284,7 +284,7 @@ function FormRenderer({ node }: { node: FormPrimitive }) {
       <button
         type="submit"
         disabled={submitted}
-        className="w-full py-2 rounded-[24px] bg-[#8052ff] text-white text-xs font-semibold tracking-widest uppercase disabled:opacity-40 transition-opacity"
+        className="w-full py-2 rounded-pill bg-plum-voltage text-white text-xs font-semibold tracking-widest uppercase disabled:opacity-40 transition-opacity"
       >
         {submitted ? "Submitted" : "Submit"}
       </button>
@@ -304,16 +304,16 @@ function ConnectionCard({ item }: { item: ConnectionItem }) {
   return (
     <div className="px-4 py-3 border-b border-white/5 last:border-0">
       <div className="flex items-start gap-2 mb-1">
-        <span className="flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium tracking-wide uppercase border border-[#8052ff]/40 text-[#8052ff]">
+        <span className="flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium tracking-wide uppercase border border-plum-voltage/40 text-plum-voltage">
           {rel}
         </span>
         <p className="text-sm text-white leading-snug">{item.summary}</p>
       </div>
-      <p className="text-xs text-[#9a9a9a] leading-relaxed mb-2">{item.narrative}</p>
+      <p className="text-xs text-smoke leading-relaxed mb-2">{item.narrative}</p>
       {item.evidence && item.evidence.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {item.evidence.map((ev, i) => (
-            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-[#9a9a9a]">
+            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-smoke">
               {ev.label}
               {ev.date && <span className="text-white/30">· {ev.date}</span>}
             </span>
@@ -326,8 +326,8 @@ function ConnectionCard({ item }: { item: ConnectionItem }) {
 
 function ConnectionsRenderer({ node }: { node: ConnectionsPrimitive }) {
   return (
-    <div className="mt-2 rounded-[24px] border border-[#8052ff]/20 overflow-hidden">
-      <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-[#8052ff] border-b border-[#8052ff]/20">
+    <div className="mt-2 rounded-pill border border-plum-voltage/20 overflow-hidden">
+      <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-plum-voltage border-b border-plum-voltage/20">
         {node.title ?? "Connected to your history"}
       </p>
       {node.connections.map((item, i) => (
@@ -336,4 +336,3 @@ function ConnectionsRenderer({ node }: { node: ConnectionsPrimitive }) {
     </div>
   );
 }
-

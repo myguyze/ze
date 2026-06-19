@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Message } from "@/features/websocket/protocol";
 import { api } from "@/lib/api";
 import { send } from "@/features/websocket/useWebSocket";
@@ -64,8 +64,12 @@ export function useMessages(threadId: string) {
     await loadHistory();
   }, [loadHistory]);
 
-  const sorted = [...messages.values()].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  const sorted = useMemo(
+    () =>
+      [...messages.values()].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    [messages],
   );
 
   return { messages: sorted, upsert, edit, loadHistory, reload };

@@ -41,15 +41,15 @@ export function ContactsPage() {
       {!isError && contacts && contacts.length > 0 && (
         <div className="space-y-2">
           {contacts.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 p-3 rounded-[24px] border border-white/10 hover:border-white/20 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-[#8052ff]/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs text-[#8052ff] font-semibold">
+            <div key={c.id} className="flex items-center gap-3 p-3 rounded-pill border border-white/10 hover:border-white/20 transition-colors">
+              <div className="w-8 h-8 rounded-full bg-plum-voltage/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs text-plum-voltage font-semibold">
                   {c.name[0]?.toUpperCase()}
                 </span>
               </div>
               <div>
                 <p className="text-sm text-white">{c.name}</p>
-                {c.email && <p className="text-xs text-[#9a9a9a]">{c.email}</p>}
+                {c.email && <p className="text-xs text-smoke">{c.email}</p>}
               </div>
             </div>
           ))}

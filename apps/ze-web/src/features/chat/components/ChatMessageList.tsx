@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { type Message } from "@/features/websocket/protocol";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
+import { ChatErrorBoundary } from "@/components/layout/ChatErrorBoundary";
 
 interface ChatMessageListProps {
   messages: Message[];
@@ -33,9 +34,15 @@ export function ChatMessageList({ messages, showTyping, typingText, streamingTex
   return (
     <div className={className ?? "flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"}>
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <ChatErrorBoundary key={msg.id}>
+          <MessageBubble message={msg} />
+        </ChatErrorBoundary>
       ))}
-      {streamingMessage && <MessageBubble key="__streaming__" message={streamingMessage} />}
+      {streamingMessage && (
+        <ChatErrorBoundary key="__streaming__">
+          <MessageBubble message={streamingMessage} />
+        </ChatErrorBoundary>
+      )}
       {showTyping && !streamingText && <TypingIndicator text={typingText} />}
       <div ref={bottomRef} />
     </div>

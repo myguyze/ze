@@ -17,13 +17,13 @@ export function App() {
     setConfigured(true);
   }
 
-  if (!configured) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
-
   return (
     <Providers>
-      <RouterProvider router={router} />
+      {!configured ? (
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+      ) : (
+        <RouterProvider router={router} />
+      )}
     </Providers>
   );
 }
