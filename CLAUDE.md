@@ -89,13 +89,14 @@ ze/                           # monorepo root
 │   │   ├── ze_api/
 │   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
 │   │   │   ├── interface/    # NativeAppInterface (WebSocket + ntfy delivery)
+│   │   │   ├── migrations/   # Alembic migrations (ze-api tables only: checkpoints, messages, sessions, confirmations)
 │   │   │   ├── bootstrap.py  # Agent DI wiring via plugin.agent_module_paths()
 │   │   │   ├── container.py  # ZeContainer (registers all ZePlugins)
+│   │   │   ├── migrate.py    # Meta-runner: discovers all package migration paths and runs them
 │   │   │   └── settings.py   # Pydantic Settings
 │   │   ├── config/
 │   │   │   ├── config.yaml   # Models, contacts, proactive schedules (secrets in .env)
 │   │   │   └── persona.yaml  # Persona profiles and dials
-│   │   ├── migrations/       # Alembic SQL migrations
 │   │   └── tests/
 │   └── ze-web/               # React web client (Vite + TypeScript + Tailwind + shadcn/ui)
 ├── eval/                     # Eval test data and entrypoints (uses core/ze-eval)
@@ -143,7 +144,8 @@ make web-install     # React web app deps (bun install)
 
 # Database
 make db-up           # start Postgres via Docker
-make migrate         # apply migrations (requires db-up first)
+make migrate         # apply migrations from all packages (requires db-up first)
+make migrate-stamp   # one-time stamp for existing DBs after migration restructure
 
 # Development
 make dev             # backend only — uvicorn --reload on :8000
@@ -285,10 +287,37 @@ See `docs/adding-an-agent.md` for the full authoring guide.
 4. Override `startup(container)` and `shutdown()` for async lifecycle needs.
 5. Implement `memory_policies()` and `checkpoint_serde_modules()` when the plugin
    adds agents or checkpointed domain types.
+6. If the plugin owns database tables, add a `migrations/` directory and override
+   `migrations_path()` — see "Migration ownership" below.
 
 Plugin discovery, topological ordering, and graph hook merging are automatic.
 Add types to `plugin_deps` in `ze_api/container.py` only when the plugin
 constructor needs a shared service not already in the dep map (phase 47b).
+
+## Migration ownership
+
+Every package that owns database tables owns its own Alembic migration chain.
+`ze_api/migrate.py` is a meta-runner: it discovers all chains via `version_locations`
+and runs them against a single `alembic_version` table.
+
+| Package | Branch prefix | Tables |
+|---|---|---|
+| ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides |
+| ze-personal | `zc` (continues ze-core chain) | contacts, contact_channels, goal_execution_traces, goal_suggestions, workflows, insights, episodes.contacts_extracted |
+| ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries |
+| ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
+| ze-correlation | `zcor` | correlation_hypothesis |
+| ze-proactive | `zpro` | push_log |
+| ze-calendar | `zcal` | calendar_reminders, user_reminders |
+| ze-prospecting | `zpros` | prospect_campaigns, prospect_outreach |
+| ze-news | `zn` | news_articles |
+| ze-api | `ze` | checkpoint tables (LangGraph), messages, sessions, accountability_anomalies, pending_confirmations |
+
+**Rules:**
+- Never add plugin-owned tables to ze-api migrations.
+- For `ZePlugin` subclasses: create `<pkg>/migrations/` and override `migrations_path()` — the runner discovers it automatically.
+- For non-plugin core packages (ze-memory, ze-onboarding, ze-correlation, ze-proactive): add an explicit `_ZE_*_VERSIONS` constant in `ze_api/migrate.py`.
+- Use `depends_on` in migration files for cross-package ordering (e.g. ze-prospecting depends on `zc005` for the contacts table).
 
 ## LangGraph graph flow
 
