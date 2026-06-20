@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ze-ingestion"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "ze-agents",
+    "ze-memory",
+    "ze-browser",
+    "asyncpg>=0.29",
+    "httpx>=0.28",
+    "beautifulsoup4>=4.12",
+    "pypdf>=4.0",
+]
+
+[project.optional-dependencies]
+migrations = [
+    "alembic>=1.13",
+    "psycopg2-binary>=2.9",
+    "sqlalchemy>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.uv.sources]
+ze-agents = { workspace = true }
+ze-memory = { workspace = true }
+ze-browser = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["ze_ingestion"]
+include = ["ze_ingestion/py.typed", "ze_ingestion/locales/*.yaml"]

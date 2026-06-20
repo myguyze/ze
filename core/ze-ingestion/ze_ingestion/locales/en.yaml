@@ -1,0 +1,28 @@
+ingestion:
+  starting:
+    - "On it, let me pull that in..."
+    - "Got it, ingesting now..."
+  classifying:
+    - "Figuring out what this is..."
+  fetching:
+    - "Fetching the content..."
+    - "Grabbing it now..."
+  processing:
+    default:
+      - "Processing the content..."
+    video:
+      - "Transcribing the video — this may take a moment..."
+      - "Extracting audio and transcribing..."
+    audio:
+      - "Transcribing the audio..."
+    pdf:
+      - "Reading the PDF..."
+    image:
+      - "Reading the image..."
+    web_page:
+      - "Reading the page..."
+  extracting:
+    - "Extracting what's useful..."
+    - "Pulling out the key information..."
+  saving:
+    - "Saving to memory..."

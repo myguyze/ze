@@ -29,6 +29,7 @@ import ze_memory
 import ze_onboarding
 import ze_correlation
 import ze_proactive
+import ze_ingestion
 
 from ze_api.errors import MigrationReadinessError
 
@@ -52,6 +53,7 @@ _ZE_MEMORY_VERSIONS = Path(ze_memory.__file__).parent / "migrations" / "versions
 _ZE_ONBOARDING_VERSIONS = Path(ze_onboarding.__file__).parent / "migrations" / "versions"
 _ZE_CORRELATION_VERSIONS = Path(ze_correlation.__file__).parent / "migrations" / "versions"
 _ZE_PROACTIVE_VERSIONS = Path(ze_proactive.__file__).parent / "migrations" / "versions"
+_ZE_INGESTION_VERSIONS = Path(ze_ingestion.__file__).parent / "migrations" / "versions"
 _ZE_VERSIONS = _SCRIPT_LOCATION / "versions"
 
 
@@ -74,6 +76,7 @@ def _collect_version_locations() -> list[Path]:
         _ZE_ONBOARDING_VERSIONS,
         _ZE_CORRELATION_VERSIONS,
         _ZE_PROACTIVE_VERSIONS,
+        _ZE_INGESTION_VERSIONS,
         _ZE_VERSIONS,
     ]
     for plugin_cls in get_plugin_registry():

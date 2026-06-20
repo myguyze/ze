@@ -57,6 +57,15 @@ from ze_core.telemetry.postgres import PostgresCostStore
 from ze_core.container import Container as CoreContainer
 from ze_agents.hooks import register_hook
 from ze_api.hooks import ComponentCollectionHook, ToolCallCapHook
+from ze_ingestion import ContentClassifier, IngestionPipeline, IngestionStore, MemorySink
+from ze_ingestion.fetchers.web import WebFetcher
+from ze_ingestion.fetchers.browser import BrowserFetcher
+from ze_ingestion.processors.html import HtmlProcessor
+from ze_ingestion.processors.pdf import PdfProcessor
+from ze_ingestion.processors.audio import AudioProcessor
+from ze_ingestion.processors.image import ImageProcessor
+from ze_ingestion.processors.text import TextProcessor
+from ze_ingestion.extractors.llm import LLMExtractor
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
 
 log = get_logger(__name__)
@@ -86,6 +95,7 @@ class ZeContainer(CoreContainer):
     _checkpointer: Any  # AsyncPostgresSaver — exposed for plugin startup()
     _push_log_store: Any  # PushLogStore — exposed for PersonalPlugin startup()
     data_portability_service: Any  # DataPortabilityService
+    ingestion_pipeline: IngestionPipeline
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -375,6 +385,11 @@ async def build_container(settings: Settings) -> ZeContainer:
     if signal_sources:
         log.info("signal_sources_collected", keys=list(signal_sources))
 
+    # ze-ingestion is a core package (not a ZePlugin), so its agent isn't in any
+    # plugin's agent_module_paths(). Import here to fire @agent/@tool registration
+    # before bootstrap_agents validates the registry.
+    import ze_ingestion.agent  # noqa: F401
+
     bootstrap_agents(deps=agent_deps, plugins=plugins)
 
     router = EmbeddingRouter(
@@ -451,6 +466,49 @@ async def build_container(settings: Settings) -> ZeContainer:
     data_portability_service = DataPortabilityService(pool=pool, domains=all_domains)
     log.info("data_portability_service_ready", domains=len(all_domains))
 
+    # Build ingestion pipeline.
+    ingestion_store = IngestionStore(pool=pool)
+    memory_sink = MemorySink(memory_store=memory_store)
+    classifier = ContentClassifier()
+
+    plugin_fetchers = [f for plugin in plugins for f in plugin.ingestion_fetchers()]
+    plugin_extractors = [e for plugin in plugins for e in plugin.ingestion_extractors()]
+
+    yt_fetcher = None
+    try:
+        from ze_yt import YtDlpFetcher
+        yt_fetcher = YtDlpFetcher()
+        log.info("ze_yt_fetcher_registered")
+    except ImportError:
+        pass
+
+    ingestion_fetchers_list = []
+    if yt_fetcher is not None:
+        ingestion_fetchers_list.append(yt_fetcher)
+    ingestion_fetchers_list.extend(plugin_fetchers)
+    ingestion_fetchers_list.append(BrowserFetcher(browser_client=browser_client))
+    ingestion_fetchers_list.append(WebFetcher())
+
+    extraction_model = settings.config.get("models", {}).get("ingestion_extraction", "anthropic/claude-haiku-4-5")
+    ingestion_pipeline = IngestionPipeline(
+        classifier=classifier,
+        fetchers=ingestion_fetchers_list,
+        processors=[
+            HtmlProcessor(),
+            PdfProcessor(),
+            AudioProcessor(llm_client=openrouter_client),
+            ImageProcessor(llm_client=openrouter_client),
+            TextProcessor(),
+        ],
+        extractors=[LLMExtractor(llm_client=openrouter_client, model=extraction_model)] + plugin_extractors,
+        store=ingestion_store,
+        memory_sink=memory_sink,
+    )
+
+    from ze_ingestion.agent import _set_pipeline
+    _set_pipeline(ingestion_pipeline)
+    log.info("ingestion_pipeline_ready")
+
     container = ZeContainer(
         settings=settings,
         pool=pool,
@@ -484,6 +542,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         _checkpointer=checkpointer,
         _push_log_store=push_log_store,
         data_portability_service=data_portability_service,
+        ingestion_pipeline=ingestion_pipeline,
     )
 
     for plugin in plugins:

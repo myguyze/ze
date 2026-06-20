@@ -25,6 +25,8 @@ Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md]
 | [ze-notifications](ze-notifications/) | Push notification abstraction (ntfy) |
 | [ze-components](ze-components/) | Server-driven UI component descriptors for the React web client |
 | [ze-onboarding](ze-onboarding/) | Plugin-extensible onboarding coordinator and reset domain types |
+| [ze-data](ze-data/) | Data management — `DataDomain` descriptor and `DataPortabilityService` |
+| [ze-ingestion](ze-ingestion/) | Content ingestion pipeline — fetch, process, extract, and archive any external content |
 | [ze-eval](ze-eval/) | Eval infrastructure — runner, judge, verifier, MCP server |
 
 ## Dependency graph
@@ -40,7 +42,9 @@ ze-browser        ←  no ze deps
 ze-notifications  ←  no ze deps
 ze-components     ←  no ze deps
 ze-eval           ←  no ze deps
-ze-sdk            ←  ze-agents, ze-plugin, ze-proactive, ze-memory, ze-onboarding
+ze-data           ←  no ze deps
+ze-ingestion      ←  ze-agents, ze-memory, ze-browser
+ze-sdk            ←  ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory, ze-onboarding
 ze-core           ←  ze-agents, ze-plugin
 ```
 

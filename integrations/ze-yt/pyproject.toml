@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ze-yt"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "ze-ingestion",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.uv.sources]
+ze-ingestion = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["ze_yt"]

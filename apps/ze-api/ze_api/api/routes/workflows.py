@@ -1,53 +1,18 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from ze_api.api.dependencies import get_workflow_store
+from ze_api.api.schemas import (
+    StepResultResponse,
+    WorkflowDetailResponse,
+    WorkflowExecutionResponse,
+    WorkflowResponse,
+    WorkflowStepResponse,
+)
 from ze_personal.workflow.store import WorkflowStore
 
 router = APIRouter(tags=["workflows"])
-
-
-class StepResultResponse(BaseModel):
-    step_index: int
-    task: str
-    output: str
-    success: bool
-    error: str | None
-    duration_ms: int
-
-
-class WorkflowStepResponse(BaseModel):
-    task: str
-    agent_hint: str | None
-    verify: str | None
-
-
-class WorkflowResponse(BaseModel):
-    id: UUID
-    name: str
-    description: str
-    schedule: str | None
-    enabled: bool
-    last_run_at: str | None
-    next_run_at: str | None
-    created_at: str
-
-
-class WorkflowDetailResponse(WorkflowResponse):
-    steps: list[WorkflowStepResponse]
-
-
-class WorkflowExecutionResponse(BaseModel):
-    id: UUID
-    workflow_id: UUID | None
-    status: str
-    step_results: list[StepResultResponse]
-    error: str | None
-    started_at: str | None
-    completed_at: str | None
-    created_at: str
 
 
 @router.get(

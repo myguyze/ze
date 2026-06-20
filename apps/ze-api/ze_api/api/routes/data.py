@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Header, HTTPException, Request, UploadFile, File, status
-from fastapi.responses import Response
-from pydantic import BaseModel
+from datetime import datetime, timezone
 
-from ze_data.portability.service import DataPortabilityService, SchemaMismatchError, InstanceNotEmptyError
+from fastapi import APIRouter, File, Header, HTTPException, Request, UploadFile, status
+from fastapi.responses import Response
+
+from ze_api.api.schemas import DeleteIntentResponse, DeleteRequest, ImportResponse
 from ze_api.logging import get_logger
+from ze_data.portability.service import DataPortabilityService, InstanceNotEmptyError, SchemaMismatchError
 
 log = get_logger(__name__)
 
@@ -27,20 +29,6 @@ def _service(request: Request) -> DataPortabilityService:
     return request.app.state.data_portability_service
 
 
-class DeleteIntentResponse(BaseModel):
-    confirmation_token: str
-    expires_at: str
-
-
-class DeleteRequest(BaseModel):
-    confirmation_token: str
-
-
-class ImportResponse(BaseModel):
-    domains_imported: list[str]
-    rows_imported: dict[str, int]
-
-
 @router.get(
     "/api/data/export",
     summary="Export all user data",
@@ -58,7 +46,6 @@ async def export_data(
     _auth(request, authorization)
     log.info("data_export_requested")
     archive = await _service(request).export()
-    from datetime import datetime, timezone
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return Response(
         content=archive,

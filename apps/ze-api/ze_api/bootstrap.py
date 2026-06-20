@@ -34,6 +34,7 @@ _DEFAULT_AGENT_MODULE_PATHS = [
     "ze_email.agents.email.agent",
     "ze_prospecting.agents.tools",
     "ze_prospecting.agents.agent",
+    "ze_ingestion.agent",
 ]
 
 _dep_map: dict[type, Any] = {}

@@ -178,6 +178,14 @@ class ZePlugin(ABC):
         """
         return []
 
+    def ingestion_fetchers(self) -> list:
+        """Return Fetcher instances this plugin contributes to the ingestion pipeline."""
+        return []
+
+    def ingestion_extractors(self) -> list:
+        """Return Extractor instances this plugin contributes to the ingestion pipeline."""
+        return []
+
     def register_proactive_jobs(
         self,
         scheduler: Any,

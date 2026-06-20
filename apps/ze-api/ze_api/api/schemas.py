@@ -214,6 +214,65 @@ class ArticleItem(BaseModel):
     credibility_flags: list[CredibilityFlagItem]
 
 
+# ── REST: data portability ────────────────────────────────────────────────────
+
+class DeleteIntentResponse(BaseModel):
+    confirmation_token: str
+    expires_at: str
+
+
+class DeleteRequest(BaseModel):
+    confirmation_token: str
+
+
+class ImportResponse(BaseModel):
+    domains_imported: list[str]
+    rows_imported: dict[str, int]
+
+
+# ── REST: workflows ───────────────────────────────────────────────────────────
+
+class StepResultResponse(BaseModel):
+    step_index: int
+    task: str
+    output: str
+    success: bool
+    error: str | None
+    duration_ms: int
+
+
+class WorkflowStepResponse(BaseModel):
+    task: str
+    agent_hint: str | None
+    verify: str | None
+
+
+class WorkflowResponse(BaseModel):
+    id: UUIDType
+    name: str
+    description: str
+    schedule: str | None
+    enabled: bool
+    last_run_at: str | None
+    next_run_at: str | None
+    created_at: str
+
+
+class WorkflowDetailResponse(WorkflowResponse):
+    steps: list[WorkflowStepResponse]
+
+
+class WorkflowExecutionResponse(BaseModel):
+    id: UUIDType
+    workflow_id: UUIDType | None
+    status: str
+    step_results: list[StepResultResponse]
+    error: str | None
+    started_at: str | None
+    completed_at: str | None
+    created_at: str
+
+
 # ── REST: eval ────────────────────────────────────────────────────────────────
 
 class EvalChatRequest(BaseModel):

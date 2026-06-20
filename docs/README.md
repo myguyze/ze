@@ -19,3 +19,5 @@
 | [deployment.md](deployment.md) | Fly.io deployment, GitHub Actions CI, environment setup |
 | [eval.md](eval.md) | End-to-end eval system via MCP — running evals, LLM-as-judge |
 | [finance.md](finance.md) | Finance plugin — data sources, privacy model, CSV import, spending categories, signals, data deletion, future risk engine |
+| [ingestion.md](ingestion.md) | Content ingestion pipeline — how content is classified, fetched, processed, extracted, and sunk to memory; plugin extension points; ze-yt video integration |
+| [data-portability.md](data-portability.md) | Data export, import, and deletion — ZIP format, schema matching, `DataDomain` contract |
