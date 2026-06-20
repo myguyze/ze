@@ -38,6 +38,7 @@ class FinancePlugin(ZePlugin):
         fin_cfg = settings.config.get("finance", {})
         self._snapshot_cron: str = fin_cfg.get("snapshot_schedule", "0 8 * * *")
         self._recurring_cron: str = fin_cfg.get("recurring_detection_schedule", "0 9 1 * *")
+        self._recurring_enabled: bool = bool(fin_cfg.get("recurring_detection_enabled", False))
         large_tx_threshold = Decimal(str(fin_cfg.get("large_transaction_threshold", 500)))
         llm_cat_enabled: bool = bool(fin_cfg.get("llm_categorization", False))
         staleness_days: int = int(fin_cfg.get("recurring_staleness_days", 35))
@@ -197,7 +198,10 @@ class FinancePlugin(ZePlugin):
             self._snapshot_job, cron=self._snapshot_cron
         )
         log.info("finance_snapshot_scheduled", cron=self._snapshot_cron)
-        container.proactive_scheduler.register(
-            self._recurring_job, cron=self._recurring_cron
-        )
-        log.info("finance_recurring_detection_scheduled", cron=self._recurring_cron)
+        if self._recurring_enabled:
+            container.proactive_scheduler.register(
+                self._recurring_job, cron=self._recurring_cron
+            )
+            log.info("finance_recurring_detection_scheduled", cron=self._recurring_cron)
+        else:
+            log.info("finance_recurring_detection_disabled")

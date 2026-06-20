@@ -76,7 +76,8 @@ finance:
   large_transaction_threshold: 500        # nominal threshold (native currency, no FX conversion)
   llm_categorization: false               # opt-in LLM batch categorisation (Anthropic only)
 
-  # Recurring expense detection
+  # Recurring expense detection — off by default
+  recurring_detection_enabled: false          # set true to enable the monthly detection job
   recurring_detection_schedule: "0 9 1 * *"  # 1st of each month at 09:00
   recurring_staleness_days: 35                # CSV accounts older than this get a nudge
   recurring_nudge_cooldown_days: 14           # minimum days between nudges per account

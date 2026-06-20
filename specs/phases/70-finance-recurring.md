@@ -19,7 +19,7 @@
 | `confirm_recurring` / `dismiss_recurring` agent tools | ✅ Done |
 | `render_confirm` review flow in FinanceAgent | ✅ Done — via tool list + instructions |
 | Migration `zfin002` | ✅ Done |
-| Capability gate opt-in | 🔲 Pending — `CapabilityGate` wiring deferred |
+| Opt-in config flag (`recurring_detection_enabled`) | ✅ Done — job only registers when `true`; `CapabilityGate` is not the right mechanism here (it controls agent execution modes, not job scheduling) |
 
 ---
 
