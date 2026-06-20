@@ -27,6 +27,8 @@ class FinancePlugin(ZePlugin):
         from ze_finance.categoriser import CategoryInferrer
         from ze_finance.signals.finance import FinanceSignalSource
         from ze_finance.jobs.snapshot import DailySnapshotJob
+        from ze_finance.sources.csv import CsvSchemaInferrer
+        from ze_finance.ingestion.extractor import FinanceIngestionExtractor
 
         fin_cfg = settings.config.get("finance", {})
         self._snapshot_cron: str = fin_cfg.get("snapshot_schedule", "0 8 * * *")
@@ -42,6 +44,15 @@ class FinancePlugin(ZePlugin):
             llm_enabled=llm_cat_enabled,
         )
         self._signal_source = FinanceSignalSource(large_tx_threshold=large_tx_threshold)
+
+        ingestion_model = settings.config.get("models", {}).get("finance_ingestion", "anthropic/claude-haiku-4-5")
+        csv_inferrer = CsvSchemaInferrer(client=openrouter_client, mapping_store=self._csv_mapping_store)
+        self._ingestion_extractor = FinanceIngestionExtractor(
+            transaction_store=self._transaction_store,
+            llm_client=openrouter_client,
+            model=ingestion_model,
+            csv_inferrer=csv_inferrer,
+        )
 
         sources = []
         if trading212_client is not None:
@@ -82,6 +93,9 @@ class FinancePlugin(ZePlugin):
 
     def signal_sources(self) -> list:
         return [self._signal_source]
+
+    def ingestion_extractors(self) -> list:
+        return [self._ingestion_extractor]
 
     def data_domains(self) -> list[DataDomain]:
         async def _export_transactions(db: Any) -> list[dict]:

@@ -18,6 +18,10 @@ and the path toward a full risk engine.
 7. [Configuration Reference](#configuration-reference)
 8. [Future: Risk Engine (ze-risk)](#future-risk-engine-ze-risk)
 
+> **Ingestion shortcut:** upload or share a bank statement PDF/CSV directly with Ze
+> and `FinanceIngestionExtractor` will write structured transactions to the finance
+> store automatically. See [Data Sources → Ingestion pipeline](#ingestion-pipeline-pdf-and-csv-via-chat).
+
 ---
 
 ## Data Sources
@@ -59,6 +63,26 @@ Subsequent imports from the same source reuse the cached mapping.
 **Supported formats:** UTF-8 or UTF-8-BOM, comma or semicolon delimited.
 Single amount column (positive/negative) or separate debit/credit columns are
 both handled.
+
+### Ingestion pipeline (PDF and CSV via chat)
+
+CSV files and PDF bank statements can also be submitted directly through Ze's
+ingestion pipeline — paste a URL, upload a file, or tell Ze to "learn from this statement."
+
+`FinanceIngestionExtractor` intercepts content classified as `pdf`, `plain_text`, or
+`document` during the ingestion pipeline and writes structured `Transaction` rows
+directly into `finance_transactions`, bypassing the fact-strings-only path used by
+the default `LLMExtractor`.
+
+- **PDF statements** — LLM parses the processed text and returns a JSON array of transactions.
+- **CSV statements** — `CsvSchemaInferrer` detects column layout (cached per source after the first run), then `CsvDataSource` parses rows into `Transaction` objects.
+
+In both cases the transactions land in the same `finance_transactions` table as
+Trading212 and batch CSV imports — fully queryable, categorisable, and covered by
+the `finance.transactions` DataDomain for export and deletion.
+
+A summary and per-transaction facts are also pushed to `ze-memory`, so Ze can
+reference them conversationally without touching raw financial rows.
 
 ---
 

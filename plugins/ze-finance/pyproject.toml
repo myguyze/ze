@@ -9,6 +9,7 @@ description = "Ze finance plugin — portfolio, transactions, spending, and data
 requires-python = ">=3.11"
 dependencies = [
     "ze-sdk",
+    "ze-ingestion",
     "ze-trading212",
     "asyncpg>=0.30",
     "httpx>=0.28",
@@ -16,6 +17,7 @@ dependencies = [
 
 [tool.uv.sources]
 ze-sdk        = { workspace = true }
+ze-ingestion  = { workspace = true }
 ze-trading212 = { workspace = true }
 
 [dependency-groups]

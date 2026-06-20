@@ -10,19 +10,20 @@
 
 | Feature | Status |
 |---------|--------|
-| `ContentType` enum + `IngestionRequest` types | 🔲 Pending |
-| `ContentClassifier` | 🔲 Pending |
-| `Fetcher` protocol + `WebFetcher` + `BrowserFetcher` | 🔲 Pending |
-| `Processor` protocol + PDF / HTML / Audio / Image / Text processors | 🔲 Pending |
-| `Extractor` protocol + default `LLMExtractor` | 🔲 Pending |
-| `IngestionPipeline` (run-all-merge) | 🔲 Pending |
-| `IngestionStore` + migration (`zi001`) | 🔲 Pending |
-| `MemorySink` | 🔲 Pending |
-| `IngestionAgent` | 🔲 Pending |
-| `ZePlugin.ingestion_extractors()` hook | 🔲 Pending |
-| `ZePlugin.ingestion_fetchers()` hook | 🔲 Pending |
-| `POST /api/ingest` route | 🔲 Pending |
-| `integrations/ze-yt/` — `YtDlpFetcher` | 🔲 Pending |
+| `ContentType` enum + `IngestionRequest` types | ✅ Done |
+| `ContentClassifier` | ✅ Done |
+| `Fetcher` protocol + `WebFetcher` + `BrowserFetcher` | ✅ Done |
+| `Processor` protocol + PDF / HTML / Audio / Image / Text processors | ✅ Done |
+| `Extractor` protocol + default `LLMExtractor` | ✅ Done |
+| `IngestionPipeline` (run-all-merge) | ✅ Done |
+| `IngestionStore` + migration (`zi001`) | ✅ Done |
+| `MemorySink` | ✅ Done |
+| `IngestionAgent` | ✅ Done |
+| `ZePlugin.ingestion_extractors()` hook | ✅ Done |
+| `ZePlugin.ingestion_fetchers()` hook | ✅ Done |
+| `POST /api/ingest` route | ✅ Done |
+| `integrations/ze-yt/` — `YtDlpFetcher` | ✅ Done |
+| `ze-finance` `FinanceIngestionExtractor` | ✅ Done |
 | Tests | 🔲 Pending |
 
 ---
