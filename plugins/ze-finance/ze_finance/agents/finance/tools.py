@@ -5,6 +5,8 @@ from decimal import Decimal
 from typing import Any
 
 from ze_agents.tool import ToolAccess, tool
+from ze_finance.recurring.store import RecurringStore
+from ze_finance.recurring.types import RecurringStatus, cadence_label
 from ze_finance.store import PortfolioStore, TransactionStore
 
 _MAX_TRANSACTIONS = 50
@@ -200,6 +202,68 @@ async def get_account_balance(
         "currency": account.currency,
         "updated_at": account.updated_at.isoformat(),
     }
+
+
+@tool(
+    access=ToolAccess.READ,
+    description=(
+        "List recurring expenses and subscriptions Ze has detected or the user has confirmed. "
+        "Use when the user asks about subscriptions, fixed monthly costs, or recurring charges. "
+        "status filter: 'detected' | 'confirmed' | 'dismissed' — omit for all."
+    ),
+)
+async def get_recurring_expenses(
+    recurring_store: RecurringStore,
+    status: str | None = None,
+) -> list[dict]:
+    filter_status = RecurringStatus(status) if status else None
+    expenses = await recurring_store.list(status=filter_status)
+    return [
+        {
+            "merchant": e.merchant_display,
+            "amount": str(e.amount),
+            "currency": e.currency,
+            "cadence": cadence_label(e.interval_days),
+            "interval_days": e.interval_days,
+            "category": e.category,
+            "status": e.status.value,
+            "last_seen": e.last_seen_at.date().isoformat(),
+        }
+        for e in expenses
+    ]
+
+
+@tool(
+    access=ToolAccess.WRITE,
+    description=(
+        "Mark a detected recurring charge as confirmed — Ze will track it as a subscription. "
+        "Call after the user taps 'Yes, track it' on a render_confirm card or confirms in conversation. "
+        "normalised_key comes from get_recurring_expenses."
+    ),
+)
+async def confirm_recurring(
+    recurring_store: RecurringStore,
+    normalised_key: str,
+    account_id: str,
+) -> str:
+    await recurring_store.confirm(normalised_key, account_id)
+    return "Confirmed — I'll track this as a recurring expense."
+
+
+@tool(
+    access=ToolAccess.WRITE,
+    description=(
+        "Dismiss a detected recurring charge — Ze will not surface it again unless the amount changes. "
+        "Call after the user taps 'Ignore' or says they don't want to track it."
+    ),
+)
+async def dismiss_recurring(
+    recurring_store: RecurringStore,
+    normalised_key: str,
+    account_id: str,
+) -> str:
+    await recurring_store.dismiss(normalised_key, account_id)
+    return "Got it — I'll ignore this charge."
 
 
 def _pnl_pct(pnl: Decimal, cost_basis: Decimal) -> str:

@@ -9,6 +9,7 @@ import asyncpg
 from ze_agents.client import LLMClient
 from ze_agents.logging import get_logger
 from ze_agents.settings import Settings as CoreSettings
+from ze_proactive.notifier import ProactiveNotifier
 from ze_sdk import ZePlugin, DataDomain
 
 log = get_logger(__name__)
@@ -21,23 +22,35 @@ class FinancePlugin(ZePlugin):
         pool: asyncpg.Pool,
         settings: CoreSettings,
         openrouter_client: LLMClient,
+        notifier: ProactiveNotifier,
         trading212_client: Any = None,
     ) -> None:
         from ze_finance.store import PortfolioStore, TransactionStore, CsvMappingStore
         from ze_finance.categoriser import CategoryInferrer
         from ze_finance.signals.finance import FinanceSignalSource
         from ze_finance.jobs.snapshot import DailySnapshotJob
+        from ze_finance.jobs.recurring import RecurringDetectionJob
         from ze_finance.sources.csv import CsvSchemaInferrer
         from ze_finance.ingestion.extractor import FinanceIngestionExtractor
+        from ze_finance.recurring.detector import RecurringDetector
+        from ze_finance.recurring.store import RecurringStore
 
         fin_cfg = settings.config.get("finance", {})
         self._snapshot_cron: str = fin_cfg.get("snapshot_schedule", "0 8 * * *")
+        self._recurring_cron: str = fin_cfg.get("recurring_detection_schedule", "0 9 1 * *")
         large_tx_threshold = Decimal(str(fin_cfg.get("large_transaction_threshold", 500)))
         llm_cat_enabled: bool = bool(fin_cfg.get("llm_categorization", False))
+        staleness_days: int = int(fin_cfg.get("recurring_staleness_days", 35))
+        nudge_cooldown_days: int = int(fin_cfg.get("recurring_nudge_cooldown_days", 14))
+        price_change_threshold: float = float(fin_cfg.get("recurring_price_change_threshold", 0.10))
 
         self._portfolio_store = PortfolioStore(pool=pool)
         self._transaction_store = TransactionStore(pool=pool)
         self._csv_mapping_store = CsvMappingStore(pool=pool)
+        self._recurring_store = RecurringStore(
+            pool=pool,
+            price_change_threshold=price_change_threshold,
+        )
 
         self._categoriser = CategoryInferrer(
             client=openrouter_client if llm_cat_enabled else None,
@@ -68,6 +81,15 @@ class FinancePlugin(ZePlugin):
             signal_source=self._signal_source,
             categoriser=self._categoriser,
         )
+        self._recurring_job = RecurringDetectionJob(
+            portfolio_store=self._portfolio_store,
+            transaction_store=self._transaction_store,
+            recurring_store=self._recurring_store,
+            notifier=notifier,
+            detector=RecurringDetector(),
+            staleness_days=staleness_days,
+            nudge_cooldown_days=nudge_cooldown_days,
+        )
 
     @classmethod
     def migrations_path(cls) -> Path | None:
@@ -86,9 +108,11 @@ class FinancePlugin(ZePlugin):
 
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_finance.store import PortfolioStore, TransactionStore
+        from ze_finance.recurring.store import RecurringStore
         return {
             PortfolioStore: self._portfolio_store,
             TransactionStore: self._transaction_store,
+            RecurringStore: self._recurring_store,
         }
 
     def signal_sources(self) -> list:
@@ -126,6 +150,15 @@ class FinancePlugin(ZePlugin):
         async def _delete_accounts(db: Any) -> None:
             await db.execute("DELETE FROM finance_accounts")
 
+        async def _export_recurring(db: Any) -> list[dict]:
+            rows = await db.fetch("SELECT * FROM finance_recurring")
+            return [dict(r) for r in rows]
+
+        async def _delete_recurring(db: Any) -> None:
+            # Delete staleness bookkeeping first (no FK, but logically coupled).
+            await db.execute("DELETE FROM finance_recurring_staleness")
+            await db.execute("DELETE FROM finance_recurring")
+
         return [
             DataDomain(
                 name="finance.transactions",
@@ -146,6 +179,12 @@ class FinancePlugin(ZePlugin):
                 delete_order=10,
             ),
             DataDomain(
+                name="finance.recurring",
+                export=_export_recurring,
+                delete=_delete_recurring,
+                delete_order=10,
+            ),
+            DataDomain(
                 name="finance.accounts",
                 export=_export_accounts,
                 delete=_delete_accounts,
@@ -158,3 +197,7 @@ class FinancePlugin(ZePlugin):
             self._snapshot_job, cron=self._snapshot_cron
         )
         log.info("finance_snapshot_scheduled", cron=self._snapshot_cron)
+        container.proactive_scheduler.register(
+            self._recurring_job, cron=self._recurring_cron
+        )
+        log.info("finance_recurring_detection_scheduled", cron=self._recurring_cron)

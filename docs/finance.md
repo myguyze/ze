@@ -13,10 +13,11 @@ and the path toward a full risk engine.
 2. [Privacy & Data Protection](#privacy--data-protection)
 3. [CSV Import](#csv-import)
 4. [Spending Categories](#spending-categories)
-5. [Signals & Proactive Alerts](#signals--proactive-alerts)
-6. [Data Deletion & Export](#data-deletion--export)
-7. [Configuration Reference](#configuration-reference)
-8. [Future: Risk Engine (ze-risk)](#future-risk-engine-ze-risk)
+5. [Recurring Expense Detection](#recurring-expense-detection)
+6. [Signals & Proactive Alerts](#signals--proactive-alerts)
+7. [Data Deletion & Export](#data-deletion--export)
+8. [Configuration Reference](#configuration-reference)
+9. [Future: Risk Engine (ze-risk)](#future-risk-engine-ze-risk)
 
 > **Ingestion shortcut:** upload or share a bank statement PDF/CSV directly with Ze
 > and `FinanceIngestionExtractor` will write structured transactions to the finance
@@ -222,6 +223,122 @@ finance:
 
 ---
 
+## Recurring Expense Detection
+
+Ze can automatically surface subscriptions, rent, utility bills, and other fixed
+charges from transaction history — without the user having to categorise them
+manually.
+
+### Opt-in
+
+Recurring detection is **off by default**. Enable it by telling Ze:
+
+> "Track my recurring expenses" / "Show me my subscriptions"
+
+Ze enables the `finance.recurring_detection` capability, runs a one-shot detection
+pass over the last 90 days of transactions, and notifies you of candidates found.
+
+### How detection works
+
+Detection is purely algorithmic — no LLM involved, no description text sent
+anywhere. The steps:
+
+1. Filter to spending transactions (`withdrawal`, `fee`).
+2. Normalise the description: lowercase, strip digits and punctuation, collapse
+   whitespace. This groups `"Netflix 1234"` and `"Netflix 5678"` under the same key.
+3. Group by `(normalised description, currency, account)`.
+4. For each group, compute the gaps in days between consecutive occurrences.
+5. Reject the group if any gap falls outside ±40% of the median gap — this filters
+   erratic patterns (e.g. charges that appear weekly some months and monthly others).
+6. Snap the median gap to the nearest natural billing interval:
+   `1, 7, 14, 21, 28, 30, 42, 60, 90, 120, 180, 365` days.
+7. Require total span ≥ max(1.5 × interval, 14 days). Two purchases a few days apart
+   do not qualify as recurring.
+8. Reject if the coefficient of variation of amounts exceeds 10% — variable-amount
+   charges (food delivery, irregular bills) are not flagged as subscriptions.
+
+### Supported cadences
+
+Ze detects any billing cycle that maps to a natural interval — not just monthly:
+
+| Interval | Label |
+|---|---|
+| 7 days | weekly |
+| 14 days | every 2 weeks |
+| 21 days | every 3 weeks |
+| 28 days | every 4 weeks |
+| 30 days | monthly |
+| 42 days | every 6 weeks |
+| 60 days | every 2 months |
+| 90 days | quarterly |
+| 180 days | every 6 months |
+| 365 days | yearly |
+
+> **Note:** annual charges (365-day cycle) require at least 2 occurrences spanning
+> more than 1.5 years, so a 90-day lookback window will not detect them. The lookback
+> window can be extended via `finance.recurring_lookback_days`.
+
+### Candidate lifecycle
+
+Detected candidates have three states:
+
+| Status | Meaning |
+|---|---|
+| `detected` | Found by Ze, not yet reviewed by the user |
+| `confirmed` | User said "yes, track this" |
+| `dismissed` | User said "ignore this" |
+
+When new candidates are found, Ze sends a push notification listing them. Opening
+the chat presents a `render_confirm` card per item:
+
+> *"Is this a subscription you want to track?"*  
+> Netflix — EUR 15.99/monthly  **[Yes, track it]** **[Ignore]**
+
+Tapping a button calls `confirm_recurring` or `dismiss_recurring` respectively.
+
+### Price-change resurface
+
+A dismissed charge is normally permanent. However, if the detected amount changes
+by more than `finance.recurring_price_change_threshold` (default 10%), Ze resets
+the status to `detected` and sends a targeted notification:
+
+> "Your Netflix charge changed from EUR 15.99 to EUR 17.99 — still happy with it?"
+
+Below the threshold, dismissed stays dismissed.
+
+### Data freshness and CSV nudges
+
+The `RecurringDetectionJob` runs on the 1st of each month at 09:00 (configurable).
+Before running detection on an account, it checks the age of the most recent
+transaction:
+
+- **CSV-sourced accounts** (`source_id` starts with `csv:`): if no new transactions
+  have been seen for more than `finance.recurring_staleness_days` (default 35) days,
+  Ze skips detection and sends a push nudge:
+
+  > "I haven't seen new transactions for 'Revolut' in 40 days. Upload a fresh bank
+  > statement so I can keep your recurring expense list up to date."
+
+  Nudges are rate-limited to once per account per `finance.recurring_nudge_cooldown_days`
+  (default 14) days.
+
+- **Live-connected accounts** (Trading212): staleness means the daily snapshot job
+  failed. Ze logs an error but does not nudge — there's nothing the user can do.
+
+### Asking Ze about recurring expenses
+
+Ze can answer recurring-expense questions conversationally at any time (not just
+after the job runs):
+
+> "What subscriptions do I have?"  
+> "What are my monthly fixed costs?"  
+> "Show me all the recurring charges you've detected"
+
+The `FinanceAgent` calls `get_recurring_expenses` and can filter by status
+(`detected`, `confirmed`, or `dismissed`).
+
+---
+
 ## Signals & Proactive Alerts
 
 `FinanceSignalSource` emits signals into Ze's signal substrate after each daily
@@ -256,15 +373,18 @@ participates in Ze's standard export and deletion flows.
 
 ### Tables covered
 
-| Domain | Table | delete_order |
+| Domain | Tables | delete_order |
 |---|---|---|
 | `finance.transactions` | `finance_transactions` | 10 |
 | `finance.positions` | `finance_positions` | 10 |
 | `finance.csv_mappings` | `finance_csv_mappings` | 10 |
+| `finance.recurring` | `finance_recurring`, `finance_recurring_staleness` | 10 |
 | `finance.accounts` | `finance_accounts` | 20 |
 
 Accounts are deleted last because positions and transactions reference them via
-foreign key. Import follows the reverse order (accounts first, then children).
+foreign key. `finance_recurring_staleness` (nudge timestamps) is deleted together
+with `finance_recurring` — it is internal bookkeeping and is not exported
+separately.
 
 ### Export
 
@@ -275,6 +395,7 @@ finance.accounts.json       — account metadata and balances
 finance.positions.json      — current position snapshot
 finance.transactions.json   — full transaction ledger
 finance.csv_mappings.json   — cached column mappings per bank source
+finance.recurring.json      — detected/confirmed/dismissed recurring charges
 ```
 
 ### Deletion
@@ -297,9 +418,16 @@ is a hard delete with no recovery path. Export your data first.
 
 ```yaml
 finance:
-  snapshot_schedule: "0 8 * * *"   # cron — when the daily snapshot job runs
-  large_transaction_threshold: 500  # nominal threshold; compared in native currency
-  llm_categorization: false         # opt-in LLM batch categorisation (Anthropic only)
+  snapshot_schedule: "0 8 * * *"         # cron — when the daily snapshot job runs
+  large_transaction_threshold: 500        # nominal threshold; compared in native currency
+  llm_categorization: false               # opt-in LLM batch categorisation (Anthropic only)
+
+  # Recurring expense detection (Phase 70)
+  recurring_detection_schedule: "0 9 1 * *"  # 1st of each month at 09:00
+  recurring_staleness_days: 35                # CSV accounts older than this get a nudge
+  recurring_nudge_cooldown_days: 14           # minimum days between nudges per account
+  recurring_price_change_threshold: 0.10      # resurface dismissed items if amount changes >10%
+  recurring_lookback_days: 90                 # transaction history window for detection
 ```
 
 ---

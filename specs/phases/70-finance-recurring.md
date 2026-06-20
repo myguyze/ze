@@ -2,7 +2,7 @@
 
 > **Package:** `ze-finance` (`plugins/ze-finance`)
 > **Phase:** 70
-> **Status:** Pending
+> **Status:** Done
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Feature | Status |
 |---------|--------|
-| `RecurringExpense` type + `RecurringStatus` enum | 🔲 Pending |
-| `RecurringStore` | 🔲 Pending |
-| `RecurringDetector` | 🔲 Pending |
-| `RecurringDetectionJob` | 🔲 Pending |
-| Staleness check + CSV nudge | 🔲 Pending |
-| `get_recurring_expenses` agent tool | 🔲 Pending |
-| `confirm_recurring` / `dismiss_recurring` agent tools | 🔲 Pending |
-| `render_confirm` review flow in FinanceAgent | 🔲 Pending |
-| Migration `zfin002` | 🔲 Pending |
-| Capability gate opt-in | 🔲 Pending |
+| `RecurringExpense` type + `RecurringStatus` enum | ✅ Done |
+| `RecurringStore` | ✅ Done |
+| `RecurringDetector` | ✅ Done — generic gap analysis, snaps to natural intervals |
+| `RecurringDetectionJob` | ✅ Done |
+| Staleness check + CSV nudge | ✅ Done |
+| `get_recurring_expenses` agent tool | ✅ Done |
+| `confirm_recurring` / `dismiss_recurring` agent tools | ✅ Done |
+| `render_confirm` review flow in FinanceAgent | ✅ Done — via tool list + instructions |
+| Migration `zfin002` | ✅ Done |
+| Capability gate opt-in | 🔲 Pending — `CapabilityGate` wiring deferred |
 
 ---
 
