@@ -94,6 +94,8 @@ explicitly deferred before implementation begins.
 | 65 | [Eager Session Summaries](phases/65-eager-session-summaries.md) | 🔲 Pending |
 | 66 | [Primitive UI](phases/66-primitive-ui.md) | 🔲 Pending |
 | 67 | [Finance Plugin](phases/67-finance-plugin.md) | 🔲 Pending |
+| 68 | [ze-data Package](phases/68-ze-data.md) | 🔲 Pending |
+| 69 | [ze-ingestion Pipeline](phases/69-ze-ingestion.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
