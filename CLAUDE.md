@@ -381,3 +381,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 64 | Plugin package extraction — `ze-plugin` package carved from `ze-agents`; `ZePlugin`, `channels/`, `SignalSource`, `ZeIntegration` in their own package; `ze-agents` focused on agent execution API | Done |
 | 68 | ze-data — `DataDomain` and `DataPortabilityService` extracted from `ze-plugin`/`ze-api` into `core/ze-data`; no Ze deps | Done |
 | 70 | Finance recurring detection — algorithmic recurring expense/subscription detection, staleness-aware proactive job, CSV nudge flow, price-change resurface | Done |
+| 71 | Cross-goal awareness — convergence detection at goal creation, proactive reuse surfacing at milestone completion | Pending |

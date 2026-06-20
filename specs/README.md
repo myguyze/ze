@@ -96,6 +96,8 @@ explicitly deferred before implementation begins.
 | 67 | [Finance Plugin](phases/67-finance-plugin.md) | 🔲 Pending |
 | 68 | [ze-data Package](phases/68-ze-data.md) | 🔲 Pending |
 | 69 | [ze-ingestion Pipeline](phases/69-ze-ingestion.md) | 🔲 Pending |
+| 70 | [Finance Recurring Detection](phases/70-finance-recurring.md) | ✅ Done |
+| 71 | [Cross-Goal Awareness](phases/71-cross-goal-awareness.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
