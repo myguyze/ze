@@ -4,7 +4,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, UploadFile, File,
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from ze_api.data.service import DataPortabilityService, SchemaMismatchError, InstanceNotEmptyError
+from ze_data.portability.service import DataPortabilityService, SchemaMismatchError, InstanceNotEmptyError
 from ze_api.logging import get_logger
 
 log = get_logger(__name__)

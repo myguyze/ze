@@ -1,39 +1,26 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from itertools import groupby
+from typing import Any
 
-from ze_plugin.plugin import DataDomain
-from ze_api.data.assembler import ExportAssembler, ImportAssembler
-from ze_api.data.types import ImportResult
-from ze_api.logging import get_logger
+from ze_data.domain import DataDomain
+from ze_data.errors import SchemaMismatchError, InstanceNotEmptyError
+from ze_data.portability.assembler import ExportAssembler, ImportAssembler
+from ze_data.portability.types import ImportResult
 
-log = get_logger(__name__)
+log = logging.getLogger(__name__)
 
 _TOKEN_TTL_MINUTES = 10
-
-
-class SchemaMismatchError(Exception):
-    def __init__(self, archive: list[str], current: list[str]) -> None:
-        self.archive = archive
-        self.current = current
-        super().__init__(
-            f"Archive schema revisions {sorted(archive)} do not match "
-            f"current revisions {sorted(current)}. "
-            "Ensure you are importing an archive created by the same Ze version."
-        )
-
-
-class InstanceNotEmptyError(Exception):
-    pass
 
 
 class DataPortabilityService:
     """Orchestrates data export, import, and hard-deletion across all registered domains."""
 
-    def __init__(self, pool, domains: list[DataDomain]) -> None:
+    def __init__(self, pool: Any, domains: list[DataDomain]) -> None:
         self._pool = pool
         self._domains = domains
         self._export_assembler = ExportAssembler()
@@ -57,14 +44,14 @@ class DataPortabilityService:
         domain_data: dict[str, list] = {}
         for domain, result in zip(self._domains, results):
             if isinstance(result, Exception):
-                log.error("export_domain_failed", domain=domain.name, error=str(result))
+                log.error("export_domain_failed domain=%s error=%s", domain.name, result)
                 domain_data[domain.name] = []
             else:
                 domain_data[domain.name] = result
 
         exported_at = datetime.now(timezone.utc)
         schema_revisions = await self.get_schema_revisions()
-        log.info("export_assembled", domains=list(domain_data.keys()), revisions=schema_revisions)
+        log.info("export_assembled domains=%s revisions=%s", list(domain_data.keys()), schema_revisions)
         return self._export_assembler.build(domain_data, exported_at, schema_revisions)
 
     # ── Import ────────────────────────────────────────────────────────────────
@@ -109,9 +96,9 @@ class DataPortabilityService:
                     count = await domain.importer(conn, rows)
                     domains_imported.append(domain.name)
                     rows_imported[domain.name] = count
-                    log.info("import_domain_done", domain=domain.name, rows=count)
+                    log.info("import_domain_done domain=%s rows=%d", domain.name, count)
 
-        log.info("import_complete", domains=domains_imported)
+        log.info("import_complete domains=%s", domains_imported)
         return ImportResult(domains_imported=domains_imported, rows_imported=rows_imported)
 
     # ── Delete ────────────────────────────────────────────────────────────────
@@ -135,5 +122,5 @@ class DataPortabilityService:
         for order_key, group in groupby(ordered, key=lambda d: d.delete_order):
             batch = list(group)
             await asyncio.gather(*[d.delete(self._pool) for d in batch])
-            log.info("delete_batch_done", order=order_key, domains=[d.name for d in batch])
+            log.info("delete_batch_done order=%d domains=%s", order_key, [d.name for d in batch])
         log.info("data_deletion_complete")

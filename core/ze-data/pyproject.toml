@@ -3,19 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ze-plugin"
+name = "ze-data"
 version = "0.1.0"
-description = "Ze plugin extension framework — ZePlugin, channels, signals"
+description = "Ze data management — DataDomain descriptor and DataPortabilityService"
 requires-python = ">=3.11"
-dependencies = [
-    "ze-agents",
-    "ze-data",
-    "pyyaml>=6.0",
-]
-
-[tool.uv.sources]
-ze-agents = { workspace = true }
-ze-data = { workspace = true }
+dependencies = []
 
 [dependency-groups]
 dev = [
@@ -28,5 +20,4 @@ dev = [
 asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ze_plugin"]
-include = ["ze_plugin/py.typed"]
+packages = ["ze_data"]

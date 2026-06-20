@@ -393,9 +393,9 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     graph = build_graph(checkpointer=checkpointer, plugins=plugins)
 
-    from ze_api.data.service import DataPortabilityService
-    from ze_api.data.assembler import bulk_insert
-    from ze_plugin.plugin import DataDomain
+    from ze_data.portability.service import DataPortabilityService
+    from ze_data.portability.assembler import bulk_insert
+    from ze_data.domain import DataDomain
 
     def _mk_export(tbl: str):
         async def _export(p) -> list[dict]:

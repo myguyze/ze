@@ -10,12 +10,12 @@
 
 | Feature | Status |
 |---------|--------|
-| `DataDomain` extracted from `ze-plugin` | 🔲 Pending |
-| `DataPortabilityService` migrated from `ze-api` | 🔲 Pending |
-| Assemblers and portability types migrated | 🔲 Pending |
-| Shims in `ze-plugin` and `ze-sdk` | 🔲 Pending |
-| `ze-api/data/` deleted | 🔲 Pending |
-| Tests migrated | 🔲 Pending |
+| `DataDomain` extracted from `ze-plugin` | ✅ Done |
+| `DataPortabilityService` migrated from `ze-api` | ✅ Done |
+| Assemblers and portability types migrated | ✅ Done |
+| Shims in `ze-plugin` and `ze-sdk` | ✅ Done |
+| `ze-api/data/` deleted | ✅ Done |
+| Tests migrated | ✅ Done |
 
 ---
 

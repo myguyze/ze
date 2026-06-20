@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import importlib
 from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 import yaml
 
+from ze_data.domain import DataDomain  # re-exported for backwards compat
 from ze_plugin.registry import _registry
 from ze_plugin.signals import SignalSource
 
@@ -16,20 +16,7 @@ if TYPE_CHECKING:
     from ze_agents.base_agent import BaseAgent
     from ze_onboarding import OnboardingProvider
 
-
-@dataclass
-class DataDomain:
-    """Describes one data domain that a plugin owns and can export/import/delete."""
-
-    name: str
-    export: Callable[[Any], Awaitable[list[dict]]]
-    delete: Callable[[Any], Awaitable[None]]
-    # Lower delete_order = deleted first (children before parents).
-    # Import order is the reverse: higher delete_order imported first (parents first).
-    delete_order: int = 50
-    # None means this domain is not importable (e.g. opaque LangGraph checkpoint blobs).
-    # Receives an asyncpg Connection (not pool) so importers run inside one transaction.
-    importer: Callable[[Any, list[dict]], Awaitable[int]] | None = None
+__all__ = ["DataDomain", "ZePlugin"]
 
 
 class ZePlugin(ABC):
