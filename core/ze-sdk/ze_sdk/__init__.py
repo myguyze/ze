@@ -1,4 +1,5 @@
-from ze_plugin.plugin import DataDomain, ZePlugin
+from ze_data.domain import DataDomain
+from ze_plugin.plugin import ZePlugin
 from ze_agents.registry import agent
 from ze_agents.tool import tool, ToolAccess
 from ze_agents.base_agent import BaseAgent

@@ -7,7 +7,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import yaml
 
-from ze_data.domain import DataDomain  # re-exported for backwards compat
+from ze_data.domain import DataDomain
 from ze_plugin.registry import _registry
 from ze_plugin.signals import SignalSource
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ze_agents.base_agent import BaseAgent
     from ze_onboarding import OnboardingProvider
 
-__all__ = ["DataDomain", "ZePlugin"]
+__all__ = ["ZePlugin"]
 
 
 class ZePlugin(ABC):
