@@ -114,13 +114,14 @@ ze/                           # monorepo root
 ```
 ze-browser      (no ze deps)             core/
 ze-agents       (no ze deps)             core/
-ze-plugin     → ze-agents                core/
+ze-data         (no ze deps)             core/
+ze-plugin     → ze-agents, ze-data       core/
 ze-proactive  → ze-agents                core/
 ze-notifications(no ze deps)             core/
 ze-components   (no ze deps)             core/
 ze-memory     → ze-agents                core/
 ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
-ze-sdk        → ze-agents, ze-plugin, ze-proactive, ze-memory  core/  ← plugin entry point
+ze-sdk        → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory  core/  ← plugin entry point
 ze-core       → ze-agents, ze-plugin     core/  ← engine; never a plugin dep
 ze-google       (no ze deps)             integrations/
 ze-personal   → ze-sdk                   plugins/
@@ -128,7 +129,7 @@ ze-email      → ze-sdk, ze-google, ze-personal             plugins/
 ze-prospecting→ ze-sdk, ze-browser, ze-personal            plugins/
 ze-calendar   → ze-sdk, ze-google, ze-personal             plugins/
 ze-news       → ze-sdk                   plugins/
-ze-api        → ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting, ze-calendar,
+ze-api        → ze-core, ze-data, ze-sdk, ze-personal, ze-email, ze-prospecting, ze-calendar,
                   ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
 ze-web          (React — connects to ze-api over WebSocket, no Python deps)         apps/
 ```
@@ -378,3 +379,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 57 | Correlation engine — `ze-correlation` package, `CorrelationEngine`, `PostgresHypothesisStore`, graph neighbourhood expansion, recall guarantee, signal pinning | Done |
 | 60 | Cross-plugin signal contract — `SignalSource` protocol, `ZePlugin.signal_sources()` hook, `NewsSignalSource`, `CalendarSignalSource`, container collection + dedup | Done |
 | 64 | Plugin package extraction — `ze-plugin` package carved from `ze-agents`; `ZePlugin`, `channels/`, `SignalSource`, `ZeIntegration` in their own package; `ze-agents` focused on agent execution API | Done |
+| 68 | ze-data — `DataDomain` and `DataPortabilityService` extracted from `ze-plugin`/`ze-api` into `core/ze-data`; no Ze deps | Done |

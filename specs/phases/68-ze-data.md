@@ -199,10 +199,10 @@ from ze_data.portability.types import ImportResult
 ## Dependency graph after this phase
 
 ```
-ze-data       (no ze deps)                          core/
-ze-agents     (no ze deps)                          core/
-ze-plugin   → ze-agents, ze-data                   core/   ← gains ze-data dep
-ze-sdk      → ze-agents, ze-plugin, ze-proactive, ze-memory  core/
+ze-data       (no ze deps)                                        core/
+ze-agents     (no ze deps)                                        core/
+ze-plugin   → ze-agents, ze-data                                  core/
+ze-sdk      → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory  core/
 ```
 
 ---
