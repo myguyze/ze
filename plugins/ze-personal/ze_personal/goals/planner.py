@@ -13,6 +13,7 @@ from ze_sdk.memory import Episode, Fact, Procedure, RetrievalRequest
 from ze_personal.goals.types import (
     Goal,
     GateStatus,
+    GoalConvergence,
     GoalLearning,
     GoalStatus,
     GoalSuggestion,
@@ -202,6 +203,32 @@ Return JSON:
 
 If the goal was too specific or opportunistic to generalise into a reusable procedure,
 return: {"name": null}\
+"""
+
+_CONVERGENCE_SYSTEM = """\
+You detect whether a newly created goal meaningfully overlaps with an existing active goal.
+
+Meaningful overlap means: the goals share research domain, target the same external
+parties, produce the same type of artifact, or would clearly benefit from sharing work.
+Vague thematic similarity ("both are about business") is NOT overlap.
+
+If you find meaningful overlap, return:
+{
+  "overlapping_goal_id": "<uuid of the most overlapping active goal>",
+  "overlapping_goal_title": "<title of that goal>",
+  "overlap_description": "<one sentence: what specifically the goals share>",
+  "suggestion": "<one of: share outputs, sequence them, keep independent>"
+}
+
+If there is no meaningful overlap, return: {"overlapping_goal_id": null}
+
+Rules:
+- Only report overlap when it is specific and concrete.
+- Pick at most one overlapping goal (the one with the highest overlap).
+- The suggestion should reflect what Ze would most naturally do given the overlap
+  type: 'share outputs' if they produce the same type of work, 'sequence them' if
+  one logically precedes the other, 'keep independent' if overlap is minor.
+- Do not fabricate overlap. If in doubt, return null.\
 """
 
 _PROPER_NOUN_RE = re.compile(r"[A-Z][a-z]+|\d{4}|\bQ[1-4]\b")
@@ -519,6 +546,43 @@ class GoalPlanner:
             model=self._model,
             system="You extract one-sentence learnings from task outputs. Output only the sentence — no quotes, no explanation.",
         )
+
+    async def detect_convergence(
+        self,
+        new_goal: Goal,
+        active_goals: list[Goal],
+    ) -> GoalConvergence | None:
+        """Check whether the new goal overlaps with any active goal. Returns None when no meaningful overlap found or on any error."""
+        if not active_goals:
+            return None
+        active_lines = "\n".join(
+            f"  - id={g.id} title={g.title!r} objective={g.objective!r}"
+            for g in active_goals
+        )
+        prompt = (
+            f"New goal:\n"
+            f"  title: {new_goal.title!r}\n"
+            f"  objective: {new_goal.objective!r}\n"
+            f"  success_condition: {new_goal.success_condition!r}\n\n"
+            f"Active goals:\n{active_lines}"
+        )
+        try:
+            raw = await self._client.complete(
+                messages=[{"role": "user", "content": prompt}],
+                model=self._model,
+                system=_CONVERGENCE_SYSTEM,
+            )
+            data = json.loads(raw)
+            if not data.get("overlapping_goal_id"):
+                return None
+            return GoalConvergence(
+                overlapping_goal_id=UUID(data["overlapping_goal_id"]),
+                overlapping_goal_title=str(data["overlapping_goal_title"]),
+                overlap_description=str(data["overlap_description"])[:300],
+                suggestion=str(data["suggestion"])[:100],
+            )
+        except Exception:
+            return None
 
     async def generate_suggestion(
         self,

@@ -79,6 +79,43 @@ async def get_goal_status(store: GoalStore, goal_id: str) -> dict:
     return result
 
 
+async def _check_convergence(
+    store: GoalStore,
+    planner: GoalPlanner,
+    notifier: ProactiveNotifier,
+    new_goal: Goal,
+    active_goals: list[Goal],
+) -> None:
+    others = [g for g in active_goals if g.id != new_goal.id]
+    if not others:
+        return
+    try:
+        conv = await planner.detect_convergence(new_goal, others)
+    except Exception as exc:
+        log.warning("goal_convergence_check_failed", error=str(exc))
+        return
+    if conv is None:
+        return
+    log.info(
+        "goal_convergence_detected",
+        new_goal_id=str(new_goal.id),
+        overlapping_goal_id=str(conv.overlapping_goal_id),
+    )
+    await notifier.push_notification(Notification(
+        content=(
+            f"<b>Goal overlap detected</b>\n\n"
+            f"<b>{_html.escape(new_goal.title)}</b> and "
+            f"<b>{_html.escape(conv.overlapping_goal_title)}</b> share scope: "
+            f"{_html.escape(conv.overlap_description)}\n\n"
+            f"Suggested approach: <i>{_html.escape(conv.suggestion)}</i>. "
+            f"Let me know if you'd like to share outputs between them, sequence one "
+            f"after the other, or keep them running independently."
+        ),
+        format="html",
+        urgency="normal",
+    ))
+
+
 @tool(access=ToolAccess.WRITE, description="Create a new goal and propose a milestone plan for user approval.")
 async def create_goal(
     store: GoalStore,
@@ -90,6 +127,8 @@ async def create_goal(
     time_horizon: str = "",
     goal_type: str = "custom",
 ) -> dict:
+    active_goals = await store.list_active()
+
     goal = Goal(
         title=goal_title,
         objective=objective,
@@ -149,6 +188,8 @@ async def create_goal(
             ],
         )
     )
+
+    asyncio.create_task(_check_convergence(store, planner, notifier, goal, active_goals))
 
     return {
         "id": str(goal.id),

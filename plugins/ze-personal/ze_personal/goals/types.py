@@ -140,3 +140,11 @@ class StuckGoal:
     idle_days: int
     last_milestone_title: str | None
     gate: VerificationGate | None
+
+
+@dataclass
+class GoalConvergence:
+    overlapping_goal_id: UUID
+    overlapping_goal_title: str
+    overlap_description: str
+    suggestion: str

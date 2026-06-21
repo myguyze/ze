@@ -193,6 +193,8 @@ class GoalExecutor:
             output, tool_calls = await self._execute_milestone(next_milestone, goal, milestones)
             await self._store.update_milestone(next_milestone.id, MilestoneStatus.COMPLETED, output=output)
             asyncio.create_task(self._store.save_traces(_to_traces(next_milestone, tool_calls)))
+            if next_milestone.reuse_hint:
+                asyncio.create_task(self._push_reuse_notice(goal, next_milestone))
             await self._store.reset_consecutive_failures(goal_id)
             log.info("milestone_completed", goal_id=str(goal_id), sequence=next_milestone.sequence)
         except GoalExecutionError as exc:
@@ -402,6 +404,24 @@ class GoalExecutor:
             log.info("goal_learning_promoted", goal_id=str(goal.id), count=len(facts))
         except Exception as exc:
             log.warning("goal_learning_promotion_write_failed", error=str(exc))
+
+    async def _push_reuse_notice(self, goal: Goal, milestone: Milestone) -> None:
+        log.info(
+            "goal_reuse_notice_sent",
+            goal_id=str(goal.id),
+            milestone_title=milestone.title,
+        )
+        self._push(Notification(
+            content=(
+                f"<b>Prior work reused</b>\n\n"
+                f"While completing <i>{_html.escape(milestone.title)}</i> "
+                f"(goal: <b>{_html.escape(goal.title)}</b>), I drew on earlier work "
+                f"from another goal:\n\n"
+                f"{_html.escape(milestone.reuse_hint)}"
+            ),
+            format="html",
+            urgency="low",
+        ))
 
     async def _fetch_prior_work(self, exclude_goal_id: UUID) -> list[PriorMilestoneOutput]:
         try:
