@@ -2,7 +2,7 @@
 
 > **Package:** `ze-components`, `apps/ze-web`
 > **Phase:** 66
-> **Status:** Not started
+> **Status:** Done
 > **Depends on:** Phase 41 ([41-component-descriptors.md](41-component-descriptors.md)), Phase 43 ([43-react-web-app.md](43-react-web-app.md))
 > **Supersedes:** Phase 41 component type model (named components → primitive trees)
 

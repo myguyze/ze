@@ -2,7 +2,7 @@
 
 > **Packages:** `ze_agents` (Protocol + ZePlugin hook), `ze_api/bootstrap.py` (wiring), integration packages (`integrations/`)
 > **Phase:** 63
-> **Status:** Pending
+> **Status:** Done
 
 ---
 

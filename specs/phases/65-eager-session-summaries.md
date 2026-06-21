@@ -2,7 +2,7 @@
 
 > **Package:** `ze-memory` (`ze_memory/`), `ze-api` (`ze_api/`)
 > **Phase:** 65
-> **Status:** Pending
+> **Status:** Done
 
 ---
 

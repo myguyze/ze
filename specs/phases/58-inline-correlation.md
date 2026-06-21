@@ -2,7 +2,7 @@
 
 > **Package:** `ze-correlation` (consumer), `ze-core` (orchestration node), `ze-components`, `ze-web`
 > **Phase:** 58
-> **Status:** Pending — **v1 scope** (sole user-visible correlation consumer until Phase 59)
+> **Status:** Done
 > **Depends on:** Correlation Engine ([57-correlation-engine.md](57-correlation-engine.md)), Salience Model ([56-salience-relevance-model.md](56-salience-relevance-model.md)), Signal Substrate ([55-signal-substrate.md](55-signal-substrate.md)), Orchestration ([../core/05-orchestration.md](../core/05-orchestration.md)), Component Descriptors ([41-component-descriptors.md](41-component-descriptors.md))
 
 ---
