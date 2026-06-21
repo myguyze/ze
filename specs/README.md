@@ -98,6 +98,7 @@ explicitly deferred before implementation begins.
 | 69 | [ze-ingestion Pipeline](phases/69-ze-ingestion.md) | 🔲 Pending |
 | 70 | [Finance Recurring Detection](phases/70-finance-recurring.md) | ✅ Done |
 | 71 | [Cross-Goal Awareness](phases/71-cross-goal-awareness.md) | 🔲 Pending |
+| 72 | [API Client Codegen](phases/72-api-client-codegen.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
