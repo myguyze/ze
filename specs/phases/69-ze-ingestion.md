@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-ingestion`
 > **Phase:** 69
-> **Status:** Pending
+> **Status:** Done
 
 ---
 
@@ -24,7 +24,7 @@
 | `POST /api/ingest` route | ✅ Done |
 | `integrations/ze-yt/` — `YtDlpFetcher` | ✅ Done |
 | `ze-finance` `FinanceIngestionExtractor` | ✅ Done |
-| Tests | 🔲 Pending |
+| Tests | ✅ Done |
 
 ---
 

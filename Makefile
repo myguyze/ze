@@ -69,6 +69,7 @@ help:
 	@echo "    test-components      Run ze-components tests"
 	@echo "    test-eval            Run ze-eval tests"
 	@echo "    test-google          Run ze-google tests"
+	@echo "    test-ingestion       Run ze-ingestion tests"
 	@echo "    test-trading212      Run ze-trading212 tests"
 	@echo "    test-personal        Run ze-personal tests"
 	@echo "    test-email           Run ze-email tests"
@@ -237,6 +238,7 @@ TEST_PY_PACKAGES := \
 	test-eval \
 	test-google \
 	test-trading212 \
+	test-ingestion \
 	test-core \
 	test-personal \
 	test-email \
@@ -247,7 +249,7 @@ TEST_PY_PACKAGES := \
 
 .PHONY: test test-api test-core test-agents test-plugin test-sdk test-proactive \
 	test-memory test-onboarding test-correlation test-browser test-notifications \
-	test-components test-eval test-google test-trading212 test-personal test-prospecting test-email \
+	test-components test-eval test-google test-trading212 test-ingestion test-personal test-prospecting test-email \
 	test-calendar test-news test-all test-web web-test
 
 test test-api:
@@ -270,6 +272,9 @@ test-proactive:
 
 test-memory:
 	$(call pytest_pkg,core/ze-memory/tests)
+
+test-ingestion:
+	$(call pytest_pkg,core/ze-ingestion/tests)
 
 test-onboarding:
 	$(call pytest_pkg,core/ze-onboarding/tests)
