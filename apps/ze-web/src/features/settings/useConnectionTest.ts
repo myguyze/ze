@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { healthCheck } from "@/lib/api";
+import { healthCheck } from "@ze/client";
 
 export function useConnectionTest(serverUrl: string, apiKey: string) {
   const [testing, setTesting] = useState(false);

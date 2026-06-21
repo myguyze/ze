@@ -2,21 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from ze_api.api.dependencies import get_pool
+from ze_api.api.dependencies import get_pool, require_api_key
 from ze_api.api.schemas import AgentCostBucket, WebCostSummaryResponse
 
-router = APIRouter(tags=["costs"])
-web_router = APIRouter(tags=["costs"])
+router = APIRouter(tags=["costs"], dependencies=[Depends(require_api_key)])
 
 _VALID_GROUP_BY = {"flow_type", "agent", "model", "session_id"}
 _WEB_SUMMARY_DAYS = 30
 
 
-@web_router.get(
-    "/api/costs/summary",
+@router.get(
+    "/summary",
     response_model=WebCostSummaryResponse,
+    operation_id="getCostSummary",
     summary="Web cost summary",
     description=(
         "Aggregate LLM token usage and cost by agent for the web client costs screen. "
@@ -71,20 +71,20 @@ async def web_cost_summary(pool=Depends(get_pool)) -> WebCostSummaryResponse:
 
 
 @router.get(
-    "/summary",
-    summary="Cost summary",
+    "/detail",
+    operation_id="getCostDetail",
+    summary="Cost detail",
     description=(
         "Aggregate LLM token usage and cost grouped by flow_type, agent, model, or session_id. "
         "Ordered by total_tokens descending."
     ),
 )
-async def cost_summary(
+async def cost_detail(
     days: int = Query(default=30, ge=1, le=365, description="Lookback window in days"),
     group_by: str = Query(default="flow_type", description="Grouping dimension"),
     pool=Depends(get_pool),
 ) -> dict:
     if group_by not in _VALID_GROUP_BY:
-        from fastapi import HTTPException
         raise HTTPException(status_code=422, detail=f"group_by must be one of {sorted(_VALID_GROUP_BY)}")
 
     async with pool.acquire() as conn:

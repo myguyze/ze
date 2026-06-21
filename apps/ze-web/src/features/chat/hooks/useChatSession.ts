@@ -8,7 +8,7 @@ import { useFrame, useWsStore, send } from "@/features/websocket/useWebSocket";
 import { queryKeys } from "@/lib/queryKeys";
 import { useOnboardingSession } from "@/features/onboarding/useOnboardingSession";
 import { useSendNotice } from "@/features/websocket/useSendNotice";
-import { type Message, type ScreenContext } from "@/features/websocket/protocol";
+import type { MessageSchema as Message, WsScreenContext as ScreenContext } from "@ze/client";
 
 export type { PendingConfirm } from "@/features/chat/hooks/useConfirmation";
 
@@ -88,12 +88,12 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
 
   useFrame("edit", (frame) => {
     if (!active || ephemeral) return;
-    edit(frame.id, frame.text, frame.components);
+    edit(frame.id, frame.text ?? undefined, frame.components as Message["components"]);
   });
 
   useFrame("token", (frame) => {
     if (!active) return;
-    setStreamingText((prev) => (prev ?? "") + frame.text);
+    setStreamingText((prev) => (prev ?? "") + (frame.text ?? ""));
   });
 
   useFrame("error", () => {

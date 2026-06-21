@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Message } from "@/features/websocket/protocol";
-import { api } from "@/lib/api";
+import { listMessages } from "@ze/client";
+import type { MessageSchema as Message } from "@ze/client";
 import { send } from "@/features/websocket/useWebSocket";
 
 export function useMessages(threadId: string) {
@@ -19,7 +19,7 @@ export function useMessages(threadId: string) {
       if (msg.thread_id && msg.thread_id !== threadId) return;
       setMessages((prev) => {
         const next = new Map(prev);
-        next.set(msg.id, msg);
+        next.set(String(msg.id), msg);
         return next;
       });
     },
@@ -45,14 +45,15 @@ export function useMessages(threadId: string) {
     loadedThreadRef.current = threadId;
 
     try {
-      const history = await api.get<Message[]>(
-        `/api/messages?thread_id=${encodeURIComponent(threadId)}&limit=200`,
-      );
-      setMessages(new Map(history.map((msg) => [msg.id, msg])));
+      const { data: history } = await listMessages({
+        query: { thread_id: threadId, limit: 200 },
+      });
+      if (!history) return;
+      setMessages(new Map(history.map((msg) => [String(msg.id), msg])));
 
       const unread = history
         .filter((m) => m.role === "assistant" && !m.read && m.id)
-        .map((m) => m.id);
+        .map((m) => String(m.id));
       if (unread.length > 0) send({ type: "ack", ids: unread });
     } catch {
       loadedThreadRef.current = null;

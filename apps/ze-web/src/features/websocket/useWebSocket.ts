@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
-import { type InboundFrame, type OutboundFrame } from "./protocol";
+import type { WsInboundFrame as InboundFrame, WsOutboundFrame as OutboundFrame } from "@ze/client";
 import { getConfig } from "@/config/AppConfig";
 import { useSession } from "@/features/chat/hooks/useSession";
 

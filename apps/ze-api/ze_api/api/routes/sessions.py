@@ -4,10 +4,11 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import CreateSessionRequest, SessionSchema
 from ze_api.sessions.store import SessionStore
 
-router = APIRouter(tags=["sessions"])
+router = APIRouter(tags=["sessions"], dependencies=[Depends(require_api_key)])
 
 
 def _get_session_store(request: Request) -> SessionStore:
@@ -15,8 +16,9 @@ def _get_session_store(request: Request) -> SessionStore:
 
 
 @router.get(
-    "/api/sessions",
+    "/sessions",
     response_model=list[SessionSchema],
+    operation_id="listSessions",
     summary="List chat sessions",
     description="Returns all chat sessions ordered by most recently active.",
 )
@@ -28,8 +30,9 @@ async def list_sessions(
 
 
 @router.post(
-    "/api/sessions",
+    "/sessions",
     response_model=SessionSchema,
+    operation_id="createSession",
     summary="Create a chat session",
     description="Creates a new session and returns it. A UUID is minted server-side when id is omitted.",
     status_code=201,

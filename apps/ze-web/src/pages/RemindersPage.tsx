@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
-import { api } from "@/lib/api";
+import { listReminders } from "@ze/client";
+import type { ReminderListItem } from "@ze/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { type Reminder } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -10,9 +10,12 @@ import { ErrorState } from "@/components/layout/ErrorState";
 import { ListSkeleton } from "@/components/layout/ListSkeleton";
 
 export function RemindersPage() {
-  const { data: reminders, isLoading, isError, refetch } = useQuery({
+  const { data: reminders, isLoading, isError, refetch } = useQuery<ReminderListItem[]>({
     queryKey: queryKeys.reminders,
-    queryFn: () => api.get<Reminder[]>("/api/reminders"),
+    queryFn: async () => {
+      const { data } = await listReminders();
+      return data ?? [];
+    },
   });
 
   const pending = reminders?.filter((r) => !r.fired) ?? [];

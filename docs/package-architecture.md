@@ -29,6 +29,8 @@ ze/
 │   ├── ze-news/      # News ingestion, ranking, credibility (ZePlugin)
 │   ├── ze-finance/   # Finance domain (ZePlugin) — in progress
 │   └── ze-legal/     # Legal domain (ZePlugin) — in progress
+├── packages/         # Shared npm packages (Bun workspace)
+│   └── ze-client/    # @ze/client — generated typed SDK for ze-web
 └── apps/             # Deployment units
     ├── ze-api/       # HTTP/WebSocket API, wires all plugins
     └── ze-web/       # React web client (Vite + TypeScript + Tailwind + shadcn/ui)
@@ -55,7 +57,8 @@ ze-news           ←  ze-sdk
 ze-api            ←  ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting,
                       ze-calendar, ze-google, ze-browser, ze-news, ze-notifications,
                       ze-components, ze-onboarding
-ze-web            ←  connects to ze-api over WebSocket (no Python deps)
+ze-client         ←  no ze deps (generated from ze-api spec; npm workspace only)
+ze-web            ←  ze-client (workspace:*), connects to ze-api over WebSocket/REST
 ```
 
 Hard rules:
@@ -353,11 +356,44 @@ their `ZePlugin` implementations.
 
 ---
 
+## ze-client — Typed Frontend SDK
+
+`@ze/client` (`packages/ze-client/`) is a local npm workspace package that exposes
+the entire ze-api REST + WebSocket surface as typed TypeScript. `ze-web` is the only
+consumer; no other package depends on it.
+
+| Module | What it provides |
+|--------|-----------------|
+| `src/generated/sdk.gen.ts` | Named SDK functions generated from FastAPI `operation_id` values |
+| `src/generated/types.gen.ts` | All REST request/response types |
+| `src/generated/ws.ts` | WS frame types from `json-schema-to-typescript` |
+| `src/client.ts` | `configure({ serverUrl, apiKey })` — sets the module-level default client; `createZeClient()` for explicit client construction |
+| `src/blob.ts` | Hand-written helpers: `downloadExport`, `importArchive`, `healthCheck` |
+| `src/error.ts` | `ApiError` class |
+| `src/index.ts` | Re-exports everything above |
+
+**Regenerating:** Run `bun run scripts/codegen.ts` after changing any FastAPI route,
+operationId, or request/response schema. Generated files are committed.
+
+**Auth pattern in ze-web:**
+
+```typescript
+// main.tsx — called once at startup
+import { applyConfig } from "@/lib/client";
+applyConfig();
+
+// any page — no route strings, no auth boilerplate
+import { listContacts } from "@ze/client";
+const { data } = await listContacts();
+```
+
+---
+
 ## ze-web — React Client
 
 `ze-web` is the React web application (Vite + TypeScript + Tailwind + shadcn/ui). It
-communicates with `ze-api` via WebSocket at `/ws`. It has no Python dependencies — built
-and run with Bun.
+communicates with `ze-api` via WebSocket at `/ws` and REST via `@ze/client`.
+It has no Python dependencies — built and run with Bun.
 
 ```bash
 make web-install   # bun install

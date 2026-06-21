@@ -77,6 +77,7 @@ def client(gate, mock_pool, capabilities_yaml):
     app.dependency_overrides[dependencies.get_capability_gate] = lambda: gate
     app.dependency_overrides[dependencies.get_pool] = lambda: pool
     app.dependency_overrides[dependencies.get_settings] = lambda: settings
+    app.dependency_overrides[dependencies.require_api_key] = lambda: None
 
     with TestClient(app) as c:
         yield c, conn

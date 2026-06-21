@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { getCostSummary } from "@ze/client";
+import type { WebCostSummaryResponse } from "@ze/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { type CostSummary } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -28,9 +28,12 @@ function formatTokens(n: number): string {
 }
 
 export function CostsPage() {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery<WebCostSummaryResponse>({
     queryKey: queryKeys.costs,
-    queryFn: () => api.get<CostSummary>("/api/costs/summary"),
+    queryFn: async () => {
+      const { data } = await getCostSummary();
+      return data!;
+    },
   });
 
   const sortedAgents = data

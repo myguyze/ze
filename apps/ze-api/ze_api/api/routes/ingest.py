@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
+from ze_api.api.dependencies import require_api_key
 from ze_ingestion.types import IngestionRequest
 
-router = APIRouter(tags=["ingestion"])
+router = APIRouter(tags=["ingestion"], dependencies=[Depends(require_api_key)])
 
 
 class IngestResponse(BaseModel):
@@ -17,8 +18,9 @@ class IngestResponse(BaseModel):
 
 
 @router.post(
-    "/api/ingest",
+    "/ingest",
     response_model=IngestResponse,
+    operation_id="ingest",
     summary="Ingest content",
     description=(
         "Fetch, process, and ingest a URL or uploaded file into Ze's memory. "

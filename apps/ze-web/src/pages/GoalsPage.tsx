@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Target } from "lucide-react";
-import { api } from "@/lib/api";
+import { listGoals } from "@ze/client";
+import type { GoalListItem } from "@ze/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { type Goal } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -10,9 +10,12 @@ import { ErrorState } from "@/components/layout/ErrorState";
 import { ListSkeleton } from "@/components/layout/ListSkeleton";
 
 export function GoalsPage() {
-  const { data: goals, isLoading, isError, refetch } = useQuery({
+  const { data: goals, isLoading, isError, refetch } = useQuery<GoalListItem[]>({
     queryKey: queryKeys.goals,
-    queryFn: () => api.get<Goal[]>("/api/goals"),
+    queryFn: async () => {
+      const { data } = await listGoals();
+      return data ?? [];
+    },
   });
 
   return (

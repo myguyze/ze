@@ -1,0 +1,8 @@
+{
+  "workspaces": ["packages/*", "apps/ze-web"],
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.98.2",
+    "json-schema-to-typescript": "^15",
+    "openapi-typescript": "^7"
+  }
+}

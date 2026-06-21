@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import GoalListItem
 
-router = APIRouter(tags=["goals"])
+router = APIRouter(tags=["goals"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
-    "/api/goals",
+    "/goals",
     response_model=list[GoalListItem],
+    operation_id="listGoals",
     summary="List active goals",
     description="Returns active and awaiting-gate goals for the web client goals screen.",
 )

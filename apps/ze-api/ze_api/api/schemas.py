@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 from uuid import UUID as UUIDType
 
-from pydantic import BaseModel, ConfigDict, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 # ── REST: health ──────────────────────────────────────────────────────────────
@@ -308,3 +308,141 @@ class EvalChatResponse(BaseModel):
     tool_calls: list[EvalToolCall] = []
     tokens_used: int = 0
     memory_proposals_count: int = 0
+
+
+# ── WebSocket protocol — Server → Client (inbound frames) ─────────────────────
+
+class OnboardingMeta(BaseModel):
+    session_id: str
+    completed: bool
+
+
+class WsConfirmAction(BaseModel):
+    label: str
+    value: Literal["approve", "deny"]
+    style: Literal["primary", "secondary", "danger"] | None = None
+
+
+class WsMessageFrame(BaseModel):
+    type: Literal["message"]
+    message: MessageSchema
+    onboarding: OnboardingMeta | None = None
+
+
+class WsEditFrame(BaseModel):
+    type: Literal["edit"]
+    id: str
+    text: str | None = None
+    components: list[dict[str, Any]] = []
+
+
+class WsConfirmRequestFrame(BaseModel):
+    type: Literal["confirm_request"]
+    id: str
+    prompt: str
+    actions: list[WsConfirmAction]
+
+
+class WsConfirmCancelFrame(BaseModel):
+    type: Literal["confirm_cancel"]
+    id: str
+
+
+class WsTypingFrame(BaseModel):
+    type: Literal["typing"]
+    text: str | None = None
+
+
+class WsTokenFrame(BaseModel):
+    type: Literal["token"]
+    text: str
+
+
+class WsErrorFrame(BaseModel):
+    type: Literal["error"]
+    detail: str
+
+
+class WsRefreshFrame(BaseModel):
+    type: Literal["refresh"]
+    screen: str
+
+
+class WsPongFrame(BaseModel):
+    type: Literal["pong"]
+
+
+WsInboundFrame = Annotated[
+    Union[
+        WsMessageFrame,
+        WsEditFrame,
+        WsConfirmRequestFrame,
+        WsConfirmCancelFrame,
+        WsTypingFrame,
+        WsTokenFrame,
+        WsErrorFrame,
+        WsRefreshFrame,
+        WsPongFrame,
+    ],
+    Field(discriminator="type"),
+]
+
+
+# ── WebSocket protocol — Client → Server (outbound frames) ────────────────────
+
+class WsScreenContext(BaseModel):
+    screen: str
+    goal_id: str | None = None
+
+
+class WsSendMessageFrame(BaseModel):
+    type: Literal["message"]
+    text: str
+    thread_id: str | None = None
+    context: WsScreenContext | None = None
+
+
+class WsAckFrame(BaseModel):
+    type: Literal["ack"]
+    ids: list[str]
+
+
+class WsConfirmFrame(BaseModel):
+    type: Literal["confirm"]
+    id: str
+    choice: Literal["approve", "deny"]
+
+
+class WsCommandFrame(BaseModel):
+    type: Literal["command"]
+    name: Literal["cancel", "costs", "capabilities", "status", "onboarding", "reset", "reset_preview"]
+
+
+class WsComponentSubmitFrame(BaseModel):
+    type: Literal["component_submit"]
+    step_id: str
+    values: dict[str, Any]
+    session_id: str | None = None
+    thread_id: str | None = None
+
+
+class WsPingFrame(BaseModel):
+    type: Literal["ping"]
+
+
+WsOutboundFrame = Annotated[
+    Union[
+        WsSendMessageFrame,
+        WsAckFrame,
+        WsConfirmFrame,
+        WsCommandFrame,
+        WsComponentSubmitFrame,
+        WsPingFrame,
+    ],
+    Field(discriminator="type"),
+]
+
+
+class WsSchemaResponse(BaseModel):
+    inbound: dict[str, Any]
+    outbound: dict[str, Any]

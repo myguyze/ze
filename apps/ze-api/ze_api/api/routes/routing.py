@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, Query
 
-from ze_api.api.dependencies import get_pool
+from ze_api.api.dependencies import get_pool, require_api_key
 from ze_api.api.schemas import RoutingLogEntry
 
-router = APIRouter(tags=["routing"])
+router = APIRouter(tags=["routing"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
     "/log",
     response_model=list[RoutingLogEntry],
+    operation_id="getRoutingLog",
     summary="Routing log",
     description="Paginated routing decisions, newest first (offset-based pagination).",
 )

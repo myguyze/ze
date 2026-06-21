@@ -4,10 +4,11 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import MessageSchema
 from ze_core.messages.store import MessageStore
 
-router = APIRouter(tags=["messages"])
+router = APIRouter(tags=["messages"], dependencies=[Depends(require_api_key)])
 
 
 def _get_message_store(request: Request) -> MessageStore:
@@ -15,8 +16,9 @@ def _get_message_store(request: Request) -> MessageStore:
 
 
 @router.get(
-    "/api/messages",
+    "/messages",
     response_model=list[MessageSchema],
+    operation_id="listMessages",
     summary="Load message history",
     description=(
         "Returns messages after `since` (ISO 8601), oldest-first. Max 200. "

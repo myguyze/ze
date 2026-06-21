@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ze_api.api.openapi import OPENAPI_TAGS
-from ze_api.api.routes import capabilities, contacts, costs, data, eval, goals, health, ingest, memory, news, reminders, routing, sessions, workflows
+from ze_api.api.routes import capabilities, contacts, costs, data, eval, goals, health, ingest, memory, news, reminders, routing, sessions, version, workflows, ws_schema
 from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container
@@ -76,6 +76,15 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
         openapi_tags=OPENAPI_TAGS,
+        openapi_components={
+            "securitySchemes": {
+                "bearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "ApiKey",
+                }
+            }
+        },
     )
 
     app.add_middleware(
@@ -85,23 +94,31 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(capabilities.router, prefix="/capabilities")
-    app.include_router(memory.router, prefix="/memory")
-    app.include_router(routing.router, prefix="/routing")
-    app.include_router(workflows.router, prefix="/workflows")
-    app.include_router(costs.router, prefix="/costs")
-    app.include_router(costs.web_router)
-    app.include_router(goals.router)
-    app.include_router(reminders.router)
-    app.include_router(contacts.router)
-    app.include_router(news.router)
-    app.include_router(sessions.router)
-    app.include_router(health.router)
+    # Public — no auth required
+    app.include_router(version.router)
+    app.include_router(health.router, prefix="/api/v0")
+
+    # WebSocket — auth handled by the WS handshake
     app.include_router(ws_router)
-    app.include_router(messages_router)
+
+    # Internal tooling — exempt from versioning
     app.include_router(eval.router)
-    app.include_router(data.router)
-    app.include_router(ingest.router)
+
+    # Versioned REST API
+    app.include_router(capabilities.router, prefix="/api/v0/capabilities")
+    app.include_router(memory.router, prefix="/api/v0/memory")
+    app.include_router(routing.router, prefix="/api/v0/routing")
+    app.include_router(workflows.router, prefix="/api/v0/workflows")
+    app.include_router(costs.router, prefix="/api/v0/costs")
+    app.include_router(goals.router, prefix="/api/v0")
+    app.include_router(reminders.router, prefix="/api/v0")
+    app.include_router(contacts.router, prefix="/api/v0")
+    app.include_router(news.router, prefix="/api/v0")
+    app.include_router(sessions.router, prefix="/api/v0")
+    app.include_router(messages_router, prefix="/api/v0")
+    app.include_router(data.router, prefix="/api/v0")
+    app.include_router(ingest.router, prefix="/api/v0")
+    app.include_router(ws_schema.router, prefix="/api/v0")
 
     return app
 

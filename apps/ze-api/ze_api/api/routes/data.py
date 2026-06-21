@@ -2,27 +2,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, File, Header, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import Response
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import DeleteIntentResponse, DeleteRequest, ImportResponse
 from ze_api.logging import get_logger
 from ze_data.portability.service import DataPortabilityService, InstanceNotEmptyError, SchemaMismatchError
 
 log = get_logger(__name__)
 
-router = APIRouter(tags=["data"])
-
-
-def _auth(request: Request, authorization: str | None) -> None:
-    settings = request.app.state.settings
-    bearer = (
-        authorization.removeprefix("Bearer ").strip()
-        if authorization and authorization.startswith("Bearer ")
-        else ""
-    )
-    if bearer != settings.ze_api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+router = APIRouter(tags=["data"], dependencies=[Depends(require_api_key)])
 
 
 def _service(request: Request) -> DataPortabilityService:
@@ -30,7 +20,8 @@ def _service(request: Request) -> DataPortabilityService:
 
 
 @router.get(
-    "/api/data/export",
+    "/data/export",
+    operation_id="exportData",
     summary="Export all user data",
     description=(
         "Produces a versioned ZIP archive containing all personal data stored by Ze, "
@@ -39,11 +30,7 @@ def _service(request: Request) -> DataPortabilityService:
     ),
     response_class=Response,
 )
-async def export_data(
-    request: Request,
-    authorization: str | None = Header(default=None),
-) -> Response:
-    _auth(request, authorization)
+async def export_data(request: Request) -> Response:
     log.info("data_export_requested")
     archive = await _service(request).export()
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -55,8 +42,9 @@ async def export_data(
 
 
 @router.post(
-    "/api/data/import",
+    "/data/import",
     response_model=ImportResponse,
+    operation_id="importData",
     summary="Import a data archive",
     description=(
         "Restores a previously exported ZIP archive into this Ze instance. "
@@ -67,9 +55,7 @@ async def export_data(
 async def import_data(
     request: Request,
     file: UploadFile = File(...),
-    authorization: str | None = Header(default=None),
 ) -> ImportResponse:
-    _auth(request, authorization)
     log.info("data_import_requested", filename=file.filename)
     archive_bytes = await file.read()
     try:
@@ -85,20 +71,17 @@ async def import_data(
 
 
 @router.post(
-    "/api/data/delete-intent",
+    "/data/delete-intent",
     response_model=DeleteIntentResponse,
+    operation_id="createDeleteIntent",
     summary="Issue a deletion confirmation token",
     description=(
-        "Mints a short-lived token (valid for 10 minutes) required by DELETE /api/data. "
-        "The web client calls this first, prompts the user to confirm, then calls DELETE /api/data."
+        "Mints a short-lived token (valid for 10 minutes) required by DELETE /api/v0/data. "
+        "The web client calls this first, prompts the user to confirm, then calls DELETE /api/v0/data."
     ),
     status_code=201,
 )
-async def create_delete_intent(
-    request: Request,
-    authorization: str | None = Header(default=None),
-) -> DeleteIntentResponse:
-    _auth(request, authorization)
+async def create_delete_intent(request: Request) -> DeleteIntentResponse:
     token, expiry = _service(request).create_delete_intent()
     log.info("delete_intent_issued")
     return DeleteIntentResponse(
@@ -108,20 +91,16 @@ async def create_delete_intent(
 
 
 @router.delete(
-    "/api/data",
+    "/data",
+    operation_id="deleteData",
     summary="Hard-delete all user data",
     description=(
         "Permanently deletes every row of user data across all Ze tables. "
-        "Requires a valid confirmation_token from POST /api/data/delete-intent."
+        "Requires a valid confirmation_token from POST /api/v0/data/delete-intent."
     ),
     status_code=204,
 )
-async def delete_data(
-    body: DeleteRequest,
-    request: Request,
-    authorization: str | None = Header(default=None),
-) -> Response:
-    _auth(request, authorization)
+async def delete_data(body: DeleteRequest, request: Request) -> Response:
     if not _service(request).consume_delete_intent(body.confirmation_token):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { type Message } from "@/features/websocket/protocol";
+import type { MessageSchema as Message } from "@ze/client";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatErrorBoundary } from "@/components/layout/ChatErrorBoundary";

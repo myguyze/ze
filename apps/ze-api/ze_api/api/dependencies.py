@@ -1,4 +1,5 @@
-from fastapi import Request
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sentence_transformers import SentenceTransformer
 
 from ze_core.capability.gate import CapabilityGate
@@ -8,6 +9,19 @@ from ze_core.messages.store import PostgresMessageStore as MessageStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.routing.router import EmbeddingRouter
 from ze_api.settings import Settings, get_settings as _get_settings
+
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+async def require_api_key(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> None:
+    expected: str = request.app.state.settings.ze_api_key
+    token = credentials.credentials if credentials else ""
+    if token != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
 
 
 def get_settings() -> Settings:

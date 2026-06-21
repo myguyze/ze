@@ -78,6 +78,7 @@ def test_bootstrap_registers_companion_and_research(settings):
         ProspectingSettings: ProspectingSettings(),
         GoogleCredentials: MM(spec=GoogleCredentials),
         ProactiveNotifier: MM(spec=ProactiveNotifier),
+        object: client,
     }
     bootstrap_agents(deps=deps)
 

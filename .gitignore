@@ -4,6 +4,8 @@
 !.env.example
 client_secrets.json
 
+node_modules/
+
 # Python
 __pycache__/
 *.py[cod]

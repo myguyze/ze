@@ -1,9 +1,9 @@
-import { type ConfirmAction } from "@/features/websocket/protocol";
+import type { WsConfirmAction } from "@ze/client";
 import { cn } from "@/lib/cn";
 
 interface ConfirmBarProps {
   prompt: string;
-  actions: ConfirmAction[];
+  actions: WsConfirmAction[];
   onConfirm: (choice: "approve" | "deny") => void;
 }
 

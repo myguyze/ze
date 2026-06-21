@@ -1,11 +1,12 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from ze_api.api import dependencies
 from ze_api.api.routes import contacts, costs, goals, reminders
 
 
@@ -49,6 +50,15 @@ def container():
 
 
 @pytest.fixture
+def mock_pool():
+    pool = MagicMock()
+    conn = AsyncMock()
+    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=conn)
+    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+    return pool, conn
+
+
+@pytest.fixture
 def client(container, mock_pool):
     pool, conn = mock_pool
     conn.fetch = AsyncMock(return_value=[])
@@ -57,28 +67,20 @@ def client(container, mock_pool):
     app = FastAPI()
     app.state.container = container
     app.state.pool = pool
-    app.include_router(goals.router)
-    app.include_router(reminders.router)
-    app.include_router(contacts.router)
-    app.include_router(costs.web_router)
+    app.include_router(goals.router, prefix="/api/v0")
+    app.include_router(reminders.router, prefix="/api/v0")
+    app.include_router(contacts.router, prefix="/api/v0")
+    app.include_router(costs.router, prefix="/api/v0/costs")
+
+    app.dependency_overrides[dependencies.get_pool] = lambda: pool
+    app.dependency_overrides[dependencies.require_api_key] = lambda: None
 
     with TestClient(app) as c:
         yield c
 
 
-@pytest.fixture
-def mock_pool():
-    from unittest.mock import MagicMock
-
-    pool = MagicMock()
-    conn = AsyncMock()
-    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=conn)
-    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
-    return pool, conn
-
-
 def test_list_goals(client):
-    resp = client.get("/api/goals")
+    resp = client.get("/api/v0/goals")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -87,7 +89,7 @@ def test_list_goals(client):
 
 
 def test_list_reminders(client):
-    resp = client.get("/api/reminders")
+    resp = client.get("/api/v0/reminders")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -96,7 +98,7 @@ def test_list_reminders(client):
 
 
 def test_list_contacts(client):
-    resp = client.get("/api/contacts")
+    resp = client.get("/api/v0/contacts")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -105,7 +107,7 @@ def test_list_contacts(client):
 
 
 def test_web_cost_summary(client):
-    resp = client.get("/api/costs/summary")
+    resp = client.get("/api/v0/costs/summary")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_usd"] == 0

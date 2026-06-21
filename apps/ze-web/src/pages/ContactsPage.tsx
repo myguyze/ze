@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
-import { api } from "@/lib/api";
+import { listContacts } from "@ze/client";
+import type { ContactListItem } from "@ze/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { type Contact } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -10,9 +10,12 @@ import { ErrorState } from "@/components/layout/ErrorState";
 import { ListSkeleton } from "@/components/layout/ListSkeleton";
 
 export function ContactsPage() {
-  const { data: contacts, isLoading, isError, refetch } = useQuery({
+  const { data: contacts, isLoading, isError, refetch } = useQuery<ContactListItem[]>({
     queryKey: queryKeys.contacts,
-    queryFn: () => api.get<Contact[]>("/api/contacts"),
+    queryFn: async () => {
+      const { data } = await listContacts();
+      return data ?? [];
+    },
   });
 
   return (

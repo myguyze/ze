@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, Newspaper, Tag } from "lucide-react";
-import { api } from "@/lib/api";
+import { listNews } from "@ze/client";
+import type { ArticleItem } from "@ze/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { type Article } from "@/types/api";
 import { FloatingButton } from "@/features/overlay/FloatingButton";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -16,7 +16,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function ArticleCard({ article }: { article: Article }) {
+function ArticleCard({ article }: { article: ArticleItem }) {
   const hasFlags = article.credibility_flags.length > 0;
 
   return (
@@ -77,9 +77,12 @@ function ArticleCard({ article }: { article: Article }) {
 }
 
 export function NewsPage() {
-  const { data: articles, isLoading, isError, refetch } = useQuery<Article[]>({
+  const { data: articles, isLoading, isError, refetch } = useQuery<ArticleItem[]>({
     queryKey: queryKeys.news,
-    queryFn: () => api.get<Article[]>("/api/news?limit=50"),
+    queryFn: async () => {
+      const { data } = await listNews({ query: { limit: 50 } });
+      return data ?? [];
+    },
     staleTime: 5 * 60_000,
   });
 

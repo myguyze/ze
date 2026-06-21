@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import ContactListItem
 
-router = APIRouter(tags=["contacts"])
+router = APIRouter(tags=["contacts"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
-    "/api/contacts",
+    "/contacts",
     response_model=list[ContactListItem],
+    operation_id="listContacts",
     summary="List contacts",
     description="Returns confirmed contacts for the web client contacts screen.",
 )

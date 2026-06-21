@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze_api.api.dependencies import get_memory_consolidator, get_pool
+from ze_api.api.dependencies import get_memory_consolidator, get_pool, require_api_key
 from ze_api.api.openapi import OPENAPI_RESPONSES_422
 from ze_api.api.schemas import (
     ConsolidationReportResponse,
@@ -10,12 +10,13 @@ from ze_api.api.schemas import (
     UserProfileResponse,
 )
 
-router = APIRouter(tags=["memory"])
+router = APIRouter(tags=["memory"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
     "/facts",
     response_model=list[UserFactResponse],
+    operation_id="listFacts",
     summary="List user facts",
     description="Return all user facts, reviewed and unreviewed, newest first.",
 )
@@ -31,6 +32,7 @@ async def list_facts(pool=Depends(get_pool)) -> list[UserFactResponse]:
 @router.post(
     "/facts/review",
     response_model=list[UserFactResponse],
+    operation_id="reviewFacts",
     summary="Review user facts",
     description=(
         "Apply confirm, reject, or edit actions to user facts. Confirm and edit set "
@@ -38,16 +40,12 @@ async def list_facts(pool=Depends(get_pool)) -> list[UserFactResponse]:
     ),
     responses=OPENAPI_RESPONSES_422,
 )
-async def review_facts(
-    body: FactReviewRequest, pool=Depends(get_pool)
-) -> list[UserFactResponse]:
+async def review_facts(body: FactReviewRequest, pool=Depends(get_pool)) -> list[UserFactResponse]:
     updated: list[UserFactResponse] = []
     async with pool.acquire() as conn:
         for action in body.actions:
             if action.action == "reject":
-                await conn.execute(
-                    "DELETE FROM user_facts WHERE id = $1", action.id
-                )
+                await conn.execute("DELETE FROM user_facts WHERE id = $1", action.id)
             elif action.action == "confirm":
                 row = await conn.fetchrow(
                     "UPDATE user_facts SET reviewed = true, expires_at = NULL WHERE id = $1 RETURNING *",
@@ -71,13 +69,14 @@ async def review_facts(
 @router.get(
     "/digest",
     response_model=MemoryDigestResponse,
+    operation_id="getMemoryDigest",
     summary="Memory digest",
     description=(
         "Snapshot for the memory UI: unreviewed facts, contradicted facts, and the "
         "10 most recent episodes."
     ),
 )
-async def memory_digest(pool=Depends(get_pool)) -> MemoryDigestResponse:
+async def get_memory_digest(pool=Depends(get_pool)) -> MemoryDigestResponse:
     async with pool.acquire() as conn:
         unreviewed = await conn.fetch(
             "SELECT id, key, value, agent FROM user_facts WHERE reviewed = false ORDER BY updated_at DESC"
@@ -103,15 +102,14 @@ async def memory_digest(pool=Depends(get_pool)) -> MemoryDigestResponse:
 @router.post(
     "/consolidate",
     response_model=ConsolidationReportResponse,
+    operation_id="consolidateMemory",
     summary="Trigger memory consolidation",
     description=(
         "Run dedup, expiry, and episode archival immediately. "
         "Returns a report of all changes made."
     ),
 )
-async def run_consolidation(
-    consolidator=Depends(get_memory_consolidator),
-) -> ConsolidationReportResponse:
+async def consolidate_memory(consolidator=Depends(get_memory_consolidator)) -> ConsolidationReportResponse:
     report = await consolidator.run()
     return ConsolidationReportResponse(
         facts_merged=report.facts_merged,
@@ -128,6 +126,7 @@ async def run_consolidation(
 @router.get(
     "/profile",
     response_model=UserProfileResponse,
+    operation_id="getProfile",
     summary="Current user profile",
     description=(
         "The synthesised user profile — preferences, habits, topics, relationships, "

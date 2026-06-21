@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useFrame, useWsStore, send } from "@/features/websocket/useWebSocket";
 import { useSendNotice } from "@/features/websocket/useSendNotice";
-import { type ConfirmAction } from "@/features/websocket/protocol";
+import type { WsConfirmAction } from "@ze/client";
 
 export interface PendingConfirm {
   id: string;
   prompt: string;
-  actions: ConfirmAction[];
+  actions: WsConfirmAction[];
 }
 
 const NOT_CONNECTED_NOTICE = "Not connected. Retry when Ze reconnects.";

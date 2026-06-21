@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import ReminderListItem
 
-router = APIRouter(tags=["reminders"])
+router = APIRouter(tags=["reminders"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
-    "/api/reminders",
+    "/reminders",
     response_model=list[ReminderListItem],
+    operation_id="listReminders",
     summary="List reminders",
     description="Returns user reminders for the web client reminders screen.",
 )

@@ -382,3 +382,5 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 68 | ze-data — `DataDomain` and `DataPortabilityService` extracted from `ze-plugin`/`ze-api` into `core/ze-data`; no Ze deps | Done |
 | 70 | Finance recurring detection — algorithmic recurring expense/subscription detection, staleness-aware proactive job, CSV nudge flow, price-change resurface | Done |
 | 71 | Cross-goal awareness — convergence detection at goal creation, proactive reuse surfacing at milestone completion | Pending |
+| 72 | API client codegen — `@ze/client` npm package generated from OpenAPI spec via `@hey-api/openapi-ts`; named SDK methods (`listContacts()`, etc.); WS types from `json-schema-to-typescript` | Done |
+| 73 | API surface cleanup — all routes under `/api/v0/`; `HTTPBearer` security scheme; explicit `operation_id` on every route; auth extracted into `require_api_key` Depends; duplicate cost route removed; `GET /api/v0/version` | Done |

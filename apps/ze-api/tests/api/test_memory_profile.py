@@ -23,6 +23,7 @@ def make_client(pool):
     app = FastAPI()
     app.include_router(memory.router, prefix="/memory")
     app.dependency_overrides[dependencies.get_pool] = lambda: pool
+    app.dependency_overrides[dependencies.require_api_key] = lambda: None
     return TestClient(app)
 
 

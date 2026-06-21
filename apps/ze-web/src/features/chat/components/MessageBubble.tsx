@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
-import { type Message } from "@/features/websocket/protocol";
+import type { MessageSchema as Message } from "@ze/client";
 import { PrimitiveRenderer } from "@/components/server-driven/PrimitiveRenderer";
+import type { Primitive } from "@/components/server-driven/types";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -46,7 +47,7 @@ export function MessageBubble({ message }: { message: Message }) {
           </div>
         )}
 
-        {message.components.map((c, i) => (
+        {(message.components as unknown as Primitive[]).map((c, i) => (
           <PrimitiveRenderer key={i} node={c} />
         ))}
 

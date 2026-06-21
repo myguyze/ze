@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze_api.api.dependencies import get_workflow_store
+from ze_api.api.dependencies import get_workflow_store, require_api_key
 from ze_api.api.schemas import (
     StepResultResponse,
     WorkflowDetailResponse,
@@ -12,12 +12,13 @@ from ze_api.api.schemas import (
 )
 from ze_personal.workflow.store import WorkflowStore
 
-router = APIRouter(tags=["workflows"])
+router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
     "",
     response_model=list[WorkflowResponse],
+    operation_id="listWorkflows",
     summary="List workflows",
     description="Return all stored workflows, newest first.",
 )
@@ -41,6 +42,7 @@ async def list_workflows(store: WorkflowStore = Depends(get_workflow_store)) -> 
 @router.get(
     "/{workflow_id}",
     response_model=WorkflowDetailResponse,
+    operation_id="getWorkflow",
     summary="Get workflow detail",
     description="Return a single workflow with its full step list.",
 )
@@ -67,10 +69,11 @@ async def get_workflow(
 @router.get(
     "/{workflow_id}/executions",
     response_model=list[WorkflowExecutionResponse],
+    operation_id="listWorkflowExecutions",
     summary="List workflow executions",
     description="Return the 20 most recent executions for a workflow.",
 )
-async def list_executions(
+async def list_workflow_executions(
     workflow_id: UUID,
     store: WorkflowStore = Depends(get_workflow_store),
 ) -> list[WorkflowExecutionResponse]:
@@ -103,6 +106,7 @@ async def list_executions(
 @router.post(
     "/{workflow_id}/trigger",
     response_model=dict,
+    operation_id="triggerWorkflow",
     summary="Trigger workflow",
     description="Run a stored workflow immediately outside its schedule.",
 )

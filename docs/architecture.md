@@ -497,13 +497,108 @@ See [docs/channels.md](channels.md) for the authoring guide for adding new chann
 API and reconciling them against estimated records. All data lives in the `llm_cost_log`
 table.
 
-**REST API** — `GET /costs/summary` returns aggregated token usage and cost over a
+**REST API** — `GET /api/v0/costs/summary` returns aggregated token usage and cost over a
 configurable lookback window, grouped by any single dimension:
 
 | Parameter | Default | Options |
 |---|---|---|
 | `days` | `30` | 1–365 |
 | `group_by` | `flow_type` | `flow_type` · `agent` · `model` · `session_id` |
+
+---
+
+---
+
+## REST API
+
+**Prefix:** `/api/v0/` · **Auth:** `Authorization: Bearer <ZE_API_KEY>` on all routes
+except `/api/v0/health` and `/api/v0/version` (public).
+
+All routes declare an explicit camelCase `operation_id` which drives named method
+generation in `@ze/client`. The OpenAPI spec is self-contained (no running server
+needed for codegen — extracted at Python import time by `scripts/codegen.ts`).
+
+### Public routes
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v0/version` | API and client version |
+| `GET` | `/api/v0/health` | Health check |
+
+### Core
+
+| Method | Path | operationId |
+|---|---|---|
+| `GET` | `/api/v0/messages` | `listMessages` |
+| `GET` | `/api/v0/sessions` | `listSessions` |
+| `POST` | `/api/v0/sessions` | `createSession` |
+| `GET` | `/api/v0/ws-schema` | `getWsSchema` |
+
+### Personal data
+
+| Method | Path | operationId |
+|---|---|---|
+| `GET` | `/api/v0/contacts` | `listContacts` |
+| `GET` | `/api/v0/goals` | `listGoals` |
+| `GET` | `/api/v0/reminders` | `listReminders` |
+| `GET` | `/api/v0/news` | `listNews` |
+| `GET` | `/api/v0/costs/summary` | `getCostSummary` |
+| `GET` | `/api/v0/costs/detail` | `getCostDetail` |
+
+### Memory
+
+| Method | Path | operationId |
+|---|---|---|
+| `GET` | `/api/v0/memory/facts` | `listFacts` |
+| `POST` | `/api/v0/memory/facts/review` | `reviewFacts` |
+| `GET` | `/api/v0/memory/digest` | `getMemoryDigest` |
+| `POST` | `/api/v0/memory/consolidate` | `consolidateMemory` |
+| `GET` | `/api/v0/memory/profile` | `getProfile` |
+
+### Capabilities / Workflows / Data
+
+| Method | Path | operationId |
+|---|---|---|
+| `GET` | `/api/v0/capabilities` | `listCapabilities` |
+| `PUT` | `/api/v0/capabilities/{agent}/{intent}` | `updateCapability` |
+| `GET` | `/api/v0/workflows` | `listWorkflows` |
+| `GET` | `/api/v0/routing/log` | `getRoutingLog` |
+| `POST` | `/api/v0/ingest` | `ingest` |
+| `GET` | `/api/v0/data/export` | `exportData` |
+| `POST` | `/api/v0/data/import` | `importData` |
+| `POST` | `/api/v0/data/delete-intent` | `createDeleteIntent` |
+| `DELETE` | `/api/v0/data` | `deleteData` |
+
+---
+
+## `@ze/client` — Typed Frontend SDK
+
+`packages/ze-client` is a local npm workspace package generated from the FastAPI
+OpenAPI spec. `ze-web` imports from it — never raw route strings.
+
+```typescript
+import { configure, listContacts, listGoals } from "@ze/client";
+
+// Once at startup (main.tsx)
+configure({ serverUrl: "http://localhost:8000", apiKey: "..." });
+
+// Then call named methods anywhere, no { client } arg needed
+const { data: contacts } = await listContacts();
+```
+
+**Regenerate after backend changes:**
+
+```bash
+bun run scripts/codegen.ts   # extracts spec from Python, writes packages/ze-client/src/generated/
+```
+
+Generated files are committed. `@ze/client` also exports WS frame types (from
+`json-schema-to-typescript`), blob helpers (`downloadExport`, `importArchive`,
+`healthCheck`), and `ApiError`.
+
+See [specs/phases/72-api-client-codegen.md](../specs/phases/72-api-client-codegen.md) for
+the full codegen design and [specs/phases/73-api-surface.md](../specs/phases/73-api-surface.md)
+for the versioned API surface spec.
 
 ---
 

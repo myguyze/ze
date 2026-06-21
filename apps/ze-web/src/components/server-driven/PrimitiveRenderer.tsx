@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { send } from "@/features/websocket/useWebSocket";
 import { useSendNotice } from "@/features/websocket/useSendNotice";

@@ -2,7 +2,9 @@ import { useState, useRef } from "react";
 import { Check, AlertCircle } from "lucide-react";
 import { getConfig, saveConfig, clearConfig } from "@/config/AppConfig";
 import { reconnect } from "@/features/websocket/useWebSocket";
-import { downloadExport, importArchive, api, ApiError, type ImportResult } from "@/lib/api";
+import { downloadExport, importArchive, createDeleteIntent, deleteData, ApiError } from "@ze/client";
+import type { ImportResponse } from "@ze/client";
+import { resetClient } from "@/lib/client";
 import { useConnectionTest } from "@/features/settings/useConnectionTest";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +22,7 @@ export function SettingsPage() {
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importResult, setImportResult] = useState<ImportResponse | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
   const [showResetModal, setShowResetModal] = useState(false);
@@ -31,6 +33,7 @@ export function SettingsPage() {
 
   function handleSave() {
     saveConfig({ serverUrl, apiKey });
+    resetClient();
     reconnect();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -75,21 +78,17 @@ export function SettingsPage() {
   }
 
   async function handleDelete() {
-    const current = getConfig();
-    if (!current) return;
     setDeleting(true);
     setDeleteError(null);
     try {
-      const intent = await api.post<{ confirmation_token: string; expires_at: string }>(
-        "/api/data/delete-intent",
-        {},
-      );
-      await api.delete("/api/data", { confirmation_token: intent.confirmation_token });
+      const { data: intent } = await createDeleteIntent();
+      if (!intent) throw new Error("Failed to create delete intent");
+      await deleteData({ body: { confirmation_token: intent.confirmation_token } });
       setShowDeleteModal(false);
       clearConfig();
       window.location.reload();
     } catch (e) {
-      setDeleteError(e instanceof ApiError ? e.message : "Deletion failed");
+      setDeleteError(e instanceof Error ? e.message : "Deletion failed");
     } finally {
       setDeleting(false);
     }
