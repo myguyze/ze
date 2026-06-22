@@ -46,15 +46,47 @@ Facts and episodes extracted after each turn, consolidated nightly, profile synt
 
 Memory isn't a single inflow. Everything feeds the same substrate:
 
-```
-conversation turns   →  facts + episodes  ─┐
-ingested content     →  extracted facts   ──┤
-                                            ├→  memory graph  →  retrieval  →  every agent turn
-domain events        →  signals           ──┤
-(calendar, news, …)      ↓                  │
-                     admission gate  ────────┘
-                          ↓
-                    correlation engine  →  push when salience is high
+```mermaid
+flowchart TB
+    subgraph inputs["Inflows"]
+        CT["Conversation turns"]
+        IC["Ingested content"]
+        DE["Domain events\n(calendar, news, …)"]
+    end
+
+    subgraph extraction["Extraction"]
+        FE["Facts + episodes"]
+        EF["Extracted facts"]
+        SIG["Signals"]
+    end
+
+    subgraph memory["Memory"]
+        AG["Admission gate"]
+        MG["Memory graph"]
+        RET["Retrieval"]
+    end
+
+    subgraph out["Consumers"]
+        AGT["Every agent turn"]
+        CE["Correlation engine"]
+        PUSH["Push when salience is high"]
+    end
+
+    CT --> FE
+    IC --> EF
+    DE --> SIG
+
+    FE --> MG
+    EF --> MG
+    SIG --> AG
+    AG --> MG
+
+    MG --> RET
+    RET --> AGT
+
+    AG --> CE
+    MG -.->|graph seeds| CE
+    CE --> PUSH
 ```
 
 Conversations write what Ze learns from talking. Ingestion (`ze-ingestion`) feeds knowledge from any URL, PDF, YouTube video, or file — extracted facts land in the same store. Domain plugins emit `SignalSource` events that are scored for relevance, written to the memory graph, and fed into the correlation engine. Goals promote learnings on completion. Every inflow compounds.
