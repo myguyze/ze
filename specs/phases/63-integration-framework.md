@@ -1,6 +1,6 @@
 # Integration Framework — Spec
 
-> **Packages:** `ze_agents` (Protocol + ZePlugin hook), `ze_api/bootstrap.py` (wiring), integration packages (`integrations/`)
+> **Packages:** `ze_plugin` (Protocol + ZePlugin hook), `ze_plugin/bootstrap.py` (wiring), integration packages (`integrations/`)
 > **Phase:** 63
 > **Status:** Done
 
@@ -75,8 +75,7 @@ core/ze-agents/
 
 apps/ze-api/
   ze_api/
-    bootstrap.py         ← split discover_plugins(); add build_integrations()
-    container.py         ← remove manual GoogleCredentials block
+    container.py         ← calls build_integrations() from ze_plugin.bootstrap
 
 integrations/ze-google/
   ze_google/
@@ -151,7 +150,7 @@ would require a two-phase plugin construction that is more complex than a classm
 
 ---
 
-### Bootstrapper split (`ze_api/bootstrap.py`)
+### Bootstrapper split (`ze_plugin/bootstrap.py`)
 
 The current `discover_plugins(dep_map)` does class loading + topological sort +
 instantiation in one pass. We split it:
@@ -211,7 +210,7 @@ def discover_plugins(dep_map: dict[type, Any] | None = None) -> list[ZePlugin]:
 
 ---
 
-### `build_integrations()` helper (`ze_api/bootstrap.py`)
+### `build_integrations()` helper (`ze_plugin/bootstrap.py`)
 
 ```python
 def build_integrations(
@@ -317,8 +316,9 @@ def from_settings(cls, settings) -> "MyCredentials | None":
 
 Rules:
 1. **No Ze imports** — integration packages have zero Ze dependencies.
-2. **Duck-typed settings** — read named attributes from `settings`; never import
-   `ze_api.settings.Settings`. Add required env var fields to `ze_api/settings.py`.
+2. **Duck-typed settings** — read named attributes from a settings object passed at
+   startup; never import `ZeApiSettings` from ze-api. Integration-owned env vars live
+   in the integration package's own settings module (e.g. `ze_google.settings.GoogleSettings`).
 3. **Return `None` when unconfigured** — never raise from `from_settings`. Plugins
    that require the integration enforce that constraint in `startup()`.
 4. **Synchronous** — `from_settings` is called synchronously at startup. Async init
@@ -334,14 +334,15 @@ Integration env vars follow the pattern `SERVICE_CREDENTIAL_NAME`:
 
 | Integration | Env Var | Settings Attr |
 |-------------|---------|---------------|
-| Google OAuth2 | `GOOGLE_CLIENT_ID` | `settings.google_client_id` |
-| Google OAuth2 | `GOOGLE_CLIENT_SECRET` | `settings.google_client_secret` |
-| Google OAuth2 | `GOOGLE_REFRESH_TOKEN` | `settings.google_refresh_token` |
-| Future: GitHub | `GITHUB_TOKEN` | `settings.github_token` |
-| Future: Stripe | `STRIPE_SECRET_KEY` | `settings.stripe_secret_key` |
+| Google OAuth2 | `GOOGLE_CLIENT_ID` | `GoogleSettings.google_client_id` |
+| Google OAuth2 | `GOOGLE_CLIENT_SECRET` | `GoogleSettings.google_client_secret` |
+| Google OAuth2 | `GOOGLE_REFRESH_TOKEN` | `GoogleSettings.google_refresh_token` |
+| Future: GitHub | `GITHUB_TOKEN` | integration package settings attr |
+| Future: Stripe | `STRIPE_SECRET_KEY` | integration package settings attr |
 
-Fields are added to `ze_api/settings.py` as `Optional[str] = None` with `env=` wired
-to the env var name. Integration packages never reference the `Settings` type.
+Integration env vars are declared in the owning integration package's settings class,
+not in `ZeApiSettings`. ze-api passes a merged settings object (or integration-specific
+settings) into `build_integrations()` at container startup.
 
 ---
 

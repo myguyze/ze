@@ -2,7 +2,7 @@
 
 > **Packages:** `ze_core` (plugin ABC), `ze_api` (bootstrapper, container)
 > **Phase:** 47
-> **Status:** In Progress (DI auto-discovery + schema validation shipped; tool namespacing deferred)
+> **Status:** Done (tool namespacing deferred)
 
 ---
 
@@ -45,8 +45,9 @@ and the `@tool` registry has no namespacing (enabling silent collisions).
 
 - Define `async startup(container)` and `async shutdown()` on `ZePlugin` ABC as
   no-op defaults, called by the bootstrapper at FastAPI lifespan boundaries.
-- Replace the static `_DEFAULT_AGENT_MODULE_PATHS` list in `bootstrap.py` with
-  discovery via `importlib.metadata.entry_points(group="ze.plugins")`.
+- Replace the static `_DEFAULT_AGENT_MODULE_PATHS` list (removed in Phase 76) with
+  discovery via `importlib.metadata.entry_points(group="ze.plugins")` in
+  `ze_plugin/bootstrap.py`.
 - Extend `_resolve()` to instantiate plugin classes (not just agents) from the
   shared `_dep_map`, eliminating manual per-service wiring in `container.py`.
 - Validate schema readiness for each plugin that declares `migrations_path()` before
@@ -74,26 +75,29 @@ and the `@tool` registry has no namespacing (enabling silent collisions).
 ## Module Location
 
 ```
-core/ze-core/
-  ze_core/
-    plugin.py          ← ZePlugin ABC — add startup/shutdown hooks
-    orchestration/
-      tool.py          ← @tool registry — add plugin-scoped namespacing
+core/ze-plugin/
+  ze_plugin/
+    plugin.py          ← ZePlugin ABC — startup/shutdown hooks
+    bootstrap.py       ← plugin discovery, DI, build_integrations()
+
+core/ze-agents/
+  ze_agents/
+    bootstrap.py       ← bootstrap_agents(), validate_registry()
+    tool.py            ← @tool registry (plugin-scoped namespacing deferred)
 
 apps/ze-api/
   ze_api/
-    bootstrap.py       ← replace _DEFAULT_AGENT_MODULE_PATHS with entry_points scan
-    container.py       ← remove per-plugin manual wiring; call plugin.startup()
+    container.py       ← build_container(); calls package bootstraps
 
 plugins/ze-*/
-  pyproject.toml       ← add [project.entry-points."ze.plugins"] stanza
+  pyproject.toml       ← [project.entry-points."ze.plugins"]
 ```
 
 ---
 
 ## Interface Contract
 
-### `ZePlugin` ABC additions (`ze_core/plugin.py`)
+### `ZePlugin` ABC additions (`ze_plugin/plugin.py`)
 
 ```python
 class ZePlugin(ABC):
@@ -132,13 +136,13 @@ ze_news         = "ze_news.plugin:NewsPlugin"
 Key is the plugin's canonical name (used for tool namespacing and log messages).
 Value is `module:class` pointing to the `ZePlugin` subclass.
 
-### Bootstrapper discovery (`ze_api/bootstrap.py`)
+### Bootstrapper discovery (`ze_plugin/bootstrap.py`)
 
 ```python
 def discover_plugins() -> list[ZePlugin]:
     """Load and instantiate all registered Ze plugins via entry points."""
     from importlib.metadata import entry_points
-    from ze_core.plugin import ZePlugin
+    from ze_plugin.plugin import ZePlugin
 
     discovered: list[ZePlugin] = []
     for ep in entry_points(group="ze.plugins"):

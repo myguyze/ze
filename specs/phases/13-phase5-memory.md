@@ -187,9 +187,10 @@ memory:
     nightly_cron: "0 2 * * *"      # 2 AM UTC daily
 ```
 
-`Settings` reads these via `models_config["memory"]["consolidation"]`. All values
-have code-level defaults so the section is optional (supports existing deployments
-without config migration).
+`Settings.config` (via `ZeApiSettings`) exposes the parsed YAML dict from `config.yaml`.
+Consolidation tunables are read from `config["memory"]["consolidation"]` or via
+`ze_memory.bootstrap.consolidation_enabled()`. All values have code-level defaults so
+the section is optional (supports existing deployments without config migration).
 
 ---
 

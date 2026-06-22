@@ -2,7 +2,7 @@
 
 > **Package:** `ze-correlation`
 > **Phase:** 61
-> **Status:** Pending (design-only — do not implement before 55–60 ship and Phase 58 proves out)
+> **Status:** Pending (design-only — phases 55–60 shipped; implement after Phase 71)
 > **Depends on:** Correlation Engine ([57-correlation-engine.md](57-correlation-engine.md)), Cross-Plugin Signal Contract ([60-signal-source-contract.md](60-signal-source-contract.md)), Correlation Engine ADR ([../arch/correlation-engine.md](../arch/correlation-engine.md))
 
 ---

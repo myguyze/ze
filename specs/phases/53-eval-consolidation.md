@@ -2,24 +2,26 @@
 
 > **Package:** `ze-eval` (`core/ze-eval/`)
 > **Phase:** 53
-> **Status:** Pending
+> **Status:** Done
+
+---
+
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `core/ze-eval/` package with `pyproject.toml` | ✅ Done |
+| Top-level `eval/` directory (scenarios, `run.py`, `server.py`) | ✅ Done |
+| `make dev-eval`, `make eval-server` targets | ✅ Done |
+| MCP eval server | ✅ Done |
 
 ---
 
 ## Purpose
 
-The eval framework currently lives as a flat, unpackaged Python module at `evals/`
-in the repo root. It is not installable, has no `pyproject.toml`, ships no
-declared dependencies, and is entangled with the repo's main Python virtual
-environment. The result: the infrastructure code (client, judge, verifier, metrics,
-report, runner) and the test data (YAML scenarios, JSON results) are mixed in the
-same directory with no clear boundary.
-
-This phase extracts the eval infrastructure into a proper Python package
-(`ze-eval`, at `core/ze-eval/`) and relocates the test data and entrypoints to a
-top-level `eval/` directory at the repo root. The split mirrors the pattern already
-established by `core/ze-agents`, `core/ze-sdk`, etc.: shared infrastructure lives
-in `core/`; what you actually *run* lives close to the root.
+The eval framework previously lived as a flat, unpackaged Python module at `evals/`
+in the repo root. Phase 53 extracted infrastructure into `core/ze-eval/` and relocated
+test data and entrypoints to top-level `eval/`.
 
 A secondary goal is to lay the groundwork for adopting
 [DeepEval](https://docs.confident-ai.com/) as an evaluation metrics layer. The

@@ -10,20 +10,20 @@
 
 | Feature | Status |
 |---------|--------|
-| Core types (`types.py`) | 🔲 Pending |
-| `DataSource` protocol | 🔲 Pending |
-| `Trading212DataSource` | 🔲 Pending |
-| `CsvDataSource` + `CsvSchemaInferrer` | 🔲 Pending |
-| `PortfolioStore` / `TransactionStore` | 🔲 Pending |
-| `CategoryInferrer` (keyword rules + opt-in LLM) | 🔲 Pending |
-| `FinanceAgent` + tools (data-minimised) | 🔲 Pending |
-| `FinanceSignalSource` | 🔲 Pending |
-| Daily snapshot job | 🔲 Pending |
-| `risk/` stubs | 🔲 Pending |
-| `models/` stubs | 🔲 Pending |
-| `FinancePlugin` (incl. `data_domains()`) | 🔲 Pending |
-| Migrations | 🔲 Pending |
-| Tests | 🔲 Pending |
+| Core types (`types.py`) | ✅ Done |
+| `DataSource` protocol | ✅ Done |
+| `Trading212DataSource` | ✅ Done |
+| `CsvDataSource` + `CsvSchemaInferrer` | ✅ Done |
+| `PortfolioStore` / `TransactionStore` | ✅ Done |
+| `CategoryInferrer` (keyword rules + opt-in LLM) | ✅ Done |
+| `FinanceAgent` + tools (data-minimised) | ✅ Done |
+| `FinanceSignalSource` | ✅ Done |
+| Daily snapshot job | ✅ Done |
+| `risk/` stubs | ✅ Done |
+| `models/` stubs | ✅ Done |
+| `FinancePlugin` (incl. `data_domains()`) | ✅ Done |
+| Migrations | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

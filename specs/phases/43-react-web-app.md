@@ -2,8 +2,21 @@
 
 > **Package:** `ze-web` (new React app under `apps/ze-web/`)
 > **Phase:** 43
-> **Status:** Planned
+> **Status:** Done
 > **Depends on:** Phase 40 ([40-notifications.md](40-notifications.md)), Phase 41 ([41-component-descriptors.md](41-component-descriptors.md)), Phase 42 ([42-native-ui-foundation.md](42-native-ui-foundation.md))
+
+---
+
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `apps/ze-web/` React SPA (Vite + TypeScript + Tailwind) | ✅ Done |
+| WebSocket chat at `/ws` with confirmation flow | ✅ Done |
+| REST management pages (contacts, costs, goals, news, …) | ✅ Done |
+| `@ze/client` generated SDK integration | ✅ Done |
+| `@ze/ui` primitive renderer integration | ✅ Done |
+| ntfy push + reconnect replay | ✅ Done |
 
 ---
 

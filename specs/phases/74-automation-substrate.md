@@ -191,8 +191,8 @@ workflow_scheduler = WorkflowScheduler(workflow_store, ...)
 ```
 
 Agent registration happens via `ze_automation.agent_module_paths()` — a plain function
-that returns the agent module paths, called from `ze_api/bootstrap.py` alongside the
-plugin agent paths.
+that returns the agent module paths, imported in `ze_api/container.py` alongside plugin
+paths from `ZePlugin.agent_module_paths()`.
 
 ---
 

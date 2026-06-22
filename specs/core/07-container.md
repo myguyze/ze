@@ -522,7 +522,9 @@ Optional environment variables with defaults:
 | `CONSOLIDATION_ENABLED` | `true` | Enable nightly memory consolidation |
 | `LOG_LEVEL` | `"INFO"` | structlog level |
 
-`Settings.config` returns the parsed YAML dict from `config.yaml`. All structural
+`Settings.config` returns the parsed YAML dict from `config.yaml`. In ze-api,
+`ZeApiSettings.config` is the shell accessor; core code receives
+`ze_agents.settings.Settings` via `ZeApiSettings.to_core_settings()`. All structural
 config (routing thresholds, model assignments, memory settings) lives in YAML, not
 in environment variables.
 

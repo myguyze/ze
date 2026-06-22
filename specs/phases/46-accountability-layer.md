@@ -2,7 +2,7 @@
 
 > **Package:** `ze-personal` (job + status command), `ze-core` (anomaly hook)
 > **Phase:** 46
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 9 (cost telemetry), Phase 7 (proactive scheduler), Phase 22 (agent harness)
 
 ---

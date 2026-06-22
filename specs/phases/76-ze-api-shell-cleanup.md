@@ -109,15 +109,17 @@ Total `ze_api/`: ~4,670 LOC. **~55% of ze-api test LOC** lives in misplaced pack
 | Plugin proactive jobs | 808–814 | `plugin.register_proactive_jobs()` | **Keep** (correct pattern) |
 | Harness hooks | 435–440 | ToolCallCapHook, ComponentCollectionHook | **ze-agents** / **ze-components** |
 
-### `bootstrap.py`
+### `bootstrap.py` (Phase C — done)
 
-| Function | Target |
-|----------|--------|
-| `_load_plugin_classes`, `_topological_sort`, `_instantiate_plugins` | `ze-plugin/bootstrap.py` |
-| `build_integrations` | `ze-plugin/bootstrap.py` |
-| `_resolve`, `_resolve_annotation` | `ze-plugin/bootstrap.py` (shared DI) |
-| `bootstrap_agents`, `validate_registry` | `ze-agents/bootstrap.py` or `ze-core/bootstrap.py` |
-| `_DEFAULT_AGENT_MODULE_PATHS` | Test fixture only (`ze-api/tests/` or `ze-eval`) |
+`ze_api/bootstrap.py` was deleted. Responsibilities moved as follows:
+
+| Function | Location |
+|----------|----------|
+| `_load_plugin_classes`, `_topological_sort`, `_instantiate_plugins` | `ze_plugin/bootstrap.py` |
+| `build_integrations` | `ze_plugin/bootstrap.py` |
+| `_resolve`, `_resolve_annotation` | `ze_plugin/bootstrap.py` |
+| `bootstrap_agents`, `validate_registry` | `ze_agents/bootstrap.py` |
+| Agent module path lists | Test fixtures only (`apps/ze-api/tests/support/agent_modules.py`) |
 
 **Duplication:** `ze-core/container.py` has a parallel agent-discovery path (`agents/` dir
 scan). Production uses the plugin entry-point path. Consolidate on plugins.
@@ -351,16 +353,16 @@ only via `register_proactive_jobs()` calls.
 
 ---
 
-## Phase C — Bootstrap move
+## Phase C — Bootstrap move ✅ Done
 
-**Goal:** `ze_api/bootstrap.py` deleted or ≤ 50 lines re-exporting `ze-plugin`.
+**Goal (met):** `ze_api/bootstrap.py` deleted; plugin/agent bootstrap lives in package modules.
 
-1. Move plugin discovery, topological sort, `_resolve`, `build_integrations` →
+1. Moved plugin discovery, topological sort, `_resolve`, `build_integrations` →
    `ze_plugin/bootstrap.py`.
-2. Move `bootstrap_agents` + `validate_registry` → `ze_agents/bootstrap.py`.
-3. `migrate.py` `_PLUGIN_MODULES` → use same entry-point discovery as plugins (no
-   hardcoded list).
-4. Delete `_DEFAULT_AGENT_MODULE_PATHS` from production path; keep in test fixture.
+2. Move `bootstrap_agents` + `validate_registry` → `ze_agents/bootstrap.py`. ✅
+3. `migrate.py` uses entry-point discovery (no hardcoded plugin list). ✅
+4. `_DEFAULT_AGENT_MODULE_PATHS` removed from production; test lists live in
+   `apps/ze-api/tests/support/agent_modules.py` only.
 
 **Acceptance:** `ze-api` does not import `importlib.metadata.entry_points` directly.
 

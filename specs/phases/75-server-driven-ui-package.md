@@ -2,8 +2,20 @@
 
 > **Package:** `@ze/ui` (`packages/ze-ui/`)
 > **Phase:** 75
-> **Status:** Planned
+> **Status:** Done
 > **Depends on:** Phase 43 ([43-react-web-app.md](43-react-web-app.md)), Phase 66 ([66-primitive-ui.md](66-primitive-ui.md)), Phase 72 ([72-api-client-codegen.md](72-api-client-codegen.md)), Phase 73 ([73-api-surface.md](73-api-surface.md))
+
+---
+
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `packages/ze-ui/` workspace package | ✅ Done |
+| Contract layer (`parse`, schema validation) | ✅ Done |
+| React renderer (`@ze/ui/react`) | ✅ Done |
+| `ze-web` migrated off local copies | ✅ Done |
+| `make codegen` generates `@ze/ui` artifacts | ✅ Done |
 
 ---
 

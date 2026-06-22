@@ -2,7 +2,7 @@
 
 > **Packages:** `core/ze-agents/` (new), `core/ze-proactive/` (new), `core/ze-core/` (slimmed)
 > **Phase:** 48
-> **Status:** Pending
+> **Status:** Done
 > **Prerequisite:** Phase 49 (ze-sdk) depends on this split; implement this phase first.
 
 ---
@@ -212,6 +212,10 @@ The agent class registry also inverts. `@agent` and `register_instance` move to 
 | `ze_core/logging.py` | `ze_agents/logging.py` |
 | `ze_core/settings.py` | `ze_agents/settings.py` |
 | `ze_core/defaults.py` | `ze_agents/defaults.py` |
+
+> **Later moves:** Phase 64 extracted `ZePlugin`, channels, and signals into
+> `ze-plugin` (not `ze-agents`). Phase 77 extracted logging into `ze-logging`
+> (replacing `ze_agents/logging.py`).
 
 ### To `ze-proactive`
 

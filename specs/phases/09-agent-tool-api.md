@@ -217,6 +217,11 @@ class BaseAgent(ABC):
         return "\n".join(lines) if lines else "(none)"
 ```
 
+> **Implementation note (current):** Agent `model`, `timeout`, and `intents` are
+> `@agent` class attributes on each agent class (`model`, `timeout`, `description`,
+> `intents`, `tools`). The YAML `agent_configs` map and `_model()` / `_timeout()`
+> helpers shown above were removed in later phases.
+
 ### Subclass contract
 
 A minimal agent implementation:
@@ -311,7 +316,7 @@ and must never be mutated by the agent.
 
 ## Bootstrap — Automatic Dependency Wiring
 
-### `ze/agents/bootstrap.py`
+### `ze_agents/bootstrap.py`
 
 Bootstrap maintains a type-keyed dependency map. At startup it populates the map
 with all shared singletons, then iterates `_class_registry` to instantiate every
@@ -373,6 +378,10 @@ def _resolve(cls: type) -> object:
 
     return cls(**kwargs)
 ```
+
+> **Implementation note (current):** Agents are enabled/disabled via the `@agent` registry
+> and plugin packaging — not a YAML `agent_configs.enabled` flag. `Settings` in production
+> is `ze_agents.settings.Settings` (core bridge from `ZeApiSettings.to_core_settings()`).
 
 To add a new agent with standard deps (`OpenRouterClient`, `Settings`), no changes
 to `bootstrap.py` are required — the resolver finds them automatically. For agents

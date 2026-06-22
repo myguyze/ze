@@ -155,6 +155,10 @@ def _resolve_model(self, agent: str, complexity: str) -> str:
     return cfg.get("model", "anthropic/claude-sonnet-4-5")
 ```
 
+> **Implementation note (current):** Per-agent models are declared as `@agent` class
+> attributes (`model`, optionally `model_simple` for routing). The `agent_configs`
+> YAML map referenced above was removed; routing reads agent metadata from the registry.
+
 In `_score_and_route`, after the top agent and intent are known:
 
 ```python

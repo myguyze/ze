@@ -18,7 +18,7 @@
 | Generated WS types (`json-schema-to-typescript`) | ✅ Done |
 | `configure()` / `createZeClient()` auth factory in `@ze/client` | ✅ Done |
 | `ze-web` migrated to `@ze/client` — all pages call bare SDK methods | ✅ Done |
-| `Makefile` target `make codegen` | 🔲 Deferred |
+| `make codegen` | ✅ Done (`make codegen` → `scripts/codegen.ts`) |
 
 ---
 

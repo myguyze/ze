@@ -7,7 +7,7 @@ Design and implementation specs for the Ze personal AI assistant.
 ```
 specs/
 ├── TEMPLATE.md       ← template for new specs
-├── phases/           ← feature and phase implementation specs (00–46)
+├── phases/           ← feature and phase implementation specs (00–77)
 ├── core/             ← ze-core infrastructure layer specs
 └── arch/             ← architecture decision records
 ```
@@ -70,37 +70,38 @@ explicitly deferred before implementation begins.
 | 40 | [Notifications](phases/40-notifications.md) | ✅ Done |
 | 41 | [Component Descriptors](phases/41-component-descriptors.md) | ✅ Done |
 | 42 | [Native UI Foundation](phases/42-native-ui-foundation.md) | ✅ Done |
-| 43 | [React Web App](phases/43-react-web-app.md) | 🔄 Planned |
+| 43 | [React Web App](phases/43-react-web-app.md) | ✅ Done |
 | 44 | [Calendar Package Split](phases/44-package-split-google-calendar-api.md) | ✅ Done |
 | 46 | [Accountability Layer](phases/46-accountability-layer.md) | ✅ Done |
-| 47 | [Plugin Framework](phases/47-plugin-framework.md) | 🔄 In Progress (tool namespacing deferred) |
+| 47 | [Plugin Framework](phases/47-plugin-framework.md) | ✅ Done (tool namespacing deferred) |
 | 48 | [Ze Core Split](phases/48-core-split.md) | ✅ Done |
 | 49 | [Ze SDK](phases/49-ze-sdk.md) | ✅ Done |
 | 50 | [News Preference Model](phases/50-news-preferences.md) | ✅ Done |
 | 51 | [Onboarding Platform](phases/51-onboarding.md) | ✅ Done |
-| 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | 🔄 In Progress |
-| 53 | [Eval Consolidation](phases/53-eval-consolidation.md) | 🔄 Pending |
+| 52 | [Session-Grouped Episode Consolidation](phases/52-session-grouped-consolidation.md) | ✅ Done |
+| 53 | [Eval Consolidation](phases/53-eval-consolidation.md) | ✅ Done |
 | 54 | [Progress Messages](phases/54-progress-messages.md) | ✅ Done |
-| 55 | [Signal Substrate](phases/55-signal-substrate.md) | 🔲 Pending (v1) |
-| 56 | [Salience & Relevance Model](phases/56-salience-relevance-model.md) | 🔲 Pending (v1) |
-| 57 | [Correlation Engine](phases/57-correlation-engine.md) | 🔲 Pending (v1) |
-| 58 | [Inline Conversational Correlation](phases/58-inline-correlation.md) | 🔲 Pending (v1 — sole consumer) |
+| 55 | [Signal Substrate](phases/55-signal-substrate.md) | ✅ Done |
+| 56 | [Salience & Relevance Model](phases/56-salience-relevance-model.md) | ✅ Done |
+| 57 | [Correlation Engine](phases/57-correlation-engine.md) | ✅ Done |
+| 58 | [Inline Conversational Correlation](phases/58-inline-correlation.md) | ✅ Done |
 | 59 | [Proactive Correlation Push](phases/59-proactive-correlation-push.md) | 🔲 Deferred (post-v1) |
-| 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | 🔲 Pending |
+| 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | ✅ Done |
 | 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
 | 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
 | 63 | [Integration Framework](phases/63-integration-framework.md) | ✅ Done |
-| 64 | [Plugin Package Extraction](phases/64-plugin-package-extraction.md) | 🔲 Pending |
-| 65 | [Eager Session Summaries](phases/65-eager-session-summaries.md) | 🔲 Pending |
-| 66 | [Primitive UI](phases/66-primitive-ui.md) | 🔲 Pending |
-| 67 | [Finance Plugin](phases/67-finance-plugin.md) | 🔲 Pending |
-| 68 | [ze-data Package](phases/68-ze-data.md) | 🔲 Pending |
-| 69 | [ze-ingestion Pipeline](phases/69-ze-ingestion.md) | 🔲 Pending |
+| 64 | [Plugin Package Extraction](phases/64-plugin-package-extraction.md) | ✅ Done |
+| 65 | [Eager Session Summaries](phases/65-eager-session-summaries.md) | ✅ Done |
+| 66 | [Primitive UI](phases/66-primitive-ui.md) | ✅ Done |
+| 67 | [Finance Plugin](phases/67-finance-plugin.md) | ✅ Done |
+| 68 | [ze-data Package](phases/68-ze-data.md) | ✅ Done |
+| 69 | [ze-ingestion Pipeline](phases/69-ze-ingestion.md) | ✅ Done |
 | 70 | [Finance Recurring Detection](phases/70-finance-recurring.md) | ✅ Done |
 | 71 | [Cross-Goal Awareness](phases/71-cross-goal-awareness.md) | 🔲 Pending |
-| 72 | [API Client Codegen](phases/72-api-client-codegen.md) | 🔲 Pending |
-| 73 | [API Surface](phases/73-api-surface.md) | 🔲 Pending |
-| 75 | [Server-Driven UI Package](phases/75-server-driven-ui-package.md) | 🔲 Pending |
+| 72 | [API Client Codegen](phases/72-api-client-codegen.md) | ✅ Done |
+| 73 | [API Surface](phases/73-api-surface.md) | ✅ Done |
+| 74 | [Automation Substrate](phases/74-automation-substrate.md) | ✅ Done |
+| 75 | [Server-Driven UI Package](phases/75-server-driven-ui-package.md) | ✅ Done |
 | 76 | [ze-api Shell Cleanup](phases/76-ze-api-shell-cleanup.md) | ✅ Done |
 | 77 | [ze-logging Package](phases/77-ze-logging.md) | ✅ Done |
 

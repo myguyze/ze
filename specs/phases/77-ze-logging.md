@@ -168,17 +168,10 @@ Move body of `apps/ze-api/ze_api/logging.py` → `ze_logging/__init__.py` unchan
 
 Add to workspace root `pyproject.toml` and `ze-api/pyproject.toml` dependencies.
 
-### 2. Shim in `ze_agents`
+### 2. Shim in `ze_agents` — removed after migration
 
-```python
-# ze_agents/logging.py — becomes a one-line re-export
-from ze_logging import bind_context, configure_logging, get_logger, unbind_context
-
-__all__ = ["bind_context", "configure_logging", "get_logger", "unbind_context"]
-```
-
-Existing `from ze_agents.logging import get_logger` (~100 call sites) keeps working
-without a mass import rewrite.
+The interim `ze_agents/logging.py` re-export shim was removed once all call sites
+migrated to `from ze_logging import get_logger`. Do not reintroduce it.
 
 ### 3. Update `ze_sdk`
 

@@ -2,7 +2,7 @@
 
 > **Package:** `ze-sdk` (`core/ze-sdk/`)
 > **Phase:** 49
-> **Status:** Pending
+> **Status:** Done
 > **Prerequisite:** Phase 48 (ze-core split into ze-agents + ze-proactive) must be complete first.
 
 ---
@@ -79,11 +79,11 @@ core/ze-sdk/
 ### `ze_sdk` (root)
 
 ```python
-from ze_agents.plugin import ZePlugin
+from ze_plugin.plugin import ZePlugin
 from ze_agents.registry import agent
 from ze_agents.tool import tool, ToolAccess
 from ze_agents.base_agent import BaseAgent
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.settings import Settings
 
 __all__ = [

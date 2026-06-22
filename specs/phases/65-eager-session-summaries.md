@@ -10,11 +10,11 @@
 
 | Feature | Status |
 |---------|--------|
-| `memory_session_summaries` table + migration | 🔲 Pending |
-| `SessionSummaryJob` proactive job | 🔲 Pending |
-| Retrieval policy: prefer summaries, suppress raw turns | 🔲 Pending |
-| Phase 52 interop: skip LLM call for already-summarised sessions | 🔲 Pending |
-| Tests | 🔲 Pending |
+| `memory_session_summaries` table + migration | ✅ Done |
+| `SessionSummaryJob` proactive job | ✅ Done |
+| Retrieval policy: prefer summaries, suppress raw turns | ✅ Done |
+| Phase 52 interop: skip LLM call for already-summarised sessions | ✅ Done |
+| Tests | ✅ Done |
 
 ---
 

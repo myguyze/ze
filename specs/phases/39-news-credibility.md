@@ -2,7 +2,7 @@
 
 > **Package:** `ze-news`
 > **Phase:** 39
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 37 ([37-news-package.md](37-news-package.md)), Phase 38 ([38-news-personalization.md](38-news-personalization.md))
 
 ---

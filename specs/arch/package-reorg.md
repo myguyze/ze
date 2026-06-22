@@ -1,5 +1,9 @@
 # Ze — Package Architecture Reorganisation
 
+> **Status:** Done (Phase 20). Subsequent extractions: Phase 44 (ze-api rename),
+> Phase 48 (ze-agents / ze-proactive), Phase 64 (ze-plugin), Phase 74 (ze-automation),
+> Phase 76 (ze-api shell), Phase 77 (ze-logging).
+
 ## Context
 
 Ze has grown from a single monorepo package into a multi-package monorepo. As domain
@@ -31,7 +35,7 @@ The fix requires the graph itself to be extensible.
 
 ### 1. Deep `ZePlugin` ABC in `ze_core`
 
-New file `ze_core/plugin.py`:
+New file `ze_plugin/plugin.py` (originally `ze_core/plugin.py`, moved in Phase 64):
 
 ```python
 class ZePlugin(ABC):

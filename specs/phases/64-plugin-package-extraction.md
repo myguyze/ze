@@ -212,8 +212,7 @@ dependencies.
 
 ### 7. Update `ze-api` imports
 
-`ze_api/bootstrap.py`, `ze_api/container.py`, `ze_api/data/service.py`,
-`ze_api/migrate.py`.
+`ze_plugin/bootstrap.py`, `ze_api/container.py`, `ze_api/migrate.py`.
 
 ### 8. Update plugin imports
 
