@@ -54,6 +54,7 @@ _ZE_ONBOARDING_VERSIONS = Path(ze_onboarding.__file__).parent / "migrations" / "
 _ZE_CORRELATION_VERSIONS = Path(ze_correlation.__file__).parent / "migrations" / "versions"
 _ZE_PROACTIVE_VERSIONS = Path(ze_proactive.__file__).parent / "migrations" / "versions"
 _ZE_INGESTION_VERSIONS = Path(ze_ingestion.__file__).parent / "migrations" / "versions"
+_ZE_AUTOMATION_VERSIONS = Path(__file__).parents[3] / "core" / "ze-automation" / "ze_automation" / "migrations" / "versions"
 _ZE_VERSIONS = _SCRIPT_LOCATION / "versions"
 
 
@@ -79,6 +80,8 @@ def _collect_version_locations() -> list[Path]:
         _ZE_INGESTION_VERSIONS,
         _ZE_VERSIONS,
     ]
+    if _ZE_AUTOMATION_VERSIONS.exists():
+        paths.append(_ZE_AUTOMATION_VERSIONS)
     for plugin_cls in get_plugin_registry():
         plugin_path = plugin_cls.migrations_path()
         if plugin_path is not None:
