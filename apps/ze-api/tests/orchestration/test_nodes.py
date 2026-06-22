@@ -415,7 +415,7 @@ async def test_synthesize_returns_empty_when_no_subtasks():
 # ── routing.plan_sequential ───────────────────────────────────────────────────
 
 async def test_plan_sequential_identifies_high_risk_steps():
-    from ze_personal.workflow.planner import WorkflowPlanner
+    from ze_automation.workflow.planner import WorkflowPlanner
     from ze_automation.workflow.types import WorkflowStep
 
     steps = [
@@ -445,7 +445,7 @@ async def test_plan_sequential_identifies_high_risk_steps():
 
 
 async def test_plan_sequential_empty_high_risk_when_all_autonomous():
-    from ze_personal.workflow.planner import WorkflowPlanner
+    from ze_automation.workflow.planner import WorkflowPlanner
     from ze_automation.workflow.types import WorkflowStep
 
     steps = [
@@ -470,7 +470,7 @@ async def test_plan_sequential_empty_high_risk_when_all_autonomous():
 
 async def test_plan_sequential_returns_error_on_plan_failure():
     from ze_agents.errors import WorkflowPlanError
-    from ze_personal.workflow.planner import WorkflowPlanner
+    from ze_automation.workflow.planner import WorkflowPlanner
 
     planner = AsyncMock(spec=WorkflowPlanner)
     planner.plan = AsyncMock(side_effect=WorkflowPlanError("malformed plan"))
@@ -487,7 +487,7 @@ async def test_plan_sequential_returns_error_on_plan_failure():
 
 
 async def test_plan_sequential_uses_agent_hint_for_gate_check():
-    from ze_personal.workflow.planner import WorkflowPlanner
+    from ze_automation.workflow.planner import WorkflowPlanner
     from ze_automation.workflow.types import WorkflowStep
 
     steps = [WorkflowStep(task="Do something", agent_hint=None, intent="execute")]

@@ -79,7 +79,7 @@ def _make_deps(
 # ── create_goal: prior work query ─────────────────────────────────────────────
 
 async def test_create_goal_queries_prior_work_before_planning():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     pw = _prior()
     store, planner, notifier = _make_deps(prior_work=[pw])
@@ -97,7 +97,7 @@ async def test_create_goal_queries_prior_work_before_planning():
 
 
 async def test_create_goal_passes_prior_work_to_planner():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     pw = _prior()
     store, planner, notifier = _make_deps(prior_work=[pw])
@@ -116,7 +116,7 @@ async def test_create_goal_passes_prior_work_to_planner():
 
 
 async def test_create_goal_passes_none_when_no_prior_work():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     store, planner, notifier = _make_deps(prior_work=[])
 
@@ -134,7 +134,7 @@ async def test_create_goal_passes_none_when_no_prior_work():
 
 
 async def test_create_goal_continues_normally_when_prior_work_query_raises():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     store, planner, notifier = _make_deps(prior_work_raises=True)
 
@@ -152,7 +152,7 @@ async def test_create_goal_continues_normally_when_prior_work_query_raises():
 
 
 async def test_create_goal_passes_none_prior_work_when_query_raises():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     store, planner, notifier = _make_deps(prior_work_raises=True)
 
@@ -170,7 +170,7 @@ async def test_create_goal_passes_none_prior_work_when_query_raises():
 
 
 async def test_create_goal_returns_error_when_plan_fails():
-    from ze_personal.agents.goals.tools import create_goal
+    from ze_automation.agents.goals.tools import create_goal
 
     store, planner, notifier = _make_deps(plan_raises=True)
 

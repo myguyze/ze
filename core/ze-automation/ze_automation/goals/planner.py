@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from ze_core import defaults
+from ze_agents import defaults
 from ze_agents.client import LLMClient
 from ze_agents.errors import GoalPlanError
 from typing import Any
@@ -279,10 +279,12 @@ class GoalPlanner:
         client: LLMClient,
         model: str = defaults.MODEL_GOAL_PLAN,
         memory_store: Any = None,
+        embedder: Any = None,
     ) -> None:
         self._client = client
         self._model = model
         self._memory = memory_store
+        self._embedder = embedder
 
     async def plan(
         self,
@@ -517,11 +519,10 @@ class GoalPlanner:
             return None
 
     async def _fetch_procedures(self, query: str) -> list[Procedure]:
-        if self._memory is None:
+        if self._memory is None or self._embedder is None:
             return []
         try:
-            from ze_core.embeddings import get_embedder
-            embedding = get_embedder().encode(query)
+            embedding = self._embedder.encode(query)
             request = RetrievalRequest(
                 module="planner",
                 agent="planner",

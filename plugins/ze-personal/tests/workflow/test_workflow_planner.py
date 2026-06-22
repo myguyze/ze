@@ -5,7 +5,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 
-from ze_personal.workflow.planner import WorkflowPlanner
+from ze_automation.workflow.planner import WorkflowPlanner
 from ze_automation.workflow.types import StepResult
 
 
@@ -58,7 +58,7 @@ class TestExtractProcedure:
         assert result is None
 
     async def test_returns_none_on_llm_failure(self, mocker):
-        mocker.patch("ze_personal.workflow.planner.log")
+        mocker.patch("ze_automation.workflow.planner.log")
         client = MagicMock()
         client.complete = AsyncMock(side_effect=RuntimeError("LLM error"))
         planner = WorkflowPlanner(openrouter_client=client)
@@ -67,7 +67,7 @@ class TestExtractProcedure:
         assert result is None
 
     async def test_returns_none_on_invalid_json(self, mocker):
-        mocker.patch("ze_personal.workflow.planner.log")
+        mocker.patch("ze_automation.workflow.planner.log")
         planner = _make_planner("not json at all")
         steps = [_make_step("Step")]
         result = await planner.extract_procedure("Workflow", steps)

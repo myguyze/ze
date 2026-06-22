@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_personal.goals.executor import GoalExecutor
+from ze_automation.goals.executor import GoalExecutor
 from ze_automation.goals.types import (
     Goal,
     GoalStatus,

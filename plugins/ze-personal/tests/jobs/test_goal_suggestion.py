@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_personal.jobs.goal_suggestion import GoalSuggestionJob
+from ze_automation.jobs.goal_suggestion import GoalSuggestionJob
 from ze_automation.goals.types import GoalSuggestion, SuggestionStatus
 
 

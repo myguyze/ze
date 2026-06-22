@@ -10,7 +10,7 @@ from ze_agents.errors import GoalExecutionError
 from ze_sdk.memory import MemoryStore
 from ze_sdk.memory import TaskState
 from ze_agents.types import ToolCall
-from ze_personal.goals.planner import GoalPlanner
+from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.store import GoalStore
 from ze_automation.goals.types import (
     ExecutionTrace,
@@ -30,8 +30,6 @@ log = get_logger(__name__)
 _DONE_MILESTONE_STATUSES = frozenset({MilestoneStatus.COMPLETED, MilestoneStatus.SKIPPED})
 
 # Payload format: "goal:<action>:<gate_id>"
-# Transport layers parse this in their callback handler and call the appropriate
-# GoalExecutor method (handle_gate_approved, handle_gate_stopped, handle_gate_redirected).
 _PAYLOAD_APPROVE   = "goal:approve:{gate_id}"
 _PAYLOAD_STOP      = "goal:stop:{gate_id}"
 _PAYLOAD_REDIRECT  = "goal:redirect:{gate_id}"
@@ -112,18 +110,6 @@ class GoalExecutor:
         agent_getter: Callable[[str], object],
         memory_store: MemoryStore | None = None,
     ) -> None:
-        """
-        Args:
-            goal_store:    GoalStore implementation.
-            goal_planner:  GoalPlanner for decomposition and replanning.
-            push:          Async callable that delivers a Notification to the user.
-                           Corresponds to AppInterface.push() — must not raise.
-            agent_getter:  Callable that looks up a registered agent by name.
-                           Returns an object with an async run(ctx) method.
-            memory_store:  MemoryStore for promoting generalizable learnings to user
-                           memory on goal completion. Optional — promotion is skipped
-                           when None.
-        """
         self._store = goal_store
         self._planner = goal_planner
         self._push = push
@@ -151,7 +137,6 @@ class GoalExecutor:
         if goal is None or goal.status != GoalStatus.ACTIVE:
             return
 
-        # Apply any pending steer before picking the next milestone
         if not self._steer_queues[goal_id].empty():
             instruction = self._steer_queues[goal_id].get_nowait()
             await self._apply_steer(goal_id, goal, instruction)
@@ -496,7 +481,6 @@ class GoalExecutor:
         except Exception:
             agent = self._get_agent("companion")
 
-        # Import here to avoid circular dependency at module level
         from ze_agents.types import GateDecision
         from ze_agents.types import AgentContext
 

@@ -16,6 +16,8 @@ from ze_automation.goals.types import (
 from ze_automation.goals.store import GoalStore
 from ze_automation.goals.postgres import PostgresGoalStore
 from ze_automation.goals.suggestion_store import GoalSuggestionStore
+from ze_automation.goals.planner import GoalPlanner
+from ze_automation.goals.executor import GoalExecutor
 
 __all__ = [
     "Goal",
@@ -34,4 +36,6 @@ __all__ = [
     "VerificationGate",
     "GoalStore",
     "PostgresGoalStore",
+    "GoalPlanner",
+    "GoalExecutor",
 ]

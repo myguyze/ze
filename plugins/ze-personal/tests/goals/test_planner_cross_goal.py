@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_personal.goals.planner import GoalPlanner, _parse_plan
+from ze_automation.goals.planner import GoalPlanner, _parse_plan
 from ze_automation.goals.types import Goal, GoalStatus, Milestone, PriorMilestoneOutput
 
 
@@ -150,7 +150,7 @@ async def test_replan_with_prior_work_appends_prior_work_block():
     completed = [
         Milestone(
             id=uuid4(), goal_id=goal.id, title="Done step", description="d",
-            sequence=1, status=__import__("ze_personal.goals.types", fromlist=["MilestoneStatus"]).MilestoneStatus.COMPLETED,
+            sequence=1, status=__import__("ze_automation.goals.types", fromlist=["MilestoneStatus"]).MilestoneStatus.COMPLETED,
             output="Some output",
         )
     ]

@@ -2,7 +2,7 @@
 
 > **Packages:** `core/ze-automation/` (core), `core/ze-proactive/` (unchanged), `plugins/ze-personal/` (shrunk to persona + contacts only)
 > **Phase:** 74
-> **Status:** In Progress
+> **Status:** Done
 > **Depends on:** Phase 47 ([47-plugin-framework.md](47-plugin-framework.md)), Phase 48 ([48-core-split.md](48-core-split.md))
 
 ---
@@ -16,11 +16,11 @@
 | Migrations `zc006`–`zc009`, `zc011` moved to `ze-automation` | ✅ Done |
 | `ze-proactive` kept separate as scheduling + delivery infrastructure | ✅ Done |
 | SDK re-exports updated via `ze_sdk.automation` | ✅ Done |
-| Planners and executors moved from `ze-personal` to `ze-automation` | 🔲 Pending |
-| Goal and workflow agents moved to `ze-automation` | 🔲 Pending |
-| `ze-api` wires `ze-automation` directly (not via plugin) | 🔲 Pending |
-| `ze-personal` reduced to persona + contacts + onboarding only | 🔲 Pending |
-| Tests updated for the new dependency graph | 🔲 Pending |
+| Planners and executors moved from `ze-personal` to `ze-automation` | ✅ Done |
+| Goal and workflow agents moved to `ze-automation` | ✅ Done |
+| `ze-api` wires `ze-automation` directly (not via plugin) | ✅ Done |
+| `ze-personal` reduced to persona + contacts + onboarding only | ✅ Done |
+| Tests updated for the new dependency graph | ✅ Done |
 
 ---
 

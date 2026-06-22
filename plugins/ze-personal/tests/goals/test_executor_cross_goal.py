@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_personal.goals.executor import GoalExecutor, _build_milestone_prompt
+from ze_automation.goals.executor import GoalExecutor, _build_milestone_prompt
 from ze_automation.goals.types import (
     Goal,
     GoalStatus,
@@ -285,7 +285,7 @@ def _make_executor_with_memory(*, memory=_USE_DEFAULT_MEMORY, planner=None, stor
     memory_store = AsyncMock() if memory is _USE_DEFAULT_MEMORY else memory
     push = AsyncMock()
     agent_getter = MagicMock(return_value=AsyncMock())
-    from ze_personal.goals.executor import GoalExecutor
+    from ze_automation.goals.executor import GoalExecutor
     executor = GoalExecutor(
         goal_store=store,
         goal_planner=planner,

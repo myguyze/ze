@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_personal.goals.planner import GoalPlanner
+from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.types import Goal, GoalConvergence, GoalStatus
 
 

@@ -15,7 +15,7 @@ class _StubPlugin(ZePlugin):
     depends_on: tuple[str, ...] = ()
 
     def checkpoint_serde_modules(self) -> tuple[str, ...]:
-        return ("ze_personal.workflow.types",)
+        return ("ze_automation.workflow.types",)
 
     def memory_policies(self) -> dict:
         return {"stub_agent": CompanionPolicy()}
@@ -28,7 +28,7 @@ def test_plugin_hooks_feed_checkpoint_serde_memory_registry_and_graph() -> None:
     assert registry.for_module("stub_agent") is not None
 
     allowlist = set(collect_checkpoint_allowlist(plugins))
-    assert ("ze_personal.workflow.types", "WorkflowStep") in allowlist
+    assert ("ze_automation.workflow.types", "WorkflowStep") in allowlist
     assert ("ze_agents.types", "AgentResult") in allowlist
 
     serde = build_checkpoint_serde(plugins)

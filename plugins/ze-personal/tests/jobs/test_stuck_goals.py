@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from ze_personal.jobs.stuck_goals import StuckGoalJob, _build_message
+from ze_automation.jobs.stuck_goals import StuckGoalJob, _build_message
 from ze_automation.goals.types import Goal, GoalStatus, StuckGoal, VerificationGate, GateStatus
 
 

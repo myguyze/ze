@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_personal.jobs.goal_narrative import GoalNarrativeJob
+from ze_automation.jobs.goal_narrative import GoalNarrativeJob
 from ze_automation.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, VerificationGate, GateStatus
 
 

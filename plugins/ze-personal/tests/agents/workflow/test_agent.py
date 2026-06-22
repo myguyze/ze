@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 
-from ze_personal.agents.workflow.agent import WorkflowManagerAgent
+from ze_automation.agents.workflow.agent import WorkflowManagerAgent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.types import GateDecision
 from ze_sdk.memory import MemoryContext
@@ -96,7 +96,7 @@ async def test_run_lists_workflows_via_tool():
 
 
 async def test_run_creates_workflow_via_tool():
-    import ze_personal.agents.workflow.tools  # noqa
+    import ze_automation.agents.workflow.tools  # noqa
 
     from uuid import uuid4
 
@@ -137,7 +137,7 @@ async def test_run_creates_workflow_via_tool():
 
 
 async def test_run_trigger_workflow_via_tool():
-    import ze_personal.agents.workflow.tools  # noqa
+    import ze_automation.agents.workflow.tools  # noqa
 
     from uuid import uuid4
     from datetime import datetime

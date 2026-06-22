@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ze_core import defaults
+from ze_agents import defaults
 from ze_agents.errors import WorkflowPlanError
 from ze_agents.logging import get_logger
 from ze_agents.client import LLMClient

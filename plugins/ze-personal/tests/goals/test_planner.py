@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ze_agents.errors import GoalPlanError
-from ze_personal.goals.planner import GoalPlanner
+from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.types import Goal, Milestone, MilestoneStatus, GateStatus
 from uuid import uuid4
 

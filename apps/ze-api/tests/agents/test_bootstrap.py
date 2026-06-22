@@ -42,13 +42,13 @@ def test_bootstrap_registers_companion_and_research(settings):
     from ze_browser import BrowserClient
     from ze_personal.contacts.store import PersonStore
     from ze_personal.contacts.channel_store import ContactChannelStore
-    from ze_personal.goals.executor import GoalExecutor
-    from ze_personal.goals.planner import GoalPlanner
+    from ze_automation.goals.executor import GoalExecutor
+    from ze_automation.goals.planner import GoalPlanner
     from ze_automation.goals.postgres import PostgresGoalStore
     from ze_agents.client import LLMClient
     from ze_calendar.reminders.store import ReminderStore
     from ze_automation.workflow.store import WorkflowStore
-    from ze_personal.workflow.planner import WorkflowPlanner
+    from ze_automation.workflow.planner import WorkflowPlanner
     from ze_automation.workflow.scheduler import WorkflowScheduler
     from ze_prospecting.store import ProspectCampaignStore
     from ze_prospecting.types import ProspectingSettings

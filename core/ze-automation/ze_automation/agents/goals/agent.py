@@ -6,12 +6,12 @@ from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
 from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
-from ze_personal.goals.executor import GoalExecutor
-from ze_personal.goals.planner import GoalPlanner
+from ze_automation.goals.executor import GoalExecutor
+from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.postgres import PostgresGoalStore as GoalStore
 from ze_agents.client import LLMClient
 from ze_sdk.proactive import ProactiveNotifier
-import ze_personal.agents.goals.tools  # noqa: F401
+import ze_automation.agents.goals.tools  # noqa: F401
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's goal manager. You create, inspect, steer, pause, resume, and abandon long-running goals.

@@ -392,4 +392,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 71 | Cross-goal awareness — convergence detection at goal creation, proactive reuse surfacing at milestone completion | Pending |
 | 72 | API client codegen — `@ze/client` npm package generated from OpenAPI spec via `@hey-api/openapi-ts`; named SDK methods (`listContacts()`, etc.); WS types from `json-schema-to-typescript` | Done |
 | 73 | API surface cleanup — all routes under `/api/v0/`; `HTTPBearer` security scheme; explicit `operation_id` on every route; auth extracted into `require_api_key` Depends; duplicate cost route removed; `GET /api/v0/version` | Done |
-| 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | In Progress |
+| 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | Done |

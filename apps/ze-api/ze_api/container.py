@@ -23,7 +23,12 @@ from ze_memory.session_summary import SessionSummariser
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
+from ze_automation.goals.executor import GoalExecutor
+from ze_automation.goals.planner import GoalPlanner
+from ze_automation.goals.postgres import PostgresGoalStore
+from ze_automation.goals.suggestion_store import GoalSuggestionStore
 from ze_automation.workflow.postgres import PostgresWorkflowStore
+from ze_automation.workflow.planner import WorkflowPlanner
 from ze_automation.workflow.scheduler import WorkflowScheduler
 from ze_automation.workflow.store import WorkflowStore
 from ze_core.openrouter.client import OpenRouterClient
@@ -286,13 +291,32 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     workflow_store = PostgresWorkflowStore(db_pool=pool)
 
-    # WorkflowScheduler: executor is configured in PersonalPlugin.startup() once the
-    # workflow graph is available. Must be built here so CalendarPlugin can reference
-    # it during its startup().
+    # WorkflowScheduler: executor is configured later after plugin startup.
+    # Must be built here so CalendarPlugin can reference it during its startup().
     workflow_scheduler = WorkflowScheduler(
         workflow_store=workflow_store,
         enabled=settings.scheduler_enabled,
     )
+
+    # Automation services — owned here (not by PersonalPlugin) so they are always
+    # available regardless of plugin configuration.
+    from ze_agents.registry import get_agent as _get_agent
+
+    goal_store = PostgresGoalStore(pool=pool)
+    goal_suggestion_store = GoalSuggestionStore(pool=pool)
+    goal_planner = GoalPlanner(
+        client=openrouter_client,
+        memory_store=memory_store,
+        embedder=embedder,
+    )
+    goal_executor = GoalExecutor(
+        goal_store=goal_store,
+        goal_planner=goal_planner,
+        push=notifier.push_notification,
+        agent_getter=_get_agent,
+        memory_store=memory_store,
+    )
+    workflow_planner = WorkflowPlanner(openrouter_client=openrouter_client)
 
     estimator = ComplexityEstimator()
     override_store = PostgresCapabilityOverrideStore(pool=pool)
@@ -312,6 +336,11 @@ async def build_container(settings: Settings) -> ZeContainer:
         PostgresMemoryStore: memory_store,
         WorkflowStore: workflow_store,
         WorkflowScheduler: workflow_scheduler,
+        WorkflowPlanner: workflow_planner,
+        PostgresGoalStore: goal_store,
+        GoalPlanner: goal_planner,
+        GoalExecutor: goal_executor,
+        GoalSuggestionStore: goal_suggestion_store,
         SentenceTransformer: embedder,
         BrowserClient: browser_client,
     }
@@ -385,9 +414,13 @@ async def build_container(settings: Settings) -> ZeContainer:
     if signal_sources:
         log.info("signal_sources_collected", keys=list(signal_sources))
 
-    # ze-ingestion is a core package (not a ZePlugin), so its agent isn't in any
-    # plugin's agent_module_paths(). Import here to fire @agent/@tool registration
-    # before bootstrap_agents validates the registry.
+    # ze-automation and ze-ingestion are core packages (not ZePlugin), so their
+    # agents aren't in any plugin's agent_module_paths(). Import here to fire
+    # @agent/@tool registration before bootstrap_agents validates the registry.
+    import ze_automation.agents.goals.tools  # noqa: F401
+    import ze_automation.agents.goals.agent  # noqa: F401
+    import ze_automation.agents.workflow.tools  # noqa: F401
+    import ze_automation.agents.workflow.agent  # noqa: F401
     import ze_ingestion.agent  # noqa: F401
 
     bootstrap_agents(deps=agent_deps, plugins=plugins)
@@ -552,6 +585,138 @@ async def build_container(settings: Settings) -> ZeContainer:
         except Exception as exc:
             log.error("plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc))
             raise
+
+    # Build workflow graph and configure the WorkflowScheduler executor.
+    from ze_personal.graph.workflow import build_workflow_graph
+
+    workflow_graph = build_workflow_graph(
+        checkpointer=checkpointer,
+        plugins=plugins,
+    )
+
+    workflow_graph_config: dict = {
+        "configurable": {
+            "capability_gate": capability_gate,
+            "memory_store": memory_store,
+            "persona_store": persona_store,
+            "openrouter_client": openrouter_client,
+            "embedder": embedder,
+            "settings": settings,
+            "workflow_store": workflow_store,
+            "workflow_planner": workflow_planner,
+            "router": router,
+        }
+    }
+
+    async def _workflow_executor(workflow: Any, execution_id: Any) -> None:
+        from ze_agents.interface.types import RawInput as _RawInput
+        from ze_core.conversation import make_graph_input
+        from ze_core.telemetry.context import set_flow_context
+        set_flow_context("workflow_execution", session_id=f"workflow:{workflow.id}")
+        initial_state = {
+            **make_graph_input(
+                _RawInput(text=f"[workflow] {workflow.name}"),
+                f"workflow:{workflow.id}",
+            ),
+            "workflow_id": workflow.id,
+            "workflow_execution_id": execution_id,
+            "workflow_steps": workflow.steps,
+            "current_step_index": 0,
+            "workflow_step_results": [],
+        }
+        run_config = {
+            **workflow_graph_config,
+            "configurable": {
+                **workflow_graph_config.get("configurable", {}),
+                "thread_id": str(execution_id),
+                "workflow_store": workflow_store,
+            },
+        }
+        await workflow_graph.ainvoke(initial_state, run_config)
+
+    async def _workflow_failure_handler(workflow: Any, exc: Exception) -> None:
+        alerts_cfg = settings.proactive_config.get("alerts", {})
+        if not alerts_cfg.get("workflow_failure_enabled", True):
+            return
+        cooldown = int(alerts_cfg.get("workflow_failure_cooldown_hours", 1))
+        event_type = f"workflow_failure:{workflow.id}"
+        if await push_log_store.was_sent_within_hours(event_type, cooldown):
+            log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
+            return
+        await notifier.push(
+            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
+            format="markdown",
+            urgency="high",
+        )
+        await push_log_store.log(event_type, workflow.name)
+        log.info("failure_alert_sent", workflow=workflow.name)
+
+    workflow_scheduler.configure_executor(
+        executor=_workflow_executor,
+        on_failure=_workflow_failure_handler,
+    )
+
+    # Register goal advance sweep on the proactive scheduler.
+    async def _sweep_active_goals() -> None:
+        import asyncio as _asyncio
+        goals = await goal_store.list_for_advance()
+        for g in goals:
+            _asyncio.create_task(goal_executor.advance(g.id))
+
+    container.proactive_scheduler.add_cron_job(
+        fn=_sweep_active_goals,
+        cron="*/15 * * * *",
+        job_id="goal_advance_sweep",
+    )
+    log.info("goal_advance_sweep_scheduled")
+
+    # Register automation proactive jobs.
+    from ze_automation.jobs.goal_narrative import GoalNarrativeJob
+    from ze_automation.jobs.goal_suggestion import GoalSuggestionJob
+    from ze_automation.jobs.stuck_goals import StuckGoalJob
+
+    _goal_narrative = GoalNarrativeJob(
+        notifier=notifier,
+        push_log_store=push_log_store,
+        goal_store=goal_store,
+        goal_planner=goal_planner,
+    )
+    _goal_suggestion = GoalSuggestionJob(
+        notifier=notifier,
+        goal_store=goal_store,
+        suggestion_store=goal_suggestion_store,
+        planner=goal_planner,
+        memory_store=memory_store,
+    )
+    _stuck_goals = StuckGoalJob(
+        notifier=notifier,
+        goal_store=goal_store,
+    )
+
+    _proactive_cfg = core_settings.config.get("proactive", {})
+    _narrative_cfg = _proactive_cfg.get("goal_narrative", {})
+    if _narrative_cfg.get("enabled", True):
+        container.proactive_scheduler.register(
+            _goal_narrative,
+            cron=_narrative_cfg.get("cron", "0 18 * * 0"),
+        )
+        log.info("goal_narrative_scheduled", cron=_narrative_cfg.get("cron", "0 18 * * 0"))
+
+    _suggestion_cfg = _proactive_cfg.get("goal_suggestion", {})
+    if _suggestion_cfg.get("enabled", True):
+        container.proactive_scheduler.register(
+            _goal_suggestion,
+            cron=_suggestion_cfg.get("cron", "0 19 * * 0"),
+        )
+        log.info("goal_suggestion_scheduled", cron=_suggestion_cfg.get("cron", "0 19 * * 0"))
+
+    _stuck_cfg = _proactive_cfg.get("stuck_goals", {})
+    if _stuck_cfg.get("enabled", True):
+        container.proactive_scheduler.register(
+            _stuck_goals,
+            cron=_stuck_cfg.get("cron", "0 9 * * 2"),
+        )
+        log.info("stuck_goals_scheduled", cron=_stuck_cfg.get("cron", "0 9 * * 2"))
 
     # Schedule cost reconciliation.
     cost_reconciler = CostReconciler(store=cost_store, openrouter_client=openrouter_client)

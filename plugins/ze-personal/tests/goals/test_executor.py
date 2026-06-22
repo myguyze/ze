@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from ze_agents.errors import GoalExecutionError
-from ze_personal.goals.executor import GoalExecutor
+from ze_automation.goals.executor import GoalExecutor
 from ze_automation.goals.types import (
     Goal,
     GoalStatus,
@@ -146,7 +146,7 @@ async def test_advance_executes_next_pending_milestone(executor, store, push, ag
     store.list_milestones = AsyncMock(return_value=[m1])
     store.get_pending_gate = AsyncMock(return_value=None)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.update_milestone.assert_any_call(m1.id, MilestoneStatus.IN_PROGRESS)
@@ -161,7 +161,7 @@ async def test_advance_skips_milestone_on_execution_error(executor, store, push,
     store.get_pending_gate = AsyncMock(return_value=None)
     agent_mock.run = AsyncMock(side_effect=Exception("network error"))
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.update_milestone.assert_any_call(m1.id, MilestoneStatus.SKIPPED, output=pytest.approx("Failed: Milestone 1 (Step 1) failed: network error", abs=100))
@@ -199,7 +199,7 @@ async def test_gate_does_not_fire_if_prior_not_done(executor, store, push):
     ])
     store.get_pending_gate = AsyncMock(return_value=gate)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.fire_gate.assert_not_called()
@@ -209,7 +209,7 @@ async def test_approve_plan_activates_goal(executor, store):
     goal = _goal(status=GoalStatus.PLANNING)
     store.get_goal = AsyncMock(return_value=goal)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         result = await executor.approve_plan(goal.id)
 
     assert result is True
@@ -236,7 +236,7 @@ async def test_handle_gate_approved(executor, store):
     gate = _gate(after_seq=1, goal_id=goal.id, status=GateStatus.AWAITING_APPROVAL)
     store.get_gate = AsyncMock(return_value=gate)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.handle_gate_approved(gate.id)
 
     store.resolve_gate.assert_called_with(gate.id, GateStatus.APPROVED)
@@ -259,7 +259,7 @@ async def test_handle_gate_stopped(executor, store, push):
 # ── _build_milestone_prompt ───────────────────────────────────────────────────
 
 def test_build_milestone_prompt_no_prior_steps():
-    from ze_personal.goals.executor import _build_milestone_prompt
+    from ze_automation.goals.executor import _build_milestone_prompt
 
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
@@ -273,7 +273,7 @@ def test_build_milestone_prompt_no_prior_steps():
 
 
 def test_build_milestone_prompt_with_completed_steps():
-    from ze_personal.goals.executor import _build_milestone_prompt
+    from ze_automation.goals.executor import _build_milestone_prompt
 
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
@@ -288,7 +288,7 @@ def test_build_milestone_prompt_with_completed_steps():
 
 
 def test_build_milestone_prompt_truncates_older_steps():
-    from ze_personal.goals.executor import _build_milestone_prompt
+    from ze_automation.goals.executor import _build_milestone_prompt
 
     goal = _goal()
     milestones = []
@@ -307,7 +307,7 @@ def test_build_milestone_prompt_truncates_older_steps():
 
 
 def test_build_milestone_prompt_includes_learnings():
-    from ze_personal.goals.executor import _build_milestone_prompt
+    from ze_automation.goals.executor import _build_milestone_prompt
 
     goal = _goal(learnings="Key insight from last week")
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
@@ -317,7 +317,7 @@ def test_build_milestone_prompt_includes_learnings():
 
 
 def test_build_milestone_prompt_no_learnings_shows_placeholder():
-    from ze_personal.goals.executor import _build_milestone_prompt
+    from ze_automation.goals.executor import _build_milestone_prompt
 
     goal = _goal()  # learnings=""
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
@@ -339,7 +339,7 @@ async def test_adaptive_replan_triggers_at_two_consecutive_failures(executor, st
     planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
     agent_mock.run = AsyncMock(side_effect=Exception("timeout"))
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     planner.replan_remaining.assert_called_once()
@@ -358,7 +358,7 @@ async def test_adaptive_replan_not_triggered_at_one_failure(executor, store, pus
     store.increment_consecutive_failures = AsyncMock(return_value=1)
     agent_mock.run = AsyncMock(side_effect=Exception("timeout"))
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     planner.replan_remaining.assert_not_called()
@@ -388,7 +388,7 @@ async def test_success_resets_consecutive_failures(executor, store, push, agent_
     store.list_milestones = AsyncMock(return_value=[m1])
     store.get_pending_gate = AsyncMock(return_value=None)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     store.reset_consecutive_failures.assert_called_once_with(goal.id)
@@ -492,7 +492,7 @@ async def test_advance_drains_steer_before_milestone(executor, store, push, plan
     # Pre-load a steer instruction
     await executor._steer_queues[goal.id].put("focus on email only")
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
     planner.replan_remaining.assert_called_once()
@@ -612,7 +612,7 @@ async def test_task_state_written_on_milestone_start(executor_with_memory, store
     store.list_milestones = AsyncMock(return_value=[m1])
     store.get_pending_gate = AsyncMock(return_value=None)
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor_with_memory.advance(goal.id)
 
     memory_store.upsert_task_state.assert_called()
@@ -654,7 +654,7 @@ async def test_task_state_written_as_blocked_on_double_failure(executor_with_mem
     failing_agent.run = AsyncMock(side_effect=GoalExecutionError("tool failed"))
     executor_with_memory._get_agent = lambda name: failing_agent
 
-    with patch("ze_personal.goals.executor.asyncio.create_task"):
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor_with_memory.advance(goal.id)
 
     memory_store.upsert_task_state.assert_called()

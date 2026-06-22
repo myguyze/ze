@@ -24,8 +24,10 @@ log = get_logger(__name__)
 _DEFAULT_AGENT_MODULE_PATHS = [
     "ze_personal.contacts.tools",
     "ze_browser.tool",
-    "ze_personal.agents.goals.agent",
-    "ze_personal.agents.workflow.agent",
+    "ze_automation.agents.goals.tools",
+    "ze_automation.agents.goals.agent",
+    "ze_automation.agents.workflow.tools",
+    "ze_automation.agents.workflow.agent",
     "ze_personal.agents.research.agent",
     "ze_personal.agents.companion.agent",
     "ze_calendar.agents.calendar.agent",

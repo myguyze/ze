@@ -7,7 +7,7 @@ from ze_agents.logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
 from ze_sdk.proactive import PushLogStore
-from ze_personal.goals.planner import GoalPlanner
+from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.store import GoalStore
 from ze_automation.goals.types import GoalStatus, MilestoneStatus
 

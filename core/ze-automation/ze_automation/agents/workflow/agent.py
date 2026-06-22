@@ -7,10 +7,10 @@ from ze_agents.registry import agent
 from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.client import LLMClient
-from ze_personal.workflow.planner import WorkflowPlanner
+from ze_automation.workflow.planner import WorkflowPlanner
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.scheduler import WorkflowScheduler
-import ze_personal.agents.workflow.tools  # noqa: F401
+import ze_automation.agents.workflow.tools  # noqa: F401
 
 _AGENT_INSTRUCTIONS = """\
 You manage Ze's stored workflows. A workflow is a named sequence of tasks that runs on

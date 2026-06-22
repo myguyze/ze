@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
-from ze_personal.workflow.planner import WorkflowPlanner
+from ze_automation.workflow.planner import WorkflowPlanner
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import Workflow
 from ze_automation.workflow.scheduler import WorkflowScheduler

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_personal.agents.goals.agent import GoalAgent
+from ze_automation.agents.goals.agent import GoalAgent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.types import GateDecision
 from ze_automation.goals.types import ExecutionTrace, Goal, GoalStatus, Milestone, MilestoneStatus
@@ -101,7 +101,7 @@ async def test_run_lists_goals_via_tool():
 
 
 async def test_run_gets_goal_status_via_tool():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
@@ -126,7 +126,7 @@ async def test_run_gets_goal_status_via_tool():
 
 
 async def test_run_creates_goal_via_tool():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     created_goal = Goal(id=gid, title="Find leads", objective="Build a list",
@@ -174,7 +174,7 @@ async def test_run_creates_goal_via_tool():
 
 
 async def test_run_pauses_goal_via_tool():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
@@ -197,7 +197,7 @@ async def test_run_pauses_goal_via_tool():
 
 
 async def test_run_resumes_goal_via_tool():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.PAUSED)
@@ -227,7 +227,7 @@ async def test_run_resumes_goal_via_tool():
 
 
 async def test_run_abandons_goal_via_tool():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
@@ -265,7 +265,7 @@ async def test_stream_yields_response():
 # ── get_milestone_trace tool ──────────────────────────────────────────────────
 
 async def test_get_milestone_trace_returns_formatted_output():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     mid = uuid4()
@@ -305,7 +305,7 @@ async def test_get_milestone_trace_returns_formatted_output():
 
 
 async def test_get_milestone_trace_returns_no_trace_message():
-    import ze_personal.agents.goals.tools  # noqa
+    import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     mid = uuid4()
@@ -334,8 +334,8 @@ async def test_get_milestone_trace_returns_no_trace_message():
 
 
 async def test_get_milestone_trace_handles_invalid_goal_id():
-    import ze_personal.agents.goals.tools  # noqa
-    from ze_personal.agents.goals.tools import get_milestone_trace
+    import ze_automation.agents.goals.tools  # noqa
+    from ze_automation.agents.goals.tools import get_milestone_trace
 
     store = make_store()
     result = await get_milestone_trace(store=store, goal_id="not-a-uuid", milestone_sequence=1)
@@ -343,8 +343,8 @@ async def test_get_milestone_trace_handles_invalid_goal_id():
 
 
 async def test_steer_goal_returns_error_for_non_active_goal():
-    import ze_personal.agents.goals.tools  # noqa
-    from ze_personal.agents.goals.tools import steer_goal
+    import ze_automation.agents.goals.tools  # noqa
+    from ze_automation.agents.goals.tools import steer_goal
 
     executor = AsyncMock()
     executor.steer = AsyncMock(return_value=False)
@@ -354,8 +354,8 @@ async def test_steer_goal_returns_error_for_non_active_goal():
 
 
 async def test_steer_goal_returns_confirmation_for_active_goal():
-    import ze_personal.agents.goals.tools  # noqa
-    from ze_personal.agents.goals.tools import steer_goal
+    import ze_automation.agents.goals.tools  # noqa
+    from ze_automation.agents.goals.tools import steer_goal
 
     executor = AsyncMock()
     executor.steer = AsyncMock(return_value=True)
@@ -365,8 +365,8 @@ async def test_steer_goal_returns_confirmation_for_active_goal():
 
 
 async def test_steer_goal_handles_invalid_goal_id():
-    import ze_personal.agents.goals.tools  # noqa
-    from ze_personal.agents.goals.tools import steer_goal
+    import ze_automation.agents.goals.tools  # noqa
+    from ze_automation.agents.goals.tools import steer_goal
 
     executor = AsyncMock()
     result = await steer_goal(executor=executor, goal_id="bad-id", instruction="something")
@@ -374,8 +374,8 @@ async def test_steer_goal_handles_invalid_goal_id():
 
 
 async def test_get_milestone_trace_handles_missing_sequence():
-    import ze_personal.agents.goals.tools  # noqa
-    from ze_personal.agents.goals.tools import get_milestone_trace
+    import ze_automation.agents.goals.tools  # noqa
+    from ze_automation.agents.goals.tools import get_milestone_trace
 
     gid = uuid4()
     store = make_store()
