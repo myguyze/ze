@@ -3,24 +3,37 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from ze_trading212.client import Trading212Client, _DEMO_BASE, _LIVE_BASE
+from ze_trading212.settings import get_trading212_settings
 
 
-def test_from_settings_returns_none_when_unconfigured() -> None:
-    settings = MagicMock(spec=[])
-    assert Trading212Client.from_settings(settings) is None
+@pytest.fixture(autouse=True)
+def clear_trading212_settings_cache():
+    get_trading212_settings.cache_clear()
+    yield
+    get_trading212_settings.cache_clear()
 
 
-def test_from_settings_live_by_default() -> None:
-    settings = MagicMock(trading212_api_key="key123", trading212_demo=False)
-    client = Trading212Client.from_settings(settings)
+def test_from_settings_returns_none_when_unconfigured(monkeypatch) -> None:
+    monkeypatch.setenv("TRADING212_API_KEY", "")
+    get_trading212_settings.cache_clear()
+    assert Trading212Client.from_settings(None) is None
+
+
+def test_from_settings_live_by_default(monkeypatch) -> None:
+    monkeypatch.setenv("TRADING212_API_KEY", "key123")
+    monkeypatch.delenv("TRADING212_DEMO", raising=False)
+    get_trading212_settings.cache_clear()
+    client = Trading212Client.from_settings(None)
     assert client is not None
     assert client.base_url == _LIVE_BASE
     assert client.api_key == "key123"
 
 
-def test_from_settings_demo_mode() -> None:
-    settings = MagicMock(trading212_api_key="key123", trading212_demo=True)
-    client = Trading212Client.from_settings(settings)
+def test_from_settings_demo_mode(monkeypatch) -> None:
+    monkeypatch.setenv("TRADING212_API_KEY", "key123")
+    monkeypatch.setenv("TRADING212_DEMO", "true")
+    get_trading212_settings.cache_clear()
+    client = Trading212Client.from_settings(None)
     assert client is not None
     assert client.base_url == _DEMO_BASE
 

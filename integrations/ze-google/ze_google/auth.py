@@ -3,6 +3,8 @@ from __future__ import annotations
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
+from ze_google.settings import get_google_settings
+
 SCOPES = [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/gmail.modify",
@@ -42,16 +44,18 @@ class GoogleCredentials:
         return build("gmail", "v1", credentials=self._creds)
 
     @classmethod
-    def from_settings(cls, settings) -> GoogleCredentials | None:
+    def from_settings(cls, settings=None) -> GoogleCredentials | None:
         """Return None if any required credential env var is unset."""
+        _ = settings  # ZeIntegration protocol; credentials come from ze-google env.
+        gs = get_google_settings()
         if not all([
-            settings.google_client_id,
-            settings.google_client_secret,
-            settings.google_refresh_token,
+            gs.google_client_id,
+            gs.google_client_secret,
+            gs.google_refresh_token,
         ]):
             return None
         return cls(
-            client_id=settings.google_client_id,
-            client_secret=settings.google_client_secret,
-            refresh_token=settings.google_refresh_token,
+            client_id=gs.google_client_id,
+            client_secret=gs.google_client_secret,
+            refresh_token=gs.google_refresh_token,
         )

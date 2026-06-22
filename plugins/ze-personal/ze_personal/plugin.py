@@ -7,6 +7,7 @@ import asyncpg
 
 from ze_agents.client import LLMClient
 from ze_agents.logging import get_logger
+from ze_memory.bootstrap import consolidation_enabled
 from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
 from ze_proactive.notifier import ProactiveNotifier
@@ -98,7 +99,7 @@ class PersonalPlugin(ZePlugin):
 
     def data_domains(self):
         from ze_sdk import DataDomain
-        from ze_api.data.assembler import bulk_insert
+        from ze_data.portability.assembler import bulk_insert
 
         def _export(tbl: str):
             async def _fn(pool) -> list[dict]:
@@ -242,7 +243,7 @@ class PersonalPlugin(ZePlugin):
                 break
 
         # Register contacts consolidation cron job.
-        if container.settings.consolidation_enabled:
+        if consolidation_enabled(container.settings):
             contacts_cfg = self._settings.config.get("contacts", {})
             contacts_cron = contacts_cfg.get("consolidation", {}).get("nightly_cron", "0 3 * * *")
             container.proactive_scheduler.add_cron_job(

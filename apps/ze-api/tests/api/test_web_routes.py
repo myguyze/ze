@@ -64,9 +64,10 @@ def client(container, mock_pool):
     conn.fetch = AsyncMock(return_value=[])
     conn.fetchrow = AsyncMock(return_value={"total_tokens": 0, "total_cost_usd": 0, "total_calls": 0})
 
+    container.pool = pool
+
     app = FastAPI()
     app.state.container = container
-    app.state.pool = pool
     app.include_router(goals.router, prefix="/api/v0")
     app.include_router(reminders.router, prefix="/api/v0")
     app.include_router(contacts.router, prefix="/api/v0")

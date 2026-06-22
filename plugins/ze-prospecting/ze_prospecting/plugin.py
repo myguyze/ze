@@ -45,7 +45,7 @@ class ProspectingPlugin(ZePlugin):
 
     def data_domains(self):
         from ze_sdk import DataDomain
-        from ze_api.data.assembler import bulk_insert
+        from ze_data.portability.assembler import bulk_insert
 
         async def _export(tbl: str, pool) -> list[dict]:
             async with pool.acquire() as conn:

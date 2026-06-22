@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
 import ze_components.tools  # noqa: F401
-from ze_api.hooks import ComponentCollectionHook
-from ze_components import context as ctx
-from ze_components.types import CardComponent
 from ze_agents.hooks import LoopEndEvent, LoopStartEvent
+from ze_components import context as ctx
+from ze_components.atoms.text import Text
+from ze_components.hook import ComponentCollectionHook
 
 
 def _make_ctx(session_id: str):
@@ -29,7 +28,7 @@ async def test_on_loop_start_sets_fresh_context():
     event = _make_loop_start("s1")
 
     await hook.on_loop_start(event)
-    ctx.append(CardComponent(body="test"))
+    ctx.append(Text(content="test"))
 
     assert "s1" in hook._tokens
 
@@ -40,11 +39,11 @@ async def test_on_loop_end_drains_context_var():
     end = _make_loop_end("s1")
 
     await hook.on_loop_start(start)
-    ctx.append(CardComponent(body="hello"))
+    ctx.append(Text(content="hello"))
     await hook.on_loop_end(end)
 
     assert "s1" in hook._results
-    assert hook._results["s1"][0]["body"] == "hello"
+    assert hook._results["s1"][0]["content"] == "hello"
 
 
 async def test_pop_components_returns_and_removes():
@@ -53,7 +52,7 @@ async def test_pop_components_returns_and_removes():
     end = _make_loop_end("s1")
 
     await hook.on_loop_start(start)
-    ctx.append(CardComponent(body="pop me"))
+    ctx.append(Text(content="pop me"))
     await hook.on_loop_end(end)
 
     first = hook.pop_components("s1")
@@ -67,15 +66,15 @@ async def test_concurrent_sessions_produce_independent_results():
     hook = ComponentCollectionHook()
 
     await hook.on_loop_start(_make_loop_start("session-a"))
-    ctx.append(CardComponent(body="a"))
+    ctx.append(Text(content="a"))
     await hook.on_loop_end(_make_loop_end("session-a"))
 
     await hook.on_loop_start(_make_loop_start("session-b"))
-    ctx.append(CardComponent(body="b"))
+    ctx.append(Text(content="b"))
     await hook.on_loop_end(_make_loop_end("session-b"))
 
     a = hook.pop_components("session-a")
     b = hook.pop_components("session-b")
 
-    assert a[0]["body"] == "a"
-    assert b[0]["body"] == "b"
+    assert a[0]["content"] == "a"
+    assert b[0]["content"] == "b"

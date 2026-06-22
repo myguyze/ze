@@ -11,7 +11,6 @@ from ze_calendar.reminders.calendar import (
     _parse_interval,
 )
 from ze_calendar.reminders.calendar_store import CalendarReminderStore
-from ze_api.settings import Settings, get_settings
 from ze_automation.workflow.scheduler import WorkflowScheduler
 from ze_automation.workflow.types import Workflow
 from ze_core.proactive.push_log_store import PushLogStore
@@ -20,14 +19,9 @@ from ze_core.proactive.push_log_store import PushLogStore
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def make_settings():
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
+    from tests.support.settings import make_settings as _make
+
+    return _make()
 
 
 def make_notifier():
@@ -399,13 +393,16 @@ async def test_workflow_failure_alert_disabled():
     import yaml
     import tempfile
     import pathlib as pl
+    from tests.support.settings import TestSettings
+
     tmp = pl.Path(tempfile.mkdtemp())
-    real_cfg = pl.Path(__file__).parent.parent.parent / "config" / "config.yaml"
+    from tests.support.settings import CONFIG_DIR
+
+    real_cfg = CONFIG_DIR / "config.yaml"
     cfg = yaml.safe_load(real_cfg.read_text())
     cfg.setdefault("proactive", {}).setdefault("alerts", {})["workflow_failure_enabled"] = False
     (tmp / "config.yaml").write_text(yaml.dump(cfg))
-    get_settings.cache_clear()
-    settings = Settings(
+    settings = TestSettings(
         openrouter_api_key="k",
         database_url="postgresql://ze:ze@localhost:5432/ze",
         database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",

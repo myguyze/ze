@@ -10,6 +10,7 @@ from ze_api.api.schemas import (
     WorkflowResponse,
     WorkflowStepResponse,
 )
+from ze_automation import rest as workflow_rest
 from ze_automation.workflow.store import WorkflowStore
 
 router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
@@ -23,20 +24,8 @@ router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
     description="Return all stored workflows, newest first.",
 )
 async def list_workflows(store: WorkflowStore = Depends(get_workflow_store)) -> list[WorkflowResponse]:
-    workflows = await store.list_all()
-    return [
-        WorkflowResponse(
-            id=wf.id,
-            name=wf.name,
-            description=wf.description,
-            schedule=wf.schedule,
-            enabled=wf.enabled,
-            last_run_at=wf.last_run_at.isoformat() if wf.last_run_at else None,
-            next_run_at=wf.next_run_at.isoformat() if wf.next_run_at else None,
-            created_at=wf.created_at.isoformat(),
-        )
-        for wf in workflows
-    ]
+    workflows = await workflow_rest.list_workflows(store)
+    return [WorkflowResponse.model_validate(wf) for wf in workflows]
 
 
 @router.get(
@@ -50,19 +39,12 @@ async def get_workflow(
     workflow_id: UUID,
     store: WorkflowStore = Depends(get_workflow_store),
 ) -> WorkflowDetailResponse:
-    wf = await store.get(workflow_id)
+    wf = await workflow_rest.get_workflow(store, workflow_id)
     if wf is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return WorkflowDetailResponse(
-        id=wf.id,
-        name=wf.name,
-        description=wf.description,
-        schedule=wf.schedule,
-        enabled=wf.enabled,
-        last_run_at=wf.last_run_at.isoformat() if wf.last_run_at else None,
-        next_run_at=wf.next_run_at.isoformat() if wf.next_run_at else None,
-        created_at=wf.created_at.isoformat(),
-        steps=[WorkflowStepResponse(task=s.task, agent_hint=s.agent_hint, verify=s.verify) for s in wf.steps],
+        **{k: v for k, v in wf.items() if k != "steps"},
+        steps=[WorkflowStepResponse.model_validate(s) for s in wf["steps"]],
     )
 
 
@@ -77,27 +59,11 @@ async def list_workflow_executions(
     workflow_id: UUID,
     store: WorkflowStore = Depends(get_workflow_store),
 ) -> list[WorkflowExecutionResponse]:
-    executions = await store.list_executions(workflow_id)
+    executions = await workflow_rest.list_workflow_executions(store, workflow_id)
     return [
         WorkflowExecutionResponse(
-            id=ex.id,
-            workflow_id=ex.workflow_id,
-            status=ex.status,
-            step_results=[
-                StepResultResponse(
-                    step_index=r.step_index,
-                    task=r.task,
-                    output=r.output,
-                    success=r.success,
-                    error=r.error,
-                    duration_ms=r.duration_ms,
-                )
-                for r in ex.step_results
-            ],
-            error=ex.error,
-            started_at=ex.started_at.isoformat() if ex.started_at else None,
-            completed_at=ex.completed_at.isoformat() if ex.completed_at else None,
-            created_at=ex.created_at.isoformat(),
+            **{k: v for k, v in ex.items() if k != "step_results"},
+            step_results=[StepResultResponse.model_validate(r) for r in ex["step_results"]],
         )
         for ex in executions
     ]
@@ -114,7 +80,7 @@ async def trigger_workflow(
     workflow_id: UUID,
     store: WorkflowStore = Depends(get_workflow_store),
 ) -> dict:
-    wf = await store.get(workflow_id)
+    wf = await workflow_rest.get_workflow(store, workflow_id)
     if wf is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return {"status": "triggered", "workflow_id": str(workflow_id)}

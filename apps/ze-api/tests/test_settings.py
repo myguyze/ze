@@ -1,6 +1,5 @@
 import pytest
 from ze_api.settings import Settings, get_settings
-from ze_agents.registry import get_registered_agents
 
 
 @pytest.fixture(autouse=True)
@@ -41,23 +40,6 @@ def test_routing_config_defaults_empty_without_yaml_block():
 def test_agent_configs_empty_after_yaml_removal():
     s = make_settings()
     assert s.agent_configs == {}
-
-
-def test_agents_registered_via_agent_decorator():
-    import importlib
-    from ze_api.bootstrap import _DEFAULT_AGENT_MODULE_PATHS
-    for path in _DEFAULT_AGENT_MODULE_PATHS:
-        importlib.import_module(path)
-    agents = get_registered_agents()
-    assert "research" in agents
-    assert "companion" in agents
-    assert "calendar" in agents
-    assert "email" in agents
-    assert "workflow" in agents
-    assert "goals" in agents
-    research = agents["research"]
-    assert getattr(research, "description", "").strip()
-    assert getattr(research, "model", "")
 
 
 def test_get_settings_is_cached():

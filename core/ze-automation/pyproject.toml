@@ -11,6 +11,7 @@ dependencies = [
     "ze-agents",
     "ze-proactive",
     "ze-memory",
+    "ze-data",
     "asyncpg>=0.30",
     "apscheduler>=3.10",
 ]
@@ -32,6 +33,7 @@ testpaths = ["tests"]
 ze-agents    = { workspace = true }
 ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
+ze-data      = { workspace = true }
 ze-sdk       = { workspace = true }
 
 [tool.hatch.build.targets.wheel]

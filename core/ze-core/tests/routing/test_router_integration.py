@@ -3,7 +3,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from ze_agents.errors import InvalidPromptError, RoutingError
-from ze_api.logging import configure_logging
 from ze_core.routing.router import EmbeddingRouter
 from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
@@ -59,11 +58,6 @@ def make_router(
         routing_store=None,
         config=RouterConfig(),
     )
-
-
-@pytest.fixture(autouse=True)
-def setup_logging():
-    configure_logging()
 
 
 # ── RoutingEnvelope / SubTask ─────────────────────────────────────────────────
@@ -234,12 +228,12 @@ _ALL_AGENTS = frozenset({
 @pytest.fixture(autouse=True)
 def _reset_agent_enabled_flags():
     """Each test starts from all agents enabled (Phase 7: class-level `enabled`)."""
-    from ze_api.bootstrap import _DEFAULT_AGENT_MODULE_PATHS
+    from tests.support.agent_modules import ALL_AGENT_MODULE_PATHS
     from ze_agents.registry import get_registered_agents
 
     def _enable_all() -> None:
         import importlib
-        for path in _DEFAULT_AGENT_MODULE_PATHS:
+        for path in ALL_AGENT_MODULE_PATHS:
             importlib.import_module(path)
         for cls in get_registered_agents().values():
             cls.enabled = True
@@ -251,10 +245,10 @@ def _reset_agent_enabled_flags():
 
 def _configure_enabled_agents(enabled: set[str]) -> None:
     import importlib
-    from ze_api.bootstrap import _DEFAULT_AGENT_MODULE_PATHS
+    from tests.support.agent_modules import ALL_AGENT_MODULE_PATHS
     from ze_agents.registry import get_registered_agents
 
-    for path in _DEFAULT_AGENT_MODULE_PATHS:
+    for path in ALL_AGENT_MODULE_PATHS:
         importlib.import_module(path)
     for name, cls in get_registered_agents().items():
         cls.enabled = name in enabled
@@ -297,14 +291,6 @@ def settings_factory(tmp_path):
 
 
 def _make_settings(tmp_path):
-    import pathlib
-    from ze_api.settings import Settings, get_settings
+    from tests.support.settings import make_settings
 
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
+    return make_settings()

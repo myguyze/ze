@@ -5,6 +5,8 @@ from typing import Any
 
 import httpx
 
+from ze_trading212.settings import get_trading212_settings
+
 _LIVE_BASE = "https://live.trading212.com/api/v0"
 _DEMO_BASE = "https://demo.trading212.com/api/v0"
 
@@ -137,13 +139,13 @@ class Trading212Client:
     # -- Factory ------------------------------------------------------------
 
     @classmethod
-    def from_settings(cls, settings) -> Trading212Client | None:
+    def from_settings(cls, settings=None) -> Trading212Client | None:
         """Return None if the API key is absent — never raise."""
-        api_key = getattr(settings, "trading212_api_key", None)
-        if not api_key:
+        _ = settings  # ZeIntegration protocol; credentials come from ze-trading212 env.
+        ts = get_trading212_settings()
+        if not ts.trading212_api_key:
             return None
-        demo = getattr(settings, "trading212_demo", False)
         return cls(
-            api_key=api_key,
-            base_url=_DEMO_BASE if demo else _LIVE_BASE,
+            api_key=ts.trading212_api_key,
+            base_url=_DEMO_BASE if ts.trading212_demo else _LIVE_BASE,
         )

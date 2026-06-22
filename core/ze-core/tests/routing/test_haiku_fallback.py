@@ -3,30 +3,16 @@ import pytest
 from unittest.mock import AsyncMock
 
 from ze_agents.errors import RoutingError
-from ze_api.logging import configure_logging
 from ze_agents.registry import get_enabled_agents
 from ze_core.routing.fallback import decompose as _decompose
 from ze_core.routing.types import RoutingEnvelope
 
 
-@pytest.fixture(autouse=True)
-def setup_logging():
-    configure_logging()
-
-
 @pytest.fixture
 def settings(tmp_path):
-    import pathlib
-    from ze_api.settings import Settings, get_settings
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent / "config"
-    settings = Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-    )
-    return settings
+    from tests.support.settings import make_settings
+
+    return make_settings()
 
 
 def make_client(response: str) -> AsyncMock:

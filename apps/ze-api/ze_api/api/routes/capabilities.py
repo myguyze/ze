@@ -8,27 +8,11 @@ from ze_api.api.schemas import (
     CapabilityModeUpdate,
     UpdateCapabilityResponse,
 )
-from ze_core.capability.gate import CapabilityGate
-from ze_agents.types import Mode
 from ze_agents.registry import get_registered_agents
+from ze_core.capability import rest as capability_rest
+from ze_core.capability.gate import CapabilityGate
 
 router = APIRouter(tags=["capabilities"], dependencies=[Depends(require_api_key)])
-
-
-def _effective_capabilities(gate: CapabilityGate) -> dict[str, AgentCapabilityConfig]:
-    cache = gate._persistent_cache or {}
-    result: dict[str, AgentCapabilityConfig] = {}
-    for name, cls in get_registered_agents().items():
-        if not getattr(cls, "enabled", True):
-            continue
-        caps = {intent: v.mode.value for intent, v in getattr(cls, "intents", {}).items()}
-        for (a, intent), mode in cache.items():
-            if a == name:
-                caps[intent] = mode.value
-        result[name] = AgentCapabilityConfig.model_validate(
-            {"enabled": getattr(cls, "enabled", True), **caps},
-        )
-    return result
 
 
 @router.get(
@@ -42,7 +26,11 @@ def _effective_capabilities(gate: CapabilityGate) -> dict[str, AgentCapabilityCo
     ),
 )
 def list_capabilities(gate: CapabilityGate = Depends(get_capability_gate)) -> CapabilitiesResponse:
-    return CapabilitiesResponse(_effective_capabilities(gate))
+    caps = capability_rest.effective_capabilities(gate)
+    return CapabilitiesResponse({
+        name: AgentCapabilityConfig.model_validate(cfg)
+        for name, cfg in caps.items()
+    })
 
 
 @router.put(
@@ -70,9 +58,9 @@ async def update_capability(
     if intent not in known_intents:
         raise HTTPException(status_code=422, detail=f"Unknown intent {intent!r} for agent {agent!r}")
     try:
-        mode = Mode(body.mode)
+        effective = await capability_rest.update_capability(gate, agent, intent, body.mode)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"Invalid mode: {body.mode!r}") from exc
-    await gate.set_permanent(agent, intent, mode)
-    effective = _effective_capabilities(gate)
-    return UpdateCapabilityResponse({agent: effective[agent]})
+    return UpdateCapabilityResponse({
+        agent: AgentCapabilityConfig.model_validate(effective[agent])
+    })

@@ -16,7 +16,7 @@ router = APIRouter(tags=["data"], dependencies=[Depends(require_api_key)])
 
 
 def _service(request: Request) -> DataPortabilityService:
-    return request.app.state.data_portability_service
+    return request.app.state.container.data_portability_service
 
 
 @router.get(

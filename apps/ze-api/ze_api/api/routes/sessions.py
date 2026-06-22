@@ -12,7 +12,7 @@ router = APIRouter(tags=["sessions"], dependencies=[Depends(require_api_key)])
 
 
 def _get_session_store(request: Request) -> SessionStore:
-    return request.app.state.session_store
+    return request.app.state.container.session_store
 
 
 @router.get(

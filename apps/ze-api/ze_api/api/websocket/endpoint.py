@@ -32,11 +32,11 @@ async def websocket_endpoint(
 
     await ws.accept()
 
-    conn_mgr: ConnectionManager = ws.app.state.connection_manager
-    msg_store = ws.app.state.message_store
     container = ws.app.state.container
-    confirmation_store = getattr(ws.app.state, "confirmation_store", None)
-    session_store = getattr(ws.app.state, "session_store", None)
+    conn_mgr: ConnectionManager = container.connection_manager
+    msg_store = container.message_store
+    confirmation_store = container.confirmation_store
+    session_store = container.session_store
 
     await conn_mgr.connect(ws, msg_store, confirmation_store, thread_id=thread_id)
     log.info("ws_connected")

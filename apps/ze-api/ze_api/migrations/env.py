@@ -1,39 +1,19 @@
-import importlib
 import os
 from logging.config import fileConfig
-from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-
-def load_sql(package: str, relative_path: str) -> str:
-    """Load a SQL file from an installed package's migrations/ directory.
-
-    Usage in a migration version file::
-
-        from migrations.env import load_sql
-        def upgrade() -> None:
-            op.execute(load_sql("ze_personal", "migrations/001_contacts.sql"))
-
-    This keeps schema ownership with the domain package. Revisions live in each
-    owning package's migrations/versions/ directory; ze-api is the deployment
-    runner only (see ze_api.migrate).
-    """
-    mod = importlib.import_module(package)
-    base = Path(mod.__file__).parent
-    return (base / relative_path).read_text()
-
 # No ORM models — raw SQL migrations via op.execute()
 target_metadata = None
 
+
 def get_url() -> str:
-    # Prefer DATABASE_URL_SYNC env var; fall back to alembic.ini sqlalchemy.url
     return os.environ.get("DATABASE_URL_SYNC", config.get_main_option("sqlalchemy.url"))
 
 

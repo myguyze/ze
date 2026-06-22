@@ -34,22 +34,6 @@ async def lifespan(app: FastAPI):
     container = await build_container(settings)
 
     app.state.settings = settings
-    app.state.pool = container.pool
-    app.state.embedder = container.embedder
-    app.state.graph = container.graph
-    app.state.openrouter_client = container.openrouter_client
-    app.state.router = container.router
-    app.state.capability_gate = container.capability_gate
-    app.state.memory_store = container.memory_store
-    app.state.memory_consolidator = container.memory_consolidator
-    app.state.workflow_store = container.workflow_store
-    app.state.message_store = container.message_store
-    app.state.session_store = container.session_store
-    app.state.connection_manager = container.connection_manager
-    app.state.confirmation_store = container.confirmation_store
-    app.state.onboarding_coordinator = container.onboarding_coordinator
-    app.state.reset_service = container.reset_service
-    app.state.data_portability_service = container.data_portability_service
     app.state.container = container
 
     log.info("ze_startup_complete")

@@ -1,14 +1,9 @@
-"""Tool-call cap hook — aborts a tool call when the per-turn limit is exceeded.
-
-Prevents runaway agentic loops from consuming unbounded LLM credits.
-The counter resets at the start of each agentic_loop invocation, so the
-cap applies per turn (not per session lifetime).
-"""
+"""Tool-call cap hook — aborts a tool call when the per-turn limit is exceeded."""
 from __future__ import annotations
 
 from ze_agents.errors import HookAbort
-from ze_agents.logging import get_logger
 from ze_agents.hooks import BaseHarnessHook, LoopStartEvent, ToolStartEvent
+from ze_agents.logging import get_logger
 
 log = get_logger(__name__)
 

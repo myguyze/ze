@@ -5,23 +5,15 @@ import pytest
 
 from ze_calendar.agents.calendar.agent import CalendarAgent
 from ze_agents.types import AgentContext, AgentResult
-from ze_api.logging import configure_logging
 from ze_memory.types import MemoryContext
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def make_settings():
-    from ze_api.settings import Settings, get_settings
-    get_settings.cache_clear()
-    real_config = pathlib.Path(__file__).parent.parent.parent.parent / "config"
-    return Settings(
-        openrouter_api_key="test-key",
-        database_url="postgresql://ze:ze@localhost:5432/ze",
-        database_url_sync="postgresql+psycopg2://ze:ze@localhost:5432/ze",
-        config_dir=real_config,
-        timezone="Europe/Lisbon",
-    )
+    from tests.support.settings import make_settings as _make
+
+    return _make(timezone="Europe/Lisbon")
 
 
 def make_client(loop_response: str = "You have no upcoming events.") -> AsyncMock:
@@ -67,10 +59,6 @@ def make_agent(client=None, creds=None) -> CalendarAgent:
         settings=make_settings(),
     )
 
-
-@pytest.fixture(autouse=True)
-def setup_logging():
-    configure_logging()
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────

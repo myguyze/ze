@@ -9,6 +9,9 @@ requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
     "ze-plugin",
+    "ze-components",
+    "ze-data",
+    "ze-memory",
     "openrouter>=0.9.1",
     "numpy>=2.0",
     "structlog>=24.4",
@@ -35,6 +38,14 @@ dev = [
     "anyio[trio]>=4.7",
     "aiosqlite>=0.19",
     "ruff>=0.8",
+    "pyyaml>=6.0",
+    "ze-personal",
+    "ze-calendar",
+    "ze-email",
+    "ze-prospecting",
+    "ze-browser",
+    "ze-ingestion",
+    "ze-automation",
 ]
 
 [tool.pytest.ini_options]
@@ -47,6 +58,16 @@ markers = [
 [tool.uv.sources]
 ze-agents = { workspace = true }
 ze-plugin = { workspace = true }
+ze-components = { workspace = true }
+ze-data = { workspace = true }
+ze-memory = { workspace = true }
+ze-personal = { workspace = true }
+ze-calendar = { workspace = true }
+ze-email = { workspace = true }
+ze-prospecting = { workspace = true }
+ze-browser = { workspace = true }
+ze-ingestion = { workspace = true }
+ze-automation = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_core"]

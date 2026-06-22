@@ -5,7 +5,7 @@ import pytest
 
 from ze_agents.errors import AgentConfigError
 from ze_plugin.plugin import ZePlugin
-from ze_api.bootstrap import _topological_sort
+from ze_plugin.bootstrap import topological_sort as _topological_sort
 
 
 # ---------------------------------------------------------------------------

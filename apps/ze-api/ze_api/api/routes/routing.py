@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 
-from ze_api.api.dependencies import get_pool, require_api_key
+from ze_api.api.dependencies import get_container, require_api_key
 from ze_api.api.schemas import RoutingLogEntry
+from ze_core.routing import rest as routing_rest
 
 router = APIRouter(tags=["routing"], dependencies=[Depends(require_api_key)])
 
@@ -16,19 +17,7 @@ router = APIRouter(tags=["routing"], dependencies=[Depends(require_api_key)])
 async def get_routing_log(
     limit: int = Query(default=50, ge=1, le=500, description="Maximum rows to return"),
     offset: int = Query(default=0, ge=0, description="Number of rows to skip"),
-    pool=Depends(get_pool),
+    container=Depends(get_container),
 ) -> list[RoutingLogEntry]:
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, session_id, prompt, method, primary_agent,
-                   confidence, score_gap, is_compound, raw_scores,
-                   created_at::text AS created_at
-            FROM routing_log
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2
-            """,
-            limit,
-            offset,
-        )
-    return [RoutingLogEntry.model_validate(dict(r)) for r in rows]
+    rows = await routing_rest.list_routing_log(container.pool, limit=limit, offset=offset)
+    return [RoutingLogEntry.model_validate(r) for r in rows]

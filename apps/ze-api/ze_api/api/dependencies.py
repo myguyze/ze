@@ -1,6 +1,5 @@
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sentence_transformers import SentenceTransformer
 
 from ze_core.capability.gate import CapabilityGate
 from ze_memory.consolidator import MemoryConsolidator
@@ -28,45 +27,49 @@ def get_settings() -> Settings:
     return _get_settings()
 
 
+def get_container(request: Request):
+    return request.app.state.container
+
+
 def get_pool(request: Request):
-    return request.app.state.pool
+    return request.app.state.container.pool
 
 
 def get_openrouter_client(request: Request) -> OpenRouterClient:
-    return request.app.state.openrouter_client
+    return request.app.state.container.openrouter_client
 
 
 def get_router(request: Request) -> EmbeddingRouter:
-    return request.app.state.router
+    return request.app.state.container.router
 
 
 def get_capability_gate(request: Request) -> CapabilityGate:
-    return request.app.state.capability_gate
+    return request.app.state.container.capability_gate
 
 
 def get_memory_store(request: Request) -> MemoryStore:
-    return request.app.state.memory_store
+    return request.app.state.container.memory_store
 
 
-def get_embedder(request: Request) -> SentenceTransformer:
-    return request.app.state.embedder
+def get_embedder(request: Request):
+    return request.app.state.container.embedder
 
 
 def get_graph(request: Request):
-    return request.app.state.graph
+    return request.app.state.container.graph
 
 
 def get_workflow_store(request: Request):
-    return request.app.state.workflow_store
+    return request.app.state.container.workflow_store
 
 
 def get_memory_consolidator(request: Request) -> MemoryConsolidator:
-    return request.app.state.memory_consolidator
+    return request.app.state.container.memory_consolidator
 
 
 def get_message_store(request: Request) -> MessageStore:
-    return request.app.state.message_store
+    return request.app.state.container.message_store
 
 
 def get_connection_manager(request: Request):
-    return request.app.state.connection_manager
+    return request.app.state.container.connection_manager

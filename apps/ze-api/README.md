@@ -36,7 +36,7 @@ Collects plugin signal sources via `collect_plugin_signal_sources()` in `contain
 | `config/persona.yaml` | Persona profiles and dials |
 | `migrations/` | Alembic env + meta-runner (`migrate.py`); no owned tables |
 
-Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`.
+Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`. Core package jobs (automation, memory, correlation) are registered via package bootstrap modules — see [specs/phases/76-ze-api-shell-cleanup.md](../../specs/phases/76-ze-api-shell-cleanup.md).
 
 ## Dependencies
 

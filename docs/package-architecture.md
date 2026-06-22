@@ -503,6 +503,11 @@ their `ZePlugin` implementations.
 | `migrate.py` | Meta-migrator — discovers all package migration paths; ze-api owns no tables |
 | `settings.py` | Pydantic `BaseSettings`, `to_core_settings()` bridge |
 
+**Cleanup target (phase 76):** `container.py` should shrink to ~150–200 lines of
+transport wiring + composition entry. Domain bootstrap moves to `ze_automation/bootstrap`,
+`ze-memory/bootstrap`, `ze-plugin/bootstrap`, etc. See
+[specs/phases/76-ze-api-shell-cleanup.md](../specs/phases/76-ze-api-shell-cleanup.md).
+
 ---
 
 ## ze-client — Typed Frontend SDK

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze_api.api.dependencies import get_memory_consolidator, get_pool, require_api_key
+from ze_api.api.dependencies import get_container, get_memory_consolidator, require_api_key
 from ze_api.api.openapi import OPENAPI_RESPONSES_422
 from ze_api.api.schemas import (
     ConsolidationReportResponse,
@@ -9,6 +9,7 @@ from ze_api.api.schemas import (
     UserFactResponse,
     UserProfileResponse,
 )
+from ze_memory import admin as memory_admin
 
 router = APIRouter(tags=["memory"], dependencies=[Depends(require_api_key)])
 
@@ -20,13 +21,9 @@ router = APIRouter(tags=["memory"], dependencies=[Depends(require_api_key)])
     summary="List user facts",
     description="Return all user facts, reviewed and unreviewed, newest first.",
 )
-async def list_facts(pool=Depends(get_pool)) -> list[UserFactResponse]:
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT id, key, value, agent, confidence, reviewed, contradicted, updated_at "
-            "FROM user_facts ORDER BY updated_at DESC"
-        )
-    return [UserFactResponse.model_validate(dict(r)) for r in rows]
+async def list_facts(container=Depends(get_container)) -> list[UserFactResponse]:
+    rows = await memory_admin.list_facts(container.pool)
+    return [UserFactResponse.model_validate(r) for r in rows]
 
 
 @router.post(
@@ -40,30 +37,15 @@ async def list_facts(pool=Depends(get_pool)) -> list[UserFactResponse]:
     ),
     responses=OPENAPI_RESPONSES_422,
 )
-async def review_facts(body: FactReviewRequest, pool=Depends(get_pool)) -> list[UserFactResponse]:
-    updated: list[UserFactResponse] = []
-    async with pool.acquire() as conn:
-        for action in body.actions:
-            if action.action == "reject":
-                await conn.execute("DELETE FROM user_facts WHERE id = $1", action.id)
-            elif action.action == "confirm":
-                row = await conn.fetchrow(
-                    "UPDATE user_facts SET reviewed = true, expires_at = NULL WHERE id = $1 RETURNING *",
-                    action.id,
-                )
-                if row:
-                    updated.append(UserFactResponse.model_validate(dict(row)))
-            elif action.action == "edit":
-                if action.value is None:
-                    raise HTTPException(status_code=422, detail="value required for edit action")
-                row = await conn.fetchrow(
-                    "UPDATE user_facts SET value = $1, reviewed = true WHERE id = $2 RETURNING *",
-                    action.value,
-                    action.id,
-                )
-                if row:
-                    updated.append(UserFactResponse.model_validate(dict(row)))
-    return updated
+async def review_facts(
+    body: FactReviewRequest,
+    container=Depends(get_container),
+) -> list[UserFactResponse]:
+    for action in body.actions:
+        if action.action == "edit" and action.value is None:
+            raise HTTPException(status_code=422, detail="value required for edit action")
+    updated = await memory_admin.review_facts(container.pool, body.actions)
+    return [UserFactResponse.model_validate(r) for r in updated]
 
 
 @router.get(
@@ -76,27 +58,9 @@ async def review_facts(body: FactReviewRequest, pool=Depends(get_pool)) -> list[
         "10 most recent episodes."
     ),
 )
-async def get_memory_digest(pool=Depends(get_pool)) -> MemoryDigestResponse:
-    async with pool.acquire() as conn:
-        unreviewed = await conn.fetch(
-            "SELECT id, key, value, agent FROM user_facts WHERE reviewed = false ORDER BY updated_at DESC"
-        )
-        contradicted = await conn.fetch(
-            "SELECT id, key, value, agent FROM user_facts WHERE contradicted = true ORDER BY updated_at DESC"
-        )
-        episodes = await conn.fetch(
-            "SELECT id, agent, summary, created_at FROM episodes ORDER BY created_at DESC LIMIT 10"
-        )
-        expiring = await conn.fetch(
-            "SELECT id, key, value, agent, expires_at FROM user_facts "
-            "WHERE expires_at IS NOT NULL AND expires_at > NOW() ORDER BY expires_at ASC"
-        )
-    return MemoryDigestResponse(
-        unreviewed_facts=[dict(r) for r in unreviewed],
-        contradicted_facts=[dict(r) for r in contradicted],
-        recent_episodes=[dict(r) for r in episodes],
-        expiring_facts=[dict(r) for r in expiring],
-    )
+async def get_memory_digest(container=Depends(get_container)) -> MemoryDigestResponse:
+    digest = await memory_admin.get_memory_digest(container.pool)
+    return MemoryDigestResponse.model_validate(digest)
 
 
 @router.post(
@@ -133,23 +97,8 @@ async def consolidate_memory(consolidator=Depends(get_memory_consolidator)) -> C
         "and goals. Updated nightly by the consolidation job."
     ),
 )
-async def get_profile(pool=Depends(get_pool)) -> UserProfileResponse:
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT preferences, habits, topics, relationships, goals, updated_at, version "
-            "FROM user_profile WHERE id = 1"
-        )
-    if row is None or not any([
-        row["preferences"], row["habits"], row["topics"],
-        row["relationships"], row["goals"],
-    ]):
+async def get_profile(container=Depends(get_container)) -> UserProfileResponse:
+    row = await memory_admin.get_profile(container.pool)
+    if row is None:
         raise HTTPException(status_code=404, detail="No profile synthesised yet")
-    return UserProfileResponse(
-        preferences=row["preferences"],
-        habits=row["habits"],
-        topics=row["topics"],
-        relationships=row["relationships"],
-        goals=row["goals"],
-        updated_at=row["updated_at"],
-        version=row["version"],
-    )
+    return UserProfileResponse.model_validate(row)

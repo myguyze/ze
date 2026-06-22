@@ -1,16 +1,18 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from ze_agents.settings import Settings as CoreSettings
+from ze_memory.bootstrap import consolidation_enabled
 
 _ROOT = Path(__file__).parent.parent  # apps/ze-api/
 
 
-class Settings(BaseSettings):
-    """Ze application settings (env + YAML). Extends ze-core via ``to_core_settings()``."""
+class ZeApiSettings(BaseSettings):
+    """Ze API shell settings (env + YAML). Domain flags live in package YAML helpers."""
     model_config = SettingsConfigDict(
         env_file=_ROOT / ".env",
         env_file_encoding="utf-8",
@@ -34,20 +36,6 @@ class Settings(BaseSettings):
     confirm_timeout_seconds: int = 900
     session_inactivity_minutes: int = 30
 
-    # ── Google OAuth2 ────────────────────────────────────────────────────────
-    google_client_id: str = ""
-    google_client_secret: str = ""
-    google_refresh_token: str = ""
-    timezone: str = "UTC"
-
-    # ── Workflow ──────────────────────────────────────────────────────────────
-    scheduler_enabled: bool = True
-    workflow_plan_model: str = "anthropic/claude-3.5-haiku"
-    workflow_verify_model: str = "anthropic/claude-3.5-haiku"
-
-    # ── Memory consolidation ──────────────────────────────────────────────────
-    consolidation_enabled: bool = True
-
     # ── Browser sidecar ───────────────────────────────────────────────────────
     browser_service_url: str = "http://ze-browser.internal:8080"
     browser_timeout_seconds: int = 20
@@ -56,15 +44,6 @@ class Settings(BaseSettings):
 
     # ── Agent harness ─────────────────────────────────────────────────────────
     max_tool_calls_per_turn: int = 20
-
-    # ── Prospecting ───────────────────────────────────────────────────────────
-    prospecting_max_iterations: int = 15
-    prospecting_max_loop_tokens: int = 24_000
-    prospecting_stale_timeout_minutes: int = 10
-
-    # ── Finance ───────────────────────────────────────────────────────────────
-    trading212_api_key: str = ""
-    trading212_demo: bool = False
 
     # ── Ntfy push notifications ───────────────────────────────────────────────
     ntfy_base_url: str = "https://ntfy.sh"
@@ -172,22 +151,23 @@ class Settings(BaseSettings):
 
     def to_core_settings(self) -> CoreSettings:
         """Map to ze-core Settings for framework container helpers."""
+        tz = self.config.get("timezone") or os.environ.get("TIMEZONE", "UTC")
         return CoreSettings(
             openrouter_api_key=self.openrouter_api_key,
             database_url=self.database_url,
             database_url_sync=self.database_url_sync,
             openrouter_base_url=self.openrouter_base_url,
             session_inactivity_minutes=self.session_inactivity_minutes,
-            consolidation_enabled=self.consolidation_enabled,
+            consolidation_enabled=consolidation_enabled(self),
             auto_migrate=False,
             log_level=self.log_level,
-            timezone=self.timezone,
+            timezone=tz,
             config=self.config,
         )
 
 
-# Backward-compatible alias used in migration docs.
-ZeSettings = Settings
+Settings = ZeApiSettings
+ZeSettings = ZeApiSettings
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -196,5 +176,5 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 @lru_cache
-def get_settings() -> Settings:
-    return Settings()
+def get_settings() -> ZeApiSettings:
+    return ZeApiSettings()

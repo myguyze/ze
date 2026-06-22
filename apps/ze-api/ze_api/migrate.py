@@ -35,15 +35,7 @@ import ze_ingestion
 from ze_api.errors import MigrationReadinessError
 
 # Ordered list of plugin modules to import before collecting migration paths.
-# Importing triggers __init_subclass__ registration in ze_plugin.registry._registry.
-_PLUGIN_MODULES: list[str] = [
-    "ze_personal.plugin",
-    "ze_calendar.plugin",
-    "ze_email.plugin",
-    "ze_news.plugin",
-    "ze_finance.plugin",
-    "ze_prospecting.plugin",
-]
+from ze_plugin.bootstrap import import_plugin_modules_for_migrations
 
 # Fixed script_location: the ze migrations directory contains env.py and script.py.mako.
 _SCRIPT_LOCATION = Path(__file__).parent / "migrations"
@@ -59,11 +51,7 @@ _ZE_INGESTION_VERSIONS = Path(ze_ingestion.__file__).parent / "migrations" / "ve
 
 
 def _import_plugins() -> None:
-    for module_path in _PLUGIN_MODULES:
-        try:
-            importlib.import_module(module_path)
-        except ImportError:
-            pass
+    import_plugin_modules_for_migrations()
 
 
 def _collect_version_locations() -> list[Path]:

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import asyncpg
 import pytest
 
-from ze_api.bootstrap import bootstrap_agents
+from ze_agents.bootstrap import bootstrap_agents
 from ze_personal.agents.companion.agent import CompanionAgent
 from ze_agents.registry import _instances, get_agent
 from ze_personal.agents.research.agent import ResearchAgent
@@ -57,6 +57,11 @@ def test_bootstrap_registers_companion_and_research(settings):
     from ze_agents.settings import Settings as CoreSettings
     from ze_proactive.notifier import ProactiveNotifier
 
+    class _AllPathsPlugin:
+        def agent_module_paths(self) -> list[str]:
+            from tests.support.agent_modules import ALL_AGENT_MODULE_PATHS
+            return list(ALL_AGENT_MODULE_PATHS)
+
     client = AsyncMock()
     core_settings = settings.to_core_settings()
     deps = {
@@ -80,7 +85,7 @@ def test_bootstrap_registers_companion_and_research(settings):
         ProactiveNotifier: MM(spec=ProactiveNotifier),
         object: client,
     }
-    bootstrap_agents(deps=deps)
+    bootstrap_agents(deps=deps, plugins=[_AllPathsPlugin()])
 
     assert isinstance(get_agent("companion"), CompanionAgent)
     assert isinstance(get_agent("research"), ResearchAgent)

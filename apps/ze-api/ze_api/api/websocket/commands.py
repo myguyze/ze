@@ -50,9 +50,9 @@ async def handle_command(
         return None
 
     if name == "costs":
-        from ze_api.api.routes.costs import _build_cost_summary
+        from ze_core.telemetry.rest import build_cost_summary
         try:
-            summary = await _build_cost_summary(container)
+            summary = await build_cost_summary(container)
             await conn_mgr.send_frame({
                 "type": "message",
                 "message": ephemeral_assistant_message(summary),
@@ -62,10 +62,10 @@ async def handle_command(
         return pending_config
 
     if name == "status":
-        from ze_api.api.routes.costs import _build_status_summary
+        from ze_automation.rest import build_status_summary
         period_days = int(data.get("period_days", 1))
         try:
-            summary = await _build_status_summary(container, period_days=period_days)
+            summary = await build_status_summary(container, period_days=period_days)
             await conn_mgr.send_frame({
                 "type": "message",
                 "message": ephemeral_assistant_message(summary),

@@ -28,10 +28,12 @@ def _registry_has_real_agents() -> bool:
 @pytest.fixture(autouse=True)
 def _ensure_real_agent_registry():
     """Keep ze-core registry on real @agent classes, not capability test stubs."""
-    from ze_api.bootstrap import reload_agent_modules
+    from ze_agents.bootstrap import reload_agent_modules
+
+    from tests.support.agent_modules import ALL_AGENT_MODULE_PATHS
 
     if not _registry_has_real_agents():
-        reload_agent_modules()
+        reload_agent_modules(ALL_AGENT_MODULE_PATHS)
     yield
     if not _registry_has_real_agents():
-        reload_agent_modules()
+        reload_agent_modules(ALL_AGENT_MODULE_PATHS)
