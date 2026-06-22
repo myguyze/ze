@@ -203,7 +203,7 @@ with same-day reminders are captured.
 
 ## Workflow failure alerts (immediate)
 
-**Module:** `ze_personal/workflow/scheduler.py` + `ze_proactive/notifier.py`
+**Module:** `ze_automation/workflow/scheduler.py` + `ze_proactive/notifier.py`
 
 When a scheduled workflow step fails, Ze pushes an alert immediately — no waiting
 for the morning briefing. A `workflow_failure_cooldown_hours` (default: 1h) prevents
@@ -213,7 +213,7 @@ alert spam for repeatedly-failing workflows.
 
 ## Goal advance sweep (every 15 minutes)
 
-**Module:** `ze_personal/goals/executor.py` · registered in `ze_api/container.py`  
+**Module:** `ze_automation/goals/executor.py` · registered in `ze_api/container.py`  
 **Job id:** `goal_advance_sweep` · **Cron:** `*/15 * * * *`
 
 For each goal with status `ACTIVE`, the sweep calls `GoalExecutor.advance(goal_id)`.
@@ -236,7 +236,7 @@ See [docs/goals.md](goals.md) for the full goal engine documentation.
 
 ## Weekly goal narrative (Sunday 6 PM UTC)
 
-**Module:** `ze_personal/jobs/goal_narrative.py`  
+**Module:** `ze_automation/jobs/goal_narrative.py`  
 **Cron:** `0 18 * * 0` (configurable via `proactive.goal_narrative.cron`)
 
 For each active goal, Ze synthesises a one-paragraph weekly update: what was completed this week, any pending gate, and what comes next. Pushed via `ProactiveNotifier`. Skips goals that had no activity in the past 7 days.
@@ -245,7 +245,7 @@ For each active goal, Ze synthesises a one-paragraph weekly update: what was com
 
 ## Weekly goal suggestions (Sunday 7 PM UTC)
 
-**Module:** `ze_personal/jobs/goal_suggestion.py`  
+**Module:** `ze_automation/jobs/goal_suggestion.py`  
 **Cron:** `0 19 * * 0` (configurable via `proactive.goal_suggestion.cron`)
 
 Analyses recent memory facts, episodes, and past goal retrospectives to propose one new multi-week goal. Sent via `ProactiveNotifier` with **Accept** / **Dismiss** options. Accepted suggestions open a goal creation flow. Suppressed if there are already 3+ active goals or if the last suggestion was dismissed within 7 days.
@@ -254,7 +254,7 @@ Analyses recent memory facts, episodes, and past goal retrospectives to propose 
 
 ## Stuck goal detection (Tuesday 9 AM UTC)
 
-**Module:** `ze_personal/jobs/stuck_goals.py`  
+**Module:** `ze_automation/jobs/stuck_goals.py`  
 **Cron:** `0 9 * * 2` (configurable via `proactive.stuck_goals.cron`)
 
 Checks all active goals for inactivity:
@@ -268,7 +268,7 @@ For each stuck goal, Ze pushes a notification describing the blockage with **Res
 
 ## Weekly accountability narrative (Monday 9 AM UTC)
 
-**Module:** `ze_personal/jobs/accountability.py` (`AccountabilityJob`)  
+**Module:** `ze_automation/jobs/accountability.py` (`AccountabilityJob`)  
 **Cron:** `0 9 * * 1` (configurable via `proactive.accountability.schedule`)
 
 A weekly plain-text summary of everything Ze did while you weren't watching:
@@ -308,7 +308,7 @@ The same data is available on-demand via the `/status` WebSocket command (see [n
 
 ## Cost anomaly detection (every 6 hours)
 
-**Module:** `ze_personal/jobs/cost_anomaly.py` (`CostAnomalyJob`)  
+**Module:** `ze_automation/jobs/cost_anomaly.py` (`CostAnomalyJob`)  
 **Cron:** `0 */6 * * *` (configurable via `proactive.accountability.cost_anomaly_schedule`)
 
 Silently scans recent LLM runs and alerts if any single run cost significantly more than that agent's historical baseline:
@@ -382,12 +382,12 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 | 7:45 AM daily | Calendar sync + reminder scheduling | `ze_calendar/jobs/calendar_reminder.py` |
 | 8:00 AM daily | Morning briefing (with personalised headlines) | `ze_personal/jobs/briefing.py` |
 | 8:30 AM daily | Contact review suggestions | `ze_personal/jobs/contacts.py` |
-| 6:00 PM Sun | Weekly goal narrative | `ze_personal/jobs/goal_narrative.py` |
-| 7:00 PM Sun | Weekly goal suggestions | `ze_personal/jobs/goal_suggestion.py` |
-| 9:00 AM Mon | **Weekly accountability narrative** | `ze_personal/jobs/accountability.py` |
-| 9:00 AM Tue | Stuck goal detection | `ze_personal/jobs/stuck_goals.py` |
-| Every 6 hours | **Cost anomaly detection** | `ze_personal/jobs/cost_anomaly.py` |
-| Every 15 min | Goal advance sweep | `ze_personal/goals/executor.py` |
+| 6:00 PM Sun | Weekly goal narrative | `ze_automation/jobs/goal_narrative.py` |
+| 7:00 PM Sun | Weekly goal suggestions | `ze_automation/jobs/goal_suggestion.py` |
+| 9:00 AM Mon | **Weekly accountability narrative** | `ze_automation/jobs/accountability.py` |
+| 9:00 AM Tue | Stuck goal detection | `ze_automation/jobs/stuck_goals.py` |
+| Every 6 hours | **Cost anomaly detection** | `ze_automation/jobs/cost_anomaly.py` |
+| Every 15 min | Goal advance sweep | `ze_automation/goals/executor.py` |
 | Every 15 min | Cost reconciliation | `ze_core/telemetry/reconciler.py` |
 | Every 15 min | Stale campaign recovery | `ze_prospecting/jobs/campaigns.py` |
 | Every 30 min | News article fetch + embed | `ze_news/jobs/fetch.py` |

@@ -141,15 +141,15 @@ When all milestones finish, `GoalExecutor` runs three things automatically:
 
 ### Weekly goal narrative (Sunday 6 PM UTC)
 
-Ze pushes a one-paragraph update per active goal summarising what was completed that week, any pending gate, and what comes next. Driven by `GoalNarrativeJob` in `ze_personal/jobs/goal_narrative.py`.
+Ze pushes a one-paragraph update per active goal summarising what was completed that week, any pending gate, and what comes next. Driven by `GoalNarrativeJob` in `ze_automation/jobs/goal_narrative.py`.
 
 ### Weekly goal suggestions (Sunday 7 PM UTC)
 
-Ze analyses recent memory facts, episodes, and retrospectives to propose one new goal. Sent via `ProactiveNotifier` with **Accept** / **Dismiss** options. Accepted suggestions pre-fill a goal creation flow. Driven by `GoalSuggestionJob` in `ze_personal/jobs/goal_suggestion.py`.
+Ze analyses recent memory facts, episodes, and retrospectives to propose one new goal. Sent via `ProactiveNotifier` with **Accept** / **Dismiss** options. Accepted suggestions pre-fill a goal creation flow. Driven by `GoalSuggestionJob` in `ze_automation/jobs/goal_suggestion.py`.
 
 ### Stuck goal detection (Tuesday 9 AM UTC)
 
-Ze checks for goals that have had no milestone progress or gate resolution in a configurable window (default: 48 h for milestones, 72 h for gates). Stuck goals get a push notification with **Resume** / **Abandon** / **Redirect** options. Driven by `StuckGoalJob` in `ze_personal/jobs/stuck_goals.py`.
+Ze checks for goals that have had no milestone progress or gate resolution in a configurable window (default: 48 h for milestones, 72 h for gates). Stuck goals get a push notification with **Resume** / **Abandon** / **Redirect** options. Driven by `StuckGoalJob` in `ze_automation/jobs/stuck_goals.py`.
 
 ---
 
@@ -212,7 +212,7 @@ Statuses: `planning` → (approve) → `active` ↔ `awaiting_gate` / `paused` �
 
 ## Configuration
 
-Goal capabilities are declared on the `@agent` class in `ze_personal/agents/goals/agent.py`.
+Goal capabilities are declared on the `@agent` class in `ze_automation/agents/goals/agent.py`.
 Intent capabilities default to `confirm` for create, update, and delete; read is autonomous.
 
 The advance sweep cron is fixed in `ze_api/container.py` (`*/15 * * * *`, job id

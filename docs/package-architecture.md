@@ -13,6 +13,7 @@ ze/
 │   ├── ze-agents/    # Developer API — BaseAgent, @agent, @tool, ZePlugin, shared types
 │   ├── ze-plugin/    # Plugin extension framework — ZePlugin, channels, signal sources, data domains
 │   ├── ze-proactive/ # Job scheduling framework — ProactiveScheduler, ProactiveNotifier
+│   ├── ze-automation/# Core automation engine — goals, workflows, accountability, agents, jobs
 │   ├── ze-sdk/       # Public SDK surface — flat re-export layer for plugin authors
 │   ├── ze-core/      # Engine — routing, orchestration, telemetry, DI container
 │   ├── ze-data/      # Data portability layer — DataDomain, export/import/delete orchestration
@@ -27,7 +28,7 @@ ze/
 │   └── ze-google/    # Google OAuth2 credentials and service client factories
 │   └── ze-trading212/ # Trading212 REST client for finance ingestion
 ├── plugins/          # ZePlugin domain extensions
-│   ├── ze-personal/  # Personal-assistant domain layer
+│   ├── ze-personal/  # Personal-assistant domain layer — persona, contacts, onboarding
 │   ├── ze-email/     # Gmail channel + email agent (ZePlugin)
 │   ├── ze-prospecting/   # Prospecting agent, campaign store, recovery job (ZePlugin)
 │   ├── ze-calendar/  # Calendar + reminders domain (ZePlugin)
@@ -56,7 +57,8 @@ ze-trading212     ←  no ze deps
 ze-memory         ←  ze-agents
 ze-ingestion      ←  ze-agents, ze-memory, ze-browser
 ze-correlation    ←  ze-agents, ze-memory
-ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding, ze-plugin, ze-data   ← plugin entry point
+ze-automation     ←  ze-agents, ze-proactive, ze-memory   ← goals, workflows, accountability; wired directly by ze-api
+ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding, ze-plugin, ze-data, ze-automation   ← plugin entry point
 ze-core           ←  ze-agents, ze-plugin                ← engine; never a domain dep
 ze-personal       ←  ze-sdk
 ze-email          ←  ze-sdk, ze-google, ze-personal
@@ -64,9 +66,9 @@ ze-prospecting    ←  ze-sdk, ze-browser, ze-personal
 ze-calendar       ←  ze-sdk, ze-google, ze-personal
 ze-news           ←  ze-sdk
 ze-finance        ←  ze-sdk, ze-trading212
-ze-api            ←  ze-core, ze-plugin, ze-data, ze-sdk, ze-personal, ze-email, ze-prospecting,
-                      ze-calendar, ze-google, ze-browser, ze-news, ze-finance, ze-notifications,
-                      ze-components, ze-onboarding, ze-ingestion, ze-correlation
+ze-api            ←  ze-core, ze-plugin, ze-data, ze-sdk, ze-automation, ze-personal, ze-email,
+                      ze-prospecting, ze-calendar, ze-google, ze-browser, ze-news, ze-finance,
+                      ze-notifications, ze-components, ze-onboarding, ze-ingestion, ze-correlation
 ze-client         ←  no ze deps (generated from ze-api spec; npm workspace only)
 ze-web            ←  ze-client (workspace:*), connects to ze-api over WebSocket/REST
 ```
@@ -77,7 +79,7 @@ Hard rules:
 - `ze-plugin` and `ze-data` stay free of application wiring; they own the reusable extension and portability seams.
 - `ze-core` never imports from domain packages. It depends on `ze-agents` and `ze-plugin` for shared engine-facing types.
 - Plugin packages (`ze-personal`, `ze-email`, etc.) never import `ze-core` directly — use `ze-sdk`.
-- `ze-memory` and `ze-personal` never import from `ze-api`. Violations break the abstraction.
+- `ze-memory`, `ze-automation`, and `ze-personal` never import from `ze-api`. Violations break the abstraction.
 
 ---
 
@@ -124,7 +126,7 @@ Depends on `ze-agents` only.
 ## ze-sdk — Public SDK Surface
 
 `ze_sdk` is a flat re-export layer over `ze-agents`, `ze-proactive`, `ze-memory`,
-`ze-onboarding`, `ze-plugin`, and `ze-data`.
+`ze-onboarding`, `ze-plugin`, `ze-data`, and `ze-automation`.
 Plugin authors list `ze-sdk` as their only Ze dependency and import everything from it.
 `ze-core` never appears in a plugin's dependency list.
 
@@ -136,6 +138,7 @@ Plugin authors list `ze-sdk` as their only Ze dependency and import everything f
 | `ze_sdk.channels` | `Channel`, `ChannelType`, `ChannelHandle`, `Message`, `SentMessage`, `Thread`, `ThreadMessage`, `ChannelSendError` |
 | `ze_sdk.memory` | `MemoryContext`, `Fact`, `Episode`, `Procedure`, `Entity`, `TaskState`, `RetrievalRequest`, `MemoryStore`, `PostgresMemoryStore` |
 | `ze_sdk.onboarding` | `OnboardingProvider`, `OnboardingStep`, `OnboardingField`, `OnboardingSeed`, `OnboardingResult`, setup seed and submission types |
+| `ze_sdk.automation` | `Goal`, `GoalStatus`, `GoalStore`, `GoalSuggestionStore`, `Workflow`, `WorkflowStep`, `WorkflowStore`, `WorkflowScheduler`, `AutomationPlanner`, `AutomationStore` |
 | `ze_sdk.errors` | Full `ZeError` hierarchy |
 
 ---
@@ -274,26 +277,62 @@ depends on `ze-agents` for logging and settings abstractions.
 
 ---
 
+## ze-automation — Core Automation Engine
+
+`ze_automation` owns the complete automation stack as a first-class core package. It
+is wired directly into `ze_api/container.py` — not via the plugin registry — so goals
+and workflows are always present. It depends on `ze-agents`, `ze-proactive`, and
+`ze-memory`.
+
+| Module | What it provides |
+|--------|-----------------|
+| `goals/types.py` | `Goal`, `Milestone`, `VerificationGate`, `GoalLearning`, `GoalSuggestion`, `ExecutionTrace`, enums |
+| `goals/store.py` | `GoalStore` Protocol |
+| `goals/postgres.py` | `PostgresGoalStore` |
+| `goals/suggestion_store.py` | `GoalSuggestionStore`, `PostgresGoalSuggestionStore` |
+| `goals/planner.py` | `GoalPlanner` — LLM-driven milestone decomposition, replanning, retrospective, suggestion synthesis |
+| `goals/executor.py` | `GoalExecutor` — advance loop, gate handling, steering, learning extraction |
+| `workflow/types.py` | `Workflow`, `WorkflowStep`, `WorkflowExecution`, `StepResult` |
+| `workflow/store.py` | `WorkflowStore` Protocol |
+| `workflow/postgres.py` | `PostgresWorkflowStore` |
+| `workflow/scheduler.py` | `WorkflowScheduler` — APScheduler cron/date job management |
+| `workflow/planner.py` | `WorkflowPlanner` — LLM-driven step decomposition and schedule parsing |
+| `agents/goals/` | `GoalAgent` — conversational goal lifecycle |
+| `agents/workflow/` | `WorkflowManagerAgent` — conversational workflow management |
+| `jobs/goal_narrative.py` | Weekly goal narrative job |
+| `jobs/goal_suggestion.py` | Weekly goal suggestion job |
+| `jobs/stuck_goals.py` | Stuck goal detection job |
+| `jobs/accountability.py` | `AccountabilityJob` — weekly activity + cost narrative |
+| `jobs/cost_anomaly.py` | `CostAnomalyJob` — per-run cost spike detection |
+| `accountability/` | `AccountabilityStore`, `ActivitySummary`, `AnomalyRecord`, `build_narrative` |
+| `graph/routing_context.py` | Goal-aware routing context injection |
+| `runtime/contracts.py` | `AutomationPlanner`, `AutomationStore` protocols |
+| `migrations/versions/` | `zc006`–`zc009` (goal traces/suggestions/stuck/reuse), `zc011` (workflows), `zc014` (accountability) |
+
+Agent registration is exposed via `ze_automation.agent_module_paths()`, called from
+`ze_api/bootstrap.py` alongside plugin agent paths.
+
+---
+
 ## ze-personal — Domain Layer
 
-`ze_personal` owns all personal-assistant domain logic. It depends on `ze-sdk`
-(which brings in ze-agents, ze-proactive, and ze-memory) and knows nothing about
-Google APIs or HTTP.
+`ze_personal` owns persona, contacts, and onboarding — the parts of the personal
+assistant that are specific to this user's identity and social graph. It depends on
+`ze-sdk` and knows nothing about Google APIs or HTTP. Goals, workflows, and
+accountability live in `ze-automation`, not here.
 
 | Module | What it provides |
 |--------|-----------------|
 | `persona/` | `PostgresPersonaStore`, `build_identity_block`, named profiles, dial overrides |
 | `contacts/` | `PersonStore`, `ContactChannelStore`, extractors, consolidator, tools |
-| `goals/` | `GoalStore` (postgres.py), `GoalPlanner`, `GoalExecutor`, types, suggestion store |
-| `workflow/` | `WorkflowStore`, `WorkflowPlanner`, `WorkflowScheduler`, types |
 | `agents/research/` | `ResearchAgent` — web search and synthesis |
 | `agents/companion/` | `CompanionAgent` — reasoning and conversation |
-| `agents/goals/` | `GoalAgent` — conversational goal lifecycle |
-| `agents/workflow/` | `WorkflowManagerAgent` — conversational workflow management |
-| `jobs/` | Proactive jobs: briefing, insights, contact review, goal narrative/suggestion/stuck |
-| `graph/workflow.py` | `build_workflow_graph()` — workflow execution graph |
+| `jobs/briefing.py` | Morning briefing job |
+| `jobs/insights.py` | Weekly insight generation job |
+| `jobs/contacts.py` | Contact review suggestions job |
+| `graph/workflow.py` | `build_workflow_graph()` — workflow execution graph (LangGraph wiring) |
 | `graph/memory_hooks.py` | Post-memory-write hooks (e.g. contact extraction) |
-| `plugin.py` | `PersonalPlugin(ZePlugin)` — wires all of the above into ze-core |
+| `plugin.py` | `PersonalPlugin(ZePlugin)` — wires persona + contacts into ze-core |
 
 ---
 
@@ -543,8 +582,9 @@ class ZePlugin(ABC):
 Five plugins are registered in `ze_api/container.py`:
 
 - **`PersonalPlugin`** (`ze_personal/plugin.py`) — identity builder, contact extraction
-  hooks, goal-aware routing via `pre_route_node`, research/companion/goals/workflow agents,
-  and proactive jobs (briefing, insights, contact review, goal narrative/suggestion/stuck).
+  hooks, research/companion agents, and proactive jobs (briefing, insights, contact review).
+  Goals, workflows, and accountability are wired directly by `ze_api/container.py` via
+  `ze_automation`, not through this plugin.
 - **`EmailPlugin`** (`ze_email/plugin.py`) — Gmail channel + email agent (when Google
   credentials are configured).
 - **`ProspectingPlugin`** (`ze_prospecting/plugin.py`) — prospecting agent, campaign store,
@@ -581,13 +621,15 @@ Agent-scoped deps can be contributed via `agent_deps()` without touching the con
 | New engine primitive (routing, graph node, telemetry) | `ze-core` |
 | New memory retrieval policy for a plugin agent | plugin `memory_policies()` hook — not `ze-memory/policies.py` |
 | New domain concept tied to personal assistant | `ze-personal` |
+| New automation concept (goals, workflows, execution) | `ze-automation` |
 | New Google integration credential | `ze-google` |
 | New agent (general assistant: research, companion) | `ze-personal` → `ze_personal/agents/<name>/` |
 | New agent (email) | `ze-email` → `ze_email/agents/<name>/` |
 | New agent (prospecting) | `ze-prospecting` → `ze_prospecting/agents/` |
 | New agent that needs calendar/reminder state | `ze-calendar` → `ze_calendar/agents/<name>/` |
-| New agent that needs domain state (goals, workflows) | `ze-personal` → `ze_personal/agents/<name>/` |
-| New background job (personal assistant domain) | `ze-personal` → `ze_personal/jobs/` + `PersonalPlugin.register_proactive_jobs()` |
+| New agent that works with goals or workflows | `ze-automation` → `ze_automation/agents/<name>/` |
+| New background job (automation: goals, workflows, costs) | `ze-automation` → `ze_automation/jobs/` |
+| New background job (personal assistant: briefing, insights) | `ze-personal` → `ze_personal/jobs/` + `PersonalPlugin.register_proactive_jobs()` |
 | New background job (prospecting) | `ze-prospecting` → `ze_prospecting/jobs/` + `ProspectingPlugin.register_proactive_jobs()` |
 | New channel implementation (LinkedIn, WhatsApp) | New package or existing domain package → `channel/` module |
 | New push notification backend | `ze-notifications` |
@@ -597,7 +639,9 @@ Agent-scoped deps can be contributed via `agent_deps()` without touching the con
 When in doubt: ask whether the code has a runtime dependency on `ze-personal` or
 application config. If yes, it belongs in `ze-api`. If it is part of the stable
 authoring API, it belongs in `ze-agents` (accessible via `ze_sdk`). If it is
-a domain concept, it belongs in `ze-personal` or the appropriate plugin package.
+an automation concept (goals, workflows, execution state, cost reporting), it belongs
+in `ze-automation`. If it is a personal-assistant concept (persona, contacts,
+onboarding), it belongs in `ze-personal`.
 
 ---
 
@@ -635,9 +679,13 @@ be a plugin-backed package.
 
 ### Signals that code belongs in an existing package
 
-- It is a new agent that uses existing domain services (goals, workflows, contacts).
-  → the relevant domain package (`ze-personal`, `ze-email`, etc.).
-- It is a new proactive job tied to personal assistant domain logic.
+- It is a new agent that uses goals or workflow state.
+  → `ze-automation` → `ze_automation/agents/<name>/`.
+- It is a new agent that uses contacts or persona.
+  → `ze-personal` → `ze_personal/agents/<name>/`.
+- It is a new proactive job tied to automation (goals, workflows, costs).
+  → `ze_automation/jobs/`.
+- It is a new proactive job tied to personal assistant domain logic (briefing, insights).
   → `ze_personal/jobs/` + `PersonalPlugin.register_proactive_jobs()`.
 - It is a new memory retrieval policy or graph predicate.
   → `ze-memory`.
