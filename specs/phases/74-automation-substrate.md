@@ -1,8 +1,8 @@
 # Automation Substrate — Spec
 
-> **Packages:** `core/ze-automation/` (new), `core/ze-proactive/` (unchanged), `plugins/ze-personal/` (shrunk)
+> **Packages:** `core/ze-automation/` (core), `core/ze-proactive/` (unchanged), `plugins/ze-personal/` (shrunk to persona + contacts only)
 > **Phase:** 74
-> **Status:** Done
+> **Status:** In Progress
 > **Depends on:** Phase 47 ([47-plugin-framework.md](47-plugin-framework.md)), Phase 48 ([48-core-split.md](48-core-split.md))
 
 ---
@@ -12,10 +12,14 @@
 | Feature | Status |
 |---------|--------|
 | New `ze-automation` package boundary defined | ✅ Done |
-| Goals/workflows shared substrate extracted from `ze-personal` | ✅ Done |
+| Types, store protocols, postgres impls extracted from `ze-personal` | ✅ Done |
+| Migrations `zc006`–`zc009`, `zc011` moved to `ze-automation` | ✅ Done |
 | `ze-proactive` kept separate as scheduling + delivery infrastructure | ✅ Done |
-| SDK re-exports updated for automation authors | ✅ Done |
-| Plugin wiring migrated to the new package boundary | ✅ Done |
+| SDK re-exports updated via `ze_sdk.automation` | ✅ Done |
+| Planners and executors moved from `ze-personal` to `ze-automation` | 🔲 Pending |
+| Goal and workflow agents moved to `ze-automation` | 🔲 Pending |
+| `ze-api` wires `ze-automation` directly (not via plugin) | 🔲 Pending |
+| `ze-personal` reduced to persona + contacts + onboarding only | 🔲 Pending |
 | Tests updated for the new dependency graph | 🔲 Pending |
 
 ---
@@ -24,46 +28,47 @@
 
 Goals and workflows are not incidental features of Ze. They are part of the product's
 operating model: Ze does work over time, waits for checkpoints, schedules follow-up
-actions, and preserves the history of those actions. Today, that logic is concentrated
-inside `ze-personal`, which makes the personal plugin the de facto core of Ze's
-automation story.
+actions, and preserves the history of those actions. That logic should not live behind
+a plugin boundary — it is Ze's core.
 
-That is the wrong boundary. `ze-personal` should own user-specific semantics
-(persona, contacts, personal prompts, assistant-specific jobs), but the reusable
-automation substrate should live in a dedicated core package. This phase extracts
-that substrate into `ze-automation` so goals and workflows become first-class Ze
-primitives rather than plugin internals.
+The original Phase 74 scope extracted types, protocols, stores, and migrations out of
+`ze-personal` into `ze-automation`. That was a necessary first step, but it stopped
+short: planners, executors, and agents remained in `ze-personal`, which kept the plugin
+as the de facto owner of automation behavior.
 
-This phase is also explicit about one thing: `ze-proactive` does **not** merge into
-`ze-automation`. Scheduling, notification delivery, and push deduplication remain a
-separate infrastructure layer. `ze-automation` depends on `ze-proactive`; it does not
-absorb it.
+This phase completes the extraction. `ze-automation` becomes a first-class core package
+that owns the full automation stack — types, persistence, planning, execution, and
+agents. `ze-personal` is reduced to what only it can know: persona, contacts, and
+onboarding. `ze-api` wires `ze-automation` directly, the same way it wires `ze-memory`
+and `ze-core`.
+
+`ze-proactive` does **not** merge into `ze-automation`. Scheduling, notification
+delivery, and push deduplication remain a separate infrastructure layer.
+`ze-automation` depends on `ze-proactive`; it does not absorb it.
 
 ---
 
 ## Responsibilities
 
-- Introduce a new `ze-automation` package as the canonical home for long-running
-  Ze automation semantics.
-- Move goal and workflow state machines, store protocols, planners, executors, and
-  shared automation types into that package.
+- Own the complete automation stack as a Ze core package: types, store protocols,
+  postgres implementations, planners, executors, schedulers, and agents.
+- Own migrations for all goals and workflow tables.
+- Register goal and workflow agents directly with `ze-api` — not via `ze-personal`.
 - Keep `ze-proactive` as separate background-job infrastructure for cron/interval
   execution and proactive message delivery.
 - Preserve the current user-visible behavior of goals and workflows during migration.
-- Expose automation primitives through `ze-sdk` so plugin authors do not need to
-  depend on `ze-personal` directly for automation concepts.
-- Reduce `ze-personal` to domain-specific wiring, prompts, onboarding, and user
-  policy that sit on top of the shared automation substrate.
+- Expose automation primitives through `ze-sdk` for plugin authors who build on top
+  of goals and workflows.
+- Leave `ze-personal` with only persona, contacts, and onboarding — no goals or
+  workflow code.
 
 ---
 
 ## Out of Scope
 
-- Merging `ze-proactive` into the new automation package.
-- Turning `ze-automation` into a general BPM/workflow engine for arbitrary external
-  customers or non-Ze domains.
-- Changing the public user experience of goals and workflows beyond internal package
-  moves.
+- Merging `ze-proactive` into `ze-automation`.
+- Making `ze-automation` a generic BPM engine for non-Ze use cases.
+- Changing the public user experience of goals and workflows.
 - Redesigning `ze-core` orchestration, routing, or capability gating.
 - Renaming user-facing concepts away from "goals" and "workflows".
 - Rewriting push delivery transport or notification channels.
@@ -78,18 +83,22 @@ core/ze-automation/
     goals/
       types.py
       store.py
-      planner.py
-      executor.py
+      postgres.py
       suggestion_store.py
+      planner.py           ← moved from ze-personal
+      executor.py          ← moved from ze-personal
     workflow/
       types.py
       store.py
-      planner.py
+      postgres.py
       scheduler.py
+      planner.py           ← moved from ze-personal
+    agents/
+      goals/               ← moved from ze-personal/agents/goals/
+      workflow/            ← moved from ze-personal/agents/workflow/
+    jobs/                  ← goal/workflow proactive jobs moved from ze-personal
     runtime/
       contracts.py
-      state.py
-      prompts.py
     __init__.py
     migrations/
       versions/
@@ -103,115 +112,60 @@ core/ze-proactive/
 
 plugins/ze-personal/
   ze_personal/
-    plugin.py                 ← wires `ze_automation` + `ze_proactive` into the app
-    goals/                    ← shrunk to personal-specific adapters, if any remain
-    workflow/                 ← shrunk to personal-specific adapters, if any remain
-    agents/goals/
-    agents/workflow/
+    plugin.py              ← wires persona + contacts into the app; no goals/workflow
+    contacts/
+    persona/
+    agents/
+      companion/
+      research/
     jobs/
+      briefing/
+      insights/
+      contacts/
 ```
 
 ---
 
-## Feature 1: Shared Automation Substrate
+## Feature 1: `ze-automation` as Ze Core
 
 ### Problem
 
-`ze_personal.goals` and `ze_personal.workflow` currently mix three different kinds of
-code:
+After the initial extraction (types, stores, migrations), planners, executors, and
+agents still live in `ze-personal`. This means:
 
-1. reusable automation primitives,
-2. Ze-specific user-facing semantics,
-3. plugin wiring and lifecycle integration.
-
-That makes the package hard to evolve. Any change to goals or workflows drags the
-personal plugin with it, even when the change is purely structural.
+- Goals and workflows are "optional" from the architecture's perspective, even though
+  they are not optional from the product's perspective.
+- Changes to goal execution logic require touching the personal plugin.
+- The personal plugin's `plugin.py` is burdened with goal/workflow wiring that does
+  not belong there.
 
 ### Design
 
-`ze_automation` becomes the shared substrate for:
+`ze-automation` owns the full automation stack:
 
 - goal and workflow domain types,
-- persistence protocols,
-- planning interfaces,
-- execution loops,
-- execution state,
-- reusable automation prompts and contracts.
+- persistence protocols and postgres implementations,
+- planning logic (GoalPlanner, WorkflowPlanner) with Ze-specific LLM prompts,
+- execution logic (GoalExecutor) with state machine, gates, and replanning,
+- scheduling (WorkflowScheduler),
+- the GoalAgent and WorkflowAgent definitions,
+- proactive jobs for goals and workflows.
 
-The package should not know about contacts, persona, news, or any other personal
-assistant domain. It is allowed to know about scheduling and notification interfaces
-only through `ze-proactive`.
+`ze-api` wires `ze-automation` the same way it wires `ze-memory` — directly in
+`container.py`, not through the plugin registry. Goals and workflows are always present;
+they are not conditionally loaded.
 
-### Responsibilities of the new package
+`ze-personal` no longer contains any goals or workflow code. It owns:
 
-- Define the shared task/plan/run types used by both goals and workflows.
-- Provide planner and executor interfaces that `ze-personal` can configure with
-  Ze-specific prompts and policies.
-- Own the store protocols for automation persistence.
-- Own reusable execution state and checkpoint types.
-- Own migration ownership for automation tables once the schema moves out of
-  `ze-personal`.
-
-### Implementation sketch
-
-```python
-# core/ze-automation/ze_automation/goals/types.py
-
-@dataclass
-class Goal: ...
-
-@dataclass
-class GoalMilestone: ...
-
-@dataclass
-class GoalGate: ...
-
-@dataclass
-class GoalLearning: ...
-
-@dataclass
-class GoalSuggestion: ...
-```
-
-```python
-# core/ze-automation/ze_automation/workflow/types.py
-
-@dataclass
-class Workflow: ...
-
-@dataclass
-class WorkflowStep: ...
-
-@dataclass
-class WorkflowExecution: ...
-```
-
-```python
-# core/ze-automation/ze_automation/runtime/contracts.py
-
-class AutomationPlanner(Protocol):
-    async def plan(self, prompt: str, **kwargs) -> list[Any]: ...
-
-class AutomationStore(Protocol):
-    ...
-```
-
-`ze-personal` keeps the concrete prompt text, product wording, and user-facing
-assistant behavior. `ze-automation` keeps the mechanics.
+- persona (identity, dials, profiles),
+- contacts (person store, channel store, consolidation),
+- onboarding,
+- companion and research agent definitions,
+- briefing, insights, and contact review jobs.
 
 ---
 
 ## Feature 2: Goals and Workflows as First-Class Ze Primitives
-
-### Problem
-
-Goals and workflows are conceptually similar but operationally distinct:
-
-- Goals span days or weeks, require check-ins, and evolve as work progresses.
-- Workflows are stepwise automations, often one-shot or scheduled.
-
-They share execution concepts, but they should not be forced into a single feature
-shape just because they currently live in the same plugin.
 
 ### Design
 
@@ -220,110 +174,58 @@ shape just because they currently live in the same plugin.
 - `goals/` for long-running objective tracking, replanning, and verification gates.
 - `workflow/` for ordered step execution, scheduling, and result synthesis.
 
-The shared substrate should factor out common concepts:
+Both subdomains live entirely within `ze-automation`. There is no personal-plugin
+adapter layer sitting between the automation engine and the rest of the app.
 
-- `TaskState` / `RunState`
-- `PlanStep`
-- `ExecutionOutcome`
-- `VerificationRule`
-- `ScheduleSpec`
-- `ExecutionCheckpoint`
+### Wiring
 
-These are substrate concepts, not user-facing product concepts. `ze-personal` can map
-them to assistant UX such as "start goal", "pause goal", or "run this workflow now".
+`ze-api/container.py` instantiates automation services directly:
 
-### Migration boundary
+```python
+goal_store = PostgresGoalStore(pool)
+goal_planner = GoalPlanner(client, memory_store, notifier, ...)
+goal_executor = GoalExecutor(goal_store, goal_planner, notifier, ...)
+workflow_store = PostgresWorkflowStore(pool)
+workflow_planner = WorkflowPlanner(client)
+workflow_scheduler = WorkflowScheduler(workflow_store, ...)
+```
 
-The new package owns the reusable state machine and store contracts. `ze-personal`
-retains:
-
-- agent definitions,
-- natural-language prompts,
-- proactive job registration that is specific to the personal assistant,
-- user-facing notifications and summaries,
-- any domain-specific heuristics around personal memory, contacts, or persona.
+Agent registration happens via `ze_automation.agent_module_paths()` — a plain function
+that returns the agent module paths, called from `ze_api/bootstrap.py` alongside the
+plugin agent paths.
 
 ---
 
 ## Feature 3: Keep `ze-proactive` Separate
 
-### Problem
-
-It is tempting to fold `ze-proactive` into `ze-automation` because goals and workflows
-rely on scheduling and push notifications. That looks simpler on paper, but it conflates
-two different layers:
-
-- automation semantics: what should happen over time,
-- proactive infrastructure: when to run jobs and how to deliver the notification.
-
-If those are merged, the package boundary becomes too broad again.
-
-### Design
-
-`ze-proactive` remains a standalone infrastructure package providing:
-
-- `ProactiveScheduler`
-- `ProactiveJob`
-- `ProactiveNotifier`
-- `PushLogStore`
-
-`ze-automation` depends on that package for runtime execution and user-facing delivery.
-The dependency is one-way.
-
-This gives the cleanest separation:
+`ze-proactive` remains a standalone infrastructure package. The separation rule:
 
 - `ze-proactive` answers "how do we run and deliver background work?"
-- `ze-automation` answers "what long-running work exists?"
-- `ze-personal` answers "how does Ze present that work to this user?"
+- `ze-automation` answers "what long-running work exists and how does it execute?"
+- `ze-personal` answers "who is this user, what do they know, and who do they know?"
 
-### Rule
+If a component could reasonably be reused by a non-automation feature (calendar
+reminder, news job), it belongs in `ze-proactive`.
 
-If a component could reasonably be reused by a non-automation feature such as a
-calendar reminder or a news job, it belongs in `ze-proactive`.
-
-If a component cannot exist without a goal/workflow abstraction, it belongs in
+If a component cannot exist without a goal or workflow abstraction, it belongs in
 `ze-automation`.
 
-If a component encodes personal-assistant semantics, it belongs in `ze-personal`.
+If a component encodes persona, contact, or onboarding semantics, it belongs in
+`ze-personal`.
 
 ---
 
-## Feature 4: SDK and Runtime Wiring
+## Feature 4: SDK Surface
 
-### Problem
-
-Today, plugin authors reach into `ze_personal` for automation-related abstractions
-because that is where the concrete code lives. That makes `ze_personal` look like a
-public foundation package even though it is semantically a plugin.
-
-### Design
-
-`ze-sdk` re-exports the automation substrate so plugin authors can depend on one
-stable surface:
-
-- automation types,
-- planning/execution protocols,
-- proactive job APIs,
-- memory-safe shared contracts.
-
-`ze-api` continues to assemble the app, but its plugin wiring should consume the new
-package boundary rather than importing goals/workflows from `ze_personal`.
-
-### Migration path
-
-1. Move shared goal/workflow primitives into `ze-automation`.
-2. Leave `ze-proactive` untouched.
-3. Update `ze-personal` to import shared automation types from `ze-sdk` or
-   `ze_automation`.
-4. Re-export the new package through `ze-sdk`.
-5. Remove direct `ze_personal.goals` / `ze_personal.workflow` imports from packages
-   that only need the shared substrate.
+`ze-sdk` continues to re-export automation types via `ze_sdk.automation` so plugin
+authors who build features on top of goals and workflows have a stable import surface
+without depending on `ze-automation` directly.
 
 ---
 
 ## Dependency Graph
 
-### Before
+### Before (original, pre-Phase 74)
 
 ```
 ze-proactive   → ze-agents
@@ -331,44 +233,40 @@ ze-personal    → ze-sdk
 ze-api         → ze-personal, ze-proactive, ze-core, ...
 ```
 
-### After
+### After Phase 74 initial extraction (current state)
 
 ```
 ze-proactive   → ze-agents
 ze-automation  → ze-agents, ze-proactive, ze-memory
-ze-sdk        → ze-agents, ze-proactive, ze-memory, ze-automation
-ze-personal    → ze-sdk
+ze-sdk         → ze-agents, ze-proactive, ze-memory, ze-automation
+ze-personal    → ze-sdk, ze-automation
 ze-api         → ze-core, ze-sdk, ze-personal, ze-automation, ...
 ```
 
-`ze-personal` should stop being the only place where Ze's long-running automation
-concepts live. It becomes a consumer of the substrate, not the substrate itself.
+### After Phase 74 completion (target)
+
+```
+ze-proactive   → ze-agents
+ze-automation  → ze-agents, ze-proactive, ze-memory
+ze-sdk         → ze-agents, ze-proactive, ze-memory, ze-automation
+ze-personal    → ze-sdk                              ← no ze-automation dep needed
+ze-api         → ze-core, ze-sdk, ze-personal, ze-automation, ...
+```
+
+`ze-personal` no longer depends on `ze-automation` once goals and workflow code are
+fully removed from it.
 
 ---
 
 ## Implementation Notes
 
-- Do not move `ze-proactive` into `ze-automation`; that would recreate the monolith
-  under a new name.
-- Keep the public user vocabulary stable. The refactor is architectural, not a product
-  renaming exercise.
-- Prefer thin compatibility re-exports in `ze_personal` during migration rather than a
-  flag day that forces every import to change at once.
-- Move database ownership with the code. If a table is owned by the automation substrate,
-  its migration should live with the substrate, not in `ze-personal`.
-- Keep `ze-core` out of the new package. This is a shared product substrate, not an
-  engine concern.
-
----
-
-## Open Questions
-
-- Should `ze-automation` start as a thin facade over the existing `ze_personal.goals`
-  and `ze_personal.workflow` modules, or should the move be a direct extraction?
-- Should goal and workflow tables keep their current names, or should the schema be
-  renamed to match the new package boundary?
-- Should `ze-personal` keep compatibility imports for one release cycle, or should the
-  codebase switch immediately to the new package?
-- Should `ze-sdk` expose separate `ze_sdk.automation` and `ze_sdk.proactive` modules,
-  or a single flattened automation surface?
-
+- Do not move `ze-proactive` into `ze-automation`.
+- Keep the public user vocabulary stable. This is an architectural move, not a product
+  renaming.
+- Move agent registration out of `PersonalPlugin.agent_module_paths()` for goals and
+  workflows; add a top-level `ze_automation.agent_module_paths()` function instead.
+- Proactive jobs for goals (stuck goal alerts, weekly narrative, goal suggestions) move
+  with the executors and planners — they are automation concerns, not personal ones.
+- Keep `ze-core` out of `ze-automation`.
+- The goal and workflow base tables were always Ze core tables; their migrations already
+  live in `ze-automation` after the initial extraction.

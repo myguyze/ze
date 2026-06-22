@@ -42,25 +42,30 @@ ze/                           # monorepo root
 │   │       └── signals.py    # SignalSource protocol
 │   ├── ze-proactive/         # Job scheduling framework
 │   │   └── ze_proactive/     # ProactiveJob, ProactiveScheduler, ProactiveNotifier, PushLogStore
+│   ├── ze-automation/        # Core automation engine — goals, workflows, planners, executors, agents
+│   │   └── ze_automation/
+│   │       ├── goals/        # GoalStore, GoalPlanner, GoalExecutor, PostgresGoalStore, GoalSuggestionStore, types
+│   │       ├── workflow/     # WorkflowStore, WorkflowPlanner, WorkflowScheduler, PostgresWorkflowStore, types
+│   │       ├── agents/       # GoalAgent, WorkflowAgent
+│   │       ├── jobs/         # goal/workflow proactive jobs
+│   │       ├── runtime/      # AutomationPlanner, AutomationStore contracts
+│   │       └── migrations/   # zc006–zc009 (goal traces/suggestions/stuck/reuse), zc011 (workflows)
 │   ├── ze-sdk/               # Public SDK surface — flat re-export layer for plugin authors
 │   │   └── ze_sdk/           # ze_sdk, ze_sdk.types, ze_sdk.proactive, ze_sdk.channels,
-│   │                         # ze_sdk.memory, ze_sdk.errors
+│   │                         # ze_sdk.memory, ze_sdk.errors, ze_sdk.automation
 │   ├── ze-memory/            # Memory — facts, episodes, graph, retrieval
 │   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
 │   ├── ze-notifications/     # Push notification abstraction (ntfy)
 │   ├── ze-components/        # Server-driven UI component descriptors
 │   └── ze-eval/              # Eval infrastructure — runner, judge, verifier, MCP server
 ├── plugins/                  # ZePlugin domain extensions
-│   ├── ze-personal/          # Personal-assistant domain layer (ZePlugin)
+│   ├── ze-personal/          # Personal-assistant domain layer (ZePlugin) — persona, contacts, onboarding
 │   │   └── ze_personal/
 │   │       ├── contacts/     # PersonStore, ContactChannelStore, consolidator, extractors, tools
-│   │       ├── goals/        # GoalStore, GoalPlanner, GoalExecutor, types
-│   │       ├── graph/        # workflow.py (execution nodes), memory_hooks.py (contact extraction)
 │   │       ├── persona/      # PostgresPersonaStore, identity builder, types
-│   │       ├── agents/       # research, companion, goals, workflow agents
-│   │       ├── jobs/         # briefing, insights, contacts, goal proactive jobs
-│   │       ├── workflow/     # WorkflowStore, planner, scheduler, types
-│   │       └── plugin.py     # PersonalPlugin(ZePlugin) — wires domain services into graphs
+│   │       ├── agents/       # research, companion agents (goal/workflow agents live in ze-automation)
+│   │       ├── jobs/         # briefing, insights, contacts jobs
+│   │       └── plugin.py     # PersonalPlugin(ZePlugin) — wires persona + contacts into graphs
 │   ├── ze-email/             # Gmail channel + email agent (ZePlugin)
 │   │   └── ze_email/
 │   │       ├── channel/      # GmailChannel
@@ -121,7 +126,8 @@ ze-notifications(no ze deps)             core/
 ze-components   (no ze deps)             core/
 ze-memory     → ze-agents                core/
 ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
-ze-sdk        → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory  core/  ← plugin entry point
+ze-automation → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflows; wired by ze-api directly
+ze-sdk        → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory, ze-automation  core/  ← plugin entry point
 ze-core       → ze-agents, ze-plugin     core/  ← engine; never a plugin dep
 ze-google       (no ze deps)             integrations/
 ze-personal   → ze-sdk                   plugins/
@@ -129,8 +135,8 @@ ze-email      → ze-sdk, ze-google, ze-personal             plugins/
 ze-prospecting→ ze-sdk, ze-browser, ze-personal            plugins/
 ze-calendar   → ze-sdk, ze-google, ze-personal             plugins/
 ze-news       → ze-sdk                   plugins/
-ze-api        → ze-core, ze-data, ze-sdk, ze-personal, ze-email, ze-prospecting, ze-calendar,
-                  ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
+ze-api        → ze-core, ze-data, ze-sdk, ze-personal, ze-automation, ze-email, ze-prospecting,
+                  ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
 ze-web          (React — connects to ze-api over WebSocket, no Python deps)         apps/
 ```
 
@@ -204,11 +210,12 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
   Never `asyncio.run()` inside a running event loop.
 - **Comments**: Default to none. Only add a comment when the *why* is non-obvious.
 - **Imports**: Plugin code imports from `ze_sdk.*` (agent API, types, proactive, memory,
-  channels, errors). Domain types from `ze_personal.*` (contacts, goals, workflow, persona).
-  Calendar/reminder domain from `ze_calendar.*`. Google credentials from `ze_google.*`.
-  Engine internals (`ze_core.*`) are for `ze_api/` and `ze_core/` only — never import
-  `ze_core` from a plugin package. Never import from `ze_plugin.*` directly in plugin
-  code — always go through `ze_sdk.*`; `ze_plugin` is for engine and SDK use only.
+  channels, errors, automation). Automation types (goals, workflows) from `ze_automation.*`
+  or `ze_sdk.automation`. Contact/persona domain from `ze_personal.*`. Calendar/reminder
+  domain from `ze_calendar.*`. Google credentials from `ze_google.*`. Engine internals
+  (`ze_core.*`) are for `ze_api/` and `ze_core/` only — never import `ze_core` from a
+  plugin package. Never import from `ze_plugin.*` directly in plugin code — always go
+  through `ze_sdk.*`; `ze_plugin` is for engine and SDK use only.
 
 # Testing
 
@@ -304,7 +311,8 @@ and runs them against a single `alembic_version` table.
 | Package | Branch prefix | Tables |
 |---|---|---|
 | ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides |
-| ze-personal | `zc` (continues ze-core chain) | contacts, contact_channels, goal_execution_traces, goal_suggestions, workflows, insights, episodes.contacts_extracted |
+| ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows |
+| ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted |
 | ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries |
 | ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
 | ze-correlation | `zcor` | correlation_hypothesis |
@@ -317,7 +325,7 @@ and runs them against a single `alembic_version` table.
 **Rules:**
 - Never add plugin-owned tables to ze-api migrations.
 - For `ZePlugin` subclasses: create `<pkg>/migrations/` and override `migrations_path()` — the runner discovers it automatically.
-- For non-plugin core packages (ze-memory, ze-onboarding, ze-correlation, ze-proactive): add an explicit `_ZE_*_VERSIONS` constant in `ze_api/migrate.py`.
+- For non-plugin core packages (ze-memory, ze-onboarding, ze-correlation, ze-proactive, ze-automation): add an explicit `_ZE_*_VERSIONS` constant in `ze_api/migrate.py`.
 - Use `depends_on` in migration files for cross-package ordering (e.g. ze-prospecting depends on `zc005` for the contacts table).
 
 ## LangGraph graph flow
@@ -384,3 +392,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 71 | Cross-goal awareness — convergence detection at goal creation, proactive reuse surfacing at milestone completion | Pending |
 | 72 | API client codegen — `@ze/client` npm package generated from OpenAPI spec via `@hey-api/openapi-ts`; named SDK methods (`listContacts()`, etc.); WS types from `json-schema-to-typescript` | Done |
 | 73 | API surface cleanup — all routes under `/api/v0/`; `HTTPBearer` security scheme; explicit `operation_id` on every route; auth extracted into `require_api_key` Depends; duplicate cost route removed; `GET /api/v0/version` | Done |
+| 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | In Progress |
