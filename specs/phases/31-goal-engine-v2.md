@@ -33,6 +33,8 @@ This phase makes the goal execution loop contextual, observable, and self-correc
 - Every tool call during execution is persisted for later inspection.
 - Consecutive milestone failures trigger automatic replanning rather than silent skip-ahead.
 - Verification gate messages contain a synthesized narrative rather than truncated bullet points.
+- Reusable procedures discovered during the goal are fed back into later milestones and
+  replans for the same goal before they are promoted to global memory.
 
 ---
 
@@ -43,6 +45,10 @@ This phase makes the goal execution loop contextual, observable, and self-correc
 - Expose traces to the user via the goal agent's tool interface.
 - Detect consecutive milestone failures and trigger `GoalPlanner.replan_remaining` automatically.
 - Synthesize a narrative summary at gate fire time via an LLM call.
+- Extract provisional reusable procedures from milestone clusters during active goals and
+  make them available to subsequent milestones and replans inside the same goal.
+- Promote stable procedures to `MemoryStore.propose_procedure()` on completion so future
+  goals can reuse them too.
 
 ---
 
@@ -148,6 +154,47 @@ async def _execute_milestone(
 
 `_build_milestone_prompt` is a pure function (no I/O) that constructs the preamble + task block.
 It is unit-testable independently of the executor.
+
+---
+
+## Feature 1b: Procedure Reuse During Active Goals
+
+### Problem
+
+Procedure extraction is currently completion-only. Ze can learn a reusable method after a goal
+finishes, but it cannot reliably reuse that method inside the same goal while the method is still
+fresh.
+
+### Design
+
+Procedure extraction must be available during an active goal whenever a milestone cluster or gate
+redirection reveals a stable method. Any extracted procedure is a goal-local, provisional artifact
+until it is promoted to memory on completion.
+
+Required behaviour:
+
+1. Procedure extraction may run after milestone completion, gate redirection, or steer-triggered
+   replanning when enough evidence exists to generalise.
+2. Any extracted procedure is available to subsequent milestones in the same goal before being
+   written to global memory.
+3. `GoalPlanner.plan()` and `GoalPlanner.replan_remaining()` must consume both global procedures
+   from `MemoryStore` and goal-local provisional procedures when present.
+4. On goal completion, stable procedures are promoted to `MemoryStore.propose_procedure()` so
+   future goals can reuse them too.
+
+### Implementation
+
+The active-goal procedure source may live in goal state, goal store, or another goal-scoped cache;
+the storage choice is an implementation detail. The spec requirement is that the effective prompt
+seen by later milestones and replans includes both sets:
+
+```python
+procedures = global_memory_procedures + active_goal_procedures
+```
+
+If the same procedure exists in both places, the active-goal version wins because it is newer and
+more context-specific. Goal-local procedures remain advisory and may be replaced or dropped if
+later evidence shows they were too specific.
 
 ---
 
