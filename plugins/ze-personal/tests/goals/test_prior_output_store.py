@@ -3,8 +3,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from ze_personal.goals.postgres import PostgresGoalStore
-from ze_personal.goals.types import PriorMilestoneOutput
+from ze_automation.goals.postgres import PostgresGoalStore
+from ze_automation.goals.types import PriorMilestoneOutput
 
 
 def _make_row(

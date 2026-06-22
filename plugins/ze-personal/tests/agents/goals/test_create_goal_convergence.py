@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from ze_personal.agents.goals.tools import _check_convergence
-from ze_personal.goals.types import Goal, GoalConvergence, GoalStatus
+from ze_automation.goals.types import Goal, GoalConvergence, GoalStatus
 from ze_agents.interface.types import Notification
 
 

@@ -11,8 +11,8 @@ from ze_sdk.memory import MemoryStore
 from ze_sdk.memory import TaskState
 from ze_agents.types import ToolCall
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.store import GoalStore
-from ze_personal.goals.types import (
+from ze_automation.goals.store import GoalStore
+from ze_automation.goals.types import (
     ExecutionTrace,
     Goal,
     GoalLearning,

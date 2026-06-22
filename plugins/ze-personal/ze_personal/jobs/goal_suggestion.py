@@ -8,9 +8,9 @@ from ze_sdk.memory import MemoryStore
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.store import GoalStore
-from ze_personal.goals.suggestion_store import GoalSuggestionStore
-from ze_personal.goals.types import GoalSuggestion
+from ze_automation.goals.store import GoalStore
+from ze_automation.goals.suggestion_store import GoalSuggestionStore
+from ze_automation.goals.types import GoalSuggestion
 
 log = get_logger(__name__)
 

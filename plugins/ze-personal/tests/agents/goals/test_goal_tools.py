@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_personal.goals.types import Goal, GoalStatus, PriorMilestoneOutput
+from ze_automation.goals.types import Goal, GoalStatus, PriorMilestoneOutput
 
 
 def _goal() -> Goal:
@@ -36,7 +36,7 @@ def _make_deps(
     milestones=None,
     gates=None,
 ):
-    from ze_personal.goals.types import Milestone, MilestoneStatus, VerificationGate, GateStatus
+    from ze_automation.goals.types import Milestone, MilestoneStatus, VerificationGate, GateStatus
 
     store = AsyncMock()
     store.list_completed_milestone_summaries = (

@@ -7,7 +7,7 @@ import pytest
 
 from ze_agents.errors import GoalPlanError
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.types import Goal, Milestone, MilestoneStatus, GateStatus
+from ze_automation.goals.types import Goal, Milestone, MilestoneStatus, GateStatus
 from uuid import uuid4
 
 
@@ -136,7 +136,7 @@ async def test_plan_uses_learnings_in_prompt(planner, client):
 # ── extract_procedure ─────────────────────────────────────────────────────────
 
 async def test_extract_procedure_returns_procedure(planner, client):
-    from ze_personal.goals.types import MilestoneStatus
+    from ze_automation.goals.types import MilestoneStatus
 
     procedure_json = json.dumps({
         "name": "Discovery interview loop",
@@ -164,7 +164,7 @@ async def test_extract_procedure_returns_procedure(planner, client):
 
 
 async def test_extract_procedure_returns_none_when_no_completed_milestones(planner, client):
-    from ze_personal.goals.types import MilestoneStatus
+    from ze_automation.goals.types import MilestoneStatus
 
     goal = _make_goal()
     milestones = [_milestone_obj(1, "Pending step", MilestoneStatus.PENDING)]
@@ -175,7 +175,7 @@ async def test_extract_procedure_returns_none_when_no_completed_milestones(plann
 
 
 async def test_extract_procedure_returns_none_on_llm_failure(planner, client):
-    from ze_personal.goals.types import MilestoneStatus
+    from ze_automation.goals.types import MilestoneStatus
 
     client.complete = AsyncMock(side_effect=RuntimeError("LLM error"))
     goal = _make_goal()
@@ -186,7 +186,7 @@ async def test_extract_procedure_returns_none_on_llm_failure(planner, client):
 
 
 async def test_extract_procedure_returns_none_when_name_missing(planner, client):
-    from ze_personal.goals.types import MilestoneStatus
+    from ze_automation.goals.types import MilestoneStatus
 
     client.complete = AsyncMock(return_value=json.dumps({"steps": ["a", "b"]}))
     goal = _make_goal()

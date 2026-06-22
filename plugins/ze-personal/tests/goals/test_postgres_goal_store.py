@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_personal.goals.postgres import PostgresGoalStore
-from ze_personal.goals.types import ExecutionTrace
+from ze_automation.goals.postgres import PostgresGoalStore
+from ze_automation.goals.types import ExecutionTrace
 
 
 def _make_pool(fetchrow=None, fetch=None, execute=None):

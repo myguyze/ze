@@ -4,7 +4,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_personal.goals.types import GoalStatus, MilestoneStatus
+from ze_automation.goals.types import GoalStatus, MilestoneStatus
 
 
 async def inject_goal_routing_context(state: dict[str, Any], config: RunnableConfig) -> dict:

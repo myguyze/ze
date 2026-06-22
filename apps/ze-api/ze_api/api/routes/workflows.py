@@ -10,7 +10,7 @@ from ze_api.api.schemas import (
     WorkflowResponse,
     WorkflowStepResponse,
 )
-from ze_personal.workflow.store import WorkflowStore
+from ze_automation.workflow.store import WorkflowStore
 
 router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
 

@@ -23,9 +23,9 @@ from ze_memory.session_summary import SessionSummariser
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_personal.persona.postgres import PostgresPersonaStore
-from ze_personal.workflow.postgres import PostgresWorkflowStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
-from ze_personal.workflow.store import WorkflowStore
+from ze_automation.workflow.postgres import PostgresWorkflowStore
+from ze_automation.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.store import WorkflowStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.orchestration.graph import build_graph
 from ze_proactive.notifier import ProactiveNotifier

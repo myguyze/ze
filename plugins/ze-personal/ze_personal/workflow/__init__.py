@@ -1,13 +1,13 @@
-from ze_personal.workflow.types import (
+from ze_automation.workflow.types import (
     Workflow,
     WorkflowExecution,
     WorkflowStep,
     StepResult,
 )
-from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.postgres import PostgresWorkflowStore
+from ze_automation.workflow.store import WorkflowStore
+from ze_automation.workflow.postgres import PostgresWorkflowStore
+from ze_automation.workflow.scheduler import WorkflowScheduler
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.scheduler import WorkflowScheduler
 
 __all__ = [
     "Workflow",

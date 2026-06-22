@@ -7,7 +7,7 @@ from ze_agents.errors import WorkflowPlanError
 from ze_agents.logging import get_logger
 from ze_agents.client import LLMClient
 from ze_sdk.memory import Procedure
-from ze_personal.workflow.types import StepResult, WorkflowStep
+from ze_automation.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
 

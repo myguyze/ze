@@ -1,4 +1,4 @@
-from ze_personal.goals.types import (
+from ze_automation.goals.types import (
     Goal,
     GoalLearning,
     GoalStatus,
@@ -9,10 +9,10 @@ from ze_personal.goals.types import (
     SuggestionStatus,
     VerificationGate,
 )
-from ze_personal.goals.store import GoalStore
+from ze_automation.goals.store import GoalStore
+from ze_automation.goals.suggestion_store import GoalSuggestionStore
 from ze_personal.goals.planner import GoalPlanner
 from ze_personal.goals.executor import GoalExecutor
-from ze_personal.goals.suggestion_store import GoalSuggestionStore
 
 __all__ = [
     "Goal",

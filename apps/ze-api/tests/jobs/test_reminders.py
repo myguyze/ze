@@ -12,8 +12,8 @@ from ze_calendar.reminders.calendar import (
 )
 from ze_calendar.reminders.calendar_store import CalendarReminderStore
 from ze_api.settings import Settings, get_settings
-from ze_personal.workflow.scheduler import WorkflowScheduler
-from ze_personal.workflow.types import Workflow
+from ze_automation.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.types import Workflow
 from ze_core.proactive.push_log_store import PushLogStore
 
 

@@ -24,6 +24,7 @@ from typing import Any
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import engine_from_config, pool
+import ze_automation
 import ze_core
 import ze_memory
 import ze_onboarding
@@ -48,13 +49,13 @@ _PLUGIN_MODULES: list[str] = [
 _SCRIPT_LOCATION = Path(__file__).parent / "migrations"
 
 # Core package version paths (not ZePlugin subclasses — registered explicitly).
+_ZE_AUTOMATION_VERSIONS = Path(ze_automation.__file__).parent / "migrations" / "versions"
 _ZE_CORE_VERSIONS = Path(ze_core.__file__).parent / "migrations" / "versions"
 _ZE_MEMORY_VERSIONS = Path(ze_memory.__file__).parent / "migrations" / "versions"
 _ZE_ONBOARDING_VERSIONS = Path(ze_onboarding.__file__).parent / "migrations" / "versions"
 _ZE_CORRELATION_VERSIONS = Path(ze_correlation.__file__).parent / "migrations" / "versions"
 _ZE_PROACTIVE_VERSIONS = Path(ze_proactive.__file__).parent / "migrations" / "versions"
 _ZE_INGESTION_VERSIONS = Path(ze_ingestion.__file__).parent / "migrations" / "versions"
-_ZE_AUTOMATION_VERSIONS = Path(__file__).parents[3] / "core" / "ze-automation" / "ze_automation" / "migrations" / "versions"
 _ZE_VERSIONS = _SCRIPT_LOCATION / "versions"
 
 
@@ -72,6 +73,7 @@ def _collect_version_locations() -> list[Path]:
     from ze_plugin.registry import get_plugin_registry
 
     paths: list[Path] = [
+        _ZE_AUTOMATION_VERSIONS,
         _ZE_CORE_VERSIONS,
         _ZE_MEMORY_VERSIONS,
         _ZE_ONBOARDING_VERSIONS,
@@ -80,8 +82,6 @@ def _collect_version_locations() -> list[Path]:
         _ZE_INGESTION_VERSIONS,
         _ZE_VERSIONS,
     ]
-    if _ZE_AUTOMATION_VERSIONS.exists():
-        paths.append(_ZE_AUTOMATION_VERSIONS)
     for plugin_cls in get_plugin_registry():
         plugin_path = plugin_cls.migrations_path()
         if plugin_path is not None:

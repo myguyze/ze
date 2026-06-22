@@ -18,10 +18,10 @@ from ze_sdk.memory import PostgresMemoryStore
 from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_personal.contacts.consolidator import ContactsConsolidator
 from ze_personal.contacts.store import PersonStore
+from ze_automation.goals.postgres import PostgresGoalStore as GoalStore
+from ze_automation.goals.suggestion_store import GoalSuggestionStore
 from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
-from ze_personal.goals.suggestion_store import GoalSuggestionStore
 from ze_personal.accountability.store import AccountabilityStore
 from ze_personal.jobs.accountability import AccountabilityJob
 from ze_personal.jobs.briefing import MorningBriefing
@@ -32,8 +32,8 @@ from ze_personal.jobs.goal_suggestion import GoalSuggestionJob
 from ze_personal.jobs.insights import InsightEngine
 from ze_personal.jobs.stuck_goals import StuckGoalJob
 from ze_personal.onboarding import PersonalOnboardingProvider
+from ze_automation.workflow.store import WorkflowStore
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.store import WorkflowStore
 
 log = get_logger(__name__)
 
@@ -199,7 +199,7 @@ class PersonalPlugin(ZePlugin):
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_personal.contacts.store import PersonStore
         from ze_personal.contacts.channel_store import ContactChannelStore
-        from ze_personal.goals.postgres import PostgresGoalStore
+        from ze_automation.goals.postgres import PostgresGoalStore
         from ze_personal.goals.planner import GoalPlanner
         from ze_personal.goals.executor import GoalExecutor
         from ze_personal.workflow.planner import WorkflowPlanner

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.types import StepResult
+from ze_automation.workflow.types import StepResult
 
 
 def _make_step(task: str, success: bool = True, idx: int = 0) -> StepResult:

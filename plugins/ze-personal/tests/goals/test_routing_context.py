@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_personal.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, VerificationGate, GateStatus
+from ze_automation.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, VerificationGate, GateStatus
 from ze_personal.graph.routing_context import _build_routing_hints, inject_goal_routing_context
 
 

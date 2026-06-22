@@ -8,7 +8,7 @@ import pytest
 
 from ze_agents.errors import GoalExecutionError
 from ze_personal.goals.executor import GoalExecutor
-from ze_personal.goals.types import (
+from ze_automation.goals.types import (
     Goal,
     GoalStatus,
     GateStatus,

@@ -4,7 +4,7 @@ from ze_personal.contacts.store import PersonStore
 from ze_agents.logging import get_logger
 from ze_sdk.proactive import PushLogStore
 from ze_agents.settings import Settings
-from ze_personal.workflow.store import WorkflowStore
+from ze_automation.workflow.store import WorkflowStore
 from ze_sdk.memory import PostgresMemoryStore
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier

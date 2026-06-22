@@ -5,7 +5,7 @@ from uuid import uuid4
 from ze_personal.agents.goals.agent import GoalAgent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.types import GateDecision
-from ze_personal.goals.types import ExecutionTrace, Goal, GoalStatus, Milestone, MilestoneStatus
+from ze_automation.goals.types import ExecutionTrace, Goal, GoalStatus, Milestone, MilestoneStatus
 from ze_sdk.memory import MemoryContext
 
 

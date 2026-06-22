@@ -7,7 +7,7 @@ from uuid import uuid4
 
 
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.types import Goal, GoalStatus, GoalSuggestion, SuggestionStatus
+from ze_automation.goals.types import Goal, GoalStatus, GoalSuggestion, SuggestionStatus
 from ze_sdk.memory import Episode, Fact
 
 

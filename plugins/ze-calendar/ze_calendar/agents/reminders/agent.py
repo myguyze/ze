@@ -11,7 +11,7 @@ from ze_agents.client import LLMClient
 from ze_sdk.proactive import ProactiveNotifier
 from ze_agents.settings import Settings
 from ze_calendar.reminders.store import ReminderStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.scheduler import WorkflowScheduler
 
 _AGENT_INSTRUCTIONS = """\
 You manage the user's one-off reminders. Current UTC time: {now}. User timezone: {timezone}.

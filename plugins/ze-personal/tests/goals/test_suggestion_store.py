@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_personal.goals.suggestion_store import GoalSuggestionStore
-from ze_personal.goals.types import GoalSuggestion, SuggestionStatus
+from ze_automation.goals.suggestion_store import GoalSuggestionStore
+from ze_automation.goals.types import GoalSuggestion, SuggestionStatus
 
 
 def _make_pool(fetchrow=None, fetch=None, execute=None):

@@ -10,7 +10,7 @@ from ze_sdk.proactive import PushLogStore
 from ze_personal.accountability.store import AccountabilityStore
 from ze_personal.accountability.summarizer import build_narrative
 from ze_personal.accountability.types import ActivitySummary, AgentCostSummary
-from ze_personal.goals.store import GoalStore
+from ze_automation.goals.store import GoalStore
 
 log = get_logger(__name__)
 

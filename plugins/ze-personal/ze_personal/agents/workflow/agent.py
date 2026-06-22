@@ -8,8 +8,8 @@ from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.client import LLMClient
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.store import WorkflowStore
+from ze_automation.workflow.scheduler import WorkflowScheduler
 import ze_personal.agents.workflow.tools  # noqa: F401
 
 _AGENT_INSTRUCTIONS = """\

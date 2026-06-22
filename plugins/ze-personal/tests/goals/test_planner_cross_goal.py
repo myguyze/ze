@@ -6,7 +6,7 @@ from uuid import uuid4
 
 
 from ze_personal.goals.planner import GoalPlanner, _parse_plan
-from ze_personal.goals.types import Goal, GoalStatus, Milestone, PriorMilestoneOutput
+from ze_automation.goals.types import Goal, GoalStatus, Milestone, PriorMilestoneOutput
 
 
 def _goal() -> Goal:
@@ -177,7 +177,7 @@ async def test_replan_with_empty_prior_work_omits_prior_work_block():
 
 import json as _json  # noqa: E402
 
-from ze_personal.goals.types import GoalLearning  # noqa: E402
+from ze_automation.goals.types import GoalLearning  # noqa: E402
 
 
 def _learning(content="User prefers bullet-point summaries.", source="milestone") -> GoalLearning:

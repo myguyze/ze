@@ -6,7 +6,7 @@ from uuid import UUID
 from ze_agents.tool import ToolAccess, tool
 from ze_sdk.proactive import ProactiveNotifier
 from ze_calendar.reminders.store import ReminderStore, fire_reminder
-from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.scheduler import WorkflowScheduler
 
 
 @tool(access=ToolAccess.WRITE, description="Set a new reminder. fire_at must be an ISO-8601 UTC datetime string.")

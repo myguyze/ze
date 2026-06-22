@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
 from ze_personal.workflow.planner import WorkflowPlanner
-from ze_personal.workflow.store import WorkflowStore
-from ze_personal.workflow.types import Workflow
-from ze_personal.workflow.scheduler import WorkflowScheduler
+from ze_automation.workflow.store import WorkflowStore
+from ze_automation.workflow.types import Workflow
+from ze_automation.workflow.scheduler import WorkflowScheduler
 
 
 @tool(access=ToolAccess.READ, description="List all stored workflows with their status and schedule.")

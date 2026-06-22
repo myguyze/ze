@@ -6,8 +6,8 @@ from ze_agents.interface.types import Action, Notification
 from ze_agents.logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
-from ze_personal.goals.store import GoalStore
-from ze_personal.goals.types import StuckGoal
+from ze_automation.goals.store import GoalStore
+from ze_automation.goals.types import StuckGoal
 
 log = get_logger(__name__)
 

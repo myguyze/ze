@@ -5,7 +5,7 @@ from uuid import uuid4
 
 
 from ze_personal.goals.executor import GoalExecutor, _build_milestone_prompt
-from ze_personal.goals.types import (
+from ze_automation.goals.types import (
     Goal,
     GoalStatus,
     GateStatus,
@@ -265,7 +265,7 @@ async def test_handle_gate_redirected_passes_none_when_no_prior_work():
 # ── _promote_learnings ────────────────────────────────────────────────────────
 
 from ze_sdk.memory import Fact  # noqa: E402
-from ze_personal.goals.types import GoalLearning  # noqa: E402
+from ze_automation.goals.types import GoalLearning  # noqa: E402
 
 
 def _learning(content="User prefers concise summaries.") -> GoalLearning:

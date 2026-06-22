@@ -10,7 +10,7 @@ from ze_agents.client import LLMClient
 from ze_agents.errors import GoalPlanError
 from typing import Any
 from ze_sdk.memory import Episode, Fact, Procedure, RetrievalRequest
-from ze_personal.goals.types import (
+from ze_automation.goals.types import (
     Goal,
     GateStatus,
     GoalConvergence,

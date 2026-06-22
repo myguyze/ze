@@ -9,7 +9,7 @@ from ze_core.checkpoint_serde import (
     collect_plugin_serde_modules,
     collect_types_from_module,
 )
-from ze_personal.workflow.types import StepResult, WorkflowStep
+from ze_automation.workflow.types import StepResult, WorkflowStep
 
 
 class _PluginWithWorkflowTypes:

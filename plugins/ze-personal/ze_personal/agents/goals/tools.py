@@ -8,8 +8,8 @@ from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import GoalPlanError
 from ze_personal.goals.executor import GoalExecutor
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.postgres import PostgresGoalStore as GoalStore
-from ze_personal.goals.types import Goal, GoalStatus, MilestoneStatus
+from ze_automation.goals.postgres import PostgresGoalStore as GoalStore
+from ze_automation.goals.types import Goal, GoalStatus, MilestoneStatus
 from ze_agents.interface.types import Action, Notification
 from ze_agents.logging import get_logger
 from ze_sdk.proactive import ProactiveNotifier

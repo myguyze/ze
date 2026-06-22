@@ -8,8 +8,8 @@ from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
 from ze_sdk.proactive import PushLogStore
 from ze_personal.goals.planner import GoalPlanner
-from ze_personal.goals.store import GoalStore
-from ze_personal.goals.types import GoalStatus, MilestoneStatus
+from ze_automation.goals.store import GoalStore
+from ze_automation.goals.types import GoalStatus, MilestoneStatus
 
 log = get_logger(__name__)
 
