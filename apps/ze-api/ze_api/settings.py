@@ -68,11 +68,6 @@ class ZeApiSettings(BaseSettings):
     def config(self) -> dict[str, Any]:
         return _load_yaml(self.config_dir / "config.yaml")
 
-    # Keep alias so external tooling that reads models_config still works.
-    @property
-    def models_config(self) -> dict[str, Any]:
-        return self.config
-
     @property
     def routing_config(self) -> dict[str, Any]:
         """Routing thresholds live in ze-core defaults; optional YAML overrides only."""
@@ -103,11 +98,6 @@ class ZeApiSettings(BaseSettings):
     @property
     def proactive_config(self) -> dict[str, Any]:
         return self.config.get("proactive", {})
-
-    @property
-    def agent_configs(self) -> dict[str, dict[str, Any]]:
-        """Deprecated: agent metadata is declared on @agent classes."""
-        return self.config.get("agents", {})
 
     @property
     def persona_path(self) -> Path:
@@ -167,7 +157,6 @@ class ZeApiSettings(BaseSettings):
 
 
 Settings = ZeApiSettings
-ZeSettings = ZeApiSettings
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:

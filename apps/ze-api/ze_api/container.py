@@ -16,7 +16,6 @@ from ze_automation.bootstrap import (
     build_automation_stack,
     configure_workflow_executor,
     import_agent_modules as import_automation_agents,
-    register_proactive_jobs as register_automation_jobs,
 )
 from ze_browser import BrowserClient
 from ze_components.hook import ComponentCollectionHook
@@ -34,10 +33,9 @@ from ze_core.conversation.confirmations import PendingConfirmationStore
 from ze_core.conversation.messages import PostgresMessageStore
 from ze_core.conversation.sessions import PostgresSessionStore
 from ze_core.orchestration.graph import build_graph
-from ze_correlation.bootstrap import build_correlation_stack, register_proactive_jobs as register_correlation_jobs
+from ze_correlation.bootstrap import build_correlation_stack
 from ze_data.portability.service import DataPortabilityService
 from ze_ingestion.bootstrap import build_ingestion_stack, import_agent_modules as import_ingestion_agents
-from ze_memory.bootstrap import consolidation_enabled, register_memory_jobs
 from ze_memory.policies import build_policy_registry
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_onboarding import (
@@ -54,6 +52,7 @@ from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
 from ze_api.api.websocket.connection import ConnectionManager
+from ze_api.compose import register_all_proactive_jobs
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_api.interface.native import NativeAppInterface
 from ze_logging import get_logger
@@ -365,30 +364,17 @@ async def build_container(settings: Settings) -> ZeContainer:
         workflow_graph_builder=build_workflow_graph,
     )
 
-    register_automation_jobs(
+    register_all_proactive_jobs(
         container.proactive_scheduler,
-        settings,
-        automation,
-        notifier=notifier,
-        push_log_store=push_log_store,
-    )
-    register_engine_jobs(automation.workflow_scheduler, settings, shared)
-    register_memory_jobs(container.proactive_scheduler, settings, shared)
-    register_correlation_jobs(
-        container.proactive_scheduler,
-        settings,
-        correlation,
+        settings=settings,
+        core_settings=core_settings,
+        automation=automation,
+        correlation=correlation,
         shared=shared,
+        plugins=plugins,
         notifier=notifier,
         push_log_store=push_log_store,
     )
-
-    for plugin in plugins:
-        plugin.register_proactive_jobs(
-            container.proactive_scheduler,
-            core_settings,
-            consolidation_enabled=consolidation_enabled(settings),
-        )
 
     _ = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])
 
