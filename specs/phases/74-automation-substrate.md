@@ -2,7 +2,7 @@
 
 > **Packages:** `core/ze-automation/` (new), `core/ze-proactive/` (unchanged), `plugins/ze-personal/` (shrunk)
 > **Phase:** 74
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 47 ([47-plugin-framework.md](47-plugin-framework.md)), Phase 48 ([48-core-split.md](48-core-split.md))
 
 ---
@@ -11,11 +11,11 @@
 
 | Feature | Status |
 |---------|--------|
-| New `ze-automation` package boundary defined | 🔲 Pending |
-| Goals/workflows shared substrate extracted from `ze-personal` | 🔲 Pending |
-| `ze-proactive` kept separate as scheduling + delivery infrastructure | 🔲 Pending |
-| SDK re-exports updated for automation authors | 🔲 Pending |
-| Plugin wiring migrated to the new package boundary | 🔲 Pending |
+| New `ze-automation` package boundary defined | ✅ Done |
+| Goals/workflows shared substrate extracted from `ze-personal` | ✅ Done |
+| `ze-proactive` kept separate as scheduling + delivery infrastructure | ✅ Done |
+| SDK re-exports updated for automation authors | ✅ Done |
+| Plugin wiring migrated to the new package boundary | ✅ Done |
 | Tests updated for the new dependency graph | 🔲 Pending |
 
 ---
