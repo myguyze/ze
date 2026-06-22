@@ -333,6 +333,7 @@ class GoalPlanner:
         feedback: str,
         next_sequence: int,
         prior_work: list[PriorMilestoneOutput] | None = None,
+        local_procedures: list[Procedure] | None = None,
     ) -> tuple[list[Milestone], list[VerificationGate]]:
         """Re-plan remaining milestones after a redirect gate, incorporating user feedback."""
         completed_summary = "\n".join(
@@ -348,6 +349,18 @@ class GoalPlanner:
             f"User redirect instructions: {feedback}\n\n"
             f"Generate only the REMAINING milestones starting at sequence {next_sequence}."
         )
+
+        global_procs = await self._fetch_procedures(goal.title)
+        merged = {p.name: p for p in global_procs}
+        for p in (local_procedures or []):
+            merged[p.name] = p  # goal-local version wins — newer and more context-specific
+        if merged:
+            lines = [
+                f"  - [{p.name}] {p.trigger}\n    Steps: {'; '.join(p.steps[:3])}"
+                for p in merged.values()
+            ]
+            prompt += "\n\nREUSABLE PROCEDURES FROM PAST GOALS:\n" + "\n".join(lines)
+
         if prior_work:
             lines = [
                 f"  - \"{p.goal_title}\" → \"{p.milestone_title}\" "

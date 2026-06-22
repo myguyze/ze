@@ -8,6 +8,7 @@ from uuid import UUID
 
 from ze_agents.errors import GoalExecutionError
 from ze_sdk.memory import MemoryStore
+from ze_sdk.memory import Procedure
 from ze_sdk.memory import TaskState
 from ze_agents.types import ToolCall
 from ze_automation.goals.planner import GoalPlanner
@@ -41,6 +42,7 @@ def _build_milestone_prompt(
     milestone: Milestone,
     goal: Goal,
     all_milestones: list[Milestone],
+    provisional_procedures: list[Procedure] | None = None,
 ) -> str:
     completed = sorted(
         [m for m in all_milestones if m.status == MilestoneStatus.COMPLETED],
@@ -74,6 +76,12 @@ def _build_milestone_prompt(
         f"[YOUR TASK]\n"
         f"{milestone.description}"
     )
+    if provisional_procedures:
+        proc_lines = [
+            f"  - [{p.name}] {p.trigger}\n    Steps: {'; '.join(p.steps[:3])}"
+            for p in provisional_procedures
+        ]
+        prompt += "\n\n[METHODS DISCOVERED IN THIS GOAL]\n" + "\n".join(proc_lines)
     if milestone.reuse_hint:
         prompt += f"\n\n[PRIOR WORK FROM OTHER GOALS]\n{milestone.reuse_hint}"
         log.info(
@@ -117,6 +125,7 @@ class GoalExecutor:
         self._memory = memory_store
         self._advance_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._steer_queues: dict[UUID, asyncio.Queue] = defaultdict(asyncio.Queue)
+        self._provisional_procedures: dict[UUID, list[Procedure]] = {}
 
     async def advance(self, goal_id: UUID) -> None:
         """Advance execution of a goal by one step. Serialized per goal_id."""
@@ -181,6 +190,10 @@ class GoalExecutor:
             if next_milestone.reuse_hint:
                 asyncio.create_task(self._push_reuse_notice(goal, next_milestone))
             await self._store.reset_consecutive_failures(goal_id)
+            completed_so_far = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
+            completed_so_far.append(next_milestone)
+            if len(completed_so_far) % 3 == 0:
+                asyncio.create_task(self._extract_provisional_procedure(goal_id, goal, completed_so_far))
             log.info("milestone_completed", goal_id=str(goal_id), sequence=next_milestone.sequence)
         except GoalExecutionError as exc:
             error_msg = str(exc)
@@ -304,7 +317,9 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(gate.goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback, next_seq, prior_work=prior_work or None
+                goal, completed, feedback, next_seq,
+                prior_work=prior_work or None,
+                local_procedures=self._provisional_procedures.get(gate.goal_id),
             )
         except Exception as exc:
             log.warning("replan_failed", error=str(exc))
@@ -322,6 +337,9 @@ class GoalExecutor:
 
         await self._store.replace_pending_milestones(gate.goal_id, new_milestones)
         await self._store.replace_pending_gates(gate.goal_id, new_gates)
+
+        if len(completed) >= 2:
+            asyncio.create_task(self._extract_provisional_procedure(gate.goal_id, goal, completed))
 
         await self._store.resolve_gate(gate_id, GateStatus.REDIRECTED, user_feedback=feedback)
         await self._store.update_status(gate.goal_id, GoalStatus.ACTIVE)
@@ -350,6 +368,7 @@ class GoalExecutor:
             format="html",
             urgency="high",
         ))
+        self._provisional_procedures.pop(goal_id, None)
         asyncio.create_task(self._promote_learnings(goal, learnings))
         asyncio.create_task(self._extract_and_store_procedure(goal, milestones))
 
@@ -372,6 +391,17 @@ class GoalExecutor:
             log.info("goal_procedure_stored", goal_id=str(goal.id), name=procedure.name)
         except Exception as exc:
             log.warning("goal_procedure_store_failed", goal_id=str(goal.id), error=str(exc))
+
+    async def _extract_provisional_procedure(
+        self, goal_id: UUID, goal: Goal, completed: list[Milestone]
+    ) -> None:
+        try:
+            procedure = await self._planner.extract_procedure(goal, completed)
+            if procedure is not None:
+                self._provisional_procedures[goal_id] = [procedure]
+                log.info("goal_provisional_procedure_extracted", goal_id=str(goal_id), name=procedure.name)
+        except Exception as exc:
+            log.warning("goal_provisional_procedure_failed", goal_id=str(goal_id), error=str(exc))
 
     async def _promote_learnings(self, goal: Goal, learnings: list[GoalLearning]) -> None:
         if self._memory is None or not learnings:
@@ -430,7 +460,9 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, instruction, next_seq, prior_work=prior_work or None
+                goal, completed, instruction, next_seq,
+                prior_work=prior_work or None,
+                local_procedures=self._provisional_procedures.get(goal_id),
             )
         except Exception as exc:
             log.warning("steer_replan_failed", goal_id=str(goal_id), error=str(exc))
@@ -450,6 +482,9 @@ class GoalExecutor:
         await self._store.replace_pending_milestones(goal_id, new_milestones)
         await self._store.replace_pending_gates(goal_id, new_gates)
         await self._store.reset_consecutive_failures(goal_id)
+
+        if len(completed) >= 2:
+            asyncio.create_task(self._extract_provisional_procedure(goal_id, goal, completed))
 
         log.info("steer_applied", goal_id=str(goal_id), new_milestones=len(new_milestones))
         asyncio.create_task(self.advance(goal_id))
@@ -484,7 +519,8 @@ class GoalExecutor:
         from ze_agents.types import GateDecision
         from ze_agents.types import AgentContext
 
-        prompt = _build_milestone_prompt(milestone, goal, all_milestones)
+        provisional = self._provisional_procedures.get(goal.id)
+        prompt = _build_milestone_prompt(milestone, goal, all_milestones, provisional_procedures=provisional or None)
 
         ctx = AgentContext(
             session_id=f"goal:{milestone.goal_id}",
@@ -522,7 +558,9 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(goal.id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback="", next_seq=next_seq, prior_work=prior_work or None
+                goal, completed, feedback="", next_sequence=next_seq,
+                prior_work=prior_work or None,
+                local_procedures=self._provisional_procedures.get(goal.id),
             )
         except Exception as exc:
             log.warning("adaptive_replan_failed", goal_id=str(goal_id), error=str(exc))

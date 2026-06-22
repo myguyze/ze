@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -194,3 +194,50 @@ async def test_extract_procedure_returns_none_when_name_missing(planner, client)
 
     result = await planner.extract_procedure(goal, milestones)
     assert result is None
+
+
+# ── replan_remaining with local_procedures ────────────────────────────────────
+
+async def test_replan_remaining_injects_local_procedures_into_prompt(planner, client):
+    from ze_sdk.memory import Procedure
+
+    proc = Procedure(id=None, name="Interview loop", trigger="Run interviews", steps=["a", "b"])
+    goal = _make_goal()
+    await planner.replan_remaining(goal, [], "pivot", next_sequence=2, local_procedures=[proc])
+
+    content = client.complete.call_args.kwargs["messages"][0]["content"]
+    assert "Interview loop" in content
+    assert "REUSABLE PROCEDURES" in content
+
+
+async def test_replan_remaining_local_procedure_wins_over_global_on_name_collision(client):
+    from ze_sdk.memory import Procedure, RetrievalRequest
+
+    global_proc = Procedure(id=None, name="Interview loop", trigger="global version", steps=["old"])
+    local_proc = Procedure(id=None, name="Interview loop", trigger="local version", steps=["new"])
+
+    memory = AsyncMock()
+    ctx = AsyncMock()
+    ctx.procedures = [global_proc]
+    memory.retrieve = AsyncMock(return_value=ctx)
+
+    embedder = MagicMock()
+    embedder.encode = MagicMock(return_value=[0.1, 0.2])
+
+    from ze_automation.goals.planner import GoalPlanner
+    planner_with_memory = GoalPlanner(client=client, model="test-model", memory_store=memory, embedder=embedder)
+
+    goal = _make_goal()
+    await planner_with_memory.replan_remaining(goal, [], "pivot", next_sequence=2, local_procedures=[local_proc])
+
+    content = client.complete.call_args.kwargs["messages"][0]["content"]
+    assert "local version" in content
+    assert "global version" not in content
+
+
+async def test_replan_remaining_omits_procedures_section_when_none(planner, client):
+    goal = _make_goal()
+    await planner.replan_remaining(goal, [], "pivot", next_sequence=2)
+
+    content = client.complete.call_args.kwargs["messages"][0]["content"]
+    assert "REUSABLE PROCEDURES" not in content

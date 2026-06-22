@@ -676,3 +676,173 @@ async def test_task_state_sync_skipped_when_no_memory_store(executor, store, pus
 
     # Must not raise
     await executor.advance(goal.id)
+
+
+# ── Provisional procedure reuse (Feature 1b) ──────────────────────────────────
+
+def test_build_milestone_prompt_includes_provisional_procedures():
+    from ze_automation.goals.executor import _build_milestone_prompt
+    from ze_sdk.memory import Procedure
+
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    proc = Procedure(
+        id=None, name="Interview loop",
+        trigger="User wants to run interviews",
+        steps=["Research targets", "Draft outreach", "Send"],
+    )
+    prompt = _build_milestone_prompt(m1, goal, [m1], provisional_procedures=[proc])
+
+    assert "[METHODS DISCOVERED IN THIS GOAL]" in prompt
+    assert "Interview loop" in prompt
+    assert "Research targets" in prompt
+
+
+def test_build_milestone_prompt_no_provisional_procedures_omits_section():
+    from ze_automation.goals.executor import _build_milestone_prompt
+
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    prompt = _build_milestone_prompt(m1, goal, [m1], provisional_procedures=None)
+
+    assert "[METHODS DISCOVERED IN THIS GOAL]" not in prompt
+
+
+async def test_provisional_procedure_extracted_at_third_milestone(executor, store, planner, push, agent_mock):
+    from ze_sdk.memory import Procedure
+
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m2 = _milestone(2, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m3 = _milestone(3, MilestoneStatus.PENDING, goal_id=goal.id)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1, m2, m3])
+    store.get_pending_gate = AsyncMock(return_value=None)
+
+    proc = Procedure(id=None, name="Step loop", trigger="Generic", steps=["a", "b", "c"])
+    planner.extract_procedure = AsyncMock(return_value=proc)
+
+    captured_tasks = []
+    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+        await executor.advance(goal.id)
+
+    # One of the create_task calls should be _extract_provisional_procedure
+    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    assert any("provisional" in name for name in coro_names)
+
+
+async def test_provisional_procedure_not_extracted_at_first_or_second_milestone(executor, store, planner, push, agent_mock):
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m2 = _milestone(2, MilestoneStatus.PENDING, goal_id=goal.id)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1, m2])
+    store.get_pending_gate = AsyncMock(return_value=None)
+
+    captured_tasks = []
+    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+        await executor.advance(goal.id)
+
+    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    assert not any("provisional" in name for name in coro_names)
+
+
+async def test_provisional_procedure_injected_into_milestone_prompt(executor, store, planner, push, agent_mock):
+    from ze_sdk.memory import Procedure
+
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1])
+    store.get_pending_gate = AsyncMock(return_value=None)
+
+    proc = Procedure(id=None, name="Prior method", trigger="When needed", steps=["x"])
+    executor._provisional_procedures[goal.id] = [proc]
+
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
+        await executor.advance(goal.id)
+
+    prompt_used = agent_mock.run.call_args.args[0].prompt
+    assert "[METHODS DISCOVERED IN THIS GOAL]" in prompt_used
+    assert "Prior method" in prompt_used
+
+
+async def test_provisional_procedure_cleared_on_goal_completion(executor, store, planner, push):
+    from ze_sdk.memory import Procedure
+
+    goal = _goal()
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[
+        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+    ])
+    store.list_learnings = AsyncMock(return_value=[])
+    store.get_pending_gate = AsyncMock(return_value=None)
+    planner.synthesize_retrospective = AsyncMock(return_value="Done.")
+
+    proc = Procedure(id=None, name="Stale method", trigger="x", steps=["y"])
+    executor._provisional_procedures[goal.id] = [proc]
+
+    await executor.advance(goal.id)
+
+    assert goal.id not in executor._provisional_procedures
+
+
+async def test_provisional_procedure_passed_to_adaptive_replan(executor, store, planner, push, agent_mock):
+    from ze_sdk.memory import Procedure
+
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1])
+    store.get_pending_gate = AsyncMock(return_value=None)
+    store.increment_consecutive_failures = AsyncMock(return_value=2)
+    store.increment_replan_count = AsyncMock(return_value=1)
+    planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
+    agent_mock.run = AsyncMock(side_effect=GoalExecutionError("failed"))
+
+    proc = Procedure(id=None, name="Known method", trigger="x", steps=["a"])
+    executor._provisional_procedures[goal.id] = [proc]
+
+    with patch("ze_automation.goals.executor.asyncio.create_task"):
+        await executor.advance(goal.id)
+
+    call_kwargs = planner.replan_remaining.call_args.kwargs
+    assert call_kwargs.get("local_procedures") == [proc]
+
+
+async def test_provisional_procedure_extracted_on_gate_redirect(executor, store, planner, push):
+    goal = _goal()
+    gate_id = uuid4()
+    gate = _gate(after_seq=2, goal_id=goal.id, status=GateStatus.AWAITING_APPROVAL)
+    gate.id = gate_id
+    m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m2 = _milestone(2, MilestoneStatus.COMPLETED, goal_id=goal.id)
+
+    store.get_gate = AsyncMock(return_value=gate)
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1, m2])
+    planner.replan_remaining = AsyncMock(return_value=([], []))
+
+    captured_tasks = []
+    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+        await executor.handle_gate_redirected(gate_id, "focus on warm leads")
+
+    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    assert any("provisional" in name for name in coro_names)
+
+
+async def test_provisional_procedure_extracted_on_steer(executor, store, planner, push):
+    goal = _goal()
+    m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+    m2 = _milestone(2, MilestoneStatus.COMPLETED, goal_id=goal.id)
+
+    store.get_goal = AsyncMock(return_value=goal)
+    store.list_milestones = AsyncMock(return_value=[m1, m2])
+    planner.replan_remaining = AsyncMock(return_value=([], []))
+
+    captured_tasks = []
+    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+        await executor._apply_steer(goal.id, goal, "skip LinkedIn step")
+
+    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    assert any("provisional" in name for name in coro_names)

@@ -674,6 +674,9 @@ async def build_container(settings: Settings) -> ZeContainer:
     from ze_automation.jobs.goal_narrative import GoalNarrativeJob
     from ze_automation.jobs.goal_suggestion import GoalSuggestionJob
     from ze_automation.jobs.stuck_goals import StuckGoalJob
+    from ze_automation.jobs.accountability import AccountabilityJob
+    from ze_automation.jobs.cost_anomaly import CostAnomalyJob
+    from ze_automation.accountability.store import AccountabilityStore
 
     _goal_narrative = GoalNarrativeJob(
         notifier=notifier,
@@ -691,6 +694,20 @@ async def build_container(settings: Settings) -> ZeContainer:
     _stuck_goals = StuckGoalJob(
         notifier=notifier,
         goal_store=goal_store,
+    )
+
+    _accountability_store = AccountabilityStore(pool=pool)
+    _accountability = AccountabilityJob(
+        notifier=notifier,
+        push_log_store=push_log_store,
+        accountability_store=_accountability_store,
+        goal_store=goal_store,
+        pool=pool,
+    )
+    _cost_anomaly = CostAnomalyJob(
+        notifier=notifier,
+        accountability_store=_accountability_store,
+        pool=pool,
     )
 
     _proactive_cfg = core_settings.config.get("proactive", {})
@@ -717,6 +734,24 @@ async def build_container(settings: Settings) -> ZeContainer:
             cron=_stuck_cfg.get("cron", "0 9 * * 2"),
         )
         log.info("stuck_goals_scheduled", cron=_stuck_cfg.get("cron", "0 9 * * 2"))
+
+    _acc_cfg = _proactive_cfg.get("accountability", {})
+    if _acc_cfg.get("enabled", True):
+        _accountability._stall_days = int(_acc_cfg.get("stall_days", 3))
+        container.proactive_scheduler.register(
+            _accountability,
+            cron=_acc_cfg.get("schedule", "0 9 * * 1"),
+        )
+        log.info("accountability_scheduled", cron=_acc_cfg.get("schedule", "0 9 * * 1"))
+
+        _cost_anomaly._threshold = float(_acc_cfg.get("anomaly_threshold", 4.0))
+        _cost_anomaly._min_samples = int(_acc_cfg.get("anomaly_min_samples", 5))
+        _cost_anomaly._retention_days = int(_acc_cfg.get("anomaly_retention_days", 30))
+        container.proactive_scheduler.register(
+            _cost_anomaly,
+            cron=_acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"),
+        )
+        log.info("cost_anomaly_scheduled", cron=_acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"))
 
     # Schedule cost reconciliation.
     cost_reconciler = CostReconciler(store=cost_store, openrouter_client=openrouter_client)

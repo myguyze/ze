@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ze_personal.accountability.types import ActivitySummary
+from ze_automation.accountability.types import ActivitySummary
 
 
 def build_narrative(summary: ActivitySummary) -> str:

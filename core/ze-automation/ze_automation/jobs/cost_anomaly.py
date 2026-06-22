@@ -7,8 +7,8 @@ from typing import Any
 from ze_agents.logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
-from ze_personal.accountability.store import AccountabilityStore
-from ze_personal.accountability.types import AnomalyRecord
+from ze_automation.accountability.store import AccountabilityStore
+from ze_automation.accountability.types import AnomalyRecord
 
 log = get_logger(__name__)
 

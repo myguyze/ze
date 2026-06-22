@@ -20,11 +20,8 @@ from ze_automation.goals.postgres import PostgresGoalStore as GoalStore
 from ze_automation.goals.suggestion_store import GoalSuggestionStore
 from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.executor import GoalExecutor
-from ze_personal.accountability.store import AccountabilityStore
-from ze_personal.jobs.accountability import AccountabilityJob
 from ze_personal.jobs.briefing import MorningBriefing
 from ze_personal.jobs.contacts import ContactReviewNotifier
-from ze_personal.jobs.cost_anomaly import CostAnomalyJob
 from ze_personal.jobs.insights import InsightEngine
 from ze_personal.onboarding import PersonalOnboardingProvider
 from ze_automation.workflow.store import WorkflowStore
@@ -93,19 +90,6 @@ class PersonalPlugin(ZePlugin):
         self.contact_review = ContactReviewNotifier(
             person_store=self.person_store,
             notifier=notifier,
-        )
-        accountability_store = AccountabilityStore(pool=pool)
-        self.accountability = AccountabilityJob(
-            notifier=notifier,
-            push_log_store=push_log_store,
-            accountability_store=accountability_store,
-            goal_store=self.goal_store,
-            pool=pool,
-        )
-        self.cost_anomaly = CostAnomalyJob(
-            notifier=notifier,
-            accountability_store=accountability_store,
-            pool=pool,
         )
 
     @classmethod
@@ -243,8 +227,6 @@ class PersonalPlugin(ZePlugin):
             self.morning_briefing,
             self.insight_engine,
             self.contact_review,
-            self.accountability,
-            self.cost_anomaly,
         ]
 
     def onboarding(self) -> PersonalOnboardingProvider:
@@ -305,25 +287,3 @@ class PersonalPlugin(ZePlugin):
             scheduler.register(self.contact_review, cron=review_cron)
             log.info("contact_review_scheduled", cron=review_cron)
 
-        acc_cfg = proactive_cfg.get("accountability", {})
-        if acc_cfg.get("enabled", True):
-            scheduler.register(
-                self.accountability,
-                cron=acc_cfg.get("schedule", "0 9 * * 1"),
-            )
-            log.info("accountability_scheduled", cron=acc_cfg.get("schedule", "0 9 * * 1"))
-
-            anomaly_threshold = float(acc_cfg.get("anomaly_threshold", 4.0))
-            min_samples = int(acc_cfg.get("anomaly_min_samples", 5))
-            retention_days = int(acc_cfg.get("anomaly_retention_days", 30))
-            self.cost_anomaly._threshold = anomaly_threshold
-            self.cost_anomaly._min_samples = min_samples
-            self.cost_anomaly._retention_days = retention_days
-            stall_days = int(acc_cfg.get("stall_days", 3))
-            self.accountability._stall_days = stall_days
-
-            scheduler.register(
-                self.cost_anomaly,
-                cron=acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"),
-            )
-            log.info("cost_anomaly_scheduled", cron=acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"))

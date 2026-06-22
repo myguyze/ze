@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ze_agents.logging import get_logger
-from ze_personal.accountability.types import AnomalyRecord
+from ze_automation.accountability.types import AnomalyRecord
 
 log = get_logger(__name__)
 
