@@ -17,7 +17,11 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 
 ### Integration
 
-Depends on every core package and all enabled plugins. Instantiates `ZeContainer`, runs `bootstrap.py` for agent registration and plugin startup, builds the graph, and serves via uvicorn. Nothing in `core/` or `plugins/` runs standalone — `ze-api` is always the entry point.
+Depends on every core package and all enabled plugins. Instantiates `ZeContainer` via
+`build_container()` — plugin discovery through `ze_plugin.bootstrap`, agent registration
+through `ze_agents.bootstrap`, domain stacks through package bootstrap modules — then
+serves via uvicorn. Nothing in `core/` or `plugins/` runs standalone — `ze-api` is
+always the entry point.
 
 Collects plugin signal sources via `collect_plugin_signal_sources()` in `container.py` — deduplicates by `source_key` and registers them with the correlation engine. Current emitters: `NewsSignalSource`, `CalendarSignalSource`.
 
@@ -29,6 +33,7 @@ Collects plugin signal sources via `collect_plugin_signal_sources()` in `contain
 | `interface/native.py` | `NativeAppInterface` — WebSocket + ntfy delivery |
 | `onboarding/` | Postgres-backed onboarding store, persistence, and reset |
 | `container.py` | `ZeContainer` — DI wiring, plugin signal source collection |
+| `compose.py` | `register_all_proactive_jobs()` — core + plugin cron registration |
 | `settings.py` | `ZeApiSettings` (Pydantic BaseSettings + YAML) |
 | `migrate.py` | Alembic meta-migrator — discovers all package migration chains |
 | `migrations/env.py` | Alembic runner harness (no owned tables) |

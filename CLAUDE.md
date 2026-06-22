@@ -97,10 +97,10 @@ ze/                           # monorepo root
 │   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
 │   │   │   ├── interface/    # NativeAppInterface (WebSocket + ntfy delivery)
 │   │   │   ├── migrations/   # Alembic env.py + meta-runner entry (no owned tables)
-│   │   │   ├── bootstrap.py  # Agent DI wiring via plugin.agent_module_paths()
+│   │   │   ├── compose.py    # Proactive job registration fan-out
 │   │   │   ├── container.py  # ZeContainer (registers all ZePlugins)
-│   │   │   ├── migrate.py    # Meta-runner: discovers all package migration paths and runs them
-│   │   │   └── settings.py   # Pydantic Settings
+│   │   │   ├── migrate.py    # Meta-runner: discovers all package migration paths
+│   │   │   └── settings.py   # ZeApiSettings (shell env + YAML)
 │   │   ├── config/
 │   │   │   ├── config.yaml   # Models, contacts, proactive schedules (secrets in .env)
 │   │   │   └── persona.yaml  # Persona profiles and dials
@@ -399,7 +399,8 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 68 | ze-data — `DataDomain` and `DataPortabilityService` extracted from `ze-plugin`/`ze-api` into `core/ze-data`; no Ze deps | Done |
 | 70 | Finance recurring detection — algorithmic recurring expense/subscription detection, staleness-aware proactive job, CSV nudge flow, price-change resurface | Done |
 | 71 | Cross-goal awareness — convergence detection at goal creation, proactive reuse surfacing at milestone completion | Pending |
-| 76 | API client codegen — `@ze/client` npm package generated from OpenAPI spec via `@hey-api/openapi-ts`; named SDK methods (`listContacts()`, etc.); WS types from `json-schema-to-typescript` | Done |
-| 77 | ze-logging — structlog configuration extracted from ze-api/ze-agents into `core/ze-logging`; `get_logger` via ze-sdk | Done |
+| 72 | API client codegen — `@ze/client` npm package generated from OpenAPI spec via `@hey-api/openapi-ts`; named SDK methods (`listContacts()`, etc.); WS types from `json-schema-to-typescript` | Done |
 | 73 | API surface cleanup — all routes under `/api/v0/`; `HTTPBearer` security scheme; explicit `operation_id` on every route; auth extracted into `require_api_key` Depends; duplicate cost route removed; `GET /api/v0/version` | Done |
 | 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | Done |
+| 76 | ze-api shell cleanup — domain bootstrap into package modules; `ZeApiSettings` shell; test relocation; delete `ze_api/bootstrap.py`; `compose.py` for proactive jobs | Done |
+| 77 | ze-logging — structlog configuration extracted from ze-api/ze-agents into `core/ze-logging`; `get_logger` via ze-sdk | Done |

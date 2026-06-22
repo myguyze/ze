@@ -308,8 +308,8 @@ and workflows are always present. It depends on `ze-agents`, `ze-proactive`, and
 | `runtime/contracts.py` | `AutomationPlanner`, `AutomationStore` protocols |
 | `migrations/versions/` | `zc006`–`zc009` (goal traces/suggestions/stuck/reuse), `zc011` (workflows), `zc014` (accountability) |
 
-Agent registration is exposed via `ze_automation.agent_module_paths()`, called from
-`ze_api/bootstrap.py` alongside plugin agent paths.
+Agent registration is exposed via `ze_automation.agent_module_paths()`, imported in
+`ze-api`'s container alongside plugin paths from `ZePlugin.agent_module_paths()`.
 
 ---
 
@@ -493,19 +493,20 @@ their `ZePlugin` implementations.
 
 | Module | What it provides |
 |--------|-----------------|
-| `bootstrap.py` | `bootstrap_agents()` — DI resolution via plugin `agent_module_paths()` |
 | `api/` | FastAPI app, WebSocket endpoint (`/ws`), REST routes, message route |
 | `interface/native.py` | `NativeAppInterface` — WebSocket + ntfy delivery |
-| `hooks.py` | `ToolCallCapHook` — per-turn tool call cap enforcement |
-| `hooks/component_collection.py` | `ComponentCollectionHook` — collects UI components from agent results |
-| `hooks/cost_cap.py` | `ToolCallCapHook` — per-turn tool call cap enforcement |
-| `container.py` | `ZeContainer` — subclasses `ze_core.Container`, registers all plugins |
+| `container.py` | `ZeContainer` — composition entry; subclasses `ze_core.Container` |
+| `compose.py` | `register_all_proactive_jobs()` — core + plugin cron registration |
 | `migrate.py` | Meta-migrator — discovers all package migration paths; ze-api owns no tables |
-| `settings.py` | Pydantic `BaseSettings`, `to_core_settings()` bridge |
+| `settings.py` | `ZeApiSettings` — shell env + YAML; `to_core_settings()` bridge |
+| `migrations/env.py` | Alembic runner harness (no owned revision files) |
 
-**Cleanup target (phase 76):** `container.py` should shrink to ~150–200 lines of
-transport wiring + composition entry. Domain bootstrap moves to `ze_automation/bootstrap`,
-`ze-memory/bootstrap`, `ze-plugin/bootstrap`, etc. See
+Harness hooks (`ToolCallCapHook`, `ComponentCollectionHook`) live in `ze_agents` and
+`ze_components`; registered via `ze_core/bootstrap.py`. Plugin and agent bootstrap live
+in `ze_plugin/bootstrap.py` and `ze_agents/bootstrap.py` — not in ze-api.
+
+Phase 76 moved domain bootstrap into package modules (`ze_automation/bootstrap`,
+`ze-memory/bootstrap`, etc.). See
 [specs/phases/76-ze-api-shell-cleanup.md](../specs/phases/76-ze-api-shell-cleanup.md).
 
 ---

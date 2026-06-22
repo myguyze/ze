@@ -26,7 +26,10 @@ The pipeline is intentionally generic. Domain plugins extend it by registering `
 
 `ze-yt` (in `integrations/`) provides `YtDlpFetcher`, which is registered in the container alongside plugin-contributed fetchers when installed. The pipeline's fetcher priority order is: yt-dlp matchers → plugin fetchers → browser → web fallback.
 
-The `IngestionAgent` is bootstrapped via `ze_ingestion.agent` in `ze-api`'s `_DEFAULT_AGENT_MODULE_PATHS`. The migration `zi001` (branch `ze_ingestion`) creates the `ingested_content` table and is discovered automatically by `ze_api/migrate.py`.
+The `IngestionAgent` is registered via `ze_ingestion.agent` through
+`ZePlugin.agent_module_paths()` and core `import_agent_modules()` in the ze-api container.
+The migration `zi001` (branch `ze_ingestion`) creates the `ingested_content` table and
+is discovered automatically by `ze_api/migrate.py`.
 
 ## Responsibilities
 

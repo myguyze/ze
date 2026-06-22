@@ -746,12 +746,14 @@ monorepo split, what belongs in each package, and how the ZePlugin extension poi
 
 | Module | Purpose |
 |---|---|
-| `ze_api/settings.py` | Pydantic `BaseSettings` — Ze secrets + `to_core_settings()` bridge |
+| `ze_api/settings.py` | `ZeApiSettings` — shell secrets + YAML accessors + `to_core_settings()` bridge |
+| `ze_logging` | structlog setup (`configure_logging`, `get_logger`, `bind_context`) — configured at app startup |
 | `ze_agents/errors.py` | Exception hierarchy — typed `ZeError` subclasses (re-exported via `ze_sdk.errors`) |
-| `ze_api/logging.py` | structlog JSON logger — bound at request time |
 | `ze_core/embeddings.py` | Shared `paraphrase-multilingual-MiniLM-L12-v2` singleton — loaded once at startup |
 | `ze_api/db.py` | asyncpg pool factory — lifespan-managed |
-| `ze_api/bootstrap.py` | `bootstrap_agents()` — resolves agent DI from plugin `agent_module_paths()` |
+| `ze_plugin/bootstrap.py` | Plugin discovery, DI resolution, `build_integrations()` |
+| `ze_agents/bootstrap.py` | `bootstrap_agents()` — agent registration via plugin `agent_module_paths()` |
+| `ze_api/compose.py` | `register_all_proactive_jobs()` — fans out core + plugin cron registration |
 | `ze_api/container.py` | `ZeContainer` — subclasses `ze_core.Container`, wires all ZePlugins |
 | `ze_personal/persona/` | `PostgresPersonaStore` — named profiles, dial overrides, DB persistence |
 | `ze_email/channel/` | `GmailChannel` — Gmail API channel (imports creds from `ze-google`) |
@@ -761,7 +763,9 @@ monorepo split, what belongs in each package, and how the ZePlugin extension poi
 
 ## Database schema
 
-Migrations live in `apps/ze-api/migrations/versions/` as raw SQL Alembic files (no ORM).
+Migrations are owned by individual packages (`core/`, `plugins/`). `ze-api` provides
+the Alembic runner harness (`migrations/env.py`) and meta-migrator (`migrate.py`) only —
+it owns no tables and no revision files.
 
 | Table | Purpose |
 |---|---|

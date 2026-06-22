@@ -38,12 +38,25 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 
 ### Google (Calendar + Gmail)
 
+Owned by `integrations/ze-google` — env vars stay in `.env` but are read by that package,
+not `ZeApiSettings`.
+
 | Variable | Required | Description |
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | If using calendar/email | OAuth2 client ID from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | If using calendar/email | OAuth2 client secret |
 | `GOOGLE_REFRESH_TOKEN` | If using calendar/email | Long-lived refresh token. Obtained by running `scripts/google_auth.py` once locally. |
-| `TIMEZONE` | No | IANA timezone string (default: `UTC`). Used for calendar reminders and morning briefing scheduling. |
+| `TIMEZONE` | No | IANA timezone string (default: `UTC`). Used for calendar/reminder agents via `config.timezone` YAML override. |
+
+### Logging (`core/ze-logging`)
+
+`LOG_*` vars are read by `ZeApiSettings` at startup and passed to `ze_logging.configure_logging()`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `INFO` | Structlog level: `DEBUG` / `INFO` / `WARNING` |
+| `LOG_DEV` | `false` | Human-readable structlog console output (`true` = dev, `false` = JSON) |
+| `LOG_FILE` | `""` | Tee logs to this file as well as stdout (empty = stdout only) |
 
 ### Runtime behaviour
 
@@ -51,9 +64,8 @@ Copy `.env.example` to `.env` and fill in every value before starting the server
 |---|---|---|
 | `CONFIRM_TIMEOUT_SECONDS` | `900` | How long (seconds) a `confirm`-mode graph pause waits before expiring |
 | `SESSION_INACTIVITY_MINUTES` | `30` | Minutes of inactivity before a session is considered stale |
-| `LOG_LEVEL` | `INFO` | Structlog level: `DEBUG` / `INFO` / `WARNING` |
-| `LOG_DEV` | `false` | Human-readable structlog console output (`true` = dev, `false` = JSON) |
-| `LOG_FILE` | `""` | Tee logs to this file as well as stdout (empty = stdout only) |
+| `CONSOLIDATION_ENABLED` | `true` | Set to `false` to disable memory/contacts consolidation jobs (override via `config.yaml` `memory.consolidation.enabled`) |
+| `SCHEDULER_ENABLED` | `true` | Set to `false` to disable the workflow scheduler (override via `config.yaml` `workflows.scheduler_enabled`) |
 
 ### Browser sidecar
 

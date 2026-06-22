@@ -2,7 +2,7 @@
 
 > **Package:** `apps/ze-api/` (primary), `core/ze-plugin/`, `core/ze-automation/`, `core/ze-memory/`, `core/ze-correlation/`, `core/ze-ingestion/`, `core/ze-core/`
 > **Phase:** 76
-> **Status:** Done (Phase D test relocation partially pending)
+> **Status:** Done
 > **Prerequisite:** Phase 74 (automation substrate), Phase 68 (ze-data), Phase 64 (plugin package extraction), Phase 09 (conversation module reorg)
 
 ---
@@ -15,7 +15,7 @@
 | Phase A — slim `container.py` | ✅ Done |
 | Phase B — REST/WS boundary | ✅ Done |
 | Phase C — bootstrap move | ✅ Done |
-| Phase D — settings + tests | 🔲 Partial (app.state done; test relocation pending) |
+| Phase D — settings + tests | ✅ Done |
 
 ---
 
