@@ -131,8 +131,9 @@ Gate checkpoints use a richer format (title, done list, planned list, options).
 When all milestones finish, `GoalExecutor` runs three things automatically:
 
 1. **Retrospective** — `GoalPlanner.synthesize_retrospective()` produces a short narrative of what Ze accomplished and what was learned. Sent via `ProactiveNotifier` as the completion message.
-2. **Learning promotion** — generalizable facts extracted from the goal's `GoalLearning` records are submitted to `MemoryStore.propose_facts()` as `reviewed=False`. They enter the normal memory pipeline (dedup via nightly consolidation) and are visible at `GET /memory/facts`. Only facts that describe the user's preferences or patterns are promoted; goal-specific research findings are excluded.
-3. **Retrospective stored** — the narrative is saved to `goals.retrospective_text` and becomes available to the weekly goal narrative job and future goal suggestion synthesis.
+2. **Procedure promotion** — reusable procedures extracted during the goal are submitted to `MemoryStore.propose_procedure()` so later goals can retrieve them. If a procedure is still provisional while the goal is active, Ze can reuse it inside the same goal before completion.
+3. **Learning promotion** — generalizable facts extracted from the goal's `GoalLearning` records are submitted to `MemoryStore.propose_facts()` as `reviewed=False`. They enter the normal memory pipeline (dedup via nightly consolidation) and are visible at `GET /memory/facts`. Only facts that describe the user's preferences or patterns are promoted; goal-specific research findings are excluded.
+4. **Retrospective stored** — the narrative is saved to `goals.retrospective_text` and becomes available to the weekly goal narrative job and future goal suggestion synthesis.
 
 ---
 
@@ -161,6 +162,18 @@ When planning a new goal (or replanning after a redirect), `GoalPlanner.plan()` 
 ### Learning promotion
 
 See [On completion](#on-completion) above. Generalizable learnings from completed goals flow into user memory, where they are available to all future agents — not just the goal engine.
+
+### Procedure reuse within an active goal
+
+Procedure extraction is not limited to goal completion. As Ze learns a repeatable method during an active goal, it should be able to surface that procedure back into later milestones and replans for the same goal.
+
+The contract is:
+
+1. Ze may extract a provisional procedure once a milestone cluster looks stable enough to generalise.
+2. That procedure is available to later milestones in the same goal and to `GoalPlanner.replan_remaining()`.
+3. On goal completion, any still-relevant procedure is promoted into `MemoryStore.propose_procedure()` so future goals can reuse it too.
+
+This closes the gap between "Ze learned a procedure" and "Ze can actually use it again before the goal ends".
 
 ---
 
@@ -215,3 +228,4 @@ The advance sweep cron is fixed in `ze_api/container.py` (`*/15 * * * *`, job id
 - Success is not auto-detected; Ze marks complete when all milestones finish; you confirm at gates along the way.
 - Steering only applies to remaining pending milestones; completed milestones are never re-run.
 - Promoted facts from learning promotion enter memory as `reviewed=False` and go through the normal consolidation cycle before being treated as canonical.
+- Procedures can be reused within the same goal once extracted; if you only see them at the end, the spec is incomplete.

@@ -1,8 +1,8 @@
 # Ze SDK Reference
 
 `ze-sdk` is the single dependency plugin authors declare. It re-exports every public
-symbol from `ze-agents`, `ze-proactive`, `ze-memory`, and `ze-onboarding` through a flat,
-stable surface.
+symbol from `ze-agents`, `ze-proactive`, `ze-memory`, `ze-onboarding`, `ze-plugin`, and
+`ze-data` through a flat, stable surface.
 Plugin packages never import `ze-core` directly.
 
 ---
@@ -11,6 +11,7 @@ Plugin packages never import `ze-core` directly.
 
 ```python
 from ze_sdk import ZePlugin, agent, tool, ToolAccess, BaseAgent, get_logger, Settings, DBPool
+from ze_sdk import DataDomain
 from ze_sdk.types import AgentContext, AgentResult, ToolCall, GateDecision, Mode, AbortToken, Action, Notification
 from ze_sdk.proactive import ProactiveJob, proactive_job, ProactiveScheduler, ProactiveNotifier, PushLogStore, PushLogEntry
 from ze_sdk.channels import Channel, ChannelType, ChannelHandle, Message, SentMessage, Thread, ThreadMessage, ChannelSendError
@@ -33,6 +34,7 @@ from ze_sdk.errors import ZeError, AgentError, ToolBlockedError, AgentAbortedErr
 | `get_logger` | Structured logger factory. Always call as `get_logger(__name__)`. |
 | `Settings` | Settings dataclass bridge. Agents receive this via DI — never construct it yourself. |
 | `DBPool` | Structural `Protocol` for asyncpg connection pools. Use as a type hint in `__init__`. |
+| `DataDomain` | Descriptor for export/import/delete ownership. Plugins return these via `ZePlugin.data_domains()`. |
 
 ---
 

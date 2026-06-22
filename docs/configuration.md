@@ -102,9 +102,10 @@ models:
   vision_caption:   google/gemini-flash-1.5         # Routing caption for photos with no text
 ```
 
-`whisper` is used by `TranscriptionClient` to convert voice input to text before the
-graph runs. `vision_caption` is called at `embed_route` when a photo arrives without a
-text caption so the embedding router has text to score. Both are invoked via OpenRouter.
+`whisper` is used by the preprocessing node to convert voice input to text before
+routing. `vision_caption` is called during preprocessing when a photo arrives without
+a text caption so the embedding router has text to score. Both are invoked via
+OpenRouter.
 
 ### `memory:`
 

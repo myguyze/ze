@@ -18,7 +18,7 @@ The pipeline is intentionally generic. Domain plugins extend it by registering `
 - `IngestionStore` — archives processed text and extraction results in `ingested_content`
 - `MemorySink` — pushes extracted facts to `ze-memory` tagged with `source=ingestion:<id>`
 - `IngestionAgent` — routes "save this link / learn from this PDF" intents
-- `POST /api/ingest` REST endpoint for direct ingestion from the web client or CLI
+- `POST /api/v0/ingest` REST endpoint for direct ingestion from the web client or CLI
 
 ### Integration
 
@@ -102,7 +102,7 @@ def ingestion_fetchers(self) -> list:
 ### REST endpoint
 
 ```
-POST /api/ingest
+POST /api/v0/ingest
 Content-Type: multipart/form-data
   url:   (optional) URL to ingest
   file:  (optional) uploaded file

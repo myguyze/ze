@@ -17,13 +17,13 @@ Reusable onboarding logic lives in `core/ze-onboarding`:
 
 Deployment adapters live in `apps/ze-api`:
 
-- `ze_api.onboarding.store.OnboardingStore` stores sessions, steps, submissions, and seeds
-  in Postgres.
-- `ze_api.onboarding.persistence.OnboardingPersistence` applies approved seeds to memory
-  or plugin stores.
-- `ze_api.onboarding.reset.ResetService` previews and executes SQL reset scopes.
-- `ze_api.api.ws` maps WebSocket commands and `component_submit` frames into the
-  coordinator.
+- `ze_api.api.websocket.onboarding.send_onboarding_view()` serialises onboarding views
+  into WebSocket `message` frames.
+- `ze_api.api.websocket.component_submit.handle_component_submit()` routes onboarding
+  submissions back into the coordinator.
+- `ze_api.api.websocket.commands.handle_command()` starts onboarding on demand.
+- `ze_api.container` wires the Postgres-backed store, persistence adapter, and reset
+  service into `OnboardingCoordinator`.
 
 Plugin authors should import from `ze_sdk.onboarding`, not from `ze_api`.
 

@@ -217,7 +217,7 @@ and Ze's proactive pushes) to Postgres. On WebSocket connect, all messages with
 `read = false` are replayed in order before new messages flow. The client marks them
 read via `ack` frames.
 
-**REST fallback** — `GET /messages` returns the same unread list for scenarios where the
+**REST fallback** — `GET /api/v0/messages` returns the same unread list for scenarios where the
 client needs to poll rather than hold a persistent connection.
 
 ---

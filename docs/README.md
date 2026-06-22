@@ -3,7 +3,7 @@
 | Doc | What it covers |
 |-----|----------------|
 | [architecture.md](architecture.md) | System overview, graph flow, all modules at a glance |
-| [package-architecture.md](package-architecture.md) | Monorepo split (13 packages), ZePlugin extension point, where new code belongs |
+| [package-architecture.md](package-architecture.md) | Monorepo split, ZePlugin extension point, where new code belongs |
 | [sdk.md](sdk.md) | SDK reference — all `ze_sdk` exports, BaseAgent API, @agent/@tool decorators, ZePlugin hooks |
 | [extending-ze.md](extending-ze.md) | End-to-end guide — adding agents, creating new plugins, proactive jobs, channels |
 | [native-interface.md](native-interface.md) | WebSocket protocol, frame types, confirmation flow, ntfy push, unread replay |

@@ -100,6 +100,7 @@ explicitly deferred before implementation begins.
 | 71 | [Cross-Goal Awareness](phases/71-cross-goal-awareness.md) | 🔲 Pending |
 | 72 | [API Client Codegen](phases/72-api-client-codegen.md) | 🔲 Pending |
 | 73 | [API Surface](phases/73-api-surface.md) | 🔲 Pending |
+| 75 | [Server-Driven UI Package](phases/75-server-driven-ui-package.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 

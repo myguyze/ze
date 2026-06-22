@@ -178,7 +178,7 @@ Progress messages are emitted at each stage, so the user sees live feedback duri
 ## REST Endpoint
 
 ```
-POST /api/ingest
+POST /api/v0/ingest
 Content-Type: multipart/form-data
 
 Fields:

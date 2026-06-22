@@ -61,7 +61,7 @@ See [docs/testing.md](../docs/testing.md) for all targets and conventions.
 | Dependencies | Yes | Mermaid diagram for plugins and apps; prose or list for core/integration |
 | Usage / Running | Yes | Code examples or Makefile targets |
 | Configuration | No | Only when the package reads env vars or YAML |
-| Testing | Yes | Always document `make test-<short-name>`. See [docs/testing.md](../testing.md). |
+| Testing | Yes | Always document `make test-<short-name>`. See [docs/testing.md](./testing.md). |
 
 ---
 

@@ -1,6 +1,6 @@
 # Ze — Package Architecture
 
-Ze is a monorepo organised into three directories with a strict one-way dependency graph.
+Ze is a monorepo organised into five top-level directories with a strict one-way dependency graph.
 Understanding the split makes it clear where new code belongs and how the pieces fit.
 
 ---
@@ -11,24 +11,28 @@ Understanding the split makes it clear where new code belongs and how the pieces
 ze/
 ├── core/             # Shared infrastructure — no domain knowledge
 │   ├── ze-agents/    # Developer API — BaseAgent, @agent, @tool, ZePlugin, shared types
+│   ├── ze-plugin/    # Plugin extension framework — ZePlugin, channels, signal sources, data domains
 │   ├── ze-proactive/ # Job scheduling framework — ProactiveScheduler, ProactiveNotifier
 │   ├── ze-sdk/       # Public SDK surface — flat re-export layer for plugin authors
 │   ├── ze-core/      # Engine — routing, orchestration, telemetry, DI container
+│   ├── ze-data/      # Data portability layer — DataDomain, export/import/delete orchestration
 │   ├── ze-memory/    # Memory package — facts, episodes, graph, retrieval
 │   ├── ze-onboarding/# Onboarding coordinator, provider contracts, reset domain types
+│   ├── ze-ingestion/ # Content ingestion pipeline — fetch, process, extract, archive
+│   ├── ze-correlation/ # Cross-domain hypothesis engine — inline and proactive correlation
 │   ├── ze-browser/   # Browser sidecar HTTP client
 │   ├── ze-notifications/ # Push notification abstraction (ntfy)
 │   └── ze-components/    # Server-driven UI component descriptors
 ├── integrations/     # External service wrappers — no Ze domain knowledge
 │   └── ze-google/    # Google OAuth2 credentials and service client factories
+│   └── ze-trading212/ # Trading212 REST client for finance ingestion
 ├── plugins/          # ZePlugin domain extensions
 │   ├── ze-personal/  # Personal-assistant domain layer
 │   ├── ze-email/     # Gmail channel + email agent (ZePlugin)
 │   ├── ze-prospecting/   # Prospecting agent, campaign store, recovery job (ZePlugin)
 │   ├── ze-calendar/  # Calendar + reminders domain (ZePlugin)
 │   ├── ze-news/      # News ingestion, ranking, credibility (ZePlugin)
-│   ├── ze-finance/   # Finance domain (ZePlugin) — in progress
-│   └── ze-legal/     # Legal domain (ZePlugin) — in progress
+│   └── ze-finance/   # Finance domain (ZePlugin)
 ├── packages/         # Shared npm packages (Bun workspace)
 │   └── ze-client/    # @ze/client — generated typed SDK for ze-web
 └── apps/             # Deployment units
@@ -42,21 +46,27 @@ ze/
 ze-browser        ←  no ze deps
 ze-onboarding     ←  no ze deps               ← setup coordinator, provider/store/persistence protocols
 ze-agents         ←  ze-onboarding            ← developer API (BaseAgent, @agent, @tool, ZePlugin, types)
+ze-plugin         ←  ze-agents                ← plugin extension framework, channels, signal sources, data domains
 ze-proactive      ←  ze-agents                ← job scheduling framework
+ze-data           ←  no ze deps               ← portability descriptor + service layer
 ze-notifications  ←  no ze deps
 ze-components     ←  ze-agents
 ze-google         ←  no ze deps               ← integrations/
+ze-trading212     ←  no ze deps
 ze-memory         ←  ze-agents
-ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding   ← plugin entry point
-ze-core           ←  ze-agents                            ← engine; never a plugin dep
+ze-ingestion      ←  ze-agents, ze-memory, ze-browser
+ze-correlation    ←  ze-agents, ze-memory
+ze-sdk            ←  ze-agents, ze-proactive, ze-memory, ze-onboarding, ze-plugin, ze-data   ← plugin entry point
+ze-core           ←  ze-agents, ze-plugin                ← engine; never a domain dep
 ze-personal       ←  ze-sdk
 ze-email          ←  ze-sdk, ze-google, ze-personal
 ze-prospecting    ←  ze-sdk, ze-browser, ze-personal
 ze-calendar       ←  ze-sdk, ze-google, ze-personal
 ze-news           ←  ze-sdk
-ze-api            ←  ze-core, ze-sdk, ze-personal, ze-email, ze-prospecting,
-                      ze-calendar, ze-google, ze-browser, ze-news, ze-notifications,
-                      ze-components, ze-onboarding
+ze-finance        ←  ze-sdk, ze-trading212
+ze-api            ←  ze-core, ze-plugin, ze-data, ze-sdk, ze-personal, ze-email, ze-prospecting,
+                      ze-calendar, ze-google, ze-browser, ze-news, ze-finance, ze-notifications,
+                      ze-components, ze-onboarding, ze-ingestion, ze-correlation
 ze-client         ←  no ze deps (generated from ze-api spec; npm workspace only)
 ze-web            ←  ze-client (workspace:*), connects to ze-api over WebSocket/REST
 ```
@@ -64,7 +74,8 @@ ze-web            ←  ze-client (workspace:*), connects to ze-api over WebSocke
 Hard rules:
 - `ze-onboarding` never imports from any other Ze package — it is the stable setup-flow foundation.
 - `ze-agents` depends only on `ze-onboarding` plus third-party utilities — it is the stable agent/plugin API foundation.
-- `ze-core` never imports from domain packages. It depends on `ze-agents` for the developer API types.
+- `ze-plugin` and `ze-data` stay free of application wiring; they own the reusable extension and portability seams.
+- `ze-core` never imports from domain packages. It depends on `ze-agents` and `ze-plugin` for shared engine-facing types.
 - Plugin packages (`ze-personal`, `ze-email`, etc.) never import `ze-core` directly — use `ze-sdk`.
 - `ze-memory` and `ze-personal` never import from `ze-api`. Violations break the abstraction.
 
@@ -112,8 +123,8 @@ Depends on `ze-agents` only.
 
 ## ze-sdk — Public SDK Surface
 
-`ze_sdk` is a flat re-export layer over `ze-agents`, `ze-proactive`, `ze-memory`, and
-`ze-onboarding`.
+`ze_sdk` is a flat re-export layer over `ze-agents`, `ze-proactive`, `ze-memory`,
+`ze-onboarding`, `ze-plugin`, and `ze-data`.
 Plugin authors list `ze-sdk` as their only Ze dependency and import everything from it.
 `ze-core` never appears in a plugin's dependency list.
 
@@ -173,6 +184,71 @@ packages. Plugin authors never import `ze_core` directly — use `ze_sdk` instea
 that plugin authors should never need to import. If the symbol belongs in the stable
 authoring API, it goes in `ze-agents`. If it's a job framework primitive, it goes in
 `ze-proactive`.
+
+---
+
+## ze-plugin — Extension Framework
+
+`ze_plugin` owns the reusable plugin seam: `ZePlugin`, channels, signal sources, and
+the integration protocol shared by engine and plugin code. It depends on `ze-agents`
+only and stays free of application wiring.
+
+| Module | What it provides |
+|--------|-----------------|
+| `plugin.py` | `ZePlugin`, `DataDomain` re-export for backwards compatibility |
+| `channels/` | `Channel` ABC, handle/message types, `ChannelRegistry` |
+| `signals.py` | `SignalSource` protocol for cross-plugin signal collection |
+| `integration.py` | `ZeIntegration` protocol for third-party credential classes |
+| `registry.py` | Plugin registry helpers |
+
+---
+
+## ze-data — Data Portability
+
+`ze_data` owns the portability contract and service layer for export/import/delete.
+It has no Ze package dependencies and is reused by `ze-plugin` and `ze-sdk`.
+
+| Module | What it provides |
+|--------|-----------------|
+| `domain.py` | `DataDomain` dataclass |
+| `portability/service.py` | `DataPortabilityService` |
+| `portability/assembler.py` | ZIP export/import assembly helpers |
+| `portability/types.py` | Export/import result types |
+| `errors.py` | Typed portability errors |
+
+---
+
+## ze-ingestion — Content Ingestion
+
+`ze_ingestion` owns the generic content ingestion pipeline. It depends on `ze-agents`,
+`ze-memory`, and `ze-browser`.
+
+| Module | What it provides |
+|--------|-----------------|
+| `classifier.py` | `ContentClassifier` |
+| `fetchers/` | Web/browser fetchers and plugin extension points |
+| `processors/` | HTML, PDF, audio, image, and text processors |
+| `extractors/` | `Extractor` protocol and default `LLMExtractor` |
+| `pipeline.py` | `IngestionPipeline` |
+| `store.py` | `IngestionStore` |
+| `sink.py` | `MemorySink` |
+| `agent.py` | `IngestionAgent` + ingestion tools |
+
+---
+
+## ze-correlation — Signal Correlation
+
+`ze_correlation` owns cross-domain hypothesis generation from memory and signal
+inputs. It depends on `ze-agents` and `ze-memory`.
+
+| Module | What it provides |
+|--------|-----------------|
+| `engine.py` | `CorrelationEngine` |
+| `store.py` | `PostgresHypothesisStore` |
+| `job.py` | `CorrelationJob` |
+| `push.py` | `CorrelationPushConsumer` |
+| `prompts.py` | Prompt templates for hypothesis generation |
+| `types.py` | Hypothesis and evidence types |
 
 ---
 
@@ -279,6 +355,17 @@ imported by any package that needs Google OAuth2.
 
 ---
 
+## ze-trading212 — Trading212 Client
+
+`ze_trading212` is a thin HTTP client for the Trading212 REST API. It has no Ze
+dependencies and is consumed by `ze-finance`.
+
+| Module | What it provides |
+|--------|-----------------|
+| `client.py` | Async Trading212 API client |
+
+---
+
 ## ze-news — News Package
 
 `ze_news` owns news ingestion, personalised ranking, and credibility analysis.
@@ -293,6 +380,29 @@ Depends on `ze-sdk` only.
 | `credibility.py` | LLM-based article credibility scoring |
 | `personalization.py` | Interest-vector-based ranking |
 | `plugin.py` | `NewsPlugin(ZePlugin)` — registers agent, conditionally loaded |
+
+---
+
+## ze-finance — Finance Domain
+
+`ze_finance` owns portfolio positions, bank transactions, spending summaries,
+recurring detection, and proactive P&L alerts. It depends on `ze-sdk` and
+`ze-trading212`, and its finance-specific LLM calls are pinned to Anthropic via
+OpenRouter.
+
+| Module | What it provides |
+|--------|-----------------|
+| `agents/finance/` | `FinanceAgent` and its finance tools |
+| `categoriser.py` | `CategoryInferrer` — keyword rules + optional LLM categorisation |
+| `jobs/snapshot.py` | `DailySnapshotJob` — syncs data sources, categorises, emits signals |
+| `jobs/recurring.py` | `RecurringDetectionJob` — recurring-charge detection and nudges |
+| `plugin.py` | `FinancePlugin(ZePlugin)` — registers agent, jobs, signal source, and data domains |
+| `recurring/` | Recurring expense types, detector, and store |
+| `signals/finance.py` | `FinanceSignalSource` — emits finance signals into Ze |
+| `sources/trading212.py` | Trading212 ingestion backend |
+| `sources/csv.py` | CSV bank-statement import backend |
+| `store.py` | Portfolio, transaction, and CSV mapping stores |
+| `types.py` | Finance domain datatypes |
 
 ---
 

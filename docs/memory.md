@@ -60,7 +60,7 @@ class Episode:
 ### `SessionSummary`
 
 Narrative summary of a closed conversation session, generated eagerly by
-`SessionSummaryJob` once the session becomes inactive. Replaces per-turn episodes as
+`SessionSummariser` once the session becomes inactive. Replaces per-turn episodes as
 the retrieval unit for closed sessions.
 
 ```python
@@ -215,13 +215,13 @@ episode text for known entity names and creates `MENTIONS` edges.
 
 ### Session summaries (automatic, near-real-time)
 
-`SessionSummaryJob` runs every 10 minutes (configurable). For each session that has
+`SessionSummariser` runs every 10 minutes (configurable). For each session that has
 been inactive for ≥ `session_inactivity_minutes` (default: 30) and has no up-to-date
 summary, Haiku generates a single narrative covering the full session and writes it to
 `memory_session_summaries`. If the user reopens the session and adds new turns, the
 summary is regenerated on the next job tick. Raw episode rows are kept until the nightly
-Phase 52 consolidation deletes them (after 7 days), at which point it skips the LLM
-call since the eager summary already exists.
+consolidation deletes them (after 7 days), at which point it skips the LLM call since
+the eager summary already exists.
 
 ### Events
 
@@ -433,7 +433,7 @@ memory:
 |-------|---------|
 | `memory_facts` | Facts with pgvector embeddings, review/contradicted status, expiry |
 | `memory_episodes` | Raw per-turn records with pgvector embeddings |
-| `memory_session_summaries` | Eager per-session narrative summaries with pgvector embeddings |
+| `memory_session_summaries` | Eager per-session narrative summaries with pgvector embeddings (`SessionSummariser`) |
 | `memory_entities` | Named entities with canonical names, aliases, pgvector embeddings |
 | `memory_relationships` | Typed graph edges between memory objects |
 | `memory_events` | Discrete real-world events with participants and outcomes |

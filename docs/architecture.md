@@ -9,17 +9,47 @@ backend (`ze-api`). When the app is not connected, Ze delivers messages via
 
 All LLM calls go through OpenRouter. No direct Anthropic or OpenAI API calls are made.
 
+At a high level, the system is split into:
+
+- `ze-web` for chat and operational pages.
+- `ze-api` for transport, app wiring, and persistence.
+- `ze-core` for routing, orchestration, telemetry, and OpenRouter access.
+- `ze-plugin` for the extension seam shared by plugins and engine code.
+- `ze-data` for data portability and export/import/delete contracts.
+- `ze-memory` for retrieval and consolidation.
+- `ze-personal` for the personal-assistant domain: identity, contacts, goals, workflows,
+  proactive jobs, and the main general-purpose agents.
+- `ze-email`, `ze-calendar`, `ze-news`, `ze-prospecting`, and `ze-finance` for
+  domain-specific extensions.
+- `ze-onboarding`, `ze-ingestion`, `ze-correlation`, `ze-browser`, and
+  `ze-notifications` for shared support systems.
+- `ze-components` and `@ze/client` for server-driven UI and typed API consumption.
+
+---
+
+## Plugin Framework
+
+**Packages:** `ze-plugin` · `ze-data`
+
+`ze-plugin` is the shared extension seam. It defines the plugin contract, channels,
+signal sources, and integration protocol used by plugins and engine code. `ze-data`
+owns the data portability contract (`DataDomain`) and the service that exports,
+imports, and deletes plugin-owned data.
+
+See [docs/package-architecture.md](package-architecture.md) for the dependency rules
+and package split, and [docs/data-portability.md](data-portability.md) for the
+export/import/delete workflow.
+
 ---
 
 ## System Flow
 
 ```mermaid
 flowchart TD
-    T([Text]) --> R
-    V([Voice note]) --> TR[TranscriptionClient\nWhisper] --> R
-    P([Photo]) --> VC[vision_caption\nif no text] --> R
-
-    R[embed_route\nmultilingual-MiniLM-L12-v2]
+    T([Text]) --> PZ[preprocess]
+    V([Voice note]) --> PZ
+    P([Photo]) --> PZ
+    PZ --> R[embed_route\nmultilingual-MiniLM-L12-v2]
     R -->|confident + single agent| C[fetch_context\npgvector search]
     R -->|ambiguous / compound| D[decompose\nclaude-haiku]
     D --> C
@@ -30,6 +60,8 @@ flowchart TD
     H -->|user replies| F
     F --> I{compound?}
     G --> I
+    F --> X[correlate]
+    X --> I
     I -->|yes| J[synthesize]
     I -->|no| K[write_memory]
     J --> K
@@ -42,7 +74,9 @@ flowchart TD
 
 **Module:** `ze_core.routing`
 
-Routing runs on every message before any LLM is involved.
+Routing proper runs on every message after preprocessing. The router itself uses local
+embeddings and simple heuristics; `preprocess` may still call OpenRouter first for voice
+transcription or image captioning.
 
 1. At startup, each enabled agent's description (from `@agent` class attributes) is
    embedded using the shared `paraphrase-multilingual-MiniLM-L12-v2` instance.
@@ -64,9 +98,15 @@ the request as simple (word count, question marks, conjunctions — no extra LLM
 
 **Module:** `ze_core.orchestration`
 
-The graph is compiled once at startup in `ZeContainer` and bound to `NativeAppInterface`.
-Each user message is a separate `graph.ainvoke()` call, keyed by `thread_id`. Ze adds a
-separate `workflow_graph` for multi-step workflow execution.
+The conversation graph is compiled once at startup in `ZeContainer` and bound to
+`NativeAppInterface`. Each user message is a separate `graph.ainvoke()` call, keyed by
+`thread_id`. Ze also compiles a separate `workflow_graph` for multi-step workflow
+execution.
+
+At the top level, the runtime graph now includes a preprocessing node for multimodal
+input, a correlation node for inline connection surfacing, and a `plan_sequential`
+branch for compound routing results. Plugin graph nodes and edges are layered in at
+startup.
 
 ### Graph input factory
 
@@ -123,15 +163,18 @@ See [docs/native-interface.md](native-interface.md) for WebSocket thread handlin
 
 | Node | Module | Responsibility |
 |---|---|---|
+| `preprocess` | `nodes/preprocessing.py` | Normalise audio/image input before routing |
 | `embed_route` | `nodes/routing.py` | Embed prompt, score agents, choose path |
 | `decompose` | `nodes/routing.py` | Haiku decomposes compound tasks into subtasks |
 | `fetch_context` | `nodes/context.py` | pgvector semantic search over facts + episodes |
 | `capability_check` | `nodes/capability.py` | Evaluate permission mode for agent.intent |
 | `execute_tool` | `nodes/execution.py` | Call `agent.run()`, enforce timeout |
+| `correlate` | `nodes/correlation.py` | Surface inline relationship hypotheses when relevant |
 | `draft_response` | `nodes/draft.py` | Generate response, do not execute |
 | `await_confirmation` | `nodes/confirmation.py` | Pause graph, emit confirm_request frame |
 | `synthesize` | `nodes/synthesis.py` | Merge subtask results into one response |
 | `write_memory` | `nodes/memory.py` | Propose facts/episodes (fire-and-forget) |
+| `plan_sequential` | `nodes/routing.py` | Execute compound routing plans one step at a time |
 
 ### State
 
@@ -178,10 +221,86 @@ See [docs/adding-an-agent.md](adding-an-agent.md) for a full authoring guide.
 | `reminders` | NL time parsing, APScheduler firing | `ze-calendar` | Haiku |
 | `prospecting` | Browser extraction, outreach drafting | `ze-prospecting` | Full |
 | `news` | `get_headlines` (personalised), `search_news` (semantic) | `ze-news` | Mini |
+| `finance` | CSV/Trading212 ingestion, categorisation, recurring detection | `ze-finance` | Haiku |
 | `workflow` | APScheduler, multi-step plan execution | `ze-personal` | Full |
 | `goals` | Goal lifecycle (create, status, steer, pause, resume, abandon) | `ze-personal` | Full |
 
 See [docs/goals.md](goals.md) for conversational usage and gate behaviour.
+
+---
+
+## Onboarding
+
+**Package:** `ze-onboarding`
+
+The onboarding system owns first-run setup, seed questions, review-before-save, and
+reset scopes. `ze-api` adapts those protocols to WebSocket commands and persists the
+state in Postgres.
+
+See [docs/onboarding.md](onboarding.md) for the walkthrough and [docs/package-architecture.md](package-architecture.md) for the package boundary.
+
+---
+
+## Ingestion
+
+**Package:** `ze-ingestion`
+
+The ingestion pipeline normalises web pages, PDFs, audio, images, and text into a
+common content model, extracts structured information, and sinks it into memory and
+follow-up workflows.
+
+See [docs/ingestion.md](ingestion.md) for the pipeline, extractors, and plugin hooks.
+
+---
+
+## Correlation
+
+**Package:** `ze-correlation`
+
+Correlation turns memory and external signals into hypotheses and surfaced
+connections. It can run inline during chat turns and as a proactive background job.
+
+See [specs/phases/57-correlation-engine.md](../specs/phases/57-correlation-engine.md)
+and [specs/phases/58-inline-correlation.md](../specs/phases/58-inline-correlation.md)
+for the deeper design notes.
+
+---
+
+## Browser and Notifications
+
+**Packages:** `ze-browser` · `ze-notifications`
+
+The browser client is a thin HTTP wrapper around a Playwright sidecar used for
+extraction and browser-backed tools. Push delivery is abstracted behind
+`ze-notifications`, with ntfy as the current implementation.
+
+See [core/ze-browser/README.md](../core/ze-browser/README.md),
+[sidecar/browser/README.md](../sidecar/browser/README.md), and
+[core/ze-notifications/README.md](../core/ze-notifications/README.md).
+
+---
+
+## Finance
+
+**Package:** `ze-finance`
+
+Finance is a separate domain plugin for transaction ingestion, categorisation,
+recurring detection, and snapshot jobs. It has its own privacy model and LLM routing
+constraints.
+
+See [docs/finance.md](finance.md) for the domain overview.
+
+---
+
+## Eval Harness
+
+**Package:** `ze-eval`
+
+The eval harness runs scripted scenarios against the graph and uses an LLM judge for
+comparison. It is a separate operational surface, not part of the user-facing chat
+loop.
+
+See [docs/eval.md](eval.md) for scenarios, runners, and judge workflow.
 
 ---
 
@@ -200,7 +319,8 @@ Five memory layers, all backed by Postgres + pgvector:
 - **Events** (`memory_events`) — discrete real-world events (meetings, calls) extracted
   from conversation or calendar. Can have entity participants.
 - **Procedures** (`memory_procedures`) — reusable step lists (how to do X) captured when
-  Ze executes a multi-step task successfully.
+  Ze executes a multi-step task successfully and surfaced back into the active goal
+  while the goal is still running when a stable method emerges.
 - **Profile facets** (`memory_profile_facets`) — a structured, key-value portrait of the
   user synthesised nightly from facts and episodes.
 
@@ -351,8 +471,8 @@ gates fit well: Ze works in the background and checks in at **verification gates
 | Component | Module | Responsibility |
 |---|---|---|
 | `GoalStore` | `ze_personal/goals/postgres.py` | Postgres CRUD for goals, milestones, gates, learnings, traces, suggestions |
-| `GoalPlanner` | `ze_personal/goals/planner.py` | LLM decomposition, replanning, retrospective synthesis, learning promotion, suggestion generation |
-| `GoalExecutor` | `ze_personal/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch, learning promotion on completion |
+| `GoalPlanner` | `ze_personal/goals/planner.py` | LLM decomposition, replanning, retrospective synthesis, learning promotion, procedure extraction/reuse, suggestion generation |
+| `GoalExecutor` | `ze_personal/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch, learning promotion on completion, procedure reuse during active goals |
 | `GoalAgent` | `ze_personal/agents/goals/agent.py` | Conversational create / status / steer / pause / resume / abandon |
 
 Goals sit **above** workflows: a goal spans weeks; a workflow execution is what can
@@ -383,18 +503,19 @@ See [docs/goals.md](goals.md) for usage including steering, proactive suggestion
 
 ## Multimodal input
 
-**Module:** `ze_agents/interface/` (preprocessing) · `ze_core.openrouter` (transcription client)
+**Module:** `ze_core.orchestration.nodes.preprocessing` · `ze_core.openrouter` (transcription client)
 
-Ze accepts three input types from the web app, all handled before the graph runs:
+Ze accepts three input types from the web app. The preprocessing node normalises them
+before routing:
 
 | Input | Handler | Processing |
 |---|---|---|
 | Text | Existing path | Passed directly as `prompt` |
-| Voice note | `InputPreprocessor` | Transcribed to text by `TranscriptionClient` (Whisper via OpenRouter), result used as `prompt`. `input_modality = "voice"` |
-| Photo | `InputPreprocessor` | Stored in `AgentState.image_data`. `input_modality = "image"` |
+| Voice note | `preprocess` | Transcribed to text by OpenRouter Whisper, result used as `prompt`; `input_modality = "voice"` |
+| Photo | `preprocess` | Stored in `AgentState.image_data`; if no caption is provided, a lightweight vision model generates routing text |
 
-**Vision captioning** — when a photo arrives with no text caption, `embed_route` calls
-a lightweight vision model (`models.vision_caption` in config, defaults to
+**Vision captioning** — when a photo arrives with no text caption, `preprocess`
+calls a lightweight vision model (`models.vision_caption` in config, defaults to
 `google/gemini-flash-1.5`) to generate a short description used for routing.
 
 **Vision-capable agents** — agents with `vision_capable = True` receive a
@@ -407,10 +528,11 @@ receive only the routing caption as text.
 
 **Package:** `ze-components`
 
-Ze agents emit structured UI as **primitive trees**, not named component types. The frontend
-renders a fixed vocabulary of primitives recursively — the switch in `PrimitiveRenderer.tsx`
-covers exactly nine types and never grows. New semantic UI patterns are Python functions
-(builder helpers) that compose these primitives; no frontend changes are required.
+Ze agents emit structured UI as **primitive trees**, not named component types. The
+frontend renders a fixed vocabulary of primitives recursively — the switch in
+`PrimitiveRenderer.tsx` covers the currently supported primitive set. New semantic UI
+patterns are Python functions (builder helpers) that compose these primitives; most new
+patterns do not require frontend changes.
 
 ### Primitive vocabulary
 
@@ -425,6 +547,8 @@ covers exactly nine types and never grows. New semantic UI patterns are Python f
 | `button` | Interactive | Tappable action; emits `action` string back to backend as a message |
 | `progress` | Content | Horizontal progress bar (0.0–1.0) |
 | `table` | Structured | Header row + data rows (the one primitive that can't be cleanly composed) |
+| `form` | Structured | Input form used by onboarding and guided collection flows |
+| `connections` | Structured | Relationship summary with evidence, surfaced by correlation |
 
 ### How it works
 
@@ -555,7 +679,7 @@ needed for codegen — extracted at Python import time by `scripts/codegen.ts`).
 | `POST` | `/api/v0/memory/consolidate` | `consolidateMemory` |
 | `GET` | `/api/v0/memory/profile` | `getProfile` |
 
-### Capabilities / Workflows / Data
+### Capabilities / Workflows / Data / Ingestion
 
 | Method | Path | operationId |
 |---|---|---|
@@ -568,6 +692,12 @@ needed for codegen — extracted at Python import time by `scripts/codegen.ts`).
 | `POST` | `/api/v0/data/import` | `importData` |
 | `POST` | `/api/v0/data/delete-intent` | `createDeleteIntent` |
 | `DELETE` | `/api/v0/data` | `deleteData` |
+
+### Internal tooling
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/eval/chat` | Internal evaluation chat entry point |
 
 ---
 

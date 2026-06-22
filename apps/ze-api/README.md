@@ -96,14 +96,14 @@ Full protocol reference: [docs/native-interface.md](../../docs/native-interface.
 
 | Route | Description |
 |---|---|
-| `GET /messages` | Unread message list (WebSocket replay fallback) |
-| `GET /capabilities` | List capability overrides |
-| `PATCH /capabilities/{agent}/{action}` | Update a capability mode |
-| `GET /memory/facts` | Inspect stored facts |
-| `GET /memory/profile` | Get current user profile |
-| `GET /routing/log` | Routing decision log |
-| `GET /costs` | Token usage and cost breakdown |
-| `GET /workflows` | List workflows |
+| `GET /api/v0/messages` | Unread message list (WebSocket replay fallback) |
+| `GET /api/v0/capabilities` | List capability overrides |
+| `PUT /api/v0/capabilities/{agent}/{intent}` | Update a capability mode |
+| `GET /api/v0/memory/facts` | Inspect stored facts |
+| `GET /api/v0/memory/profile` | Get current user profile |
+| `GET /api/v0/routing/log` | Routing decision log |
+| `GET /api/v0/costs/summary` | Token usage and cost breakdown |
+| `GET /api/v0/workflows` | List workflows |
 
 All routes require `Authorization: Bearer <ZE_API_KEY>`.
 

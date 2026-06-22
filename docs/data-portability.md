@@ -3,6 +3,13 @@
 Ze lets you export all your personal data, restore it to another instance, and
 permanently delete everything. All three operations are in **Settings → Your data**.
 
+The portability contract itself lives in `ze-data`:
+
+- `DataDomain` describes one export/import/delete-capable domain.
+- `DataPortabilityService` collects all registered domains and executes the archive,
+  import, and delete flows.
+- Plugins contribute domains through `ZePlugin.data_domains()`.
+
 ---
 
 ## Export

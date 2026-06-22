@@ -38,6 +38,9 @@ New proactive background job?
 New memory retrieval policy or graph predicate?
   → ze-memory
 
+New export/import/delete data domain?
+  → ze-data (re-exported from ze_sdk)
+
 New stable authoring type or protocol?
   → ze-agents  (re-exported from ze_sdk)
 

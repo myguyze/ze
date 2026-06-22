@@ -41,14 +41,14 @@ flow.
 A raw record of the conversation turn (prompt + response) is written automatically as
 an episode after every run. Episodes don't require user approval.
 
-**Session summaries** (`ze_api/jobs/session_summary_job.py`)
+**Session summaries** (`ze_memory/session_summary.py`)
 
-`SessionSummaryJob` runs every 10 minutes. When a session has been inactive for ≥ 30
+`SessionSummariser` runs every 10 minutes. When a session has been inactive for ≥ 30
 minutes, Haiku generates a single narrative summary of the full session and writes it
 to `memory_session_summaries`. If the user returns and adds more turns before the
 session is archived, the summary is regenerated on the next tick. Raw episodes are
-kept until nightly archival (Phase 52) removes them — at that point the LLM call is
-skipped because the eager summary already exists.
+kept until nightly archival removes them — at that point the LLM call is skipped
+because the eager summary already exists.
 
 **Memory injection**
 
@@ -377,7 +377,7 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 |---|---|---|
 | 2:00 AM daily | Memory consolidation + profile synthesis | `ze_memory/consolidator.py` |
 | 3:00 AM daily | Contacts consolidation (dedup + merge) | `ze_personal/contacts/consolidator.py` |
-| Every 10 min | Session summary generation | `ze_api/jobs/session_summary_job.py` |
+| Every 10 min | Session summary generation | `ze_memory/session_summary.py` |
 | 7:00 AM Sun | Weekly insight generation | `ze_personal/jobs/insights.py` |
 | 7:45 AM daily | Calendar sync + reminder scheduling | `ze_calendar/jobs/calendar_reminder.py` |
 | 8:00 AM daily | Morning briefing (with personalised headlines) | `ze_personal/jobs/briefing.py` |

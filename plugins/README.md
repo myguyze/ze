@@ -22,7 +22,6 @@ Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md]
 | [ze-prospecting](ze-prospecting/) | Autonomous prospect research, campaign store, outreach drafting |
 | [ze-news](ze-news/) | News ingestion, personalised ranking, credibility analysis, news agent |
 | [ze-finance](ze-finance/) | Finance domain — portfolio positions, bank transactions, spending summaries, proactive P&L alerts |
-| [ze-legal](ze-legal/) | Legal domain *(in progress)* |
 
 ## Dependency graph
 
