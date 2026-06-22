@@ -7,7 +7,7 @@ from fastapi.responses import Response
 
 from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import DeleteIntentResponse, DeleteRequest, ImportResponse
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 from ze_data.portability.service import DataPortabilityService, InstanceNotEmptyError, SchemaMismatchError
 
 log = get_logger(__name__)

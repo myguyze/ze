@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 
 from ze_agents.types import GateDecision
 from ze_agents.defaults import MODEL_WORKFLOW_VERIFY
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_core.orchestration.state import AgentState
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import StepResult, WorkflowStep

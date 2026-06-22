@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 from ze_correlation.prompts import CORRELATION_SYSTEM, build_correlation_user_message
 from ze_correlation.store import PostgresHypothesisStore

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from ze_agents.client import LLMClient
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

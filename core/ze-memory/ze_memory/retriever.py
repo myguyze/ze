@@ -4,7 +4,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.tasks import fire_and_forget
 from ze_memory.consolidation_store import _cosine_similarity as _cosine_similarity  # noqa: F401
 

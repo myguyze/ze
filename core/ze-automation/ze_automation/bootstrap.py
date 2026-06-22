@@ -7,7 +7,7 @@ from typing import Any
 
 import asyncpg
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.registry import get_agent as _get_agent
 from ze_automation.accountability.store import AccountabilityStore
 from ze_automation.goals.executor import GoalExecutor

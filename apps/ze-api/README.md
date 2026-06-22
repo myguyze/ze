@@ -12,7 +12,7 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 - REST management API — memory inspection, costs, capabilities, workflows, contacts
 - `ZeContainer` — DI wiring for all plugins, integrations, and shared services
 - Alembic meta-migrator — discovers and runs migrations from all owning packages
-- Agent harness hooks — tool-call caps, component collection, cost limits
+- Agent harness hooks — tool-call caps (`ze_agents`), component collection (`ze_components`); configured in `ze_core/bootstrap.py`
 - NativeAppInterface — WebSocket delivery when connected, ntfy push when not
 
 ### Integration
@@ -26,15 +26,12 @@ Collects plugin signal sources via `collect_plugin_signal_sources()` in `contain
 | Module | What it provides |
 |---|---|
 | `api/` | FastAPI app, WebSocket (`/ws`), REST routes, schemas |
-| `bootstrap.py` | Agent DI wiring via plugin `agent_module_paths()` |
 | `interface/native.py` | `NativeAppInterface` — WebSocket + ntfy delivery |
 | `onboarding/` | Postgres-backed onboarding store, persistence, and reset |
-| `hooks/` | Agent harness hooks (tool-call cap, component collection, cost cap) |
-| `container.py` | `ZeContainer` — DI wiring, plugin signal source collection, registers all `ZePlugin` implementations |
-| `settings.py` | `Settings` (Pydantic BaseSettings + YAML) |
-| `config/config.yaml` | Models, contacts, proactive schedules |
-| `config/persona.yaml` | Persona profiles and dials |
-| `migrations/` | Alembic env + meta-runner (`migrate.py`); no owned tables |
+| `container.py` | `ZeContainer` — DI wiring, plugin signal source collection |
+| `settings.py` | `ZeApiSettings` (Pydantic BaseSettings + YAML) |
+| `migrate.py` | Alembic meta-migrator — discovers all package migration chains |
+| `migrations/env.py` | Alembic runner harness (no owned tables) |
 
 Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`. Core package jobs (automation, memory, correlation) are registered via package bootstrap modules — see [specs/phases/76-ze-api-shell-cleanup.md](../../specs/phases/76-ze-api-shell-cleanup.md).
 

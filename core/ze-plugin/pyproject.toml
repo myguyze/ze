@@ -9,12 +9,14 @@ description = "Ze plugin extension framework — ZePlugin, channels, signals"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-logging",
     "ze-data",
     "pyyaml>=6.0",
 ]
 
 [tool.uv.sources]
 ze-agents = { workspace = true }
+ze-logging = { workspace = true }
 ze-data = { workspace = true }
 
 [dependency-groups]

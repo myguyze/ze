@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_news.types import (
     CredibilityFlag,
     CredibilityReport,

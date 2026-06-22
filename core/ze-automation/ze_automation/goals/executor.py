@@ -24,7 +24,7 @@ from ze_automation.goals.types import (
     PriorMilestoneOutput,
 )
 from ze_agents.interface.types import Action, Notification
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

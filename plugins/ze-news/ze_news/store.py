@@ -9,7 +9,7 @@ import asyncpg
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_news.types import (
     Article,
     CredibilityFlag,

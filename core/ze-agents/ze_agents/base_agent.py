@@ -17,7 +17,7 @@ from ze_agents.hooks import (
     ToolStartEvent,
     get_hooks,
 )
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.types import AgentContext, AgentResult, GateDecision, Intent, Mode, RetrievalRequest, ToolCall
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).

@@ -9,8 +9,9 @@ from fastapi import WebSocket
 
 from ze_agents.tasks import fire_and_forget
 from ze_api.api.websocket.connection import ConnectionManager
+from ze_api.api.websocket.context import bound_turn_context
 from ze_api.api.websocket.serializers import ephemeral_assistant_message, extract_thread_id
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 
@@ -42,7 +43,8 @@ async def handle_confirm(
             return pending_config
         try:
             await conn_mgr.send_frame({"type": "typing"})
-            outcome = await container.resume_turn(pending_config)
+            with bound_turn_context(thread_id):
+                outcome = await container.resume_turn(pending_config)
         except Exception as exc:
             log.exception("ws_resume_error", error=str(exc))
             await conn_mgr.send_frame({"type": "error", "detail": "Resume failed."})

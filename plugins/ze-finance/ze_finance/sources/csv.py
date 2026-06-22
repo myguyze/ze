@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from ze_agents.client import LLMClient
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_finance.errors import FinanceParseError
 from ze_finance.store import CsvMappingStore
 from ze_finance.types import (

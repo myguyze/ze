@@ -4,7 +4,7 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

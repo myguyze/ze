@@ -8,7 +8,7 @@ import typing
 from typing import Any, get_type_hints
 
 from ze_agents.errors import AgentConfigError
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_plugin.integration import ZeIntegration
 from ze_plugin.plugin import ZePlugin
 

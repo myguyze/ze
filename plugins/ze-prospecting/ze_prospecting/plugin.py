@@ -5,7 +5,7 @@ from typing import Any
 
 import asyncpg
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
 from ze_sdk.proactive import ProactiveScheduler

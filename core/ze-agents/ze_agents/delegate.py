@@ -10,7 +10,7 @@ import time
 from typing import Any
 
 from ze_agents.errors import AgentAbortedError
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.types import AgentContext, ToolCall
 
 log = get_logger(__name__)

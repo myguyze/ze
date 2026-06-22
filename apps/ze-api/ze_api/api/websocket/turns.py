@@ -10,8 +10,9 @@ from ze_agents.interface.types import RawInput
 from ze_agents.progress.reporter import ProgressReporter
 from ze_api.api.websocket.confirmation import send_confirmation_request
 from ze_api.api.websocket.connection import ConnectionManager
+from ze_api.api.websocket.context import bound_turn_context
 from ze_api.api.websocket.serializers import extract_thread_id
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 from ze_core.conversation.messages import Message
 
 log = get_logger(__name__)
@@ -81,11 +82,12 @@ async def handle_message(
     config_extra["token_sink"] = _token_sink
 
     try:
-        outcome = await container.invoke_raw_turn(
-            thread_id,
-            RawInput(text=text),
-            config_extra=config_extra,
-        )
+        with bound_turn_context(thread_id):
+            outcome = await container.invoke_raw_turn(
+                thread_id,
+                RawInput(text=text),
+                config_extra=config_extra,
+            )
     except Exception as exc:
         log.exception("ws_invoke_error", error=str(exc))
         await conn_mgr.send_frame({"type": "error", "detail": "Something went wrong."})

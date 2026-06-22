@@ -5,7 +5,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.types import AgentContext, RetrievalRequest
 from ze_core.orchestration.state import AgentState
 

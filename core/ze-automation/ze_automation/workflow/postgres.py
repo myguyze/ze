@@ -6,7 +6,7 @@ from uuid import UUID
 
 import asyncpg
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
 
 log = get_logger(__name__)

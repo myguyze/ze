@@ -8,7 +8,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from ze_agents.client import LLMClient
 from ze_agents.hooks import register_hook
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.settings import Settings as CoreSettings
 from ze_agents.tool_cap_hook import ToolCallCapHook
 from ze_components.hook import ComponentCollectionHook

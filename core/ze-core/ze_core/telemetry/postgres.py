@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_core.telemetry.types import CostRecord
 
 log = get_logger(__name__)

@@ -5,7 +5,7 @@ import re
 import uuid
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_ingestion.classifier import ContentClassifier
 from ze_ingestion.errors import UnsupportedContentError
 from ze_ingestion.extractors import Extractor

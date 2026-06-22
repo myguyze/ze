@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_core.telemetry.types import CostRecord
 
 log = get_logger(__name__)

@@ -8,7 +8,7 @@ from html.parser import HTMLParser
 import feedparser
 import httpx
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_news.sources.base import NewsSource
 from ze_news.types import Article
 

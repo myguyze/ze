@@ -1,5 +1,6 @@
 import json
-from ze_api.logging import configure_logging, get_logger, bind_context, unbind_context
+
+from ze_logging import bind_context, configure_logging, get_logger, unbind_context
 
 
 def test_configure_logging_does_not_raise():

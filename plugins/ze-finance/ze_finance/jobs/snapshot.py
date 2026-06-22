@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_finance.categoriser import CategoryInferrer
 from ze_finance.signals.finance import FinanceSignalSource
 from ze_finance.source import DataSource

@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import WebSocket
 
 from ze_api.api.websocket.serializers import message_to_dict
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

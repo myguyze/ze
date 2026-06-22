@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

@@ -9,7 +9,7 @@ from enum import Enum
 from inspect import isclass
 from typing import TYPE_CHECKING, Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer

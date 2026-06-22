@@ -56,7 +56,7 @@ from ze_proactive.scheduler import ProactiveScheduler
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_api.interface.native import NativeAppInterface
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 from ze_api.settings import Settings, get_settings
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
 

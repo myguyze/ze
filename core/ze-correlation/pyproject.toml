@@ -9,6 +9,7 @@ description = "Ze correlation engine — cross-domain hypothesis formation from 
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-logging",
     "ze-memory",
     "asyncpg>=0.29",
 ]
@@ -26,6 +27,7 @@ asyncio_mode = "auto"
 
 [tool.uv.sources]
 ze-agents = { workspace = true }
+ze-logging = { workspace = true }
 ze-memory  = { workspace = true }
 
 [tool.hatch.build.targets.wheel]

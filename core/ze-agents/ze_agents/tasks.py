@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Coroutine
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 _log = get_logger(__name__)
 

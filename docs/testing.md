@@ -11,6 +11,7 @@ All tests run from the **repository root**. Every package has a `make test-<name
 |---|---|---|
 | `make test` / `make test-api` | ze-api | pytest |
 | `make test-core` | ze-core | pytest |
+| `make test-logging` | ze-logging | pytest |
 | `make test-agents` | ze-agents | pytest |
 | `make test-plugin` | ze-plugin | pytest |
 | `make test-sdk` | ze-sdk | pytest |

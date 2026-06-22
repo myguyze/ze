@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ze_agents.types import GateDecision, Mode
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 if TYPE_CHECKING:
     from ze_core.capability.overrides import CapabilityOverrideStore

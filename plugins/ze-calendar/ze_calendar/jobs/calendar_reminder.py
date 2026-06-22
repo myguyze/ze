@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, TYPE_CHECKING
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_calendar.reminders.calendar import CalendarReminderService
 

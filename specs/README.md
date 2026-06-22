@@ -102,6 +102,7 @@ explicitly deferred before implementation begins.
 | 73 | [API Surface](phases/73-api-surface.md) | 🔲 Pending |
 | 75 | [Server-Driven UI Package](phases/75-server-driven-ui-package.md) | 🔲 Pending |
 | 76 | [ze-api Shell Cleanup](phases/76-ze-api-shell-cleanup.md) | 🔲 Pending |
+| 77 | [ze-logging Package](phases/77-ze-logging.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

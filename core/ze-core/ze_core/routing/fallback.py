@@ -4,12 +4,13 @@ import json
 from typing import TYPE_CHECKING
 
 from ze_agents.errors import RoutingError
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_core.routing.types import LLMClient, RoutingEnvelope, SubTask
 
 if TYPE_CHECKING:
+    from structlog import BoundLogger
+
     from ze_agents.base_agent import BaseAgent
-    from ze_agents.logging import _BoundLogger
 
 _SYSTEM_PROMPT = """\
 You are a routing assistant for a personal AI assistant.
@@ -54,7 +55,7 @@ def _hard_fallback_agent(
     agent_registry: dict[str, type[BaseAgent]],
     prompt: str,
     raw_scores: dict[str, float],
-    log: _BoundLogger,
+    log: BoundLogger,
     last_exc: Exception | None,
 ) -> RoutingEnvelope:
     log.error("fallback_exhausted", error=str(last_exc))
@@ -83,7 +84,7 @@ async def decompose(
     client: LLMClient,
     agent_registry: dict[str, type[BaseAgent]],
     fallback_model: str,
-    logger: _BoundLogger | None = None,
+    logger: BoundLogger | None = None,
 ) -> RoutingEnvelope:
     log = logger or get_logger(__name__)
     known_agents = set(agent_registry)

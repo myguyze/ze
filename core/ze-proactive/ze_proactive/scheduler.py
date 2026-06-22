@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 if TYPE_CHECKING:
     from ze_proactive.job import ProactiveJob

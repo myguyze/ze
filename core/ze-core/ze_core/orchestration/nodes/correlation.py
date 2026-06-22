@@ -6,7 +6,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_core.orchestration.state import AgentState
 
 log = get_logger(__name__)

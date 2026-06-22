@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_correlation import CorrelationEngine, CorrelationJob, CorrelationPushConsumer, PostgresHypothesisStore
 from ze_memory.relevance import RelevanceModel
 from ze_proactive.notifier import ProactiveNotifier

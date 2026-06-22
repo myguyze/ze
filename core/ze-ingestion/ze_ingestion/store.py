@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_ingestion.types import ExtractionResult, ProcessedContent
 
 log = get_logger(__name__)

@@ -7,7 +7,7 @@ from ze_api.api.schemas import (
     CapabilityModeUpdate,
     FactReviewRequest,
 )
-from ze_api.logging import configure_logging
+from ze_logging import configure_logging
 
 
 @pytest.fixture(autouse=True)

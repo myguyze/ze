@@ -16,7 +16,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_memory.types import RelevanceEntry, RelevanceScore, RelevanceSet
 
 log = get_logger(__name__)

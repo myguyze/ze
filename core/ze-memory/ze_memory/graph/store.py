@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 from ze_memory.graph.types import GraphExpansion, Relationship
 

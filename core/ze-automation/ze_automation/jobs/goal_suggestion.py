@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from ze_agents.interface.types import Action, Notification
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk.memory import MemoryStore
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier

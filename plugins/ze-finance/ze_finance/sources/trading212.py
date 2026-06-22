@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_finance.errors import ZeIntegrationError
 from ze_finance.types import (
     Account,

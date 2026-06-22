@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_memory.defaults import SESSION_SUMMARY_CHECK_INTERVAL_MINUTES
 from ze_memory.session_summary import SessionSummariser
 from ze_proactive.scheduler import ProactiveScheduler

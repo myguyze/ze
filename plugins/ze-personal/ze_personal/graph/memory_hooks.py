@@ -9,7 +9,7 @@ from typing import Any
 
 from ze_sdk.channels import ChannelHandle, ChannelType
 from ze_personal.contacts.types import ContactProposal, Person, PersonSource
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

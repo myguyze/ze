@@ -13,7 +13,7 @@ from openrouter.components.chatstreamchunk import ChatStreamChunk
 from openrouter.types import UNSET, UNSET_SENTINEL
 from ze_agents.errors import OpenRouterError, RateLimitError
 from ze_core.openrouter.types import TokenUsage
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 _BACKOFFS = [1.0, 2.0, 4.0]

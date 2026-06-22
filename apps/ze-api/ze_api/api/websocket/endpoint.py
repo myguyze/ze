@@ -10,7 +10,7 @@ from ze_api.api.websocket.confirmation import handle_confirm
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.onboarding import send_onboarding_view
 from ze_api.api.websocket.turns import handle_message
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

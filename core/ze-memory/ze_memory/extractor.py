@@ -7,7 +7,7 @@ from typing import Any
 
 from typing import TYPE_CHECKING
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 from ze_memory.defaults import MODEL_SYNTHESIS
 from ze_memory.types import Event, Fact

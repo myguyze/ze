@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ze_agents.errors import HookAbort
 from ze_agents.hooks import BaseHarnessHook, LoopStartEvent, ToolStartEvent
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

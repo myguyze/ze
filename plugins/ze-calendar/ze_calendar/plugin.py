@@ -7,7 +7,7 @@ from typing import Any, TYPE_CHECKING
 import asyncpg
 
 from ze_agents.client import LLMClient
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
 from ze_proactive.notifier import ProactiveNotifier

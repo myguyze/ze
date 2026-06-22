@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.tasks import fire_and_forget
 from ze_core.telemetry.context import get_cost_context
 from ze_core.telemetry.store import CostStore

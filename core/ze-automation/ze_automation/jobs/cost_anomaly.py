@@ -4,7 +4,7 @@ import statistics
 from datetime import datetime, timezone
 from typing import Any
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
 from ze_automation.accountability.store import AccountabilityStore

@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
     "ze-data",
+    "ze-logging",
     "ze-plugin",
     "ze-proactive",
     "ze-memory",
@@ -20,6 +21,7 @@ dependencies = [
 [tool.uv.sources]
 ze-agents     = { workspace = true }
 ze-data       = { workspace = true }
+ze-logging    = { workspace = true }
 ze-plugin     = { workspace = true }
 ze-proactive  = { workspace = true }
 ze-memory     = { workspace = true }

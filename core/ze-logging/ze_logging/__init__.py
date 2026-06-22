@@ -6,6 +6,13 @@ from typing import IO
 
 import structlog
 
+__all__ = [
+    "bind_context",
+    "configure_logging",
+    "get_logger",
+    "unbind_context",
+]
+
 
 class _TeeStream(io.IOBase):
     """Write to multiple streams simultaneously."""

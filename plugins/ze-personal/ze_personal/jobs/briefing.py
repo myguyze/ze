@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ze_personal.contacts.store import PersonStore
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk.proactive import PushLogStore
 from ze_agents.settings import Settings
 from ze_automation.workflow.store import WorkflowStore

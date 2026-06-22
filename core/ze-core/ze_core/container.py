@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, get_type_hints
 
 from ze_agents.errors import AgentConfigError, RoutingError
 from ze_agents.interface.types import RawInput
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.types import AbortToken
 from ze_core.conversation import make_graph_input
 

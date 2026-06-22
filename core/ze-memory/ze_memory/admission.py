@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_memory.relevance import RelevanceModel, _normalize
 from ze_memory.types import Signal
 

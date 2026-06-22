@@ -4,7 +4,7 @@ import json
 
 from ze_agents import defaults
 from ze_agents.errors import WorkflowPlanError
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.client import LLMClient
 from ze_sdk.memory import Procedure
 from ze_automation.workflow.types import StepResult, WorkflowStep

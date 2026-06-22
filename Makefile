@@ -57,6 +57,7 @@ help:
 	@echo "  Testing (see docs/testing.md)"
 	@echo "    test / test-api      Run ze-api tests (skips slow)"
 	@echo "    test-core            Run ze-core tests"
+	@echo "    test-logging         Run ze-logging tests"
 	@echo "    test-agents          Run ze-agents tests"
 	@echo "    test-plugin          Run ze-plugin tests"
 	@echo "    test-sdk             Run ze-sdk tests"
@@ -226,6 +227,7 @@ pytest_pkg  = $(if $(SLOW),$(PYTEST_SLOW),$(PYTEST_FAST)) $(1)
 
 # Ordered list for test-all (core → integrations → plugins → apps)
 TEST_PY_PACKAGES := \
+	test-logging \
 	test-agents \
 	test-plugin \
 	test-sdk \
@@ -249,7 +251,7 @@ TEST_PY_PACKAGES := \
 	test-news \
 	test-api
 
-.PHONY: test test-api test-core test-agents test-plugin test-sdk test-proactive \
+.PHONY: test test-api test-core test-logging test-agents test-plugin test-sdk test-proactive \
 	test-memory test-onboarding test-correlation test-browser test-notifications \
 	test-components test-eval test-google test-trading212 test-ingestion test-automation test-personal test-prospecting test-email \
 	test-calendar test-news test-all test-web web-test
@@ -259,6 +261,9 @@ test test-api:
 
 test-core:
 	$(call pytest_pkg,core/ze-core/tests)
+
+test-logging:
+	$(call pytest_pkg,core/ze-logging/tests)
 
 test-agents:
 	$(call pytest_pkg,core/ze-agents/tests)

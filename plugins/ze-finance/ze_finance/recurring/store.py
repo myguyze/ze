@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import asyncpg
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_finance.recurring.types import (
     RecurringExpense,
     RecurringStatus,

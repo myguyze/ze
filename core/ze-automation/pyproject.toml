@@ -9,6 +9,7 @@ description = "Shared automation substrate for Ze — goals, workflows, accounta
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-logging",
     "ze-proactive",
     "ze-memory",
     "ze-data",
@@ -31,6 +32,7 @@ testpaths = ["tests"]
 
 [tool.uv.sources]
 ze-agents    = { workspace = true }
+ze-logging   = { workspace = true }
 ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
 ze-data      = { workspace = true }

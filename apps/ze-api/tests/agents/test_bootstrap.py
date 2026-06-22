@@ -8,7 +8,7 @@ from ze_agents.bootstrap import bootstrap_agents
 from ze_personal.agents.companion.agent import CompanionAgent
 from ze_agents.registry import _instances, get_agent
 from ze_personal.agents.research.agent import ResearchAgent
-from ze_api.logging import configure_logging
+from ze_logging import configure_logging
 from ze_api.settings import Settings, get_settings
 
 

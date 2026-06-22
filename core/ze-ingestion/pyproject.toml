@@ -8,6 +8,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-logging",
     "ze-memory",
     "ze-browser",
     "asyncpg>=0.29",
@@ -37,6 +38,7 @@ testpaths = ["tests"]
 
 [tool.uv.sources]
 ze-agents = { workspace = true }
+ze-logging = { workspace = true }
 ze-memory = { workspace = true }
 ze-browser = { workspace = true }
 

@@ -8,7 +8,7 @@ from ze_api.api.routes import capabilities, contacts, costs, data, eval, goals, 
 from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container
-from ze_api.logging import configure_logging, get_logger
+from ze_logging import configure_logging, get_logger
 from ze_api import migrate as ze_migrate
 from ze_api.settings import get_settings
 

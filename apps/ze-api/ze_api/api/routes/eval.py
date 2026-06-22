@@ -3,7 +3,7 @@ from ze_agents.interface.types import RawInput
 from ze_core.telemetry.context import set_flow_context
 
 from ze_api.api.schemas import EvalChatRequest, EvalChatResponse, EvalRoutingInfo, EvalToolCall
-from ze_api.logging import get_logger
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 

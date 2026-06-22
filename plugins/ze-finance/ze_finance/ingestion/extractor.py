@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from ze_agents.client import LLMClient
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_ingestion.types import ContentType, ExtractionResult, ProcessedContent
 from ze_finance.errors import FinanceParseError
 from ze_finance.sources.csv import CsvSchemaInferrer, CsvDataSource, parse_csv_content

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ze_agents.base_agent import BaseAgent
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_agents.registry import agent
 from ze_agents.tool import ToolAccess, tool
 from ze_agents.types import AgentContext, AgentResult, Intent, Mode

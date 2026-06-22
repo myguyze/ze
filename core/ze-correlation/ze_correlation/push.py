@@ -6,7 +6,7 @@ from uuid import UUID
 
 import numpy as np
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 from ze_correlation.engine import CorrelationEngine
 from ze_correlation.store import PostgresHypothesisStore

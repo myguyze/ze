@@ -6,7 +6,7 @@ from typing import Any, Callable
 import asyncpg
 
 from ze_agents.client import LLMClient
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_memory.bootstrap import consolidation_enabled
 from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings

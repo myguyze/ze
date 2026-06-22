@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from uuid import UUID
 
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 
 from ze_correlation.types import EvidenceRef, Hypothesis
 

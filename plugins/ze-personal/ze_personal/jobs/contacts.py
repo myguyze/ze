@@ -1,5 +1,5 @@
 from ze_personal.contacts.store import PersonStore
-from ze_agents.logging import get_logger
+from ze_logging import get_logger
 from ze_sdk.proactive import proactive_job
 from ze_sdk.proactive import ProactiveNotifier
 from ze_agents.interface.types import Action, Notification
