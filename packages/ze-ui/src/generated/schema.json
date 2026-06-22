@@ -1,0 +1,505 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ze UI Primitives",
+  "$defs": {
+    "FormField": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "field_type": {
+          "enum": [
+            "text",
+            "textarea",
+            "number",
+            "date",
+            "select",
+            "multiselect",
+            "boolean",
+            "chips"
+          ]
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "help_text": {
+          "type": "string"
+        },
+        "default_value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ]
+    },
+    "ConnectionEvidence": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "kind"
+      ]
+    },
+    "ConnectionItem": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "narrative": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConnectionEvidence"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "narrative",
+        "relation",
+        "confidence"
+      ]
+    },
+    "Col": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Primitive"
+          }
+        },
+        "gap": {
+          "enum": [
+            "none",
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "variant": {
+          "enum": [
+            "default",
+            "card",
+            "section"
+          ]
+        },
+        "type": {
+          "const": "col"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "children",
+        "type"
+      ]
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Primitive"
+          }
+        },
+        "gap": {
+          "enum": [
+            "none",
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ]
+        },
+        "type": {
+          "const": "row"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "children",
+        "type"
+      ]
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "style": {
+          "enum": [
+            "heading",
+            "subheading",
+            "body",
+            "label",
+            "caption",
+            "code"
+          ]
+        },
+        "color": {
+          "enum": [
+            "default",
+            "muted",
+            "success",
+            "warning",
+            "error"
+          ]
+        },
+        "type": {
+          "const": "text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "content",
+        "type"
+      ]
+    },
+    "Badge": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "color": {
+          "enum": [
+            "default",
+            "success",
+            "warning",
+            "error",
+            "info"
+          ]
+        },
+        "type": {
+          "const": "badge"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "type"
+      ]
+    },
+    "Divider": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "divider"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ]
+    },
+    "Spacer": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "enum": [
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "type": {
+          "const": "spacer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ]
+    },
+    "Button": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "style": {
+          "enum": [
+            "primary",
+            "secondary",
+            "danger"
+          ]
+        },
+        "type": {
+          "const": "button"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "action",
+        "type"
+      ]
+    },
+    "ProgressBar": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "const": "progress"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "type"
+      ]
+    },
+    "Table": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "type": {
+          "const": "table"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "headers",
+        "rows",
+        "type"
+      ]
+    },
+    "Form": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FormField"
+          }
+        },
+        "type": {
+          "const": "form"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "fields",
+        "type"
+      ]
+    },
+    "Connections": {
+      "type": "object",
+      "properties": {
+        "connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConnectionItem"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "const": "connections"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "connections",
+        "type"
+      ]
+    },
+    "Primitive": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Col"
+        },
+        {
+          "$ref": "#/$defs/Row"
+        },
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "$ref": "#/$defs/Badge"
+        },
+        {
+          "$ref": "#/$defs/Divider"
+        },
+        {
+          "$ref": "#/$defs/Spacer"
+        },
+        {
+          "$ref": "#/$defs/Button"
+        },
+        {
+          "$ref": "#/$defs/ProgressBar"
+        },
+        {
+          "$ref": "#/$defs/Table"
+        },
+        {
+          "$ref": "#/$defs/Form"
+        },
+        {
+          "$ref": "#/$defs/Connections"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "type",
+        "mapping": {
+          "col": "#/$defs/Col",
+          "row": "#/$defs/Row",
+          "text": "#/$defs/Text",
+          "badge": "#/$defs/Badge",
+          "divider": "#/$defs/Divider",
+          "spacer": "#/$defs/Spacer",
+          "button": "#/$defs/Button",
+          "progress": "#/$defs/ProgressBar",
+          "table": "#/$defs/Table",
+          "form": "#/$defs/Form",
+          "connections": "#/$defs/Connections"
+        }
+      }
+    },
+    "PrimitiveTree": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Primitive"
+      },
+      "minItems": 1
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Col"
+    },
+    {
+      "$ref": "#/$defs/Row"
+    },
+    {
+      "$ref": "#/$defs/Text"
+    },
+    {
+      "$ref": "#/$defs/Badge"
+    },
+    {
+      "$ref": "#/$defs/Divider"
+    },
+    {
+      "$ref": "#/$defs/Spacer"
+    },
+    {
+      "$ref": "#/$defs/Button"
+    },
+    {
+      "$ref": "#/$defs/ProgressBar"
+    },
+    {
+      "$ref": "#/$defs/Table"
+    },
+    {
+      "$ref": "#/$defs/Form"
+    },
+    {
+      "$ref": "#/$defs/Connections"
+    }
+  ],
+  "discriminator": {
+    "propertyName": "type",
+    "mapping": {
+      "col": "#/$defs/Col",
+      "row": "#/$defs/Row",
+      "text": "#/$defs/Text",
+      "badge": "#/$defs/Badge",
+      "divider": "#/$defs/Divider",
+      "spacer": "#/$defs/Spacer",
+      "button": "#/$defs/Button",
+      "progress": "#/$defs/ProgressBar",
+      "table": "#/$defs/Table",
+      "form": "#/$defs/Form",
+      "connections": "#/$defs/Connections"
+    }
+  }
+}

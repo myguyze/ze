@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import field as dc_field
 
-from ze_components.schema import build_render_schema
+from ze_components.schema import build_render_schema, export_json_schema
 from ze_components.organisms import Table
 
 
@@ -65,3 +65,17 @@ def test_build_render_schema_string_fields():
     props = schema["properties"]
     assert props["label"]["type"] == "string"
     assert props["value"]["type"] == "string"
+
+
+def test_export_json_schema_includes_discriminators_and_recursive_children():
+    schema = export_json_schema()
+    col = schema["$defs"]["Col"]
+    assert col["properties"]["type"] == {"const": "col"}
+    assert col["properties"]["children"]["items"] == {"$ref": "#/$defs/Primitive"}
+    assert "PrimitiveTree" in schema["$defs"]
+    assert schema["$defs"]["PrimitiveTree"]["type"] == "array"
+
+
+def test_export_json_schema_maps_progress_bar_type():
+    schema = export_json_schema()
+    assert schema["$defs"]["ProgressBar"]["properties"]["type"] == {"const": "progress"}

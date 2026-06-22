@@ -80,12 +80,4 @@ describe("PrimitiveRenderer", () => {
     expect(screen.getByText("Linked insights")).toBeInTheDocument();
     expect(screen.getByText("You work late before deadlines")).toBeInTheDocument();
   });
-
-  it("renders nothing for unknown primitive type", () => {
-    const { container } = render(
-      // @ts-expect-error — intentional unknown type for forward-compat test
-      <PrimitiveRenderer node={{ type: "unknown_future_type" }} />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
 });

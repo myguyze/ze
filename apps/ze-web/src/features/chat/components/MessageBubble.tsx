@@ -1,7 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import type { MessageSchema as Message } from "@ze/client";
-import { PrimitiveRenderer } from "@/components/server-driven/PrimitiveRenderer";
-import type { Primitive } from "@/components/server-driven/types";
+import { ConnectedPrimitiveTree } from "@/components/server-driven/ConnectedPrimitiveTree";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -47,9 +46,9 @@ export function MessageBubble({ message }: { message: Message }) {
           </div>
         )}
 
-        {(message.components as unknown as Primitive[]).map((c, i) => (
-          <PrimitiveRenderer key={i} node={c} />
-        ))}
+        {message.components.length > 0 && (
+          <ConnectedPrimitiveTree components={message.components} />
+        )}
 
         <p className="mt-1 px-1 text-[10px] text-smoke">
           {formatTime(message.created_at)}

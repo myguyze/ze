@@ -1,123 +1,174 @@
 import { useState, type FormEvent } from "react";
-import { cn } from "@/lib/cn";
-import { send } from "@/features/websocket/useWebSocket";
-import { useSendNotice } from "@/features/websocket/useSendNotice";
-import { useOnboardingSession } from "@/features/onboarding/useOnboardingSession";
-import { useSession } from "@/features/chat/hooks/useSession";
+import { cn } from "../lib/cn";
 import type {
-  Primitive,
-  ColPrimitive,
-  RowPrimitive,
-  TextPrimitive,
-  BadgePrimitive,
-  SpacerPrimitive,
-  ButtonPrimitive,
-  ProgressPrimitive,
-  TablePrimitive,
-  FormPrimitive,
-  ConnectionsPrimitive,
+  Badge,
+  Button,
+  Col,
   ConnectionItem,
-} from "./types";
-
-// ── Gap / align helpers ───────────────────────────────────────────────────────
+  Connections,
+  Form,
+  Primitive,
+  ProgressBar,
+  Row,
+  Spacer,
+  Table,
+  Text,
+} from "../generated/types.gen";
+import {
+  PrimitiveRendererContext,
+  usePrimitiveRendererActions,
+  type PrimitiveRendererActions,
+} from "./context";
 
 const GAP: Record<string, string> = {
   none: "gap-0",
-  sm:   "gap-2",
-  md:   "gap-4",
-  lg:   "gap-6",
+  sm: "gap-2",
+  md: "gap-4",
+  lg: "gap-6",
 };
 
 const ALIGN: Record<string, string> = {
-  start:   "items-start",
-  center:  "items-center",
-  end:     "items-end",
+  start: "items-start",
+  center: "items-center",
+  end: "items-end",
   between: "justify-between items-center",
 };
 
-// ── Root renderer ─────────────────────────────────────────────────────────────
-
-export function PrimitiveRenderer({ node }: { node: Primitive }) {
-  switch (node.type) {
-    case "col":         return <ColRenderer node={node} />;
-    case "row":         return <RowRenderer node={node} />;
-    case "text":        return <TextRenderer node={node} />;
-    case "badge":       return <BadgeRenderer node={node} />;
-    case "divider":     return <hr className="border-white/10 my-1" />;
-    case "spacer":      return <SpacerRenderer node={node} />;
-    case "button":      return <ButtonRenderer node={node} />;
-    case "progress":    return <ProgressRenderer node={node} />;
-    case "table":       return <TableRenderer node={node} />;
-    case "form":        return <FormRenderer node={node} />;
-    case "connections": return <ConnectionsRenderer node={node} />;
-    default:
-      // Unknown primitive from a newer backend — render nothing gracefully.
-      return null;
-  }
-}
-
-// ── Layout renderers ──────────────────────────────────────────────────────────
-
 const COL_VARIANT: Record<string, string> = {
   default: "",
-  card:    "mt-2 p-4 rounded-pill border border-white/10",
+  card: "mt-2 p-4 rounded-pill border border-white/10",
   section: "mt-2 p-4 rounded-pill border border-white/10 border-l-4 border-l-amber-spark",
 };
 
-function ColRenderer({ node }: { node: ColPrimitive }) {
-  return (
-    <div className={cn("flex flex-col", GAP[node.gap ?? "sm"], COL_VARIANT[node.variant ?? "default"])}>
-      {node.children.map((child, i) => (
-        <PrimitiveRenderer key={i} node={child} />
-      ))}
-    </div>
-  );
-}
-
-function RowRenderer({ node }: { node: RowPrimitive }) {
-  return (
-    <div className={cn("flex flex-row flex-wrap", GAP[node.gap ?? "sm"], ALIGN[node.align ?? "start"])}>
-      {node.children.map((child, i) => (
-        <PrimitiveRenderer key={i} node={child} />
-      ))}
-    </div>
-  );
-}
-
-// ── Content atom renderers ────────────────────────────────────────────────────
-
 const TEXT_STYLE: Record<string, string> = {
-  heading:    "text-[48px] font-extralight leading-none tracking-tight text-white",
+  heading: "text-[48px] font-extralight leading-none tracking-tight text-white",
   subheading: "text-sm font-semibold text-white",
-  body:       "text-sm text-white",
-  label:      "text-xs tracking-wide text-smoke",
-  caption:    "text-xs text-ash",
-  code:       "font-mono text-xs bg-white/5 rounded px-1 py-0.5 text-white",
+  body: "text-sm text-white",
+  label: "text-xs tracking-wide text-smoke",
+  caption: "text-xs text-ash",
+  code: "font-mono text-xs bg-white/5 rounded px-1 py-0.5 text-white",
 };
 
 const TEXT_COLOR: Record<string, string> = {
   default: "",
-  muted:   "text-smoke",
+  muted: "text-smoke",
   success: "text-lichen",
   warning: "text-amber-spark",
-  error:   "text-red-400",
+  error: "text-red-400",
 };
-
-function TextRenderer({ node }: { node: TextPrimitive }) {
-  const styleClass = TEXT_STYLE[node.style ?? "body"] ?? TEXT_STYLE.body;
-  const colorClass = node.color && node.color !== "default" ? TEXT_COLOR[node.color] : "";
-  return <p className={cn(styleClass, colorClass)}>{node.content}</p>;
-}
 
 const BADGE_COLOR: Record<string, string> = {
   default: "border-white/20 text-white",
   success: "border-lichen/50 text-lichen",
   warning: "border-amber-spark/50 text-amber-spark",
-  error:   "border-red-400/50 text-red-400",
-  info:    "border-plum-voltage/50 text-plum-voltage",
+  error: "border-red-400/50 text-red-400",
+  info: "border-plum-voltage/50 text-plum-voltage",
 };
 
-function BadgeRenderer({ node }: { node: BadgePrimitive }) {
+const RELATION_LABELS: Record<string, string> = {
+  pattern: "Pattern",
+  causal_guess: "Possible link",
+  tension: "Tension",
+  convergence: "Convergence",
+};
+
+export interface PrimitiveRendererProps {
+  node: Primitive;
+  actions?: PrimitiveRendererActions;
+}
+
+export function PrimitiveRenderer({ node, actions }: PrimitiveRendererProps) {
+  const content = <PrimitiveNodeRenderer node={node} />;
+  if (!actions) {
+    return content;
+  }
+  return (
+    <PrimitiveRendererContext.Provider value={actions}>
+      {content}
+    </PrimitiveRendererContext.Provider>
+  );
+}
+
+export function PrimitiveTreeRenderer({
+  nodes,
+  actions,
+}: {
+  nodes: Primitive[];
+  actions?: PrimitiveRendererActions;
+}) {
+  const tree = (
+    <>
+      {nodes.map((node, i) => (
+        <PrimitiveNodeRenderer key={i} node={node} />
+      ))}
+    </>
+  );
+
+  if (!actions) {
+    return tree;
+  }
+
+  return <PrimitiveRendererContext.Provider value={actions}>{tree}</PrimitiveRendererContext.Provider>;
+}
+
+function PrimitiveNodeRenderer({ node }: { node: Primitive }) {
+  switch (node.type) {
+    case "col":
+      return <ColRenderer node={node} />;
+    case "row":
+      return <RowRenderer node={node} />;
+    case "text":
+      return <TextRenderer node={node} />;
+    case "badge":
+      return <BadgeRenderer node={node} />;
+    case "divider":
+      return <hr className="border-white/10 my-1" />;
+    case "spacer":
+      return <SpacerRenderer node={node} />;
+    case "button":
+      return <ButtonRenderer node={node} />;
+    case "progress":
+      return <ProgressRenderer node={node} />;
+    case "table":
+      return <TableRenderer node={node} />;
+    case "form":
+      return <FormRenderer node={node} />;
+    case "connections":
+      return <ConnectionsRenderer node={node} />;
+    default: {
+      const _exhaustive: never = node;
+      return _exhaustive;
+    }
+  }
+}
+
+function ColRenderer({ node }: { node: Col }) {
+  return (
+    <div className={cn("flex flex-col", GAP[node.gap ?? "sm"], COL_VARIANT[node.variant ?? "default"])}>
+      {node.children.map((child, i) => (
+        <PrimitiveNodeRenderer key={i} node={child} />
+      ))}
+    </div>
+  );
+}
+
+function RowRenderer({ node }: { node: Row }) {
+  return (
+    <div className={cn("flex flex-row flex-wrap", GAP[node.gap ?? "sm"], ALIGN[node.align ?? "start"])}>
+      {node.children.map((child, i) => (
+        <PrimitiveNodeRenderer key={i} node={child} />
+      ))}
+    </div>
+  );
+}
+
+function TextRenderer({ node }: { node: Text }) {
+  const styleClass = TEXT_STYLE[node.style ?? "body"] ?? TEXT_STYLE.body;
+  const colorClass = node.color && node.color !== "default" ? TEXT_COLOR[node.color] : "";
+  return <p className={cn(styleClass, colorClass)}>{node.content}</p>;
+}
+
+function BadgeRenderer({ node }: { node: Badge }) {
   const colorClass = BADGE_COLOR[node.color ?? "default"] ?? BADGE_COLOR.default;
   return (
     <span className={cn("px-2 py-0.5 rounded-full border text-xs flex-shrink-0", colorClass)}>
@@ -126,21 +177,20 @@ function BadgeRenderer({ node }: { node: BadgePrimitive }) {
   );
 }
 
-function SpacerRenderer({ node }: { node: SpacerPrimitive }) {
+function SpacerRenderer({ node }: { node: Spacer }) {
   const h = node.size === "lg" ? "h-6" : node.size === "sm" ? "h-1" : "h-3";
   return <div className={h} />;
 }
 
-function ButtonRenderer({ node }: { node: ButtonPrimitive }) {
-  const threadId = useSession((s) => s.threadId);
-  const notice = useSendNotice((s) => s.showNotice);
+function ButtonRenderer({ node }: { node: Button }) {
+  const { onButtonAction, onDisconnected } = usePrimitiveRendererActions();
   const [used, setUsed] = useState(false);
 
   function handleClick() {
     if (used) return;
-    const ok = send({ type: "message", text: node.action, thread_id: threadId });
-    if (!ok) {
-      notice("Not connected. Retry when Ze reconnects.");
+    const ok = onButtonAction?.(node.action);
+    if (ok === false) {
+      onDisconnected?.();
       return;
     }
     setUsed(true);
@@ -155,6 +205,7 @@ function ButtonRenderer({ node }: { node: ButtonPrimitive }) {
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={used}
       className={cn(
@@ -168,7 +219,7 @@ function ButtonRenderer({ node }: { node: ButtonPrimitive }) {
   );
 }
 
-function ProgressRenderer({ node }: { node: ProgressPrimitive }) {
+function ProgressRenderer({ node }: { node: ProgressBar }) {
   const pct = Math.round(Math.max(0, Math.min(1, node.value)) * 100);
   return (
     <div className="w-full">
@@ -183,9 +234,7 @@ function ProgressRenderer({ node }: { node: ProgressPrimitive }) {
   );
 }
 
-// ── Structured primitive renderers ────────────────────────────────────────────
-
-function TableRenderer({ node }: { node: TablePrimitive }) {
+function TableRenderer({ node }: { node: Table }) {
   return (
     <div className="mt-2 overflow-auto max-h-72 rounded-pill border border-white/10">
       {node.title && (
@@ -197,7 +246,10 @@ function TableRenderer({ node }: { node: TablePrimitive }) {
         <thead>
           <tr className="border-b border-white/10">
             {node.headers.map((h) => (
-              <th key={h} className="px-4 py-2 text-left text-xs font-semibold tracking-wide text-ash whitespace-nowrap">
+              <th
+                key={h}
+                className="px-4 py-2 text-left text-xs font-semibold tracking-wide text-ash whitespace-nowrap"
+              >
                 {h}
               </th>
             ))}
@@ -215,38 +267,25 @@ function TableRenderer({ node }: { node: TablePrimitive }) {
           ))}
         </tbody>
       </table>
-      {node.caption && (
-        <p className="px-4 py-2 text-xs text-smoke">{node.caption}</p>
-      )}
+      {node.caption && <p className="px-4 py-2 text-xs text-smoke">{node.caption}</p>}
     </div>
   );
 }
 
-function FormRenderer({ node }: { node: FormPrimitive }) {
+function FormRenderer({ node }: { node: Form }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const sessionId = useOnboardingSession((s) => s.sessionId);
-  const completed = useOnboardingSession((s) => s.completed);
-  const threadId = useSession((s) => s.threadId);
-  const notice = useSendNotice((s) => s.showNotice);
+  const { onFormSubmit, onDisconnected } = usePrimitiveRendererActions();
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submitted) return;
     setSubmitted(true);
 
-    let sent = false;
-    if (sessionId && !completed && node.id) {
-      sent = send({ type: "component_submit", session_id: sessionId, step_id: node.id, values });
-    } else if (node.id) {
-      sent = send({ type: "component_submit", step_id: node.id, values, thread_id: threadId });
-    } else {
-      sent = send({ type: "message", text: `[form] ${JSON.stringify(values)}` });
-    }
-
-    if (!sent) {
+    const ok = onFormSubmit?.(node.id, values);
+    if (ok === false) {
       setSubmitted(false);
-      notice("Not connected. Retry when Ze reconnects.");
+      onDisconnected?.();
     }
   }
 
@@ -265,7 +304,9 @@ function FormRenderer({ node }: { node: FormPrimitive }) {
             >
               <option value="">Select…</option>
               {field.options?.map((o) => (
-                <option key={o} value={o} className="bg-black">{o}</option>
+                <option key={o} value={o} className="bg-black">
+                  {o}
+                </option>
               ))}
             </select>
           ) : (
@@ -291,13 +332,6 @@ function FormRenderer({ node }: { node: FormPrimitive }) {
   );
 }
 
-const RELATION_LABELS: Record<string, string> = {
-  pattern:      "Pattern",
-  causal_guess: "Possible link",
-  tension:      "Tension",
-  convergence:  "Convergence",
-};
-
 function ConnectionCard({ item }: { item: ConnectionItem }) {
   const rel = RELATION_LABELS[item.relation] ?? item.relation;
   return (
@@ -312,7 +346,10 @@ function ConnectionCard({ item }: { item: ConnectionItem }) {
       {item.evidence && item.evidence.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {item.evidence.map((ev, i) => (
-            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-smoke">
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-smoke"
+            >
               {ev.label}
               {ev.date && <span className="text-white/30">· {ev.date}</span>}
             </span>
@@ -323,7 +360,7 @@ function ConnectionCard({ item }: { item: ConnectionItem }) {
   );
 }
 
-function ConnectionsRenderer({ node }: { node: ConnectionsPrimitive }) {
+function ConnectionsRenderer({ node }: { node: Connections }) {
   return (
     <div className="mt-2 rounded-pill border border-plum-voltage/20 overflow-hidden">
       <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-plum-voltage border-b border-plum-voltage/20">

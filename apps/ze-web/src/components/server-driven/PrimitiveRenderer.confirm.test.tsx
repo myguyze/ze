@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { PrimitiveRenderer } from "./PrimitiveRenderer";
+import { PrimitiveTreeRenderer } from "@ze/ui/react";
+import { usePrimitiveRendererActions } from "./usePrimitiveRendererActions";
 
 const send = vi.fn();
 
 vi.mock("@/features/websocket/useWebSocket", () => ({
-  send: (...args: unknown[]) => { send(...args); return true; },
+  send: (...args: unknown[]) => {
+    send(...args);
+    return true;
+  },
 }));
 
 vi.mock("@/features/websocket/useSendNotice", () => ({
@@ -18,7 +22,15 @@ vi.mock("@/features/chat/hooks/useSession", () => ({
     selector({ threadId: "ze-test-thread" }),
 }));
 
-// A confirm prompt is a col with prompt text + row of buttons, built by builders.confirm_prompt.
+function ConnectedConfirmTree({
+  node,
+}: {
+  node: Parameters<typeof PrimitiveTreeRenderer>[0]["nodes"][number];
+}) {
+  const actions = usePrimitiveRendererActions();
+  return <PrimitiveTreeRenderer nodes={[node]} actions={actions} />;
+}
+
 const confirmNode = {
   type: "col" as const,
   variant: "card" as const,
@@ -34,20 +46,20 @@ const confirmNode = {
   ],
 };
 
-describe("confirm prompt via PrimitiveRenderer", () => {
+describe("confirm prompt via ConnectedPrimitiveTree", () => {
   beforeEach(() => {
     send.mockClear();
   });
 
   it("renders prompt and action buttons", () => {
-    render(<PrimitiveRenderer node={confirmNode} />);
+    render(<ConnectedConfirmTree node={confirmNode} />);
     expect(screen.getByText("Proceed?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Yes" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
 
   it("sends action string as message on button click", () => {
-    render(<PrimitiveRenderer node={confirmNode} />);
+    render(<ConnectedConfirmTree node={confirmNode} />);
     fireEvent.click(screen.getByRole("button", { name: "Yes" }));
     expect(send).toHaveBeenCalledWith({
       type: "message",
@@ -57,7 +69,7 @@ describe("confirm prompt via PrimitiveRenderer", () => {
   });
 
   it("disables button after click and shows checkmark", () => {
-    render(<PrimitiveRenderer node={confirmNode} />);
+    render(<ConnectedConfirmTree node={confirmNode} />);
     fireEvent.click(screen.getByRole("button", { name: "Yes" }));
     expect(screen.getByRole("button", { name: "✓ Yes" })).toBeDisabled();
   });

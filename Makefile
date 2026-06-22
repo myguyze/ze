@@ -86,7 +86,7 @@ help:
 	@echo "    clean            Remove __pycache__, .pytest_cache, .ruff_cache, *.pyc"
 	@echo ""
 	@echo "  Code generation"
-	@echo "    generate-components  Regenerate server-driven UI component descriptors"
+	@echo "    codegen              Regenerate @ze/client and @ze/ui artifacts"
 	@echo ""
 	@echo "  Docker"
 	@echo "    docker-up        Start all services via docker-compose"
@@ -325,6 +325,7 @@ test-all:
 	$(MAKE) test-web
 
 test-web web-test:
+	cd packages/ze-ui && bun run test
 	cd $(ZE_WEB) && bun run test
 
 # ── Web app build ─────────────────────────────────────────────────────────────
@@ -334,10 +335,10 @@ web-build:
 	cd $(ZE_WEB) && bun run build
 
 # ── Code generation ───────────────────────────────────────────────────────────
-.PHONY: generate-components
+.PHONY: codegen
 
-generate-components:
-	uv run scripts/generate_components.py
+codegen:
+	bun run scripts/codegen.ts
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 .PHONY: lint format clean
