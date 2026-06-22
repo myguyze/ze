@@ -176,10 +176,9 @@ packages. Plugin authors never import `ze_core` directly — use `ze_sdk` instea
 | `orchestration/` | LangGraph graph builder, node implementations, `AgentState` (graph-private), edges |
 | `routing/` | `EmbeddingRouter`, `ComplexityEstimator`, `RoutingFallback` |
 | `capability/` | `CapabilityGate`, `PostgresCapabilityOverrideStore` |
-| `messages/` | `PostgresMessageStore` — conversation message persistence |
+| `conversation/` | Message/session/confirmation stores + graph turn helpers (`turn.py`) |
 | `openrouter/` | `OpenRouterClient` (satisfies `LLMClient` Protocol), streaming, transcription |
 | `telemetry/` | `CostTracker`, `CostReconciler`, `PostgresCostStore`, context vars |
-| `conversation.py` | `invoke_raw_turn`, `resume_turn` — entry points for the WS handler |
 | `embeddings.py` | Shared `paraphrase-multilingual-MiniLM-L12-v2` singleton |
 | `container.py` | Base `Container` with DI wiring, plugin support |
 
@@ -501,6 +500,7 @@ their `ZePlugin` implementations.
 | `hooks/component_collection.py` | `ComponentCollectionHook` — collects UI components from agent results |
 | `hooks/cost_cap.py` | `ToolCallCapHook` — per-turn tool call cap enforcement |
 | `container.py` | `ZeContainer` — subclasses `ze_core.Container`, registers all plugins |
+| `migrate.py` | Meta-migrator — discovers all package migration paths; ze-api owns no tables |
 | `settings.py` | Pydantic `BaseSettings`, `to_core_settings()` bridge |
 
 ---

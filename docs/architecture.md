@@ -112,7 +112,7 @@ startup.
 ### Graph input factory
 
 All conversation graph invocations build initial state via
-`make_graph_input()` in `ze_core/conversation.py`. `Container.invoke()` and
+`make_graph_input()` in `ze_core/conversation/turn.py`. `Container.invoke()` and
 `invoke_raw_turn()` both route through this factory so new `AgentState` fields
 are initialized in one place. Plugin-specific fields belong in plugin
 `state_extensions()` TypedDicts — not in ad-hoc dict literals at call sites.
@@ -159,6 +159,8 @@ Special-purpose threads use prefixed IDs and may not have a `sessions` row:
   must remain valid without a session row.
 
 See [docs/native-interface.md](native-interface.md) for WebSocket thread handling.
+Persistence for `messages`, `sessions`, and `pending_confirmations` lives in
+`ze_core/conversation/` (migrations `zc015`–`zc018`).
 
 ### Nodes
 

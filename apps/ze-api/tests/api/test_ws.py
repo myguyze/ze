@@ -11,7 +11,7 @@ from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.onboarding import send_onboarding_view
 from ze_api.api.websocket.serializers import message_to_dict
 from ze_onboarding import OnboardingView
-from ze_core.messages.types import Message
+from ze_core.conversation.messages import Message
 
 
 def _make_message(**kwargs) -> Message:

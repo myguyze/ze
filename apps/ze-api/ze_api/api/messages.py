@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import MessageSchema
-from ze_core.messages.store import MessageStore
+from ze_core.conversation.messages import MessageStore
 
 router = APIRouter(tags=["messages"], dependencies=[Depends(require_api_key)])
 

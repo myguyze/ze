@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 
 from ze_api.api.dependencies import require_api_key
 from ze_api.api.schemas import CreateSessionRequest, SessionSchema
-from ze_api.sessions.store import SessionStore
+from ze_core.conversation.sessions import SessionStore
 
 router = APIRouter(tags=["sessions"], dependencies=[Depends(require_api_key)])
 

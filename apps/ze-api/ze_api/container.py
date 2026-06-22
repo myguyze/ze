@@ -15,8 +15,8 @@ from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze_plugin.channels.registry import ChannelRegistry
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_core.embeddings import get_embedder
-from ze_core.messages.store import PostgresMessageStore
-from ze_api.sessions.store import PostgresSessionStore
+from ze_core.conversation.messages import PostgresMessageStore
+from ze_core.conversation.sessions import PostgresSessionStore
 from ze_api.logging import get_logger
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.session_summary import SessionSummariser
@@ -46,7 +46,7 @@ from ze_api.settings import Settings, get_settings
 from ze_core.conversation import TurnResult, invoke_raw_turn, resume_turn
 from ze_api.interface.native import NativeAppInterface
 from ze_api.api.websocket.connection import ConnectionManager
-from ze_api.api.pending_confirmations import PendingConfirmationStore
+from ze_core.conversation.confirmations import PendingConfirmationStore
 from ze_onboarding import (
     CoreOnboardingProvider,
     OnboardingCoordinator,

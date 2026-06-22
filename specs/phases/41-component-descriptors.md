@@ -817,7 +817,7 @@ during development, not in production.
 | `ze_core.orchestration.tool` | `ToolSpec`, `_tools` registry — `_schema_override` field added |
 | `ze_core.orchestration.hooks` | `BaseHarnessHook`, `register_hook()` — `ComponentCollectionHook` integrates here |
 | `ze_core.orchestration.state.AgentState` | `components: list[dict]` field added |
-| `ze_core.messages.types.Message` | `components` field (Phase 40) |
+| `ze_core.conversation.messages.Message` | `components` field (Phase 40) |
 | `dataclasses` (stdlib) | `fields()`, `asdict()`, `is_dataclass()` |
 | `typing` (stdlib) | `get_type_hints()`, `get_origin()`, `get_args()` |
 

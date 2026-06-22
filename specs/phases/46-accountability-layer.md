@@ -241,7 +241,7 @@ after replaying unread messages, query for any pending confirmation for the acti
 `confirm_request` frame. Clear the row when the user responds or the timeout elapses.
 
 ```sql
--- in migration 016 alongside accountability_anomalies
+-- ze-core migration zc017 (accountability_anomalies is zc014 in ze-automation)
 CREATE TABLE pending_confirmations (
     thread_id    TEXT PRIMARY KEY,
     request_id   TEXT NOT NULL,

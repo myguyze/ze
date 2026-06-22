@@ -18,7 +18,7 @@
 | Missing module paths moved into plugin `agent_module_paths()` | ✅ Done |
 | Entry point discovery in bootstrapper (auto-instantiate from entry points) | ✅ Done — `discover_plugins()` reads entry points, instantiates via `_resolve()` |
 | Plugin-scoped DI via extended `_resolve()` (plugin constructor from `_dep_map`) | ✅ Done — `_resolve()` handles Optional types and default params; all plugin constructors take only dep_map types |
-| Schema readiness validation | ✅ Done — startup compares DB Alembic heads against combined ze-core/ze-api/plugin migration heads |
+| Schema readiness validation | ✅ Done — startup compares DB Alembic heads against combined ze-core/plugin migration heads (ze-api owns no tables) |
 | Tool registry namespacing | 🔲 Deferred — keep fail-fast bare-name registry until a concrete duplicate-name need appears |
 | Tests | ✅ Focused startup and migration readiness coverage added |
 
@@ -169,7 +169,7 @@ type-annotated. If a required type is absent from `_dep_map`, startup aborts wit
 ### Schema readiness validation
 
 Before building the application container, startup checks the database's Alembic
-state against the combined ze-core, ze-api, and plugin migration heads collected
+state against the combined ze-core and plugin migration heads collected
 by `ze_api.migrate`:
 
 ```python

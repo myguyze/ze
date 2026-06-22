@@ -12,7 +12,7 @@ from ze_api.api.websocket.confirmation import send_confirmation_request
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.serializers import extract_thread_id
 from ze_api.logging import get_logger
-from ze_core.messages.types import Message
+from ze_core.conversation.messages import Message
 
 log = get_logger(__name__)
 

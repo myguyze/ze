@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from uuid import uuid4
 
 from ze_agents.interface.types import ConfirmationRequest, Notification, OutboundMessage
-from ze_core.messages.types import Message
+from ze_core.conversation.messages import Message
 from ze_api.logging import get_logger
 
 if TYPE_CHECKING:
     from ze_notifications.notifier import Notifier as PushNotifier
-    from ze_core.messages.store import MessageStore
+    from ze_core.conversation.messages import MessageStore
     from ze_api.api.websocket.connection import ConnectionManager
 
 log = get_logger(__name__)

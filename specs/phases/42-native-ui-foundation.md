@@ -74,21 +74,20 @@ backend contract that the client will consume.
 ## Module Location
 
 ```
-packages/ze-core/
+core/ze-core/
   ze_core/
-    messages/
-      __init__.py
-      types.py          ← Message, MessageRole
-      store.py          ← MessageStore ABC + PostgresMessageStore
+    conversation/
+      messages/
+        types.py          ← Message, MessageRole
+        store.py          ← MessageStore ABC + PostgresMessageStore
 
-packages/ze/
-  ze/
+apps/ze-api/
+  ze_api/
     api/
-      ws.py             ← WebSocket endpoint, ConnectionManager
-      messages.py       ← GET /api/messages REST endpoint
-    # ntfy implementation moved to ze-notifications package (Phase 42)
+      websocket/          ← WebSocket endpoint, ConnectionManager
+      messages.py         ← GET /api/v0/messages REST endpoint
     interface/
-      native.py         ← NativeAppInterface(AppInterface)
+      native.py           ← NativeAppInterface(AppInterface)
 ```
 
 ---
@@ -96,7 +95,7 @@ packages/ze/
 ## Data Structures
 
 ```python
-# ze_core/messages/types.py
+# ze_core/conversation/messages/types.py
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -122,7 +121,7 @@ class Message:
 ## Database Schema
 
 ```sql
--- migrations/021_messages.sql
+-- ze-core migration zc016_messages.py
 
 CREATE TABLE messages (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -143,7 +142,7 @@ CREATE INDEX messages_unread_idx     ON messages (read, created_at DESC) WHERE N
 ## Store Interface
 
 ```python
-# ze_core/messages/store.py
+# ze_core/conversation/messages/store.py
 
 class MessageStore(Protocol):
     async def save(self, message: Message) -> None: ...
@@ -376,7 +375,7 @@ NTFY_TOKEN=                  # optional; leave empty for public topics
 | Dependency | Purpose |
 |------------|---------|
 | `ze_core.interface.AppInterface` | ABC that `NativeAppInterface` satisfies |
-| `ze_core.messages.store.MessageStore` | Persistence for all messages |
+| `ze_core.conversation.messages.MessageStore` | Persistence for all messages |
 | `ze_core.proactive.ProactiveNotifier` | Calls `send_message` on proactive fire |
 | `fastapi.WebSocket` | WebSocket transport |
 | `ze_notifications.notifier.Notifier` | Push notification Protocol (Phase 42) |
@@ -409,10 +408,10 @@ NTFY_TOKEN=                  # optional; leave empty for public topics
 
 | Test | Location |
 |------|----------|
-| `PostgresMessageStore.save()` writes correct row | `tests/messages/test_store.py` |
-| `list_since()` returns messages in ascending order | `tests/messages/test_store.py` |
-| `mark_read()` flips read flag | `tests/messages/test_store.py` |
-| `list_unread()` excludes already-read messages | `tests/messages/test_store.py` |
+| `PostgresMessageStore.save()` writes correct row | `core/ze-core/tests/conversation/test_message_store.py` |
+| `list_since()` returns messages in ascending order | `core/ze-core/tests/conversation/test_message_store.py` |
+| `mark_read()` flips read flag | `core/ze-core/tests/conversation/test_message_store.py` |
+| `list_unread()` excludes already-read messages | `core/ze-core/tests/conversation/test_message_store.py` |
 | `NativeAppInterface.send_message()` saves + pushes + notifies | `tests/interface/test_native.py` |
 | `NativeAppInterface.send_message()` continues if WebSocket disconnected | `tests/interface/test_native.py` |
 | `NativeAppInterface.send_message()` continues if ntfy raises | `tests/interface/test_native.py` |

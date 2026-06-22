@@ -1,14 +1,18 @@
-"""Add pending_confirmations table.
+"""Pending confirmation replay state.
 
-Revision ID: 006
-Revises: ze002
+Revision ID: zc017
+Revises: zc016
 """
+from __future__ import annotations
+
+from typing import Sequence, Union
+
 from alembic import op
 
-revision = "006"
-down_revision = "ze002"
-branch_labels = None
-depends_on = None
+revision: str = "zc017"
+down_revision: Union[str, Sequence[str], None] = "zc016"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:

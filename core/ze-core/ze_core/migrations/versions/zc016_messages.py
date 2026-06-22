@@ -1,11 +1,7 @@
 """Messages table for native app interface.
 
-Persists every user and assistant message for app history load and
-proactive message delivery when the app is backgrounded.
-
-Revision ID: ze002
-Revises: ze001
-Depends on: ze001
+Revision ID: zc016
+Revises: zc015
 """
 from __future__ import annotations
 
@@ -13,8 +9,8 @@ from typing import Sequence, Union
 
 from alembic import op
 
-revision: str = "ze002"
-down_revision: Union[str, Sequence[str], None] = "ze001"
+revision: str = "zc016"
+down_revision: Union[str, Sequence[str], None] = "zc015"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

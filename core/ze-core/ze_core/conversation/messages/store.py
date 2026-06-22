@@ -7,7 +7,7 @@ from uuid import UUID
 
 import asyncpg
 
-from ze_core.messages.types import Message
+from ze_core.conversation.messages.types import Message
 
 
 class MessageStore(Protocol):

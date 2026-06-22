@@ -114,6 +114,7 @@ explicitly deferred before implementation begins.
 | 06 | [Memory](core/06-memory.md) | `ze_core/memory/` |
 | 07 | [Container](core/07-container.md) | `ze_core/container.py` |
 | 08 | [Contacts](core/08-contacts.md) | `ze_core/` (contacts primitive) |
+| 09 | [Conversation Persistence](core/09-conversation.md) | `ze_core/conversation/` |
 
 ## Architecture decisions (`arch/`)
 

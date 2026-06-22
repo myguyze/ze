@@ -18,7 +18,7 @@ _MODE_TO_DECISION: dict[Mode, GateDecision] = {
 }
 # DRAFT/EXECUTE boundary: Mode.CONFIRM produces AWAIT_CONFIRMATION which routes the graph
 # through draft_response (agent runs in DRAFT mode) then pauses at await_confirmation.
-# The user receives a confirm_request WS frame (persisted in pending_confirmations table).
+# The user receives a confirm_request WS frame (persisted in ze_core.conversation.confirmations).
 # On approval, the graph resumes via graph.ainvoke(None, config) and re-runs with EXECUTE.
 # Changes to intents that shift an agent from CONFIRM to AUTONOMOUS bypass this flow
 # entirely — no confirmation, no audit trail. Review capability_configs carefully.

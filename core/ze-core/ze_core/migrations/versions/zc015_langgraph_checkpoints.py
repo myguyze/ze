@@ -1,12 +1,7 @@
-"""Ze application schema — LangGraph checkpoint tables.
+"""LangGraph checkpoint tables.
 
-Plugin-owned tables (memory, workflows, calendar reminders, onboarding,
-prospecting, etc.) are managed by their respective package migrations.
-Ze-core tables are managed by ze-core migrations zc001–zc004.
-
-Revision ID: ze001
-Revises:
-Depends on: zc004 (ze-core must be fully applied first)
+Revision ID: zc015
+Revises: zc014
 """
 from __future__ import annotations
 
@@ -14,17 +9,13 @@ from typing import Sequence, Union
 
 from alembic import op
 
-revision: str = "ze001"
-down_revision: Union[str, Sequence[str], None] = None
-branch_labels: Union[str, Sequence[str], None] = ("ze",)
-depends_on: Union[str, Sequence[str], None] = "zc004"
+revision: str = "zc015"
+down_revision: Union[str, Sequence[str], None] = "zc014"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # LangGraph AsyncPostgresSaver checkpoint tables.
-    # AsyncPostgresSaver.setup() also creates these at startup via its own
-    # internal runner; all CREATE statements use IF NOT EXISTS and are safe
-    # to re-execute.
     op.execute("""
         CREATE TABLE IF NOT EXISTS checkpoint_migrations (
             v INTEGER PRIMARY KEY

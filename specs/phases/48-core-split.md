@@ -90,8 +90,8 @@ Pure LangGraph execution engine. No developer-facing authoring API.
 - Embeddings: `get_embedder()` singleton
 - Telemetry: `CostTracker`, `CostReconciler`, `PostgresCostStore`, telemetry context vars
 - DI container: `Container`, `from_config()`, `_resolve()`
-- Message store: `PostgresMessageStore` (move from ze-core to ze-api — see below)
-- Conversation helpers: `invoke_raw_turn`, `resume_turn`
+- Message store: `PostgresMessageStore` in `ze_core/conversation/` (see `specs/core/09-conversation.md`)
+- Conversation helpers: `invoke_raw_turn`, `resume_turn` in `ze_core/conversation/turn.py`
 
 **Imports from ze-agents:** `AgentContext`, `AgentResult`, `ToolCall`, `GateDecision`, `Mode`, `BaseAgent`, `ZePlugin`, `AppInterface`, `get_agent` (registry read), `registered_tools` (tool registry read), `ZeError` hierarchy.
 
@@ -237,13 +237,13 @@ The agent class registry also inverts. `@agent` and `register_instance` move to 
 | `ze_core/embeddings.py` | Embedder singleton (used by routing) |
 | `ze_core/telemetry/` | Cost tracking (engine concern) |
 | `ze_core/container.py` | DI engine |
-| `ze_core/conversation.py` | Turn invocation helpers |
+| `ze_core/conversation/turn.py` | Turn invocation helpers |
 
 ### Moves to `ze-api`
 
 | Path | Why |
 |---|---|
-| `ze_core/messages/store.py` | App-level persistence, not engine |
+| `ze_core/conversation/messages/store.py` | Conversation message persistence |
 
 ---
 
@@ -361,4 +361,4 @@ Phase 48's ze-sdk spec described ze-sdk as re-exporting from ze-core. After this
 - [ ] **OpenRouter client in ze-agents.** `BaseAgent` references `OpenRouterClient` in type annotations (for `self.agentic_loop(client=...)`). Since ze-agents has no ze deps, `OpenRouterClient` must either (a) be extracted to a standalone `ze-openrouter` package that ze-agents depends on, or (b) be referenced via a `Protocol` in ze-agents so the type annotation works without the concrete class. Option (b) is lower churn.
 - [ ] **Settings split.** `ze_core.settings.Settings` contains both base settings (DATABASE_URL, OPENROUTER_API_KEY) and app-level settings that only ze-api cares about. Before the split, extract a `BaseSettings` (in ze-agents, no ze deps) from which `ze_api.settings.Settings` inherits. Plugins type-annotate against `BaseSettings`.
 - [ ] **Compatibility shim lifetime.** How long do ze-core re-export shims stay? Suggest: one full release cycle — shims are tagged deprecated at split, removed in the next phase. For a single-developer repo, "one sprint after all plugins are updated" is sufficient.
-- [ ] **`ze_core.messages.store` move.** `PostgresMessageStore` is referenced in ze-core's Container dataclass. If it moves to ze-api, the Container type hint needs to reference it via `Any` or a `MessageStore` protocol defined in ze-agents. This is minor but needs to be resolved.
+- [x] **`ze_core.conversation` module.** `PostgresMessageStore`, session store, and `PendingConfirmationStore` live in `ze_core/conversation/` with migrations `zc015`–`zc018`. Resolved: stores stay in ze-core; ze-api is transport only.

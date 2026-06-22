@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 from ze_core.capability.gate import CapabilityGate
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.retriever import PostgresMemoryStore as MemoryStore
-from ze_core.messages.store import PostgresMessageStore as MessageStore
+from ze_core.conversation.messages import PostgresMessageStore as MessageStore
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.routing.router import EmbeddingRouter
 from ze_api.settings import Settings, get_settings as _get_settings

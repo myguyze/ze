@@ -11,7 +11,7 @@ from typing import Protocol
 
 import asyncpg
 
-from ze_api.sessions.types import Session
+from ze_core.conversation.sessions.types import Session
 
 
 class SessionStore(Protocol):
@@ -44,8 +44,6 @@ class PostgresSessionStore:
         update_title: bool = False,
     ) -> None:
         now = datetime.now(timezone.utc)
-        # When update_title is True (explicit refresh), overwrite existing title.
-        # Otherwise keep whatever title is already set (first-message heuristic).
         title_expr = "EXCLUDED.title" if update_title else "COALESCE(sessions.title, EXCLUDED.title)"
         async with self._pool.acquire() as conn:
             await conn.execute(

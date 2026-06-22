@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from ze_core.messages.types import Message
+from ze_core.conversation.messages import Message
 
 
 def extract_thread_id(config: dict) -> str | None:

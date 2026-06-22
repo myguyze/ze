@@ -27,8 +27,7 @@ Every user message flows through the LangGraph built by `ze-core`. The graph han
 | `capability/` | `CapabilityGate`, `PostgresCapabilityOverrideStore`, permission modes |
 | `openrouter/` | `OpenRouterClient`, streaming, transcription |
 | `telemetry/` | `CostTracker`, `CostReconciler`, `PostgresCostStore`, context var |
-| `messages/` | `MessageStore`, message types |
-| `conversation.py` | `invoke_raw_turn`, `resume_turn` entry points |
+| `conversation/` | Message/session/confirmation stores + graph turn helpers |
 | `container.py` | Base `Container` with DI wiring |
 | `embeddings.py` | Shared `paraphrase-multilingual-MiniLM-L12-v2` singleton |
 | `checkpoint_serde.py` | LangGraph checkpoint serialisation for plugin types |

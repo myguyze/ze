@@ -11,7 +11,7 @@ Deployment unit for Ze. Wires all packages together, exposes the WebSocket chat 
 - WebSocket chat at `/ws` — primary user interface, with confirmation flow and message replay
 - REST management API — memory inspection, costs, capabilities, workflows, contacts
 - `ZeContainer` — DI wiring for all plugins, integrations, and shared services
-- Alembic migrations — single migration stream for core and plugin schemas
+- Alembic meta-migrator — discovers and runs migrations from all owning packages
 - Agent harness hooks — tool-call caps, component collection, cost limits
 - NativeAppInterface — WebSocket delivery when connected, ntfy push when not
 
@@ -34,7 +34,7 @@ Collects plugin signal sources via `collect_plugin_signal_sources()` in `contain
 | `settings.py` | `Settings` (Pydantic BaseSettings + YAML) |
 | `config/config.yaml` | Models, contacts, proactive schedules |
 | `config/persona.yaml` | Persona profiles and dials |
-| `migrations/` | Alembic SQL migrations |
+| `migrations/` | Alembic env + meta-runner (`migrate.py`); no owned tables |
 
 Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`.
 

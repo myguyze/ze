@@ -71,11 +71,21 @@ fly secrets list
 ### 4. Apply database migrations
 
 ```bash
-fly ssh console -C "python -m alembic upgrade head"
+fly ssh console -C "python -m ze_api.migrate upgrade"
 ```
 
 Or use the `DATABASE_URL_SYNC` value locally and run `make migrate` pointed at the
 production database. The SSH console approach is simpler for initial setup.
+
+#### Upgrading after the conversation-module reorg (zc015–zc018)
+
+If your database was stamped with the old `ze` branch heads (`ze001`, `ze002`, `006`,
+`008`), run:
+
+```bash
+make migrate        # applies zc015–zc018 (no-op if tables already exist)
+make migrate-stamp  # purges orphan revision rows and sets correct heads
+```
 
 ### 5. Deploy
 

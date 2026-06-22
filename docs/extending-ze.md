@@ -323,12 +323,11 @@ shared service that is not already in the dep map.
 
 ### 5. Create a database migration
 
-```bash
-make migrate-create msg="add myplugin tables"
-```
+Create `migrations/versions/` in your package and override `migrations_path()` on your
+`ZePlugin` subclass. Use a package-specific revision prefix (`zcal`, `zn`, `zfin`, …)
+and filename pattern `{revision}_{feature}.py`. Write raw SQL via `op.execute()` — no ORM.
 
-Write the SQL in `apps/ze-api/migrations/versions/<timestamp>_add_myplugin_tables.py`.
-Follow the pattern of existing migrations — raw SQL, no ORM.
+See `specs/core/09-conversation.md` and `CLAUDE.md` § Migration ownership for examples.
 
 ---
 

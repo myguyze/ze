@@ -95,7 +95,7 @@ ze/                           # monorepo root
 │   │   ├── ze_api/
 │   │   │   ├── api/          # FastAPI app, WebSocket endpoint, REST routes
 │   │   │   ├── interface/    # NativeAppInterface (WebSocket + ntfy delivery)
-│   │   │   ├── migrations/   # Alembic migrations (ze-api tables only: checkpoints, messages, sessions, confirmations)
+│   │   │   ├── migrations/   # Alembic env.py + meta-runner entry (no owned tables)
 │   │   │   ├── bootstrap.py  # Agent DI wiring via plugin.agent_module_paths()
 │   │   │   ├── container.py  # ZeContainer (registers all ZePlugins)
 │   │   │   ├── migrate.py    # Meta-runner: discovers all package migration paths and runs them
@@ -311,7 +311,7 @@ and runs them against a single `alembic_version` table.
 
 | Package | Branch prefix | Tables |
 |---|---|---|
-| ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides |
+| ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides, LangGraph checkpoints, messages, sessions, pending_confirmations |
 | ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows, accountability_anomalies |
 | ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted |
 | ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries |
@@ -321,9 +321,15 @@ and runs them against a single `alembic_version` table.
 | ze-calendar | `zcal` | calendar_reminders, user_reminders |
 | ze-prospecting | `zpros` | prospect_campaigns, prospect_outreach |
 | ze-news | `zn` | news_articles |
-| ze-api | `ze` | checkpoint tables (LangGraph), messages, sessions, pending_confirmations |
+
+**Naming conventions:**
+- One prefix per package (`zc`, `zm`, `zcal`, …).
+- Filename: `{revision}_{feature}.py` — never phase names.
+- Revision ID matches the filename prefix.
+- Migrations live in the package that owns the Postgres store.
 
 **Rules:**
+- ze-api runs migrations but owns no tables.
 - Never add plugin-owned tables to ze-api migrations.
 - For `ZePlugin` subclasses: create `<pkg>/migrations/` and override `migrations_path()` — the runner discovers it automatically.
 - For non-plugin core packages (ze-memory, ze-onboarding, ze-correlation, ze-proactive, ze-automation): add an explicit `_ZE_*_VERSIONS` constant in `ze_api/migrate.py`.

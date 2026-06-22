@@ -212,7 +212,7 @@ The client should queue or display this as feedback.
 
 ## Unread message replay
 
-`MessageStore` (`ze_core/messages/store.py`) persists all outbound messages (assistant
+`MessageStore` (`ze_core/conversation/messages/store.py`) persists all outbound messages (assistant
 and Ze's proactive pushes) to Postgres. On WebSocket connect, all messages with
 `read = false` are replayed in order before new messages flow. The client marks them
 read via `ack` frames.

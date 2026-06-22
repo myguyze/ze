@@ -5,9 +5,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-
-from ze_core.messages.store import PostgresMessageStore
-from ze_core.messages.types import Message
+from ze_core.conversation.messages import Message, PostgresMessageStore
 
 
 def _make_message(**kwargs) -> Message:
@@ -25,6 +23,7 @@ def _make_message(**kwargs) -> Message:
 def _make_pool_mock(rows=None, execute_side_effect=None):
     conn = AsyncMock()
     conn.fetch = AsyncMock(return_value=rows or [])
+    conn.fetchrow = AsyncMock(return_value=rows[0] if rows else None)
     conn.execute = AsyncMock(side_effect=execute_side_effect)
 
     pool = MagicMock()

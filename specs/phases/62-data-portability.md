@@ -194,6 +194,9 @@ Each plugin is responsible for:
 | `onboarding` | `onboarding_sessions`, `onboarding_steps`, `onboarding_seeds` | 10 | ✅ |
 | `graph.checkpoints` | LangGraph checkpoint tables | 50 | ❌ |
 
+Conversation persistence domains are implemented in `ze_core/conversation/` (migrations
+`zc015`–`zc018` in ze-core).
+
 LangGraph checkpoint tables contain opaque serialized graph state. They are exported for
 completeness but not importable — a fresh Ze instance starts with no in-flight graphs,
 which is the correct state after a restore.

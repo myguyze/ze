@@ -21,8 +21,9 @@ def load_sql(package: str, relative_path: str) -> str:
         def upgrade() -> None:
             op.execute(load_sql("ze_personal", "migrations/001_contacts.sql"))
 
-    This keeps schema ownership with the domain package while the Alembic
-    revision chain stays in ze-api as the deployment unit.
+    This keeps schema ownership with the domain package. Revisions live in each
+    owning package's migrations/versions/ directory; ze-api is the deployment
+    runner only (see ze_api.migrate).
     """
     mod = importlib.import_module(package)
     base = Path(mod.__file__).parent
