@@ -4,14 +4,14 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 
-from ze_personal.accountability.summarizer import build_narrative
-from ze_personal.accountability.types import (
+from ze_automation.accountability.summarizer import build_narrative
+from ze_automation.accountability.types import (
     ActivitySummary,
     AgentCostSummary,
     AnomalyRecord,
 )
-from ze_personal.jobs.accountability import AccountabilityJob
-from ze_personal.jobs.cost_anomaly import CostAnomalyJob
+from ze_automation.jobs.accountability import AccountabilityJob
+from ze_automation.jobs.cost_anomaly import CostAnomalyJob
 
 
 # ── ActivitySummary / build_narrative ─────────────────────────────────────────

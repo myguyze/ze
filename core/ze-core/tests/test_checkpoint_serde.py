@@ -14,7 +14,7 @@ from ze_automation.workflow.types import StepResult, WorkflowStep
 
 class _PluginWithWorkflowTypes:
     def checkpoint_serde_modules(self) -> tuple[str, ...]:
-        return ("ze_personal.workflow.types",)
+        return ("ze_automation.workflow.types",)
 
 
 def test_collect_types_from_module_finds_dataclasses_and_enums() -> None:
@@ -32,15 +32,15 @@ def test_collect_types_from_module_skips_imported_reexports() -> None:
 def test_collect_plugin_serde_modules_deduplicates() -> None:
     plugin = _PluginWithWorkflowTypes()
     assert collect_plugin_serde_modules([plugin, plugin]) == (
-        "ze_personal.workflow.types",
+        "ze_automation.workflow.types",
     )
 
 
 def test_collect_checkpoint_allowlist_includes_core_and_plugin_types() -> None:
     allowlist = set(collect_checkpoint_allowlist([_PluginWithWorkflowTypes()]))
     assert ("ze_memory.types", "MemoryContext") in allowlist
-    assert ("ze_personal.workflow.types", "WorkflowStep") in allowlist
-    assert ("ze_personal.workflow.types", "StepResult") in allowlist
+    assert ("ze_automation.workflow.types", "WorkflowStep") in allowlist
+    assert ("ze_automation.workflow.types", "StepResult") in allowlist
     assert ("asyncpg.pgproto.pgproto", "UUID") in allowlist
 
 

@@ -42,14 +42,15 @@ ze/                           # monorepo root
 │   │       └── signals.py    # SignalSource protocol
 │   ├── ze-proactive/         # Job scheduling framework
 │   │   └── ze_proactive/     # ProactiveJob, ProactiveScheduler, ProactiveNotifier, PushLogStore
-│   ├── ze-automation/        # Core automation engine — goals, workflows, planners, executors, agents
+│   ├── ze-automation/        # Core automation engine — goals, workflows, accountability, planners, executors, agents
 │   │   └── ze_automation/
 │   │       ├── goals/        # GoalStore, GoalPlanner, GoalExecutor, PostgresGoalStore, GoalSuggestionStore, types
 │   │       ├── workflow/     # WorkflowStore, WorkflowPlanner, WorkflowScheduler, PostgresWorkflowStore, types
+│   │       ├── accountability/ # AccountabilityStore, ActivitySummary, AnomalyRecord, build_narrative
 │   │       ├── agents/       # GoalAgent, WorkflowAgent
-│   │       ├── jobs/         # goal/workflow proactive jobs
+│   │       ├── jobs/         # goal/workflow/accountability proactive jobs
 │   │       ├── runtime/      # AutomationPlanner, AutomationStore contracts
-│   │       └── migrations/   # zc006–zc009 (goal traces/suggestions/stuck/reuse), zc011 (workflows)
+│   │       └── migrations/   # zc006–zc009 (goal traces/suggestions/stuck/reuse), zc011 (workflows), zc014 (accountability)
 │   ├── ze-sdk/               # Public SDK surface — flat re-export layer for plugin authors
 │   │   └── ze_sdk/           # ze_sdk, ze_sdk.types, ze_sdk.proactive, ze_sdk.channels,
 │   │                         # ze_sdk.memory, ze_sdk.errors, ze_sdk.automation
@@ -311,7 +312,7 @@ and runs them against a single `alembic_version` table.
 | Package | Branch prefix | Tables |
 |---|---|---|
 | ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides |
-| ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows |
+| ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows, accountability_anomalies |
 | ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted |
 | ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries |
 | ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
@@ -320,7 +321,7 @@ and runs them against a single `alembic_version` table.
 | ze-calendar | `zcal` | calendar_reminders, user_reminders |
 | ze-prospecting | `zpros` | prospect_campaigns, prospect_outreach |
 | ze-news | `zn` | news_articles |
-| ze-api | `ze` | checkpoint tables (LangGraph), messages, sessions, accountability_anomalies, pending_confirmations |
+| ze-api | `ze` | checkpoint tables (LangGraph), messages, sessions, pending_confirmations |
 
 **Rules:**
 - Never add plugin-owned tables to ze-api migrations.

@@ -17,8 +17,9 @@ At a high level, the system is split into:
 - `ze-plugin` for the extension seam shared by plugins and engine code.
 - `ze-data` for data portability and export/import/delete contracts.
 - `ze-memory` for retrieval and consolidation.
-- `ze-personal` for the personal-assistant domain: identity, contacts, goals, workflows,
-  proactive jobs, and the main general-purpose agents.
+- `ze-automation` for goals, workflows, accountability, and their proactive jobs.
+- `ze-personal` for the personal-assistant domain: identity, contacts, briefing/insights
+  jobs, and the main general-purpose agents.
 - `ze-email`, `ze-calendar`, `ze-news`, `ze-prospecting`, and `ze-finance` for
   domain-specific extensions.
 - `ze-onboarding`, `ze-ingestion`, `ze-correlation`, `ze-browser`, and
@@ -126,7 +127,7 @@ Ze builds the allowlist automatically in `build_checkpoint_serde()` (`ze_core/ch
 1. **Core modules** — `ze_core.routing.types`, `ze_agents.types`, `ze_memory.types`
    are scanned for dataclasses and enums on every startup.
 2. **Plugin modules** — each `ZePlugin` may override `checkpoint_serde_modules()` to
-   return its `types.py` module paths (e.g. `ze_personal.workflow.types`). Ze scans
+   return its `types.py` module paths (e.g. `ze_automation.workflow.types`). Ze scans
    those modules the same way — no manual list in `ze_api/container.py`.
 3. **Driver extras** — types like `asyncpg.pgproto.pgproto.UUID` that appear in
    payloads but live outside domain modules.
@@ -197,7 +198,7 @@ See [docs/native-interface.md](native-interface.md) for the full WebSocket proto
 
 ## Agents
 
-**Modules:** `ze_personal/agents/` (research, companion, goals, workflow) · `ze_email/agents/` (email) · `ze_prospecting/agents/` (prospecting) · `ze_calendar/agents/` (calendar, reminders) · `ze_news/agents/` (news)
+**Modules:** `ze_personal/agents/` (research, companion) · `ze_automation/agents/` (goals, workflow) · `ze_email/agents/` (email) · `ze_prospecting/agents/` (prospecting) · `ze_calendar/agents/` (calendar, reminders) · `ze_news/agents/` (news)
 
 All agents subclass `BaseAgent` (`ze_agents.base_agent`) and register via `@agent` (`ze_agents.registry`). Plugin code imports these via `ze_sdk`. Each agent owns:
 
@@ -222,8 +223,8 @@ See [docs/adding-an-agent.md](adding-an-agent.md) for a full authoring guide.
 | `prospecting` | Browser extraction, outreach drafting | `ze-prospecting` | Full |
 | `news` | `get_headlines` (personalised), `search_news` (semantic) | `ze-news` | Mini |
 | `finance` | CSV/Trading212 ingestion, categorisation, recurring detection | `ze-finance` | Haiku |
-| `workflow` | APScheduler, multi-step plan execution | `ze-personal` | Full |
-| `goals` | Goal lifecycle (create, status, steer, pause, resume, abandon) | `ze-personal` | Full |
+| `workflow` | APScheduler, multi-step plan execution | `ze-automation` | Full |
+| `goals` | Goal lifecycle (create, status, steer, pause, resume, abandon) | `ze-automation` | Full |
 
 See [docs/goals.md](goals.md) for conversational usage and gate behaviour.
 
@@ -422,7 +423,7 @@ Modes can be overridden at runtime via `PUT /capabilities` (persisted in DB via
 
 ## Proactive Ze
 
-**Modules:** `ze_proactive` (scheduler, notifier) · `ze_personal/jobs/` · `ze_prospecting/jobs/` · `ze_calendar/jobs/` · `ze_news/jobs/`
+**Modules:** `ze_proactive` (scheduler, notifier) · `ze_personal/jobs/` · `ze_automation/jobs/` · `ze_prospecting/jobs/` · `ze_calendar/jobs/` · `ze_news/jobs/`
 
 Ze pushes messages via WebSocket or ntfy on a schedule, without the user prompting:
 
@@ -437,6 +438,8 @@ Ze pushes messages via WebSocket or ntfy on a schedule, without the user prompti
 | Goal narrative | 6 PM UTC Sunday | One-paragraph weekly progress update per active goal |
 | Goal suggestions | 7 PM UTC Sunday | Proactive new goal proposal based on memory + retrospectives |
 | Stuck goal detection | 9 AM UTC Tuesday | Alert on idle milestones (48 h) or unresolved gates (72 h) |
+| Weekly accountability narrative | 9 AM UTC Monday | Templated summary of goals, workflows, costs, and anomalies |
+| Cost anomaly detection | Every 6 hours | Flag agent runs whose cost exceeds the rolling baseline |
 | Goal advance sweep | Every 15 min | Advance all `ACTIVE` goals via `GoalExecutor` |
 | Cost reconciliation | Every 15 min | Reconcile estimated costs vs. OpenRouter billing |
 | Stale campaign recovery | Every 15 min | Fail-fast stuck prospecting campaigns |
@@ -451,7 +454,7 @@ See [docs/scheduled-jobs.md](scheduled-jobs.md) for the full lifecycle and confi
 
 ## Goal Engine
 
-**Module:** `ze_personal.goals` · **Agent:** `ze_personal/agents/goals/`
+**Module:** `ze_automation.goals` · **Agent:** `ze_automation/agents/goals/`
 
 Goals address multi-week objectives that neither workflows nor per-action capability
 gates fit well: Ze works in the background and checks in at **verification gates**
@@ -470,10 +473,10 @@ gates fit well: Ze works in the background and checks in at **verification gates
 
 | Component | Module | Responsibility |
 |---|---|---|
-| `GoalStore` | `ze_personal/goals/postgres.py` | Postgres CRUD for goals, milestones, gates, learnings, traces, suggestions |
-| `GoalPlanner` | `ze_personal/goals/planner.py` | LLM decomposition, replanning, retrospective synthesis, learning promotion, procedure extraction/reuse, suggestion generation |
-| `GoalExecutor` | `ze_personal/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch, learning promotion on completion, procedure reuse during active goals |
-| `GoalAgent` | `ze_personal/agents/goals/agent.py` | Conversational create / status / steer / pause / resume / abandon |
+| `GoalStore` | `ze_automation/goals/postgres.py` | Postgres CRUD for goals, milestones, gates, learnings, traces, suggestions |
+| `GoalPlanner` | `ze_automation/goals/planner.py` | LLM decomposition, replanning, retrospective synthesis, learning promotion, procedure extraction/reuse, suggestion generation |
+| `GoalExecutor` | `ze_automation/goals/executor.py` | `advance()` loop, gate firing, milestone dispatch, learning promotion on completion, procedure reuse during active goals |
+| `GoalAgent` | `ze_automation/agents/goals/agent.py` | Conversational create / status / steer / pause / resume / abandon |
 
 Goals sit **above** workflows: a goal spans weeks; a workflow execution is what can
 happen inside a single milestone. `GoalExecutor` dispatches milestones through the same
@@ -783,6 +786,7 @@ Migrations live in `apps/ze-api/migrations/versions/` as raw SQL Alembic files (
 | `goal_learnings` | Per-milestone insights appended during execution |
 | `goal_execution_traces` | Tool call trace per milestone (name, args, result, duration) |
 | `goal_suggestions` | Proactive goal proposals with accept/dismiss lifecycle |
+| `accountability_anomalies` | Cost outliers flagged by `CostAnomalyJob` |
 | `messages` | Conversation messages for unread-replay on WebSocket connect |
 
 ---

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ze-personal"
 version = "0.1.0"
-description = "Ze personal assistant domain layer — contacts, goals, workflow, persona"
+description = "Ze personal assistant domain layer — persona, contacts, onboarding"
 requires-python = ">=3.11"
 dependencies = [
     "ze-sdk",

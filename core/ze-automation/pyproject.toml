@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ze-automation"
 version = "0.1.0"
-description = "Shared automation substrate for Ze — goals, workflows, store protocols, runtime contracts"
+description = "Shared automation substrate for Ze — goals, workflows, accountability, store protocols, runtime contracts"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
@@ -15,10 +15,24 @@ dependencies = [
     "apscheduler>=3.10",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
+    "ze-sdk",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
 [tool.uv.sources]
 ze-agents    = { workspace = true }
 ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
+ze-sdk       = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_automation"]

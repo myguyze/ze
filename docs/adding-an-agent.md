@@ -14,7 +14,7 @@ This guide explains how to author a new agent. Read it alongside the existing ag
    - Email → `ze_email/agents/<name>/`
    - Prospecting → `ze_prospecting/agents/`
    - Calendar/reminder agents → `ze_calendar/agents/<name>/`
-   - Goals/workflow agents → `ze_personal/agents/<name>/`
+   - Goals/workflow agents → `ze_automation/agents/<name>/`
 
 ---
 
@@ -206,7 +206,9 @@ async def shutdown(self) -> None:
 ## 4. Register with your plugin
 
 Agents are discovered at startup by importing every module listed in the owning
-plugin's `agent_module_paths()`. The bootstrapper then resolves each `@agent` class's
+plugin's `agent_module_paths()`. Goal and workflow agents are imported directly in
+`ze_api/container.py` because `ze-automation` is a core package, not a plugin. The
+bootstrapper then resolves each `@agent` class's
 `__init__` parameters by type-matching against the shared `_dep_map` of services.
 
 **To add your agent:** add its module path to the plugin's `agent_module_paths()`.

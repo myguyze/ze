@@ -17,8 +17,11 @@ Read this alongside:
 Start here before writing anything.
 
 ```
-New agent that needs existing domain state (goals, contacts, workflows)?
+New agent that needs contacts or persona context?
   → ze-personal  (ze_personal/agents/<name>/)
+
+New agent for goals or workflows?
+  → ze-automation  (ze_automation/agents/<name>/)
 
 New agent for email/Gmail?
   → ze-email  (ze_email/agents/<name>/)
