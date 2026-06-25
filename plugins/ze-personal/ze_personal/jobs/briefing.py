@@ -12,6 +12,7 @@ from ze_news.preferences import NewsPreferenceBuilder
 from ze_news.types import GoalTitleProvider, PersonalizationSettings
 
 _BRIEFING_QUERY = "what's in the news?"
+_DREAM_SECTION_ENABLED_DEFAULT = True
 
 
 class _EmptyGoalProvider:
@@ -32,6 +33,7 @@ class MorningBriefing:
         settings: Settings,
         news_store=None,
         goal_store: GoalTitleProvider | None = None,
+        dream_store=None,
     ) -> None:
         self._notifier = notifier
         self._push_log = push_log_store
@@ -41,6 +43,7 @@ class MorningBriefing:
         self._settings = settings
         self._news = news_store
         self._goal_store = goal_store
+        self._dream_store = dream_store
         self._log = get_logger(__name__)
         follow_up_cfg = self._settings.config.get("contacts", {}).get("follow_up", {})
         self._stale_days = int(follow_up_cfg.get("stale_days", 7))
@@ -102,12 +105,40 @@ class MorningBriefing:
                     f"  • {nudge.name} — last mentioned {days} day{'s' if days != 1 else ''} ago"
                 )
 
+        if self._dream_store is not None:
+            await self._append_dream_section(lines)
+
         if self._news is not None:
             await self._append_news_section(lines)
 
         await self._notifier.push("\n".join(lines))
         self._log.info("briefing_sent", unreviewed=unreviewed)
         await self._push_log.log("morning_brief")
+
+    async def _append_dream_section(self, lines: list[str]) -> None:
+        try:
+            entry = await self._dream_store.get_latest_journal_entry()
+        except Exception:
+            return
+        if entry is None:
+            return
+
+        insights = entry.get("insights_promoted", 0)
+        risks = entry.get("plan_risks_surfaced", 0)
+        pending = entry.get("pending_review", 0)
+        episodes = entry.get("episodes_processed", 0)
+
+        if insights == 0 and pending == 0:
+            return
+
+        lines.append("")
+        lines.append(f"🌙 Ze dreamed — processed {episodes} memories overnight.")
+        if insights > 0:
+            lines.append(f"  → {insights} insight{'s' if insights != 1 else ''} promoted to memory")
+        if risks > 0:
+            lines.append(f"  → {risks} plan risk{'s' if risks != 1 else ''} surfaced")
+        if pending > 0:
+            lines.append(f"  → {pending} item{'s' if pending != 1 else ''} ready for your review")
 
     async def _append_news_section(self, lines: list[str]) -> None:
         if not self._personalization_enabled:

@@ -119,7 +119,7 @@ class DreamPromoter:
             fact_id = await self._insert_fact(
                 content=content,
                 run_id=run_id,
-                source_episode_ids=row.get("source_episode_ids") or [],
+                source_fact_ids=row.get("source_fact_ids") or [],
                 valid_until=valid_until,
             )
             await self._dream_store.mark_artifact_promoted(
@@ -146,7 +146,7 @@ class DreamPromoter:
         self,
         content: str,
         run_id: UUID,
-        source_episode_ids: list[Any],
+        source_fact_ids: list[Any],
         valid_until: datetime,
     ) -> UUID:
         embedding = None
@@ -160,11 +160,11 @@ class DreamPromoter:
             row = await conn.fetchrow(
                 """
                 INSERT INTO memory_facts (
-                    content, embedding, confidence, reviewed,
+                    predicate, value, embedding, confidence, reviewed,
                     provenance, valid_until, dream_run_id, derived_from,
                     corroborated, creation_method
                 ) VALUES (
-                    $1, $2::vector, 0.7, false,
+                    'synthesized_insight', $1, $2::vector, 0.7, false,
                     'synthesized', $3, $4, $5,
                     false, 'synthesized'
                 )
@@ -174,7 +174,7 @@ class DreamPromoter:
                 embedding,
                 valid_until,
                 run_id,
-                [str(eid) for eid in source_episode_ids],
+                [str(fid) for fid in source_fact_ids],
             )
         return row["id"]
 

@@ -243,6 +243,12 @@ class PersonalPlugin(ZePlugin):
                 log.info("news_store_wired_to_briefing")
                 break
 
+        # Wire dream_store into morning briefing (read-only pull for dream journal).
+        dream_store = getattr(container, "dream_store", None)
+        if dream_store is not None:
+            self.morning_briefing._dream_store = dream_store
+            log.info("dream_store_wired_to_briefing")
+
         # Register contacts consolidation cron job.
         if consolidation_enabled(container.settings):
             contacts_cfg = self._settings.config.get("contacts", {})
