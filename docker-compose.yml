@@ -15,6 +15,22 @@ services:
       timeout: 5s
       retries: 5
 
+  browser:
+    build: sidecar/browser
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -23,10 +39,13 @@ services:
     environment:
       DATABASE_URL: postgresql://ze:ze@postgres:5432/ze
       DATABASE_URL_SYNC: postgresql+psycopg2://ze:ze@postgres:5432/ze
+      BROWSER_SERVICE_URL: http://browser:8080
     ports:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      browser:
         condition: service_healthy
 
 volumes:

@@ -69,6 +69,8 @@ not `ZeApiSettings`.
 
 ### Browser sidecar
 
+See [browser.md](browser.md) for Docker Compose, health checks, and deployment.
+
 | Variable | Default | Description |
 |---|---|---|
 | `BROWSER_SERVICE_URL` | `http://ze-browser.internal:8080` | URL of the browser sidecar service |

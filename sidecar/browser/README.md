@@ -77,6 +77,9 @@ Sites that return 403/429 or unusable content get `status_code: 403` and empty `
 
 ## Local development
 
+For compose, health checks, and hybrid `make dev` setup, see
+[docs/browser.md](../../docs/browser.md).
+
 ### Docker (recommended)
 
 From this directory:

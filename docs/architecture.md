@@ -277,7 +277,8 @@ The browser client is a thin HTTP wrapper around a Playwright sidecar used for
 extraction and browser-backed tools. Push delivery is abstracted behind
 `ze-notifications`, with ntfy as the current implementation.
 
-See [core/ze-browser/README.md](../core/ze-browser/README.md),
+See [browser.md](browser.md) for local dev and operations,
+[core/ze-browser/README.md](../core/ze-browser/README.md),
 [sidecar/browser/README.md](../sidecar/browser/README.md), and
 [core/ze-notifications/README.md](../core/ze-notifications/README.md).
 

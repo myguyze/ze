@@ -17,6 +17,7 @@
 | [workflows.md](workflows.md) | Workflow agent — multi-step plans, scheduling, step execution |
 | [news.md](news.md) | News package — RSS ingestion, personalised ranking, credibility analysis |
 | [channels.md](channels.md) | Adding a new outbound communication channel (LinkedIn, WhatsApp, etc.) |
+| [browser.md](browser.md) | Browser sidecar — Docker Compose, health checks, local dev, Fly deploy |
 | [deployment.md](deployment.md) | Fly.io deployment, GitHub Actions CI, environment setup |
 | [eval.md](eval.md) | End-to-end eval system via MCP — running evals, LLM-as-judge |
 | [finance.md](finance.md) | Finance plugin — data sources, privacy model, CSV import, spending categories, signals, data deletion, future risk engine |
