@@ -109,31 +109,24 @@ Nothing synthetic writes directly to live memory. Every promoted fact carries
 | Sub-phase | Status | What ships |
 |-----------|--------|------------|
 | **78a** | Done | Sleep pass, wake hook, migration, dream journal API, retrieval weight enforcement |
-| **78b** | Pending | Dream synthesis, NLI gates, two-critic pipeline, auto-promotion, review UI |
-
-78a delivers useful consolidation before any LLM synthesis risk. 78b adds the full
-dream→critic→promote loop once episode selection is validated in production.
+| **78b** | Done | Dream synthesis, NLI gates, two-critic pipeline, auto-promotion, review REST API, confidence decay, `valid_until` expiry |
 
 **NLI model (Phase 79, done):** `cross-encoder/nli-deberta-v3-small` loads as a shared
 singleton in `ze_core/nli.py` via `NLIClient` — used for write-time contradiction, nightly dedup,
-session-cached retrieval re-rank, and correlation grounding. Phase 78b's `Gate1_NLI`
-in `gates.py` will import from the same module (no second download).
+session-cached retrieval re-rank, and correlation grounding. `Gate1_NLI` in `gates.py`
+imports from the same module (no second download).
 
-### 78a — user-visible
+### What ships across both sub-phases
 
-- Nightly sleep pass cleans episodes, compresses sessions, deduplicates facts, identifies
-  schema and policy clusters (no synthesis yet).
-- Morning briefing: "Ze processed N episodes overnight, found M schema clusters."
-- Dream runs visible at `GET /api/v0/memory/dream/journal`.
-- Episode retrieval respects `retrieval_weight` (stale episodes rank lower).
-
-### 78b — adds
-
-- LLM synthesis: insights, procedures, hindsight facts, stress-tests.
-- Full scoring pipeline: NLI + novelty + retrievability + two-critic.
-- Auto-promotion with lineage and per-run rollback.
-- `needs_review` notifications (once the React review page ships).
-- Synthetic fact confidence decay and corroboration detection.
+- Nightly sleep pass: compresses sessions, deduplicates facts, decays stale episodes, detects schema and policy clusters.
+- LLM synthesis (haiku): insights, procedures, hindsight facts, plan stress-tests.
+- Full scoring pipeline: NLI groundedness gate + embedding novelty gate + retrievability gate + two adversarial LLM critic calls (sonnet). Both critics must pass.
+- Auto-promotion with `valid_until`, `dream_run_id`, `derived_from` lineage.
+- Per-run rollback: `POST /runs/{run_id}/rollback` bulk-contradicts promoted facts.
+- Synthetic fact confidence decay: non-corroborated synthesized facts lose 0.03 confidence per run after 30 days; contradicted at < 0.25.
+- `valid_until` hard expiry: synthesized facts past their 90-day window that have not been corroborated by a raw episode are contradicted on each morning integration.
+- Morning briefing: "Ze dreamed — M insights promoted, K items for review."
+- `needs_review` push notifications gated behind `review_notifications_enabled` config flag (disabled until React review page ships).
 
 ---
 
@@ -174,28 +167,29 @@ until 78c.
 # config/config.yaml
 dream:
   enabled: true
-  cron: "0 3 * * *"           # default 3 AM
+  cron: "0 3 * * *"
   max_replay_episodes: 100
   max_synthesis_per_run: 20
-  max_total_llm_calls_per_run: 60
+  max_stress_tests_per_goal: 2
+  max_schema_candidates_per_run: 30
+  session_archive_threshold_days: 7
   auto_promote_min_support: 3
   auto_promote_min_distinct_sessions: 2
   auto_promote_min_temporal_spread_days: 7
+  auto_promote_max_user_asserted: 1
   nli_groundedness_threshold: 0.75
   novelty_similarity_threshold: 0.92
   decay_cycles: 5
   decay_rate: 0.1
+  forgetting_weight_threshold: 0.1
   synthesis_model: "anthropic/claude-haiku-4-5"
-  critic_model: "anthropic/claude-sonnet-4-5"
+  critic_model: "anthropic/claude-sonnet-4-6"
+  synthetic_fact_valid_days: 90      # synthesized facts contradicted after this many days without corroboration
+  job_timeout_seconds: 1800
+  review_notifications_enabled: false  # enable when React review page ships
 ```
 
-Environment variables:
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `DREAM_REVIEW_NOTIFICATIONS_ENABLED` | `false` | Push notifications for `needs_review` artifacts |
-
-See [configuration.md](configuration.md) for the full key list once wired.
+See [configuration.md](configuration.md) for the full key reference.
 
 ---
 
@@ -221,14 +215,23 @@ source episode excerpts and approve/reject/revise actions.
 - **Staging buffer** — no synthetic output touches live memory until all gates pass.
 - **Provenance** — `provenance=synthesized` facts are hedged in retrieval context
   ("Ze inferred this from a pattern").
-- **Source tagging** — `user_asserted` episodes score lower and cap at 1 toward
-  `support_count`.
+- **Source tagging** — episodes are classified `ze_observed` or `user_asserted` at write
+  time. Classification uses three layers: (1) agent-name allowlist (email, calendar,
+  workflow, reminders, news, prospecting, finance, goal, automation); (2) tool-result
+  markers in the stored prompt/response; (3) response-phrase detection for research
+  summaries. `user_asserted` episodes score lower and cap at 1 toward `support_count`.
 - **Sensitive exclusion** — episodes linked to sensitive entities skip all dream passes.
 - **Session contamination** — summaries that included synthetic facts are flagged
   `dream_influenced` and excluded from dream source selection until corroborated or
   rolled back.
+- **Synthetic expiry** — synthesized facts past `valid_until` (default 90 days) that
+  have never been corroborated by a raw episode are contradicted on the next morning
+  integration run.
 - **Rollback** — `POST /runs/{run_id}/rollback` bulk-contradicts all facts from a run
   and flags contaminated session summaries for re-summarisation.
+- **Quality audit** — `GET /api/v0/memory/facts/quality` returns a diagnostic snapshot
+  (provenance distribution, avg confidence, contradicted/unreviewed/expired counts) for
+  assessing source pool health before trusting synthesis output.
 
 ---
 

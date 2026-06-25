@@ -15,7 +15,7 @@ from ze_sdk import DataDomain
 from ze_sdk.types import AgentContext, AgentResult, ToolCall, GateDecision, Mode, AbortToken, Action, Notification
 from ze_sdk.proactive import ProactiveJob, proactive_job, ProactiveScheduler, ProactiveNotifier, PushLogStore, PushLogEntry
 from ze_sdk.channels import Channel, ChannelType, ChannelHandle, Message, SentMessage, Thread, ThreadMessage, ChannelSendError
-from ze_sdk.memory import MemoryContext, Fact, Episode, Procedure, Entity, TaskState, RetrievalRequest, MemoryStore, PostgresMemoryStore
+from ze_sdk.memory import MemoryContext, Fact, Episode, Procedure, Entity, TaskState, RetrievalRequest, MemoryStore, PostgresMemoryStore, PostgresDreamStore, DreamArtifact, DreamJournalEntry, DreamRun, ArtifactType, ArtifactStatus
 from ze_sdk.onboarding import OnboardingProvider, OnboardingStep, OnboardingField, OnboardingSeed, OnboardingResult
 from ze_sdk.errors import ZeError, AgentError, ToolBlockedError, AgentAbortedError, AgentConfigError, ChannelSendError
 ```
@@ -409,6 +409,12 @@ Plugin agents rarely read memory directly — `ctx.memory` is pre-populated. Use
 | `RetrievalRequest` | Parameters for a `MemoryStore.retrieve()` call. |
 | `MemoryStore` | Protocol for memory stores. |
 | `PostgresMemoryStore` | Default implementation backed by asyncpg + pgvector. |
+| `PostgresDreamStore` | Dream pipeline store — journal entries, artifact CRUD, run management. Used by `BriefingJob` (read-only) and the dream REST routes. |
+| `DreamArtifact` | A staged synthetic output before/after promotion. |
+| `DreamJournalEntry` | Per-run summary surfaced in the morning briefing. |
+| `DreamRun` | Metadata for one nightly dream job execution. |
+| `ArtifactType` | Enum: `synthesized_insight`, `synthesized_procedure`, `hindsight_fact`, `plan_stress_test`, `schema_candidate`, `policy_candidate`. |
+| `ArtifactStatus` | Enum: `pending`, `promoted`, `rejected`, `needs_review`, `revised`, `rolled_back`. |
 
 ---
 
