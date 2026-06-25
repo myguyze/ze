@@ -140,6 +140,46 @@ class MyAgent(BaseAgent):
 | `self._model(ctx)` | Returns the correct model string — primary or `model_simple` based on complexity |
 | `self.emit(ctx, key)` | Sends a localized progress message to the client mid-turn (see [Progress messages](#progress-messages)) |
 
+### NLI (entailment / grounding)
+
+Phase 80+ exposes a local cross-encoder via `NLIClient` — already wired in the
+bootstrap dep map. Use it when an agent or plugin job needs to compare text pairs
+(entailment, contradiction) or score how well a claim is grounded in evidence.
+
+**In agents** — inject `NLIClient` in `__init__`, pass it through `agentic_loop`
+deps, and optionally register the shared tools:
+
+```python
+from ze_agents.nli import NLIClient
+from ze_agents.nli_tools import nli_check_entailment, nli_grounding
+
+@agent
+class MyAgent(BaseAgent):
+    tools = ["my_tool", "nli_check_entailment", "nli_grounding"]
+
+    def __init__(self, openrouter_client: LLMClient, nli_client: NLIClient) -> None:
+        self._client = openrouter_client
+        self._nli = nli_client
+
+    async def run(self, ctx: AgentContext) -> AgentResult:
+        response, tool_calls = await self.agentic_loop(
+            ctx,
+            client=self._client,
+            deps={"nli_client": self._nli},
+        )
+        ...
+```
+
+List `ze_agents.nli_tools` in your plugin's `agent_module_paths()` **before** the
+agent module so `@tool` registration runs at import time.
+
+**In plugin jobs and services** — type-annotate `nli_client: NLIClient` on the
+plugin constructor; the bootstrapper resolves it automatically. For batch scoring
+outside the agent loop, call `await nli_client.scores([(premise, hypothesis), ...])`
+or `nli_client.grounding_score(hypothesis, evidence_texts)`.
+
+See [sdk.md](sdk.md#nliclient) and [specs/phases/80-nli-client.md](../specs/phases/80-nli-client.md).
+
 ### Progress messages
 
 Agents can send localized status strings to the client while they work. The client

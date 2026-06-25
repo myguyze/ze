@@ -177,6 +177,14 @@ Runs on every new article immediately after upsert. Pure phrase and regex matchi
 against the title and summary. Produces `CredibilityFlag` objects with
 `source="heuristic"`.
 
+**Pass 1b — NLI headline check** (optional, local cross-encoder)
+
+When `news.nli_credibility_enabled: true`, runs before the LLM pass. Premise =
+summary, hypothesis = headline. Flags `headline_mismatch` when
+`contradiction ≥ nli_headline_contradiction_threshold` (default 0.50) or
+`entailment < nli_headline_entailment_threshold` (default 0.30). Produces flags
+with `source="nli"`.
+
 **Pass 2 — LLM scoring pass** (async, one API call per article)
 
 Fires as a background task via `asyncio.create_task` after upsert. A cheap model
@@ -204,7 +212,7 @@ Flags belong to one of two confidence tiers, which control where they are render
 | `betteridge` | Question headline | Headline ends in `?` (language-agnostic) |
 | `clickbait` | Engagement hook language | EN + PT phrase lists, then LLM |
 | `vague_attribution` | Sources unnamed | EN + PT phrase lists, then LLM |
-| `headline_mismatch` | Headline stronger than summary | LLM only |
+| `headline_mismatch` | Headline stronger than summary | NLI (optional) + LLM |
 
 **Low-confidence** (require contextual judgment, higher false-positive risk):
 
@@ -240,6 +248,14 @@ schema changes: they alter the semantics of stored flag types. Articles can be r
 by running the scoring pipeline directly against the database — no REST endpoint is
 exposed for this currently.
 
+### Semantic dedup (optional)
+
+URL is the primary dedup key. When `news.nli_dedup_enabled: true`, newly inserted
+articles are compared against recent neighbours (cosine on title+summary embeddings,
+then mutual NLI entailment on summaries). Duplicates of an existing story are deleted
+from `news_articles` so the briefing does not surface the same event twice under
+different URLs.
+
 ---
 
 ## Configuration
@@ -265,6 +281,13 @@ news:
     model: "openai/gpt-4o-mini"   # model for LLM scoring pass
     flag_in_briefing: true         # show 🔍 labels inline in morning briefing
     briefing_summary: true         # show "N of M articles flagged" summary line
+
+  nli_credibility_enabled: false   # local NLI headline–summary mismatch pass
+  nli_headline_contradiction_threshold: 0.50
+  nli_headline_entailment_threshold: 0.30
+  nli_dedup_enabled: false         # delete semantically duplicate new articles
+  nli_dedup_cosine_threshold: 0.75
+  nli_dedup_entailment_threshold: 0.70
 
   sources:
     - key: bbc_world

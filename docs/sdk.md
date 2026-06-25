@@ -10,7 +10,7 @@ Plugin packages never import `ze-core` directly.
 ## Import map
 
 ```python
-from ze_sdk import ZePlugin, agent, tool, ToolAccess, BaseAgent, get_logger, Settings, DBPool
+from ze_sdk import ZePlugin, agent, tool, ToolAccess, BaseAgent, get_logger, Settings, DBPool, NLIClient
 from ze_sdk import DataDomain
 from ze_sdk.types import AgentContext, AgentResult, ToolCall, GateDecision, Mode, AbortToken, Action, Notification
 from ze_sdk.proactive import ProactiveJob, proactive_job, ProactiveScheduler, ProactiveNotifier, PushLogStore, PushLogEntry
@@ -34,7 +34,45 @@ from ze_sdk.errors import ZeError, AgentError, ToolBlockedError, AgentAbortedErr
 | `get_logger` | Structured logger factory. Always call as `get_logger(__name__)`. |
 | `Settings` | Settings dataclass bridge. Agents receive this via DI — never construct it yourself. |
 | `DBPool` | Structural `Protocol` for asyncpg connection pools. Use as a type hint in `__init__`. |
+| `NLIClient` | `Protocol` for local NLI cross-encoder inference — entailment, contradiction, grounding. |
 | `DataDomain` | Descriptor for export/import/delete ownership. Plugins return these via `ZePlugin.data_domains()`. |
+
+---
+
+## `NLIClient`
+
+Local cross-encoder (`cross-encoder/nli-deberta-v3-small`) for semantic comparison
+without an LLM call. Satisfied by `LocalNLIClient` in production; mock with
+`AsyncMock` in tests.
+
+```python
+from ze_sdk import NLIClient
+
+class MyService:
+    def __init__(self, nli_client: NLIClient) -> None:
+        self._nli = nli_client
+
+    async def check(self, premise: str, hypothesis: str) -> bool:
+        if not self._nli.pair_is_scorable(premise, hypothesis):
+            return False
+        scores = await self._nli.scores([(premise, hypothesis)])
+        return bool(scores[0] and scores[0]["entailment"] >= 0.70)
+```
+
+| Method | Description |
+|--------|-------------|
+| `scores(pairs)` | Batch score `(premise, hypothesis)` pairs. Returns `entailment`, `contradiction`, `neutral` probs, or `None` for non-Latin pairs. |
+| `grounding_score(hypothesis, evidence_texts)` | Max entailment of hypothesis against each evidence string. |
+| `pair_is_scorable(premise, hypothesis)` | Fast Latin-script gate before scoring. |
+
+**Shared agent tools** (import `ze_agents.nli_tools` in `agent_module_paths()`):
+
+| Tool | Purpose |
+|------|---------|
+| `nli_check_entailment` | Compare two strings; returns entailment/contradiction scores. |
+| `nli_grounding` | Score how well a claim is supported by a list of evidence texts. |
+
+Pass `deps={"nli_client": self._nli}` into `agentic_loop()` so tools receive the client.
 
 ---
 

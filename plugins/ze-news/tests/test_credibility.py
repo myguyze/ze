@@ -228,6 +228,34 @@ async def test_run_llm_scoring_returns_heuristics_on_error():
 # ---------------------------------------------------------------------------
 
 
+async def test_credibility_nli_headline_mismatch():
+    client = MagicMock()
+    nli_client = MagicMock()
+    nli_client.pair_is_scorable = MagicMock(return_value=True)
+    nli_client.scores = AsyncMock(return_value=[{
+        "entailment": 0.10,
+        "contradiction": 0.80,
+        "neutral": 0.10,
+    }])
+
+    article = _make_article(
+        title="Government proves vaccine causes harm",
+        summary="Researchers say the study suggests a possible link that requires review.",
+    )
+    report = await score_article(
+        article,
+        client=client,
+        model="test-model",
+        llm_enabled=False,
+        nli_client=nli_client,
+        nli_credibility_enabled=True,
+    )
+
+    mismatch = next(f for f in report.flags if f.type == "headline_mismatch")
+    assert mismatch.source == "nli"
+    client.complete.assert_not_called()
+
+
 async def test_score_article_heuristic_only():
     client = MagicMock()
     article = _make_article("Is this the worst government ever?", "Some summary.")

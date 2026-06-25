@@ -14,6 +14,7 @@ from ze_news.types import (
 )
 
 if TYPE_CHECKING:
+    from ze_agents.nli import NLIClient
     from ze_core.openrouter.client import OpenRouterClient
 
     from ze_news.types import Article
@@ -272,6 +273,52 @@ def run_heuristics(title: str, summary: str) -> list[CredibilityFlag]:
     return flags
 
 
+async def run_nli_headline_check(
+    title: str,
+    summary: str,
+    nli_client: "NLIClient",
+    *,
+    contradiction_threshold: float = 0.50,
+    entailment_threshold: float = 0.30,
+) -> list[CredibilityFlag]:
+    """NLI pass: flag when headline claim strength exceeds summary support."""
+    if not summary.strip() or not title.strip():
+        return []
+
+    if not nli_client.pair_is_scorable(summary, title):
+        return []
+
+    scores = await nli_client.scores([(summary, title)])
+    score = scores[0] if scores else None
+    if score is None:
+        return []
+
+    contradiction = score["contradiction"]
+    entailment = score["entailment"]
+    if contradiction < contradiction_threshold and entailment >= entailment_threshold:
+        return []
+
+    detail_parts: list[str] = []
+    if contradiction >= contradiction_threshold:
+        detail_parts.append(f"contradiction={contradiction:.2f}")
+    if entailment < entailment_threshold:
+        detail_parts.append(f"entailment={entailment:.2f}")
+    detail = (
+        "Headline claim strength exceeds summary support "
+        f"({', '.join(detail_parts)})."
+    )
+    return [
+        CredibilityFlag(
+            type="headline_mismatch",
+            label=_LABELS["headline_mismatch"],
+            detail=detail,
+            source="nli",
+            confidence=FLAG_CONFIDENCE["headline_mismatch"],
+            lang="any",
+        )
+    ]
+
+
 # ---------------------------------------------------------------------------
 # LLM scoring pass
 # ---------------------------------------------------------------------------
@@ -397,19 +444,38 @@ async def score_article(
     client: "OpenRouterClient",
     model: str,
     llm_enabled: bool = True,
+    *,
+    nli_client: "NLIClient | None" = None,
+    nli_credibility_enabled: bool = False,
+    nli_headline_contradiction_threshold: float = 0.50,
+    nli_headline_entailment_threshold: float = 0.30,
 ) -> CredibilityReport:
-    """Full two-pass scoring pipeline. Safe to call concurrently."""
+    """Full scoring pipeline: heuristics, optional NLI, optional LLM. Safe to call concurrently."""
     heuristic_flags = run_heuristics(article.title, article.summary)
+
+    nli_flags: list[CredibilityFlag] = []
+    if nli_credibility_enabled and nli_client is not None:
+        nli_flags = await run_nli_headline_check(
+            article.title,
+            article.summary,
+            nli_client,
+            contradiction_threshold=nli_headline_contradiction_threshold,
+            entailment_threshold=nli_headline_entailment_threshold,
+        )
+
+    merged_heuristic = heuristic_flags + [
+        f for f in nli_flags if not any(h.type == f.type for h in heuristic_flags)
+    ]
 
     if not llm_enabled:
         return CredibilityReport(
-            flags=heuristic_flags,
+            flags=merged_heuristic,
             status="heuristic_only",
             analyzed_at=datetime.now(timezone.utc),
         )
 
     llm_flags = await run_llm_scoring(
-        article.title, article.summary, heuristic_flags, client, model
+        article.title, article.summary, merged_heuristic, client, model
     )
     return CredibilityReport(
         flags=llm_flags,

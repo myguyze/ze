@@ -162,6 +162,10 @@ Plugin discovery is automatic via the `ze.plugins` entry point. If your agent's
 - add the service to `plugin_deps` in `ze_api/container.py` inside `build_container()`
   when it is a shared infra type constructed before plugins load.
 
+`NLIClient`, `LLMClient`, `SentenceTransformer` (embedder), and `asyncpg.Pool` are
+already in the dep map — annotate them on your `ZePlugin.__init__` when a job or
+service needs them (see Phase 81 news credibility/dedup and finance merchant merge).
+
 ### 7. Register memory and checkpoint hooks
 
 ```python

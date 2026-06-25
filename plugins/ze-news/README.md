@@ -10,7 +10,8 @@ Ze keeps the user informed without them having to check feeds manually. RSS sour
 
 - Curated RSS ingestion with configurable sources and fetch schedule
 - pgvector-ranked personalisation against the user's memory profile
-- Source credibility scoring (optional LLM-assisted)
+- Source credibility scoring (optional LLM-assisted; optional local NLI headline check)
+- Semantic story dedup (optional NLI + embedding clustering on fetch)
 - `NewsAgent` — headline queries and article search
 - News signal source for the correlation engine
 
@@ -31,7 +32,7 @@ from ze_news.plugin import NewsPlugin
 | `jobs/` | `NewsFetchJob` — periodic RSS fetch, stored and ranked |
 | `store.py` | `NewsStore` — Postgres-backed article storage with pgvector ranking |
 | `registry.py` | `SourceRegistry` — manages active RSS sources |
-| `credibility.py` | Source credibility scoring |
+| `credibility.py` | Source credibility scoring (heuristics, optional NLI, optional LLM) |
 | `plugin.py` | `NewsPlugin(ZePlugin)` — registers `NewsAgent` and `NewsFetchJob` |
 | `types.py` | Domain types |
 

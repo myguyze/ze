@@ -9,6 +9,7 @@ import asyncpg
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from ze_agents.nli import NLIClient
 from ze_logging import get_logger
 from ze_news.types import (
     Article,
@@ -131,6 +132,75 @@ class NewsStore:
                     new_articles.append(article)
 
         return new_articles
+
+    async def dedup_new_articles(
+        self,
+        articles: list[Article],
+        *,
+        nli_client: NLIClient,
+        cosine_threshold: float = 0.75,
+        entailment_threshold: float = 0.70,
+    ) -> list[Article]:
+        """Remove newly inserted articles that semantically duplicate an existing story."""
+        if not articles:
+            return []
+
+        kept: list[Article] = []
+        async with self._pool.acquire() as conn:
+            for article in articles:
+                text = f"{article.title}. {article.summary}"
+                embedding = self._embedder.encode(text)
+                vec = _to_pgvector(embedding)
+                emb_arr = np.array(embedding, dtype=float)
+
+                rows = await conn.fetch(
+                    """
+                    SELECT url, summary, embedding
+                    FROM news_articles
+                    WHERE url != $1 AND embedding IS NOT NULL
+                    ORDER BY embedding <=> $2::vector
+                    LIMIT 10
+                    """,
+                    article.url,
+                    vec,
+                )
+
+                duplicate_url: str | None = None
+                for row in rows:
+                    row_emb = row["embedding"]
+                    if row_emb is None:
+                        continue
+                    row_vec = np.array(list(row_emb), dtype=float)
+                    if _cosine(emb_arr, row_vec) < cosine_threshold:
+                        continue
+
+                    pairs = [
+                        (row["summary"] or "", article.summary or ""),
+                        (article.summary or "", row["summary"] or ""),
+                    ]
+                    scores = await nli_client.scores(pairs)
+                    if any(
+                        s is not None and s["entailment"] >= entailment_threshold
+                        for s in scores
+                    ):
+                        duplicate_url = row["url"]
+                        break
+
+                if duplicate_url is not None:
+                    await conn.execute(
+                        "DELETE FROM news_articles WHERE url = $1",
+                        article.url,
+                    )
+                    log.info(
+                        "news_semantic_dedup",
+                        removed_url=article.url,
+                        canonical_url=duplicate_url,
+                    )
+                    continue
+
+                kept.append(article)
+
+        return kept
 
     async def last_fetched_at(self, source_key: str) -> datetime | None:
         """When this source was last synced (max article fetched_at)."""

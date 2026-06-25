@@ -158,6 +158,12 @@ news:
     model: "openai/gpt-4o-mini"
     flag_in_briefing: true
     briefing_summary: true
+  nli_credibility_enabled: false
+  nli_headline_contradiction_threshold: 0.50
+  nli_headline_entailment_threshold: 0.30
+  nli_dedup_enabled: false
+  nli_dedup_cosine_threshold: 0.75
+  nli_dedup_entailment_threshold: 0.70
   sources:
     - key: bbc_world
       type: rss
@@ -192,6 +198,9 @@ finance:
   snapshot_schedule: "0 8 * * *"
   large_transaction_threshold: 500
   llm_categorization: false
+  nli_merchant_merge_enabled: false
+  nli_merchant_cosine_threshold: 0.70
+  nli_merchant_entailment_threshold: 0.70
 
 dream:
   enabled: true

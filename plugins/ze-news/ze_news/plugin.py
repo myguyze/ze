@@ -7,6 +7,7 @@ import asyncpg
 from sentence_transformers import SentenceTransformer
 
 from ze_agents.client import LLMClient
+from ze_agents.nli import NLIClient
 from ze_logging import get_logger
 from ze_sdk import ZePlugin
 from ze_agents.settings import Settings as CoreSettings
@@ -23,6 +24,7 @@ class NewsPlugin(ZePlugin):
         embedder: SentenceTransformer,
         settings: CoreSettings,
         openrouter_client: LLMClient,
+        nli_client: NLIClient,
     ) -> None:
         from ze_news.store import NewsStore
         from ze_news.registry import build_registry
@@ -56,6 +58,8 @@ class NewsPlugin(ZePlugin):
         self._source_count = len(source_configs)
 
         credibility_cfg = news_cfg.get("credibility", {})
+        nli_credibility_enabled = bool(news_cfg.get("nli_credibility_enabled", False))
+        nli_dedup_enabled = bool(news_cfg.get("nli_dedup_enabled", False))
         signals_cfg = settings.config.get("memory", {}).get("signals", {})
         self._force_ingest_sources: list[str] = signals_cfg.get("force_ingest_sources", [])
         salience_raw = settings.config.get("correlation", {}).get("salience", {})
@@ -72,6 +76,21 @@ class NewsPlugin(ZePlugin):
             credibility_enabled=credibility_cfg.get("enabled", False),
             credibility_llm_enabled=credibility_cfg.get("llm_scoring", True),
             credibility_model=credibility_cfg.get("model", "openai/gpt-4o-mini"),
+            nli_client=nli_client,
+            nli_credibility_enabled=nli_credibility_enabled,
+            nli_headline_contradiction_threshold=float(
+                news_cfg.get("nli_headline_contradiction_threshold", 0.50)
+            ),
+            nli_headline_entailment_threshold=float(
+                news_cfg.get("nli_headline_entailment_threshold", 0.30)
+            ),
+            nli_dedup_enabled=nli_dedup_enabled,
+            nli_dedup_cosine_threshold=float(
+                news_cfg.get("nli_dedup_cosine_threshold", 0.75)
+            ),
+            nli_dedup_entailment_threshold=float(
+                news_cfg.get("nli_dedup_entailment_threshold", 0.70)
+            ),
             min_fetch_interval_minutes=int(
                 news_cfg.get("min_fetch_interval_minutes", 30)
             ),

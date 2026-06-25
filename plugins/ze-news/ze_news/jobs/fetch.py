@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from ze_logging import get_logger
 from ze_sdk.proactive import proactive_job
+from ze_agents.nli import NLIClient
 from ze_news.registry import SourceRegistry
 from ze_news.store import NewsStore
 from ze_news.types import Article
@@ -37,6 +38,13 @@ class NewsFetchJob:
         force_ingest_sources: list[str] | None = None,
         admission_gate: Any = None,
         signal_source: "NewsSignalSource | None" = None,
+        nli_client: NLIClient | None = None,
+        nli_credibility_enabled: bool = False,
+        nli_headline_contradiction_threshold: float = 0.50,
+        nli_headline_entailment_threshold: float = 0.30,
+        nli_dedup_enabled: bool = False,
+        nli_dedup_cosine_threshold: float = 0.75,
+        nli_dedup_entailment_threshold: float = 0.70,
     ) -> None:
         self._registry = registry
         self._store = store
@@ -51,6 +59,13 @@ class NewsFetchJob:
         self._admission_gate = admission_gate
         self._signal_source = signal_source
         self._signal_watermark: datetime = _EPOCH
+        self._nli_client = nli_client
+        self._nli_credibility_enabled = nli_credibility_enabled
+        self._nli_headline_contradiction_threshold = nli_headline_contradiction_threshold
+        self._nli_headline_entailment_threshold = nli_headline_entailment_threshold
+        self._nli_dedup_enabled = nli_dedup_enabled
+        self._nli_dedup_cosine_threshold = nli_dedup_cosine_threshold
+        self._nli_dedup_entailment_threshold = nli_dedup_entailment_threshold
 
     async def run(self, *, force: bool = False) -> None:
         now = datetime.now(timezone.utc)
@@ -63,6 +78,17 @@ class NewsFetchJob:
                 log.info("news_fetch_empty", source=source.key)
                 continue
             new_articles = await self._store.upsert(articles)
+            if (
+                new_articles
+                and self._nli_dedup_enabled
+                and self._nli_client is not None
+            ):
+                new_articles = await self._store.dedup_new_articles(
+                    new_articles,
+                    nli_client=self._nli_client,
+                    cosine_threshold=self._nli_dedup_cosine_threshold,
+                    entailment_threshold=self._nli_dedup_entailment_threshold,
+                )
             log.info(
                 "news_fetch_done",
                 source=source.key,
@@ -114,6 +140,14 @@ class NewsFetchJob:
                     client=self._client,
                     model=self._credibility_model,
                     llm_enabled=self._credibility_llm_enabled,
+                    nli_client=self._nli_client,
+                    nli_credibility_enabled=self._nli_credibility_enabled,
+                    nli_headline_contradiction_threshold=(
+                        self._nli_headline_contradiction_threshold
+                    ),
+                    nli_headline_entailment_threshold=(
+                        self._nli_headline_entailment_threshold
+                    ),
                 )
                 await self._store.update_credibility(article.url, report)
             except Exception as exc:

@@ -246,6 +246,9 @@ anywhere. The steps:
 1. Filter to spending transactions (`withdrawal`, `fee`).
 2. Normalise the description: lowercase, strip digits and punctuation, collapse
    whitespace. This groups `"Netflix 1234"` and `"Netflix 5678"` under the same key.
+   When `finance.nli_merchant_merge_enabled: true`, alias descriptions within the
+   same account and currency (e.g. `NETFLIX.COM` / `Netflix`) are merged via embedding
+   cosine prefilter + NLI entailment before grouping.
 3. Group by `(normalised description, currency, account)`.
 4. For each group, compute the gaps in days between consecutive occurrences.
 5. Reject the group if any gap falls outside ±40% of the median gap — this filters
@@ -429,6 +432,10 @@ finance:
   recurring_nudge_cooldown_days: 14           # minimum days between nudges per account
   recurring_price_change_threshold: 0.10      # resurface dismissed items if amount changes >10%
   recurring_lookback_days: 90                 # transaction history window for detection
+
+  nli_merchant_merge_enabled: false           # merge merchant aliases via NLI before grouping
+  nli_merchant_cosine_threshold: 0.70
+  nli_merchant_entailment_threshold: 0.70
 ```
 
 ---

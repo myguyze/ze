@@ -7,8 +7,10 @@ from typing import Any
 import asyncpg
 
 from ze_agents.client import LLMClient
+from ze_agents.nli import NLIClient
 from ze_logging import get_logger
 from ze_agents.settings import Settings as CoreSettings
+from sentence_transformers import SentenceTransformer
 from ze_proactive.notifier import ProactiveNotifier
 from ze_sdk import ZePlugin, DataDomain
 
@@ -23,6 +25,8 @@ class FinancePlugin(ZePlugin):
         settings: CoreSettings,
         openrouter_client: LLMClient,
         notifier: ProactiveNotifier,
+        nli_client: NLIClient,
+        embedder: SentenceTransformer,
         trading212_client: Any = None,
     ) -> None:
         from ze_finance.store import PortfolioStore, TransactionStore, CsvMappingStore
@@ -44,6 +48,11 @@ class FinancePlugin(ZePlugin):
         staleness_days: int = int(fin_cfg.get("recurring_staleness_days", 35))
         nudge_cooldown_days: int = int(fin_cfg.get("recurring_nudge_cooldown_days", 14))
         price_change_threshold: float = float(fin_cfg.get("recurring_price_change_threshold", 0.10))
+        nli_merchant_merge_enabled = bool(fin_cfg.get("nli_merchant_merge_enabled", False))
+        nli_merchant_cosine_threshold = float(fin_cfg.get("nli_merchant_cosine_threshold", 0.70))
+        nli_merchant_entailment_threshold = float(
+            fin_cfg.get("nli_merchant_entailment_threshold", 0.70)
+        )
 
         self._portfolio_store = PortfolioStore(pool=pool)
         self._transaction_store = TransactionStore(pool=pool)
@@ -87,7 +96,13 @@ class FinancePlugin(ZePlugin):
             transaction_store=self._transaction_store,
             recurring_store=self._recurring_store,
             notifier=notifier,
-            detector=RecurringDetector(),
+            detector=RecurringDetector(
+                embedder=embedder,
+                nli_client=nli_client,
+                nli_merchant_merge_enabled=nli_merchant_merge_enabled,
+                nli_merchant_cosine_threshold=nli_merchant_cosine_threshold,
+                nli_merchant_entailment_threshold=nli_merchant_entailment_threshold,
+            ),
             staleness_days=staleness_days,
             nudge_cooldown_days=nudge_cooldown_days,
         )

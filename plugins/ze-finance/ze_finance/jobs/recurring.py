@@ -108,7 +108,7 @@ class RecurringDetectionJob:
         since = datetime.now(timezone.utc) - timedelta(days=self._lookback_days)
         transactions = await self._transactions.get(account_id=account_id, since=since)
 
-        candidates = self._detector.detect(transactions)
+        candidates = await self._detector.detect_transactions(transactions)
         if not candidates:
             return
 

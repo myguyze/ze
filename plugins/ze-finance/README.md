@@ -14,7 +14,7 @@ The plugin is designed as the substrate for a full factor-based risk engine (`ze
 - Trading212 integration — positions, P&L, order and dividend history
 - CSV bank statement import with LLM-assisted column mapping inference (cached per source)
 - Two-tier spending categorisation: keyword rules first, optional Anthropic haiku batch for unmatched descriptions
-- Recurring expense detection — algorithmic detection of subscriptions and fixed charges at any cadence (weekly, biweekly, monthly, quarterly, …); opt-in, with confirm/dismiss UX and price-change resurface
+- Recurring expense detection — algorithmic detection of subscriptions and fixed charges at any cadence (weekly, biweekly, monthly, quarterly, …); optional NLI merchant-alias merging; opt-in, with confirm/dismiss UX and price-change resurface
 - Daily snapshot job — syncs all data sources, updates categories, emits signals
 - Monthly recurring detection job — detects new recurring charges, nudges on stale CSV data
 - `FinanceSignalSource` — P&L swing and large transaction signals into the Ze signal substrate
@@ -40,7 +40,7 @@ from ze_finance.plugin import FinancePlugin
 | `models/alpha.py` | `AlphaModel` Protocol stub (future `ze-risk` extension point) |
 | `plugin.py` | `FinancePlugin(ZePlugin)` — registers agent, jobs, signal source, and data domains |
 | `recurring/types.py` | `RecurringExpense`, `RecurringStatus`, `UpsertResult`; `snap_interval()`, `cadence_label()` |
-| `recurring/detector.py` | `RecurringDetector` — pure, stateless gap-analysis algorithm |
+| `recurring/detector.py` | `RecurringDetector` — gap-analysis algorithm; optional async NLI merchant merge |
 | `recurring/store.py` | `RecurringStore` — upsert with price-change resurface logic, confirm/dismiss, nudge rate-limiting |
 | `risk/types.py` | `FactorTaxonomy` enum — 12-factor taxonomy for the future risk engine |
 | `risk/engine.py` | `RiskEngine` Protocol stub |

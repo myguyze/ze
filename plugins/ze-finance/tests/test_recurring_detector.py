@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from ze_finance.recurring.detector import RecurringDetector
 from ze_finance.recurring.types import cadence_label, snap_interval
@@ -216,3 +217,41 @@ def test_gap_tolerance_allows_month_length_drift() -> None:
     results = detector.detect(txs)
     assert len(results) == 1
     assert results[0].interval_days == 30  # gaps [31, 28, 31], median=31, snaps to 30 (monthly)
+
+
+async def test_recurring_merchant_merge() -> None:
+    dates = _dates(start_month=1, interval_days=30, count=3)
+    txs = [
+        _tx("NETFLIX.COM", Decimal("15.99"), dates[0]),
+        _tx("Netflix", Decimal("15.99"), dates[1]),
+        _tx("NETFLIX SUBSCRIPTION", Decimal("15.99"), dates[2]),
+    ]
+
+    embedder = MagicMock()
+    embedder.encode.return_value = [
+        [1.0, 0.0],
+        [0.95, 0.05],
+        [0.94, 0.06],
+    ]
+
+    nli_client = MagicMock()
+    nli_client.scores = AsyncMock(return_value=[
+        {"entailment": 0.85, "contradiction": 0.05, "neutral": 0.10},
+        {"entailment": 0.82, "contradiction": 0.08, "neutral": 0.10},
+        {"entailment": 0.80, "contradiction": 0.10, "neutral": 0.10},
+        {"entailment": 0.79, "contradiction": 0.11, "neutral": 0.10},
+        {"entailment": 0.81, "contradiction": 0.09, "neutral": 0.10},
+        {"entailment": 0.78, "contradiction": 0.12, "neutral": 0.10},
+    ])
+
+    detector = RecurringDetector(
+        embedder=embedder,
+        nli_client=nli_client,
+        nli_merchant_merge_enabled=True,
+        nli_merchant_cosine_threshold=0.70,
+        nli_merchant_entailment_threshold=0.70,
+    )
+
+    results = await detector.detect_transactions(txs)
+    assert len(results) == 1
+    assert results[0].occurrence_count == 3

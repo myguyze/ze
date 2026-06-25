@@ -86,6 +86,43 @@ async def test_last_fetched_at_queries_source():
     assert conn.fetchval.call_args[0][1] == "bbc_world"
 
 
+async def test_news_cluster_dedup():
+    store, conn = _make_store()
+    canonical = _make_article(
+        url="https://example.com/original",
+        summary="Leaders agreed on a ceasefire after overnight talks.",
+    )
+    duplicate = _make_article(
+        url="https://other.com/same-story",
+        summary="Leaders agreed on a ceasefire after overnight talks.",
+    )
+
+    conn.fetch.return_value = [{
+        "url": canonical.url,
+        "summary": canonical.summary,
+        "embedding": [0.1] * 384,
+    }]
+    nli_client = MagicMock()
+    nli_client.scores = AsyncMock(return_value=[
+        {"entailment": 0.90, "contradiction": 0.05, "neutral": 0.05},
+        {"entailment": 0.88, "contradiction": 0.07, "neutral": 0.05},
+    ])
+
+    kept = await store.dedup_new_articles(
+        [duplicate],
+        nli_client=nli_client,
+        cosine_threshold=0.75,
+        entailment_threshold=0.70,
+    )
+
+    assert kept == []
+    delete_calls = [
+        call for call in conn.execute.call_args_list
+        if "DELETE FROM news_articles" in str(call)
+    ]
+    assert len(delete_calls) == 1
+
+
 async def test_prune_returns_count():
     store, conn = _make_store()
     conn.execute.return_value = "DELETE 3"

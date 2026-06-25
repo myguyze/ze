@@ -42,7 +42,7 @@ class CredibilityFlag:
     type: str
     label: str
     detail: str
-    source: Literal["heuristic", "llm"]
+    source: Literal["heuristic", "llm", "nli"]
     confidence: FlagConfidence
     lang: str = "any"
 
