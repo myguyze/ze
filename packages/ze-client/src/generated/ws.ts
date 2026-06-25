@@ -34,7 +34,7 @@ export type Type2 = "confirm_request";
 export type Id2 = string;
 export type Prompt = string;
 export type Label = string;
-export type Value = "approve" | "deny";
+export type Value = string;
 export type Style = ("primary" | "secondary" | "danger") | null;
 export type Actions = WsConfirmAction[];
 export type Type3 = "confirm_cancel";
@@ -56,6 +56,7 @@ export type WsOutboundFrame =
   | WsSendMessageFrame
   | WsAckFrame
   | WsConfirmFrame
+  | WsActionFrame
   | WsCommandFrame
   | WsComponentSubmitFrame
   | WsPingFrame;
@@ -69,6 +70,8 @@ export type Ids = string[];
 export type Type11 = "confirm";
 export type Id4 = string;
 export type Choice = "approve" | "deny";
+export type Type15 = "action";
+export type Payload = string;
 export type Type12 = "command";
 export type Name = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
 export type Type13 = "component_submit";
@@ -221,6 +224,14 @@ export interface WsConfirmFrame {
   type: Type11;
   id: Id4;
   choice: Choice;
+}
+/**
+ * This interface was referenced by `WsProtocol`'s JSON-Schema
+ * via the `definition` "WsActionFrame".
+ */
+export interface WsActionFrame {
+  type: Type15;
+  payload: Payload;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema

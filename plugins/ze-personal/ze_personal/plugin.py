@@ -170,6 +170,7 @@ class PersonalPlugin(ZePlugin):
     def rest_stores(self) -> dict[str, Any]:
         return {
             "goal_store": self.goal_store,
+            "goal_executor": self.goal_executor,
             "person_store": self.person_store,
         }
 

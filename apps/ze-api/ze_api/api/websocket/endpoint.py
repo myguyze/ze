@@ -7,6 +7,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from ze_api.api.websocket.commands import handle_command
 from ze_api.api.websocket.component_submit import handle_component_submit
 from ze_api.api.websocket.confirmation import handle_confirm
+from ze_api.api.websocket.goal_actions import handle_action
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.onboarding import send_onboarding_view
 from ze_api.api.websocket.turns import handle_message
@@ -107,6 +108,9 @@ async def websocket_endpoint(
                     confirmation_store=confirmation_store,
                     session_store=session_store,
                 )
+
+            elif frame_type == "action":
+                await handle_action(ws, data, container, conn_mgr)
 
             elif frame_type == "message":
                 if not conn_mgr.try_set_busy():

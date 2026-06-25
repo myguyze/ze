@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetProfileData, GetProfileResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListContactsData, ListContactsResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses } from './types.gen';
+import type { ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetProfileData, GetProfileResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListContactsData, ListContactsResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -209,13 +209,24 @@ export const getCostDetail = <ThrowOnError extends boolean = false>(options?: Op
 });
 
 /**
- * List active goals
+ * List goals for the web client
  *
- * Returns active and awaiting-gate goals for the web client goals screen.
+ * Returns planning, active, awaiting-gate, and paused goals for the web client goals screen.
  */
 export const listGoals = <ThrowOnError extends boolean = false>(options?: Options<ListGoalsData, ThrowOnError>): RequestResult<ListGoalsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListGoalsResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v0/goals',
+    ...options
+});
+
+/**
+ * Start a planned goal
+ *
+ * Activates a goal in planning status and begins milestone execution.
+ */
+export const startGoal = <ThrowOnError extends boolean = false>(options: Options<StartGoalData, ThrowOnError>): RequestResult<StartGoalResponses, StartGoalErrors, ThrowOnError> => (options.client ?? client).post<StartGoalResponses, StartGoalErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/goals/{goal_id}/start',
     ...options
 });
 

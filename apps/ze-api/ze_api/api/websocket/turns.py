@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import WebSocket
 
@@ -39,6 +39,18 @@ async def handle_message(
     if not thread_id:
         await conn_mgr.send_frame({"type": "error", "detail": "thread_id required"})
         return pending_config
+
+    pending_gate_id = conn_mgr.take_pending_gate_redirect()
+    if pending_gate_id is not None:
+        return await _handle_gate_redirect_message(
+            text,
+            thread_id,
+            pending_gate_id,
+            container,
+            msg_store,
+            conn_mgr,
+            session_store,
+        )
 
     user_msg = Message(
         id=uuid4(),
@@ -121,4 +133,55 @@ async def handle_message(
             components=components or None,
         )
 
+    return None
+
+
+async def _handle_gate_redirect_message(
+    text: str,
+    thread_id: str,
+    gate_id: UUID,
+    container: Any,
+    msg_store: Any,
+    conn_mgr: ConnectionManager,
+    session_store: Any | None,
+) -> None:
+    user_msg = Message(
+        id=uuid4(),
+        role="user",
+        text=text,
+        components=[],
+        read=True,
+        created_at=datetime.now(timezone.utc),
+        thread_id=thread_id,
+    )
+    try:
+        await msg_store.save(user_msg)
+    except Exception as exc:
+        log.warning("ws_save_user_msg_failed", error=str(exc))
+
+    if session_store is not None:
+        preview = text[:120].strip() if text else None
+        try:
+            await session_store.upsert(thread_id, preview=preview)
+        except Exception as exc:
+            log.warning("ws_session_upsert_failed", error=str(exc))
+
+    executor = container._plugin_stores.get("goal_executor")
+    if executor is None:
+        await conn_mgr.send_frame({"type": "error", "detail": "Goal engine unavailable"})
+        return None
+
+    await conn_mgr.send_frame({"type": "typing"})
+    try:
+        await executor.handle_gate_redirected(gate_id, text)
+    except Exception as exc:
+        log.exception("ws_gate_redirect_failed", error=str(exc))
+        await conn_mgr.send_frame({"type": "error", "detail": "Redirect failed."})
+        return None
+
+    await container.interface.send_with_thread(
+        "Got it — Ze is replanning from that checkpoint.",
+        thread_id=thread_id,
+    )
+    await conn_mgr.send_frame({"type": "refresh", "screen": "goals"})
     return None

@@ -219,6 +219,19 @@ async def test_list_retrospectives_returns_empty_when_no_rows():
     assert result == []
 
 
+# ── list_for_display ─────────────────────────────────────────────────────────
+
+async def test_list_for_display_includes_planning_and_paused():
+    pool, conn = _make_pool(fetch=[])
+    store = PostgresGoalStore(pool)
+
+    await store.list_for_display()
+
+    sql = conn.fetch.call_args.args[0]
+    assert "planning" in sql
+    assert "paused" in sql
+
+
 # ── list_active_goal_titles ───────────────────────────────────────────────────
 
 async def test_list_active_goal_titles_returns_titles():

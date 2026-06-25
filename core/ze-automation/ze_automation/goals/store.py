@@ -26,6 +26,10 @@ class GoalStore(Protocol):
 
     async def list_active(self) -> list[Goal]: ...
 
+    async def list_for_display(self) -> list[Goal]:
+        """Goals visible on the web goals screen (includes planning and paused)."""
+        ...
+
     async def list_for_advance(self) -> list[Goal]:
         """Goals eligible for the advance sweep (status == active)."""
         ...

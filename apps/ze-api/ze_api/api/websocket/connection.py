@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
+from uuid import UUID
 
 from fastapi import WebSocket
 
@@ -19,6 +20,7 @@ class ConnectionManager:
         self._lock = asyncio.Lock()
         self._busy = False
         self._thread_id: str | None = None
+        self._pending_gate_redirect: UUID | None = None
 
     @property
     def connected(self) -> bool:
@@ -76,6 +78,15 @@ class ConnectionManager:
         async with self._lock:
             self._ws = None
             self._thread_id = None
+            self._pending_gate_redirect = None
+
+    def set_pending_gate_redirect(self, gate_id: UUID) -> None:
+        self._pending_gate_redirect = gate_id
+
+    def take_pending_gate_redirect(self) -> UUID | None:
+        gate_id = self._pending_gate_redirect
+        self._pending_gate_redirect = None
+        return gate_id
 
     async def push(self, message: Any) -> None:
         """Send a message frame; silently no-ops if disconnected."""

@@ -14,6 +14,7 @@ from ze_api.api.routes import contacts, costs, goals, reminders
 def container():
     goal = SimpleNamespace(
         id=uuid4(),
+        title="Launch product",
         objective="Launch product",
         status=SimpleNamespace(value="active"),
         created_at="2026-06-01T00:00:00+00:00",
@@ -32,7 +33,7 @@ def container():
     )
 
     goal_store = AsyncMock()
-    goal_store.list_active = AsyncMock(return_value=[goal])
+    goal_store.list_for_display = AsyncMock(return_value=[goal])
 
     reminder_store = AsyncMock()
     reminder_store.list_all = AsyncMock(return_value=[reminder])
@@ -85,8 +86,28 @@ def test_list_goals(client):
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
+    assert data[0]["title"] == "Launch product"
     assert data[0]["objective"] == "Launch product"
     assert data[0]["status"] == "active"
+
+
+def test_start_goal(client, container):
+    goal_id = uuid4()
+    executor = AsyncMock()
+    executor.approve_plan = AsyncMock(return_value=True)
+    store = AsyncMock()
+    store.get_goal = AsyncMock(
+        return_value=SimpleNamespace(id=goal_id, status=SimpleNamespace(value="active"))
+    )
+    container._plugin_stores["goal_executor"] = executor
+    container._plugin_stores["goal_store"] = store
+    container.connection_manager = AsyncMock()
+    container.connection_manager.send_frame = AsyncMock()
+
+    resp = client.post(f"/api/v0/goals/{goal_id}/start")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
+    executor.approve_plan.assert_awaited_once_with(goal_id)
 
 
 def test_list_reminders(client):

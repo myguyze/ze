@@ -10,12 +10,12 @@ export function GoalsOverview() {
     <>
       <ListPage
         label="Goals"
-        title="Active goals"
+        title="Goals"
         isLoading={isLoading}
         isError={isError}
         isEmpty={!goals?.length}
         emptyIcon={Target}
-        emptyMessage="No active goals. Ask Ze to set one."
+        emptyMessage="No goals yet. Ask Ze to set one."
         errorMessage="Could not load goals."
         onRetry={() => void refetch()}
       >

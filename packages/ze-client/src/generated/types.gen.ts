@@ -468,6 +468,20 @@ export type FactReviewRequest = {
 };
 
 /**
+ * GoalActionResponse
+ */
+export type GoalActionResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
  * GoalListItem
  */
 export type GoalListItem = {
@@ -475,6 +489,10 @@ export type GoalListItem = {
      * Id
      */
     id: string;
+    /**
+     * Title
+     */
+    title: string;
     /**
      * Objective
      */
@@ -1475,6 +1493,36 @@ export type ListGoalsResponses = {
 };
 
 export type ListGoalsResponse = ListGoalsResponses[keyof ListGoalsResponses];
+
+export type StartGoalData = {
+    body?: never;
+    path: {
+        /**
+         * Goal Id
+         */
+        goal_id: string;
+    };
+    query?: never;
+    url: '/api/v0/goals/{goal_id}/start';
+};
+
+export type StartGoalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartGoalError = StartGoalErrors[keyof StartGoalErrors];
+
+export type StartGoalResponses = {
+    /**
+     * Successful Response
+     */
+    200: GoalActionResponse;
+};
+
+export type StartGoalResponse = StartGoalResponses[keyof StartGoalResponses];
 
 export type ListRemindersData = {
     body?: never;

@@ -4,7 +4,7 @@ import { cn } from "@/shared/lib/cn";
 interface ConfirmBarProps {
   prompt: string;
   actions: WsConfirmAction[];
-  onConfirm: (choice: "approve" | "deny") => void;
+  onConfirm: (value: string) => void;
 }
 
 export function ConfirmBar({ prompt, actions, onConfirm }: ConfirmBarProps) {
@@ -14,7 +14,7 @@ export function ConfirmBar({ prompt, actions, onConfirm }: ConfirmBarProps) {
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
           <button
-            key={action.value}
+            key={`${action.label}-${action.value}`}
             onClick={() => onConfirm(action.value)}
             className={cn(
               "px-4 py-2 rounded-pill text-xs font-semibold tracking-wide transition-opacity",

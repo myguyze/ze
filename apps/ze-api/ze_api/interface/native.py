@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, ClassVar, Literal
 from uuid import uuid4
 
-from ze_agents.interface.types import ConfirmationRequest, Notification, OutboundMessage
+from ze_agents.interface.types import Action, ConfirmationRequest, Notification, OutboundMessage
 from ze_core.conversation.messages import Message
 from ze_logging import get_logger
 
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
 log = get_logger(__name__)
 
 _NTFY_PRIORITY_MAP = {"normal": 3, "high": 5}
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_DANGER_LABELS = frozenset({"stop", "cancel", "abandon", "dismiss"})
 
 
 class NativeAppInterface:
@@ -41,6 +44,8 @@ class NativeAppInterface:
             notification.content,
             ntfy_priority=_NTFY_PRIORITY_MAP.get(notification.urgency, 3),
         )
+        if notification.actions:
+            await self._send_action_request(notification)
 
     async def _send_message(
         self,
@@ -112,11 +117,39 @@ class NativeAppInterface:
             except Exception as exc:
                 log.warning("native_interface_confirmation_ntfy_failed", error=str(exc))
 
+    async def _send_action_request(self, notification: Notification) -> None:
+        prompt = (
+            _strip_html(notification.content)
+            if notification.format == "html"
+            else notification.content
+        )
+        await self._conn.send_frame({
+            "type": "confirm_request",
+            "id": str(uuid4()),
+            "prompt": prompt,
+            "actions": [_action_to_frame(action) for action in notification.actions],
+        })
+
+
+def _strip_html(text: str) -> str:
+    return _HTML_TAG_RE.sub("", text).strip()
+
+
+def _action_to_frame(action: Action) -> dict[str, str]:
+    label_key = action.label.lower()
+    if any(word in label_key for word in _DANGER_LABELS):
+        style = "danger"
+    elif action.row == 0:
+        style = "primary"
+    else:
+        style = "secondary"
+    return {"label": action.label, "value": action.payload, "style": style}
+
 
 def _confirmation_actions(options: list[str]) -> list[dict[str, str]]:
     if options == ["Approve", "Cancel"]:
         return [
-            {"label": "Approve", "payload": "yes"},
-            {"label": "Cancel", "payload": "no"},
+            {"label": "Approve", "value": "approve", "style": "primary"},
+            {"label": "Cancel", "value": "deny", "style": "secondary"},
         ]
-    return [{"label": opt, "payload": opt.lower()} for opt in options]
+    return [{"label": opt, "value": opt.lower()} for opt in options]

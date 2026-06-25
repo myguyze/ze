@@ -154,7 +154,7 @@ async def test_run_creates_goal_via_tool():
             "time_horizon": "2 weeks",
             "goal_type": "outreach",
         }}]),
-        ("Goal 'Find leads' planned with 1 milestone. Approve in Telegram to start.", None),
+        ("Goal 'Find leads' planned with 1 milestone. Approve in the app to start.", None),
     ])
     client.complete = AsyncMock(return_value="ok")
 

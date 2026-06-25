@@ -129,18 +129,17 @@
 - id: goals_suggest_accept_conversationally
   prompt: "You suggested I build a personal finance tracker. I like the idea — let's make it a goal."
   description: >
-    User accepting a proactively-suggested goal via conversation instead of the Telegram
-    callback. Ze should route to the goals agent and call create_goal. Because the goals
-    agent is CONFIRM-mode, the goal goes to Telegram for approval — it won't be in the DB
-    until the user confirms there (pending_confirmation will be True).
+    User accepting a proactively-suggested goal via conversation instead of the app
+    action buttons. Ze should route to the goals agent and call create_goal. The plan is
+    saved in PLANNING status and pushed to the app for approval before execution starts.
   expected_agent: goals
   tags: [routing, goals, suggestions]
   criteria:
     - Should route to the goals agent
     - Should call create_goal with the finance tracker as the objective
     - Should not ask unnecessary clarifying questions when the user's intent is clear
-    - Should tell the user to check Telegram for the milestone plan and approval
-    - Should not claim the goal is already running — it awaits Telegram confirmation
+    - Should tell the user to approve the plan in the app (or conversationally)
+    - Should not claim the goal is already running — it awaits plan approval
 
 - id: goals_suggest_routing_recommendation
   prompt: "What goal would you recommend I set this month?"
@@ -159,7 +158,7 @@
   description: >
     Multi-turn: user dismissed a proactive suggestion but now wants to revisit it
     conversationally and create the goal manually. Goals agent should handle turn 2
-    and send the plan to Telegram for approval (CONFIRM mode — not in DB until approved).
+    and push the plan to the app for approval before execution starts.
   expected_agent: goals
   turns:
     - prompt: "I dismissed a goal suggestion last week about starting a newsletter. I think I was wrong — I want to do it."
@@ -171,5 +170,5 @@
     - Turn 1 should acknowledge the user wants to revisit the idea and ask for details or scope
     - Turn 1 should not attempt to look up the dismissed suggestion (Ze has no tool for this)
     - Turn 2 should call create_goal with the newsletter objective and 3-month horizon
-    - Turn 2 response should tell the user to check Telegram for the milestone plan
+    - Turn 2 response should tell the user to approve the plan in the app
     - Ze should not ask for redundant confirmation once the user has said "yes, let's go"

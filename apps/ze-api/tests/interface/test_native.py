@@ -94,3 +94,26 @@ async def test_no_ntfy_when_notifier_is_none():
 
     store.save.assert_called_once()
     conn.push.assert_called_once()
+
+
+async def test_push_with_actions_sends_confirm_request():
+    from ze_agents.interface.types import Action, Notification
+
+    iface, store, conn, notifier = _make_interface()
+    await iface.push(Notification(
+        content="<b>Goal</b> — proposed plan",
+        format="html",
+        urgency="high",
+        actions=[
+            Action(label="Start goal", payload="goal_plan:yes:abc"),
+            Action(label="Cancel", payload="goal_plan:no:abc"),
+        ],
+    ))
+
+    store.save.assert_called_once()
+    conn.push.assert_called_once()
+    conn.send_frame.assert_called_once()
+    frame = conn.send_frame.call_args[0][0]
+    assert frame["type"] == "confirm_request"
+    assert frame["actions"][0]["value"] == "goal_plan:yes:abc"
+    assert frame["actions"][1]["style"] == "danger"

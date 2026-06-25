@@ -123,6 +123,15 @@ class PostgresGoalStore:
             )
         return [_goal_from_row(r) for r in rows]
 
+    async def list_for_display(self) -> list[Goal]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM goals"
+                " WHERE status IN ('planning', 'active', 'awaiting_gate', 'paused')"
+                " ORDER BY created_at ASC"
+            )
+        return [_goal_from_row(r) for r in rows]
+
     async def list_for_advance(self) -> list[Goal]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(

@@ -163,9 +163,15 @@ class ErrorDetail(BaseModel):
 
 class GoalListItem(BaseModel):
     id: UUIDType
+    title: str
     objective: str
     status: str
     created_at: datetime
+
+
+class GoalActionResponse(BaseModel):
+    id: UUIDType
+    status: str
 
 
 class ReminderListItem(BaseModel):
@@ -319,7 +325,7 @@ class OnboardingMeta(BaseModel):
 
 class WsConfirmAction(BaseModel):
     label: str
-    value: Literal["approve", "deny"]
+    value: str
     style: Literal["primary", "secondary", "danger"] | None = None
 
 
@@ -413,6 +419,11 @@ class WsConfirmFrame(BaseModel):
     choice: Literal["approve", "deny"]
 
 
+class WsActionFrame(BaseModel):
+    type: Literal["action"]
+    payload: str
+
+
 class WsCommandFrame(BaseModel):
     type: Literal["command"]
     name: Literal["cancel", "costs", "capabilities", "status", "onboarding", "reset", "reset_preview"]
@@ -435,6 +446,7 @@ WsOutboundFrame = Annotated[
         WsSendMessageFrame,
         WsAckFrame,
         WsConfirmFrame,
+        WsActionFrame,
         WsCommandFrame,
         WsComponentSubmitFrame,
         WsPingFrame,

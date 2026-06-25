@@ -26,19 +26,23 @@ export function useConfirmation(active: boolean, ephemeral: boolean) {
     setPendingConfirm(null);
   });
 
-  function respond(choice: "approve" | "deny") {
+  function respond(value: string) {
     if (!pendingConfirm) return;
     const confirm = pendingConfirm;
     setPendingConfirm(null);
 
-    const sent = send({ type: "confirm", id: confirm.id, choice });
+    const isCheckpoint = value === "approve" || value === "deny";
+    const sent = isCheckpoint
+      ? send({ type: "confirm", id: confirm.id, choice: value })
+      : send({ type: "action", payload: value });
+
     if (!sent) {
       setPendingConfirm(confirm);
       useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
       return;
     }
 
-    if (choice === "approve") {
+    if (isCheckpoint && value === "approve") {
       setThinking(true);
     }
   }

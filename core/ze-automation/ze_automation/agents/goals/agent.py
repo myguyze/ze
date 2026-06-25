@@ -36,7 +36,8 @@ Available tools:
 Guidelines:
 - For status, pause, resume, steer, or abandon: call list_goals first if the user hasn't provided
   a goal ID, so you can identify the correct goal.
-- create_goal sends an approval notification to Telegram — tell the user to confirm there.
+- create_goal pushes the milestone plan to the app (and ntfy if backgrounded) with Start/Cancel
+  buttons — tell the user to approve there or reply conversationally to start or cancel.
 - Use get_milestone_trace when the user asks what Ze did during a specific step.
 - steer_goal only works while the goal is ACTIVE (not AWAITING_GATE). If the goal is awaiting a
   gate, tell the user to resolve the gate first (approve/stop/redirect), then steer.
