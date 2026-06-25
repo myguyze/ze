@@ -455,3 +455,12 @@ Migrations: `apps/ze-api/migrations/versions/` (raw SQL, Alembic).
 - **Memory is editorial, not automatic.** Facts require user approval opportunity;
   agents propose, users decide. Episodes are automatic because they archive away within
   ~2 weeks.
+
+---
+
+## Dreaming
+
+Ze's offline dream phase (wake → sleep → dream → morning integration) extends the memory
+system with a staging buffer, critic-gated promotion, and synthetic fact lineage. See
+[dreaming.md](dreaming.md) for the full pipeline, and
+[specs/arch/dream-memory.md](../specs/arch/dream-memory.md) for architectural decisions.

@@ -1,0 +1,131 @@
+<svg width="1400" height="780" viewBox="0 0 1400 780" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Ze Dream Memory Cycle</title>
+  <desc id="desc">A simple memory pipeline for Ze showing wake capture, sleep replay, dreaming, and validation.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1400" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#08111d"/>
+      <stop offset="1" stop-color="#101b2b"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#132235"/>
+      <stop offset="1" stop-color="#0e1827"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <style>
+      .t { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #e7eef8; }
+      .muted { fill: #94adc6; }
+      .title { font-size: 40px; font-weight: 800; }
+      .section { font-size: 22px; font-weight: 700; }
+      .label { font-size: 13px; letter-spacing: 1.8px; text-transform: uppercase; fill: #5b8fb9; }
+      .body { font-size: 16px; }
+      .step { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 1 L8 5 L0 9 Z" fill="#4a7fa8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="780" fill="url(#bg)"/>
+  <circle cx="160" cy="110" r="130" fill="#2563eb" fill-opacity="0.07"/>
+  <circle cx="1260" cy="680" r="170" fill="#7c3aed" fill-opacity="0.06"/>
+
+  <!-- Header -->
+  <text x="80" y="70" class="t label">Ze · Memory Architecture</text>
+  <text x="80" y="118" class="t title">Dreaming as offline consolidation</text>
+  <text x="80" y="152" class="t body muted">Ze captures useful experiences, replays them during sleep, generates dream variants, then keeps only what improves future behaviour.</text>
+
+  <!-- Main panel -->
+  <rect x="70" y="188" width="1260" height="300" rx="24" fill="url(#card)" stroke="#1e3349" stroke-width="1.5"/>
+
+  <!-- Step connector line (background) -->
+  <line x1="235" y1="338" x2="1165" y2="338" stroke="#1e3349" stroke-width="2" stroke-dasharray="4 6"/>
+
+  <!-- ── Card 1: Capture ── -->
+  <rect x="105" y="213" width="260" height="248" rx="18" fill="#0d1925" stroke="#243649"/>
+  <!-- Step badge -->
+  <rect x="105" y="213" width="260" height="36" rx="18" fill="#132030"/>
+  <rect x="105" y="231" width="260" height="18" fill="#132030"/>
+  <text x="235" y="236" class="t step" fill="#3d6b8a" text-anchor="middle">WAKE</text>
+  <!-- Title -->
+  <text x="130" y="285" class="t section">Capture</text>
+  <!-- Divider -->
+  <line x1="130" y1="298" x2="340" y2="298" stroke="#1e3349" stroke-width="1"/>
+  <!-- Bullets -->
+  <circle cx="140" cy="322" r="3" fill="#3d6b8a"/>
+  <text x="153" y="327" class="t body muted">User interactions</text>
+  <circle cx="140" cy="352" r="3" fill="#3d6b8a"/>
+  <text x="153" y="357" class="t body muted">Tool outcomes</text>
+  <circle cx="140" cy="382" r="3" fill="#3d6b8a"/>
+  <text x="153" y="387" class="t body muted">Salient events</text>
+  <circle cx="140" cy="412" r="3" fill="#3d6b8a"/>
+  <text x="153" y="417" class="t body muted">Relevance scoring</text>
+
+  <!-- Arrow 1→2 -->
+  <path d="M367 338 H413" stroke="#2d5472" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <!-- ── Card 2: Replay ── -->
+  <rect x="415" y="213" width="260" height="248" rx="18" fill="#0d1925" stroke="#243649"/>
+  <rect x="415" y="213" width="260" height="36" rx="18" fill="#132030"/>
+  <rect x="415" y="231" width="260" height="18" fill="#132030"/>
+  <text x="545" y="236" class="t step" fill="#3d6b8a" text-anchor="middle">SLEEP · NREM</text>
+  <text x="440" y="285" class="t section">Replay</text>
+  <line x1="440" y1="298" x2="650" y2="298" stroke="#1e3349" stroke-width="1"/>
+  <circle cx="450" cy="322" r="3" fill="#3d6b8a"/>
+  <text x="463" y="327" class="t body muted">Rehearse episodes</text>
+  <circle cx="450" cy="352" r="3" fill="#3d6b8a"/>
+  <text x="463" y="357" class="t body muted">Compress detail</text>
+  <circle cx="450" cy="382" r="3" fill="#3d6b8a"/>
+  <text x="463" y="387" class="t body muted">Form abstractions</text>
+  <circle cx="450" cy="412" r="3" fill="#3d6b8a"/>
+  <text x="463" y="417" class="t body muted">Prune redundancy</text>
+
+  <!-- Arrow 2→3 -->
+  <path d="M677 338 H723" stroke="#2d5472" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <!-- ── Card 3: Imagine ── -->
+  <rect x="725" y="213" width="260" height="248" rx="18" fill="#0d1925" stroke="#243649"/>
+  <rect x="725" y="213" width="260" height="36" rx="18" fill="#132030"/>
+  <rect x="725" y="231" width="260" height="18" fill="#132030"/>
+  <text x="855" y="236" class="t step" fill="#3d6b8a" text-anchor="middle">SLEEP · REM</text>
+  <text x="750" y="285" class="t section">Imagine</text>
+  <line x1="750" y1="298" x2="960" y2="298" stroke="#1e3349" stroke-width="1"/>
+  <circle cx="760" cy="322" r="3" fill="#3d6b8a"/>
+  <text x="773" y="327" class="t body muted">Perturb memories</text>
+  <circle cx="760" cy="352" r="3" fill="#3d6b8a"/>
+  <text x="773" y="357" class="t body muted">Counterfactuals</text>
+  <circle cx="760" cy="382" r="3" fill="#3d6b8a"/>
+  <text x="773" y="387" class="t body muted">Stress-test plans</text>
+  <circle cx="760" cy="412" r="3" fill="#3d6b8a"/>
+  <text x="773" y="417" class="t body muted">Novel associations</text>
+
+  <!-- Arrow 3→4 -->
+  <path d="M987 338 H1033" stroke="#2d5472" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <!-- ── Card 4: Select ── -->
+  <rect x="1035" y="213" width="260" height="248" rx="18" fill="#0d1925" stroke="#243649"/>
+  <rect x="1035" y="213" width="260" height="36" rx="18" fill="#132030"/>
+  <rect x="1035" y="231" width="260" height="18" fill="#132030"/>
+  <text x="1165" y="236" class="t step" fill="#3d6b8a" text-anchor="middle">CRITIC</text>
+  <text x="1060" y="285" class="t section">Select</text>
+  <line x1="1060" y1="298" x2="1270" y2="298" stroke="#1e3349" stroke-width="1"/>
+  <circle cx="1070" cy="322" r="3" fill="#3d6b8a"/>
+  <text x="1083" y="327" class="t body muted">Check consistency</text>
+  <circle cx="1070" cy="352" r="3" fill="#3d6b8a"/>
+  <text x="1083" y="357" class="t body muted">Measure usefulness</text>
+  <circle cx="1070" cy="382" r="3" fill="#3d6b8a"/>
+  <text x="1083" y="387" class="t body muted">Keep validated</text>
+  <circle cx="1070" cy="412" r="3" fill="#3d6b8a"/>
+  <text x="1083" y="417" class="t body muted">Discard noise</text>
+
+  <!-- Bottom explanation -->
+  <rect x="70" y="512" width="1260" height="168" rx="20" fill="#0b1622" stroke="#1e3349" stroke-width="1.5"/>
+  <text x="110" y="554" class="t section">How it works</text>
+  <text x="110" y="590" class="t body muted">1. Ze stores important episodes as they happen, scoring each for relevance.</text>
+  <text x="110" y="622" class="t body muted">2. During NREM sleep it replays and compresses episodes into durable abstractions.</text>
+  <text x="110" y="654" class="t body muted">3. During REM sleep it generates counterfactual variants; an adversarial critic keeps only the changes that improve future behaviour.</text>
+</svg>

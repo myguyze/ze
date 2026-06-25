@@ -7,7 +7,7 @@ Design and implementation specs for the Ze personal AI assistant.
 ```
 specs/
 ├── TEMPLATE.md       ← template for new specs
-├── phases/           ← feature and phase implementation specs (00–77)
+├── phases/           ← feature and phase implementation specs (00–79)
 ├── core/             ← ze-core infrastructure layer specs
 └── arch/             ← architecture decision records
 ```
@@ -104,6 +104,8 @@ explicitly deferred before implementation begins.
 | 75 | [Server-Driven UI Package](phases/75-server-driven-ui-package.md) | ✅ Done |
 | 76 | [ze-api Shell Cleanup](phases/76-ze-api-shell-cleanup.md) | ✅ Done |
 | 77 | [ze-logging Package](phases/77-ze-logging.md) | ✅ Done |
+| 78 | [Dream Memory](phases/78-dream-memory.md) | 🔄 In Progress |
+| 79 | [NLI Cross-Encoder Integration](phases/79-nli-model.md) | 📋 Draft |
 
 ## Ze Core specs (`core/`)
 
@@ -128,4 +130,5 @@ explicitly deferred before implementation begins.
 | [Memory Package Extraction](arch/memory-package-split.md) | Hard-cut memory into `ze_memory` with module-specific retrieval, explicit task state, and no shim |
 | [Memory Graph Augmentation](arch/memory-graph-augmentation.md) | Add bounded, provenance-first relationships and traversal inside `ze_memory` |
 | [Correlation Engine](arch/correlation-engine.md) | Bounded relevance-gated correlation over a shared signal/graph substrate; not a world model |
+| [Dream Memory](arch/dream-memory.md) | Offline wake/sleep/dream/morning consolidation loop; staging buffer + critic-gated promotion |
 | [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
