@@ -108,11 +108,16 @@ Nothing synthetic writes directly to live memory. Every promoted fact carries
 
 | Sub-phase | Status | What ships |
 |-----------|--------|------------|
-| **78a** | First | Sleep pass, wake hook, migration, dream journal API, retrieval weight enforcement |
-| **78b** | Second | Dream synthesis, NLI gates, two-critic pipeline, auto-promotion, review UI |
+| **78a** | Done | Sleep pass, wake hook, migration, dream journal API, retrieval weight enforcement |
+| **78b** | Pending | Dream synthesis, NLI gates, two-critic pipeline, auto-promotion, review UI |
 
 78a delivers useful consolidation before any LLM synthesis risk. 78b adds the full
 dream→critic→promote loop once episode selection is validated in production.
+
+**NLI model (Phase 79, done):** `cross-encoder/nli-deberta-v3-small` loads as a shared
+singleton in `ze_memory/nli.py` — used for write-time contradiction, nightly dedup,
+session-cached retrieval re-rank, and correlation grounding. Phase 78b's `Gate1_NLI`
+in `gates.py` will import from the same module (no second download).
 
 ### 78a — user-visible
 
@@ -140,6 +145,7 @@ dream→critic→promote loop once episode selection is validated in production.
 | `memory_dream_runs` | One row per nightly job execution |
 | `memory_dream_artifacts` | Staging buffer for all synthetic outputs pre-promotion |
 | `memory_dream_journal` | Per-run summary for morning briefing and user review |
+| `memory_retrieval_cache` | Session-scoped NLI rerank order for facts/summaries (Phase 79; expired nightly by `DreamJob`) |
 
 Source episode content in `memory_episodes` stays immutable. All dream-phase mutable
 fields live on the metadata side table.
@@ -246,4 +252,4 @@ Full bibliography and architectural rationale:
 |-----|----------------|
 | [memory.md](memory.md) | Base memory layers — facts, episodes, retrieval |
 | [scheduled-jobs.md](scheduled-jobs.md) | Proactive job scheduler and nightly job pipeline |
-| [specs/phases/79-nli-model.md](../specs/phases/79-nli-model.md) | NLI cross-encoder gate details |
+| [specs/phases/79-nli-model.md](../specs/phases/79-nli-model.md) | NLI cross-encoder — shared singleton, contradiction, retrieval cache |

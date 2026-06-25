@@ -142,6 +142,16 @@ memory:
   profile:
     min_facts: 3       # Skip profile synthesis below this many reviewed facts
     episode_limit: 50  # Max episodes fed into the synthesis prompt
+
+  # NLI cross-encoder (Phase 79) — contradiction, grounding, retrieval re-rank
+  nli_contradiction_threshold: 0.60  # min contradiction prob to mark contradicted
+  nli_entailment_threshold: 0.70     # min entailment prob to confirm paraphrase merge
+  nli_lower_cosine_bound: 0.60       # skip NLI below this cosine (dedup + write path)
+  nli_write_time_check: true         # false → write-time NLI off (nightly dedup only)
+  nli_grounding_threshold: 0.30      # correlation push grounding gate
+  nli_retrieval_rerank: true         # session-cached retrieve() re-rank
+  nli_rerank_candidate_multiplier: 2 # fetch K×2 before NLI trim
+  nli_rerank_min_candidates: 5       # skip rerank when pool smaller than this
 ```
 
 ### `contacts:`

@@ -129,8 +129,10 @@ fly ssh console
 
 ### Scale
 
-The default config uses one shared-cpu-1x machine with 1 GB RAM. The embedding
-model (`paraphrase-multilingual-MiniLM-L12-v2`) loads into ~450 MB RAM at startup.
+The default config uses one shared-cpu-1x machine with 1 GB RAM. Two local models
+load at startup: the embedding model (`paraphrase-multilingual-MiniLM-L12-v2`, ~450 MB)
+and the NLI cross-encoder (`cross-encoder/nli-deberta-v3-small`, ~90 MB). Both are
+pre-downloaded in the Docker build (`apps/ze-api/Dockerfile`).
 
 ```bash
 fly scale memory 2048   # upgrade to 2 GB if needed

@@ -1,8 +1,8 @@
 # Phase 79 — NLI Cross-Encoder Integration
 
-**Status:** Draft
+**Status:** Done
 **Depends on:** Phase 78a (shares the `cross-encoder/nli-deberta-v3-small` singleton)
-**Packages touched:** `core/ze-memory`
+**Packages touched:** `core/ze-memory`, `core/ze-correlation` (correlation grounding)
 
 ---
 
@@ -102,7 +102,7 @@ nli_lower_cosine_bound: 0.60         # skip NLI if cosine below this
 
 ## Callsite 2 — Semantic contradiction check at write time
 
-**File:** `core/ze-memory/ze_memory/store.py`
+**File:** `core/ze-memory/ze_memory/retriever.py`
 **Method:** `_write_fact_with_contradiction_check()` (line 544)
 
 ### Current behaviour
@@ -150,7 +150,7 @@ default true).
 
 ## Callsite 3 — Retrieval re-ranking
 
-**Files:** `core/ze-memory/ze_memory/store.py`, `core/ze-memory/ze_memory/policies.py`
+**Files:** `core/ze-memory/ze_memory/retriever.py`, `core/ze-memory/ze_memory/policies.py`
 
 ### Current behaviour
 
@@ -330,18 +330,19 @@ requires a short-lived cache table. Migration `zm010`:
 
 ```sql
 CREATE TABLE memory_retrieval_cache (
-    session_id      TEXT NOT NULL,
-    query_hash      TEXT NOT NULL,
-    ranked_ids      UUID[] NOT NULL,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    session_id          TEXT NOT NULL,
+    query_hash          TEXT NOT NULL,
+    fact_ranked_ids     UUID[] NOT NULL DEFAULT '{}',
+    summary_ranked_ids  UUID[] NOT NULL DEFAULT '{}',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (session_id, query_hash)
 );
 
 CREATE INDEX idx_retrieval_cache_session ON memory_retrieval_cache(session_id);
 ```
 
-Rows are expired by the nightly dream job (delete where `created_at < now() - interval '1 day'`).
-If Step 7 is deferred or the simpler synchronous approach is chosen, zm010 is not needed.
+Rows are expired by the nightly dream job (`DreamJob` deletes where `created_at < now() - interval '1 day'`).
+Implemented in `ze_memory/retrieval_cache.py` and `ze_memory/retrieval_rerank.py`.
 
 ---
 
@@ -382,7 +383,7 @@ Add `_is_latin()` guard.
 
 **Step 3 — Write-time NLI check**
 
-`core/ze-memory/ze_memory/store.py` (`_write_fact_with_contradiction_check()`):
+`core/ze-memory/ze_memory/retriever.py` (`_write_fact_with_contradiction_check()`):
 - After existing exact-match fast path
 - ANN fetch top-10 same-subject facts
 - NLI on pairs with cosine ≥ 0.60
@@ -399,27 +400,34 @@ Add `_is_latin()` guard.
 
 **Step 5 — Re-rank `search_session_summaries()`**
 
-`core/ze-memory/ze_memory/store.py`:
+`core/ze-memory/ze_memory/retriever.py`:
 - After cosine fetch, if ≥ `nli_rerank_min_candidates`: run NLI re-rank
 - Use `asyncio.get_event_loop().run_in_executor(None, ...)` to keep off event loop
 
 **Step 6 — Correlation grounding**
 
-`core/ze-memory/ze_memory/correlation/push.py` (or wherever `check_push` is invoked):
+`core/ze-correlation/ze_correlation/push.py`:
 - Add `_nli_grounded()` pre-filter on push path only
 
-**Step 7 — Full `retrieve()` re-ranking (deferred)**
+**Step 7 — Full `retrieve()` re-ranking** ✅
 
-Async session-cached re-ranking for `PostgresMemoryStore.retrieve()`.
-Deferred pending latency measurement from Step 5.
+Async session-cached re-ranking for `PostgresMemoryStore.retrieve()` in
+`ze_memory/retriever.py`:
+
+- Turn 1: policy cosine fetch (no added latency).
+- Background: `build_retrieval_cache()` fetches `K × multiplier` candidates, NLI-reranks,
+  upserts to `memory_retrieval_cache`.
+- Turn 2+ (same `session_id` + `query_hash`): facts and session summaries replaced from
+  cached ID order via `fetch_facts_by_ids` / `fetch_summaries_by_ids`, then re-budgeted.
+- Excluded modules: `profile`, `memory_ui`, `planner`, `tool_executor`.
 
 ---
 
 ## Open questions
 
-1. **Model availability in Docker:** Phase 78b already adds the model download step.
-   If Phase 79 ships before 78b, a separate `RUN python -c "from sentence_transformers..."` 
-   step is needed.
+1. **Model availability in Docker:** Shipped — `apps/ze-api/Dockerfile` pre-downloads
+   MiniLM and `cross-encoder/nli-deberta-v3-small` at build time. Phase 78b's
+   `Gate1_NLI` imports from `ze_memory/nli.py` (one singleton, one warm-up).
 
 2. **Portuguese coverage:** `_is_latin()` passes for Portuguese (é, ã, ç are Latin
    characters; the heuristic counts ASCII alpha chars, and most Portuguese text is

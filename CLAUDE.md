@@ -316,7 +316,7 @@ and runs them against a single `alembic_version` table.
 | ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides, LangGraph checkpoints, messages, sessions, pending_confirmations |
 | ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows, accountability_anomalies |
 | ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted |
-| ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries |
+| ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries, memory_retrieval_cache |
 | ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
 | ze-correlation | `zcor` | correlation_hypothesis |
 | ze-proactive | `zpro` | push_log |
@@ -404,3 +404,5 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | Done |
 | 76 | ze-api shell cleanup — domain bootstrap into package modules; `ZeApiSettings` shell; test relocation; delete `ze_api/bootstrap.py`; `compose.py` for proactive jobs | Done |
 | 77 | ze-logging — structlog configuration extracted from ze-api/ze-agents into `core/ze-logging`; `get_logger` via ze-sdk | Done |
+| 78 | Dream Memory — sleep pass, dream journal, retrieval weight, sensitive tagging (78a); dream synthesis + gates pending (78b) | In Progress |
+| 79 | NLI cross-encoder — contradiction detection, retrieval re-rank cache, correlation grounding (`ze_memory/nli.py`) | Done |

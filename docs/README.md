@@ -10,7 +10,7 @@
 | [onboarding.md](onboarding.md) | Plugin-extensible onboarding, setup forms, seed review, and reset scopes |
 | [adding-an-agent.md](adding-an-agent.md) | Step-by-step guide for authoring a new agent |
 | [configuration.md](configuration.md) | All config keys — `.env`, `config.yaml`, `persona.yaml` |
-| [memory.md](memory.md) | ze-memory package — facts, episodes, events, procedures, profile facets, graph layer, retrieval policies |
+| [memory.md](memory.md) | ze-memory package — facts, episodes, events, procedures, profile facets, graph layer, retrieval policies, NLI contradiction + session-cached rerank |
 | [dreaming.md](dreaming.md) | Offline dream phase — wake/sleep/dream/morning pipeline, staging buffer, critic gates, journal |
 | [scheduled-jobs.md](scheduled-jobs.md) | Background job schedule, memory lifecycle, proactive push pipeline |
 | [goals.md](goals.md) | Goal Engine — conversational usage, milestone execution, verification gates |

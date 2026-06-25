@@ -77,8 +77,9 @@ merges candidates above the configured thresholds:
 | Similarity | Action |
 |---|---|
 | > 0.95 (`merge_silent_threshold`) | Silent merge — keep the newer fact, mark the older `contradicted = true`. No LLM call. |
-| 0.85–0.95 (`merge_llm_threshold`) | LLM merge — Haiku synthesises one value from both, inserts it as a new fact, marks both originals `contradicted = true`. |
-| < 0.85 | No action — dissimilar enough to coexist. |
+| 0.85–0.95 (`merge_llm_threshold`) | NLI entailment confirms paraphrase → LLM merge (Haiku synthesises one value, marks both `contradicted = true`). NLI contradiction → mark older contradicted. |
+| 0.60–0.85 | NLI contradiction ≥ `nli_contradiction_threshold` → mark older `contradicted`. Otherwise skip. |
+| < 0.60 | No action — skip NLI. |
 
 **Reviewed facts are never auto-merged.** A reviewed fact represents an explicit
 user decision; touching it automatically would violate that contract.
@@ -117,6 +118,24 @@ every agent's system prompt. Agents see the full synthesised portrait, not indiv
 
 Profile synthesis is skipped if fewer than `profile.min_facts` (default: 3) reviewed
 facts exist.
+
+---
+
+## Dream sleep pass (3 AM UTC)
+
+**Module:** `ze_memory/dream/job.py` (`DreamJob`)  
+**Config:** `dream.*` in `config/config.yaml`
+
+When `dream.enabled: true`, the sleep pass runs nightly (default cron `0 3 * * *`):
+
+1. **Replay scoring** — rank recent episodes by salience for future 78b synthesis.
+2. **Decay** — lower `retrieval_weight` on stale episodes; archive when below threshold.
+3. **Schema/policy candidates** — detect clusters for 78b artifact generation (staged only in 78a).
+4. **Retrieval-cache expiry** — delete `memory_retrieval_cache` rows older than 1 day
+   (Phase 79 session-cached NLI rerank; see [memory.md](memory.md)).
+
+Journal entries are written to `memory_dream_journal` and surfaced in the morning briefing.
+See [dreaming.md](dreaming.md) for the full wake/sleep/dream pipeline.
 
 ---
 
@@ -376,6 +395,7 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 | Time (UTC) | Job | Module |
 |---|---|---|
 | 2:00 AM daily | Memory consolidation + profile synthesis | `ze_memory/consolidator.py` |
+| 3:00 AM daily | Dream sleep pass + retrieval-cache expiry | `ze_memory/dream/job.py` |
 | 3:00 AM daily | Contacts consolidation (dedup + merge) | `ze_personal/contacts/consolidator.py` |
 | Every 10 min | Session summary generation | `ze_memory/session_summary.py` |
 | 7:00 AM Sun | Weekly insight generation | `ze_personal/jobs/insights.py` |

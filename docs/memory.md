@@ -200,8 +200,10 @@ After each agent run, the `write_memory` graph node fires (fire-and-forget). The
 declarative facts from the turn. These are written via `store.propose_facts(proposals)`:
 
 - Facts are written with `reviewed = False` and `contradicted = False`.
-- Before inserting, the store checks for exact-predicate matches and semantic duplicates
-  above `contradiction_threshold` — those are marked `contradicted = true`.
+- Before inserting, the store checks for exact-predicate matches, then runs an NLI
+  semantic contradiction pass (`nli_write_time_check`, default `true`) on same-subject
+  candidates with cosine ≥ `nli_lower_cosine_bound` (0.60). Hits are marked
+  `contradicted = true`. Controlled by `memory.nli_*` keys in `config.yaml`.
 - The `POST /memory/facts/review` REST endpoint exposes review/edit/reject for the
   native app.
 
@@ -253,14 +255,24 @@ Before every agent execution, `fetch_context` runs:
    embedding. Sessions with a summary row are excluded from the raw episode query via
    subquery so the caller never receives both fragments and summary for the same session.
    Token-budgeted results are projected via `budget_facts` and `budget_episodes`.
-3. **Profile injection** — all `memory_profile_facets` rows are fetched (highest
+3. **NLI retrieval re-rank** (when `memory.nli_retrieval_rerank: true`) — orchestration
+   policies return cosine-ranked results on turn 1 with no added latency. A background
+   task (`build_retrieval_cache`) fetches `K × nli_rerank_candidate_multiplier`
+   fact/summary candidates, NLI-reranks them, and writes ranked ID lists to
+   `memory_retrieval_cache` keyed by `(session_id, query_hash)`. On turn 2+ with the
+   same query in the same session, facts and session summaries are re-fetched by cached
+   ID order and re-budgeted. Episodes, profile, entities, events, and task state stay
+   from the policy unchanged. Mid-execution modules (`planner`, `tool_executor`) and
+   introspection modules (`profile`, `memory_ui`) skip the cache. See
+   `ze_memory/retrieval_rerank.py` and `ze_memory/nli.py`.
+4. **Profile injection** — all `memory_profile_facets` rows are fetched (highest
    confidence first) and included in the context.
-4. **Graph augmentation** — when `memory.graph.enabled: true` (default), entity and
+5. **Graph augmentation** — when `memory.graph.enabled: true` (default), entity and
    fact seed IDs from the retrieved context are expanded one hop via
    `BoundedExpansionPolicy`. Neighbour entities, facts, episodes, and procedures are
    appended to the context. Failures are silently swallowed — the base context is
    always returned.
-5. **Identity block assembly** — `build_identity_block()` from `ze_personal.persona`
+6. **Identity block assembly** — `build_identity_block()` from `ze_personal.persona`
    assembles the system prompt identity section from the persona profile + memory
    context.
 
@@ -272,7 +284,7 @@ Agents never query memory themselves — they receive the assembled `MemoryConte
 ```python
 @dataclass
 class RetrievalRequest:
-    module: str            # e.g. "chat", "workflow", "goals"
+    module: str            # e.g. "companion", "workflow", "goals"
     agent: str
     query_text: str
     query_embedding: Any   # must be set — InvalidRetrievalRequestError otherwise
@@ -280,6 +292,7 @@ class RetrievalRequest:
     task_id: UUID | None = None
     goal_id: UUID | None = None
     max_tokens: int = 2000
+    current_session_id: str | None = None  # used for retrieval-cache keying
 ```
 
 ---
@@ -330,13 +343,16 @@ memory:
 
 ### 1. Fact deduplication
 
-Scans all unreviewed facts, computes pairwise cosine similarity, merges candidates:
+Scans all unreviewed facts, computes pairwise cosine similarity, then applies NLI
+classification for pairs in the `0.60 ≤ cosine < 0.95` gap (and confirms paraphrases
+before LLM merge in the `0.85–0.95` band):
 
 | Similarity | Action |
 |---|---|
 | > 0.95 | Silent merge — keep newer, mark older `contradicted = true`. No LLM call. |
-| 0.85–0.95 | LLM merge — Haiku synthesises one value, inserts it, marks both originals `contradicted = true`. |
-| < 0.85 | No action. |
+| 0.85–0.95 | NLI entailment ≥ `nli_entailment_threshold` → LLM merge (Haiku synthesises one value, marks both `contradicted = true`). NLI contradiction → mark older `contradicted`. Neutral → skip. |
+| 0.60–0.85 | NLI contradiction ≥ `nli_contradiction_threshold` → mark older `contradicted` (`max(created_at)` wins). Otherwise skip. |
+| < 0.60 | No action — unrelated enough to skip NLI. |
 
 Reviewed facts are **never** touched by consolidation.
 
@@ -423,6 +439,16 @@ memory:
   profile:
     min_facts: 3
     episode_limit: 50
+
+  # NLI cross-encoder (Phase 79) — defaults in ze_memory/defaults.py
+  nli_contradiction_threshold: 0.60
+  nli_entailment_threshold: 0.70
+  nli_lower_cosine_bound: 0.60
+  nli_write_time_check: true
+  nli_grounding_threshold: 0.30   # correlation push path (ze-correlation)
+  nli_retrieval_rerank: true
+  nli_rerank_candidate_multiplier: 2
+  nli_rerank_min_candidates: 5
 ```
 
 ---
@@ -440,8 +466,9 @@ memory:
 | `memory_procedures` | Reusable step lists with pgvector embeddings |
 | `memory_task_state` | Goal/workflow in-flight progress checkpoints |
 | `memory_profile_facets` | Structured user portrait — key/value facets with confidence |
+| `memory_retrieval_cache` | Session-scoped NLI rerank order for facts/summaries (`zm010`; 1-day TTL) |
 
-Migrations: `apps/ze-api/migrations/versions/` (raw SQL, Alembic).
+Migrations: `core/ze-memory/ze_memory/migrations/versions/` (raw SQL, Alembic meta-runner in `ze_api/migrate.py`).
 
 ---
 

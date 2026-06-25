@@ -3,7 +3,7 @@
 > **Package:** `ze-memory` (`dream/` submodule) + `ze-api` (job wiring)
 > **Implementation spec:** [Phase 78 — Dream Memory](../phases/78-dream-memory.md)
 > **NLI integration:** [Phase 79 — NLI Cross-Encoder](../phases/79-nli-model.md)
-> **Status:** Approved — pending implementation
+> **Status:** 78a implemented; 78b pending. Phase 79 (NLI singleton) done — see below.
 
 ---
 
@@ -123,7 +123,7 @@ validated in production.
 |----------|--------|-----------|
 | Phase split | 78a = Sleep + foundation; 78b = Dream synthesis + gates | Ship useful consolidation before LLM cost and risk |
 | Episode mutability | `memory_episode_metadata` side table | Keeps source episodes immutable and auditable |
-| NLI model | `cross-encoder/nli-deberta-v3-small` (~90MB local) | Cheap faithfulness gate; ships in 78b (see Phase 79) |
+| NLI model | `cross-encoder/nli-deberta-v3-small` (~90MB local) | Shared singleton in `ze_memory/nli.py` (Phase 79, done). 78b `Gate1_NLI` imports from there — one download, one warm-up |
 | Critic model | `anthropic/claude-sonnet-4-5` | Haiku-class holistic judges achieve only ~65–70% agreement on factual tasks |
 | Generator model | `anthropic/claude-haiku-4-5` | Cost-efficient synthesis; critic is the quality gate |
 | Fact conflict resolution | `max(created_at)` deterministic rule | Never LLM judgment on conflicts |
@@ -231,8 +231,9 @@ flag, `ProactiveScheduler`, and the `GoalSuggestionJob` pattern are all reusable
 1. **Feature produces no value until enough data** — `support_count ≥ 3` with session
    diversity means weeks of silence for sparse users. Journal must explain why.
 2. **Counterfactuals undefined in v1** — cut from scope; types reserved for 78c.
-3. **NLI model is English-first** — non-English fallback via haiku LLM groundedness
-   check required before multilingual deployment.
+3. **NLI model is English-first** — Phase 79's `_is_latin()` guard skips NLI for
+   non-Latin pairs (cosine fallback). 78b Gate 1 may add haiku LLM groundedness for
+   non-English before multilingual deployment.
 
 ---
 
