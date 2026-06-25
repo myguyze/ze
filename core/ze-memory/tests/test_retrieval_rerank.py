@@ -4,11 +4,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import pytest
+
 from ze_memory.retrieval_rerank import nli_rank_score, rerank_row_ids, rerank_rows
 
 
 def test_nli_rank_score():
-    assert nli_rank_score({"entailment": 0.8, "neutral": 0.1, "contradiction": 0.1}) == 0.85
+    assert nli_rank_score({"entailment": 0.8, "neutral": 0.1, "contradiction": 0.1}) == pytest.approx(0.85)
     assert nli_rank_score(None) == 0.0
 
 

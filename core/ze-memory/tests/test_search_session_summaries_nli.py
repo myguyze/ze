@@ -26,7 +26,7 @@ def _summary_row(session_id: str, summary: str):
     }
 
 
-@patch("ze_memory.retriever.nli_scores_async", new_callable=AsyncMock)
+@patch("ze_memory.retrieval_rerank.nli_scores_async", new_callable=AsyncMock)
 async def test_search_session_summaries_reranks_by_nli(mock_nli):
     rows = [
         _summary_row("s1", "Discussed project deadlines"),
