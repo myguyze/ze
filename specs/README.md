@@ -105,7 +105,7 @@ explicitly deferred before implementation begins.
 | 76 | [ze-api Shell Cleanup](phases/76-ze-api-shell-cleanup.md) | ✅ Done |
 | 77 | [ze-logging Package](phases/77-ze-logging.md) | ✅ Done |
 | 78 | [Dream Memory](phases/78-dream-memory.md) | 🔄 In Progress |
-| 79 | [NLI Cross-Encoder Integration](phases/79-nli-model.md) | 📋 Draft |
+| 79 | [NLI Cross-Encoder Integration](phases/79-nli-model.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

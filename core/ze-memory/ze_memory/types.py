@@ -175,6 +175,15 @@ class MemoryContext:
 
 
 @dataclass
+class RetrievalCacheEntry:
+    session_id: str
+    query_hash: str
+    fact_ranked_ids: list[UUID]
+    summary_ranked_ids: list[UUID]
+    created_at: datetime
+
+
+@dataclass
 class ConsolidationReport:
     facts_merged: int = 0
     facts_soft_expired: int = 0

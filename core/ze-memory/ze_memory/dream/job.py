@@ -6,8 +6,9 @@ from typing import Any
 
 from ze_logging import get_logger
 from ze_memory.defaults import DREAM_JOB_TIMEOUT_SECONDS
-from ze_proactive.job import proactive_job
 from ze_memory.dream.sleep_pass import SleepPass
+from ze_memory.retrieval_cache import expire_retrieval_cache
+from ze_proactive.job import proactive_job
 
 log = get_logger(__name__)
 
@@ -79,6 +80,10 @@ class DreamJob:
             sleep_pass_duration_ms=sleep_stats.get("duration_ms"),
             error=error,
         )
+
+        expired = await expire_retrieval_cache(self._pool)
+        if expired:
+            log.info("retrieval_cache_expired", rows_deleted=expired)
 
         if error is None:
             summary = (

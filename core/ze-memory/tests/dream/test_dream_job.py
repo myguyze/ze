@@ -27,21 +27,34 @@ def _make_job(timeout: int = 60):
 
 async def test_run_completes_and_writes_journal():
     job, dream_store = _make_job()
-    with patch.object(
-        job._sleep_pass,
-        "run",
-        new=AsyncMock(return_value={"episodes_scored": 3, "episodes_replayed": 1, "duration_ms": 10}),
+    with (
+        patch.object(
+            job._sleep_pass,
+            "run",
+            new=AsyncMock(return_value={"episodes_scored": 3, "episodes_replayed": 1, "duration_ms": 10}),
+        ),
+        patch(
+            "ze_memory.dream.job.expire_retrieval_cache",
+            new=AsyncMock(return_value=0),
+        ) as mock_expire,
     ):
         await job.run()
     dream_store.finish_run.assert_awaited_once()
     dream_store.write_journal_entry.assert_awaited_once()
+    mock_expire.assert_awaited_once_with(job._pool)
 
 
 async def test_run_records_timeout_error():
     job, dream_store = _make_job()
-    with patch(
-        "ze_memory.dream.job.asyncio.wait_for",
-        new=AsyncMock(side_effect=asyncio.TimeoutError()),
+    with (
+        patch(
+            "ze_memory.dream.job.asyncio.wait_for",
+            new=AsyncMock(side_effect=asyncio.TimeoutError()),
+        ),
+        patch(
+            "ze_memory.dream.job.expire_retrieval_cache",
+            new=AsyncMock(return_value=2),
+        ) as mock_expire,
     ):
         await job.run()
 
@@ -49,3 +62,4 @@ async def test_run_records_timeout_error():
     assert finish_kwargs["error"] is not None
     assert "timed out" in finish_kwargs["error"]
     dream_store.write_journal_entry.assert_not_awaited()
+    mock_expire.assert_awaited_once_with(job._pool)

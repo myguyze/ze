@@ -19,6 +19,14 @@ from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
 from ze_memory.nli import nli_scores_async
 from ze_memory.nli_config import nli_config
+from ze_memory.retrieval_cache import PostgresRetrievalCacheStore, query_hash
+from ze_memory.retrieval_rerank import (
+    build_retrieval_cache,
+    fetch_facts_by_ids,
+    fetch_summaries_by_ids,
+    rerank_rows,
+    should_build_retrieval_cache,
+)
 from ze_memory.graph.predicates import (
     BELONGS_TO_GOAL,
     DESCRIBES,
@@ -45,6 +53,7 @@ from ze_memory.types import (
     MemoryContext,
     Procedure,
     ProfileFacet,
+    RetrievalCacheEntry,
     RetrievalRequest,
     SessionSummary,
     Signal,
@@ -86,6 +95,7 @@ class PostgresMemoryStore:
         self._registry = policy_registry or DefaultPolicyRegistry()
         self._graph_store = graph_store
         self._traversal = self._build_traversal(graph_store, settings)
+        self._retrieval_cache = PostgresRetrievalCacheStore(pool)
 
     def apply_policy_registry(self, registry: Any) -> None:
         """Replace the retrieval policy registry (called after plugins are discovered)."""
@@ -104,11 +114,46 @@ class PostgresMemoryStore:
             raise InvalidRetrievalRequestError("RetrievalRequest.query_embedding is required")
 
         policy = self._registry.for_module(request.module)
+        cfg = nli_config(self._settings)
         ctx = await policy.retrieve(request, self)
+
+        if should_build_retrieval_cache(request, cfg):
+            session_id = request.current_session_id
+            assert session_id is not None
+            qhash = query_hash(request.module, request.query_text)
+            cached = await self._retrieval_cache.get(session_id, qhash)
+            if cached is not None:
+                ctx = await self._apply_retrieval_cache(ctx, cached)
+            fire_and_forget(
+                build_retrieval_cache(self._pool, self._settings, request),
+                label="retrieval_cache_build",
+            )
 
         if self._traversal is not None:
             ctx = await self._graph_augment(ctx)
 
+        return ctx
+
+    async def _apply_retrieval_cache(
+        self,
+        ctx: MemoryContext,
+        cached: RetrievalCacheEntry,
+    ) -> MemoryContext:
+        from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        from ze_memory.projection import session_summaries_from_rows, token_estimate
+
+        if cached.fact_ranked_ids:
+            fact_rows = await fetch_facts_by_ids(self._pool, cached.fact_ranked_ids)
+            ctx.facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
+
+        if cached.summary_ranked_ids:
+            summary_rows = await fetch_summaries_by_ids(self._pool, cached.summary_ranked_ids)
+            ctx.session_summaries = session_summaries_from_rows(
+                summary_rows,
+                DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS,
+            )
+
+        ctx.token_estimate = token_estimate(ctx)
         return ctx
 
     async def _graph_augment(self, ctx: MemoryContext) -> MemoryContext:
@@ -583,16 +628,15 @@ class PostgresMemoryStore:
         query_text: str,
         limit: int,
     ) -> list:
-        pairs = [(row["summary"], query_text) for row in rows]
-        scores = await nli_scores_async(pairs)
-        ranked: list[tuple[float, Any]] = []
-        for row, score in zip(rows, scores):
-            if score is None:
-                ranked.append((0.0, row))
-            else:
-                ranked.append((score["entailment"] + 0.5 * score["neutral"], row))
-        ranked.sort(key=lambda item: item[0], reverse=True)
-        return [row for _, row in ranked[:limit]]
+        cfg = nli_config(self._settings)
+        min_candidates = int(cfg.get("nli_rerank_min_candidates", 5))
+        ranked = await rerank_rows(
+            rows,
+            "summary",
+            query_text,
+            min_candidates=min_candidates,
+        )
+        return ranked[:limit]
 
     # ── internal ──────────────────────────────────────────────────────────────
 
