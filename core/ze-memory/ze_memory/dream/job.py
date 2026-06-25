@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
 from ze_logging import get_logger
+from ze_memory.defaults import DREAM_JOB_TIMEOUT_SECONDS
 from ze_proactive.job import proactive_job
 from ze_memory.dream.sleep_pass import SleepPass
 
@@ -33,13 +35,32 @@ class DreamJob:
             settings=settings,
         )
 
+    def _dream_config(self) -> dict:
+        if self._settings is None:
+            return {}
+        dream = getattr(self._settings, "dream_config", None)
+        if isinstance(dream, dict):
+            return dream
+        cfg = getattr(self._settings, "config", None)
+        if isinstance(cfg, dict):
+            return cfg.get("dream", {})
+        return {}
+
     async def run(self) -> None:
         run_id = await self._dream_store.create_run()
         sleep_stats: dict = {}
         error: str | None = None
+        cfg = self._dream_config()
+        timeout = int(cfg.get("job_timeout_seconds", DREAM_JOB_TIMEOUT_SECONDS))
 
         try:
-            sleep_stats = await self._sleep_pass.run(run_id)
+            sleep_stats = await asyncio.wait_for(
+                self._sleep_pass.run(run_id),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            error = f"sleep pass timed out after {timeout}s"
+            log.error("dream_sleep_pass_timeout", run_id=str(run_id), timeout_seconds=timeout)
         except Exception as exc:
             error = str(exc)
             log.error("dream_sleep_pass_failed", run_id=str(run_id), error=error)

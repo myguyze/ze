@@ -11,6 +11,7 @@ from ze_memory.dream.scorer import (
     _classify_source,
     _novelty_score,
     replay_score,
+    refresh_episode_sensitive_flag,
     tag_episode_metadata,
 )
 
@@ -165,3 +166,22 @@ async def test_tag_episode_metadata_swallows_db_error():
 
     # Should not raise
     await tag_episode_metadata(pool, episode_id, "companion", "hello", "world")
+
+
+async def test_refresh_episode_sensitive_flag_updates_metadata():
+    from uuid import uuid4
+
+    episode_id = uuid4()
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(return_value={"exists": True})
+    conn.execute = AsyncMock()
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn),
+        __aexit__=AsyncMock(return_value=False),
+    ))
+
+    result = await refresh_episode_sensitive_flag(pool, episode_id)
+    assert result is True
+    conn.execute.assert_awaited_once()
+    assert "has_sensitive_entity" in conn.execute.call_args[0][0]

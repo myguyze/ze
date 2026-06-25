@@ -184,14 +184,17 @@ class SleepPass:
         forgetting_threshold = float(cfg.get("forgetting_weight_threshold", _DEFAULT_FORGETTING_THRESHOLD))
 
         async with self._pool.acquire() as conn:
-            # Decay episodes that have not been replayed in `decay_cycles` runs.
-            # Approximate by: never replayed OR last_replayed is older than decay_cycles * 1 day.
             await conn.execute(
                 """
                 UPDATE memory_episode_metadata SET
                     retrieval_weight = GREATEST(0.0, retrieval_weight - $1),
-                    updated_at       = now()
+                    provenance = CASE
+                        WHEN GREATEST(0.0, retrieval_weight - $1) <= $2 THEN 'archived'
+                        ELSE provenance
+                    END,
+                    updated_at = now()
                 WHERE retrieval_weight > $2
+                  AND provenance != 'archived'
                   AND (
                     last_replayed_at IS NULL
                     OR last_replayed_at < now() - ($3 || ' days')::interval
@@ -318,6 +321,9 @@ class SleepPass:
     def _config(self) -> dict:
         if self._settings is None:
             return {}
+        dream = getattr(self._settings, "dream_config", None)
+        if isinstance(dream, dict):
+            return dream
         cfg = getattr(self._settings, "config", None)
         if isinstance(cfg, dict):
             return cfg.get("dream", {})

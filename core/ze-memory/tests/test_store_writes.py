@@ -301,11 +301,12 @@ class TestGraphRelationshipCreation:
             "canonical_name": "Alice",
             "aliases": json.dumps(["Al"]),
         }])
+        conn.fetchrow = AsyncMock(return_value=None)
         conn.execute = AsyncMock()
 
         await store._link_episode_entities(eid, "Alice went to the meeting")
 
-        conn.execute.assert_awaited_once()
+        assert conn.execute.await_count == 2
         gs.upsert_relationship.assert_awaited_once()
         rel = gs.upsert_relationship.call_args[0][0]
         assert rel.predicate == "MENTIONS"
@@ -318,11 +319,7 @@ class TestGraphRelationshipCreation:
 
         import json
         eid = uuid4()
-        conn.fetch = AsyncMock(return_value=[{
-            "id": uuid4(),
-            "canonical_name": "Bob",
-            "aliases": json.dumps([]),
-        }])
+        conn.fetch = AsyncMock(return_value=[])
         conn.execute = AsyncMock()
 
         await store._link_episode_entities(eid, "No names mentioned here")

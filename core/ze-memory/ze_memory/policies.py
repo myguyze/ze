@@ -25,6 +25,7 @@ from ze_memory.defaults import (
     DEFAULT_PROFILE_BUDGET_TOKENS,
     EPISODES_FETCH_LIMIT,
 )
+from ze_memory.dream.retrieval import episode_retrievable_sql
 from ze_memory.store import MemoryQueryable
 from ze_memory.types import MemoryContext, RetrievalRequest
 
@@ -91,13 +92,14 @@ class CompanionPolicy:
                 emb,
             )
             episode_rows = await conn.fetch(
-                """
+                f"""
                 SELECT id, session_id, agent, prompt, response, summary,
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                   AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
                 """,
@@ -161,13 +163,14 @@ class ResearchPolicy:
                 emb,
             )
             episode_rows = await conn.fetch(
-                """
+                f"""
                 SELECT id, session_id, agent, prompt, response, summary,
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                   AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
                 """,
@@ -343,13 +346,14 @@ class EmailPolicy:
                 emb,
             )
             episode_rows = await conn.fetch(
-                """
+                f"""
                 SELECT id, session_id, agent, prompt, response, summary,
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                   AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
@@ -407,13 +411,14 @@ class ProspectingPolicy:
                 emb,
             )
             episode_rows = await conn.fetch(
-                """
+                f"""
                 SELECT id, session_id, agent, prompt, response, summary,
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
                   AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
@@ -558,11 +563,12 @@ class MemoryUIPolicy:
                 """
             )
             episode_rows = await conn.fetch(
-                """
+                f"""
                 SELECT id, session_id, agent, prompt, response, summary,
                        relevance, created_at, linked_entity_ids, linked_fact_ids
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
+                  {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT 20
                 """,

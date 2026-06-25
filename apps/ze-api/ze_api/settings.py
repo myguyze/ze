@@ -100,6 +100,10 @@ class ZeApiSettings(BaseSettings):
         return self.config.get("proactive", {})
 
     @property
+    def dream_config(self) -> dict[str, Any]:
+        return self.config.get("dream", {})
+
+    @property
     def persona_path(self) -> Path:
         return self.config_dir / "persona.yaml"
 

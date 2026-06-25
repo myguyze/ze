@@ -173,3 +173,21 @@ async def test_check_sensitive_entities_returns_false_when_none():
     sleep_pass, _ = _make_sleep_pass(pool=pool)
     result = await sleep_pass._check_sensitive_entities(episode_id)
     assert result is False
+
+
+async def test_decay_pass_marks_archived_when_weight_drops():
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=[])
+    conn.fetchrow = AsyncMock(return_value=None)
+    conn.execute = AsyncMock()
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn),
+        __aexit__=AsyncMock(return_value=False),
+    ))
+    sleep_pass, _ = _make_sleep_pass(pool=pool)
+    await sleep_pass._decay_pass({"decay_cycles": 5, "decay_rate": 0.1, "forgetting_weight_threshold": 0.1})
+    conn.execute.assert_awaited_once()
+    sql = conn.execute.call_args[0][0]
+    assert "provenance" in sql
+    assert "'archived'" in sql

@@ -13,6 +13,8 @@ from ze_memory.defaults import (
     DEFAULT_FACT_BUDGET_TOKENS,
     MODEL_SYNTHESIS,
 )
+from ze_memory.dream.scorer import refresh_episode_sensitive_flag, tag_episode_metadata
+from ze_memory.dream.sensitive import is_sensitive_entity
 from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
 from ze_memory.graph.predicates import (
@@ -152,7 +154,6 @@ class PostgresMemoryStore:
                     emb_list,
                 )
             episode_id: UUID = row["id"]
-            from ze_memory.dream.scorer import tag_episode_metadata
             fire_and_forget(
                 tag_episode_metadata(self._pool, episode_id, agent, prompt, response),
                 label="tag_episode_metadata",
@@ -292,6 +293,11 @@ class PostgresMemoryStore:
             return None
 
     async def upsert_entity(self, entity: Entity) -> UUID:
+        sensitive = is_sensitive_entity(
+            entity.entity_type,
+            entity.canonical_name,
+            entity.attrs,
+        )
         emb_list = (
             _to_list(self._embedder.encode(entity.canonical_name))
             if self._embedder is not None else None
@@ -300,12 +306,13 @@ class PostgresMemoryStore:
             row = await conn.fetchrow(
                 """
                 INSERT INTO memory_entities
-                  (entity_type, canonical_name, aliases, attrs, embedding)
-                VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::vector)
+                  (entity_type, canonical_name, aliases, attrs, embedding, sensitive)
+                VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::vector, $6)
                 ON CONFLICT (lower(canonical_name)) DO UPDATE SET
                   aliases = EXCLUDED.aliases,
                   attrs = EXCLUDED.attrs,
                   embedding = COALESCE(EXCLUDED.embedding, memory_entities.embedding),
+                  sensitive = EXCLUDED.sensitive OR memory_entities.sensitive,
                   updated_at = NOW()
                 RETURNING id
                 """,
@@ -314,6 +321,7 @@ class PostgresMemoryStore:
                 json.dumps(entity.aliases),
                 json.dumps(entity.attrs),
                 emb_list,
+                sensitive,
             )
         return row["id"]
 
@@ -660,6 +668,8 @@ class PostgresMemoryStore:
                     creation_method="extracted",
                     confidence=0.8,
                 ))
+
+            await refresh_episode_sensitive_flag(self._pool, episode_id)
         except Exception as exc:
             log.warning("graph_link_episode_entities_failed", episode_id=str(episode_id), error=str(exc))
 

@@ -101,3 +101,47 @@ async def tag_episode_metadata(
             )
     except Exception as exc:
         log.warning("tag_episode_metadata_failed", episode_id=str(episode_id), error=str(exc))
+
+
+async def refresh_episode_sensitive_flag(pool: Any, episode_id: UUID) -> bool:
+    """Recompute has_sensitive_entity after entity links are written."""
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT 1
+                FROM memory_entities ent
+                WHERE ent.sensitive = true
+                  AND ent.id::text = ANY(
+                    SELECT jsonb_array_elements_text(ep.linked_entity_ids)
+                    FROM memory_episodes ep WHERE ep.id = $1
+                  )
+                LIMIT 1
+                """,
+                episode_id,
+            )
+            has_sensitive = row is not None
+            await conn.execute(
+                """
+                INSERT INTO memory_episode_metadata
+                    (episode_id, has_sensitive_entity, replay_score, updated_at)
+                VALUES ($1, $2, CASE WHEN $2 THEN 0.0 ELSE NULL END, now())
+                ON CONFLICT (episode_id) DO UPDATE SET
+                    has_sensitive_entity = EXCLUDED.has_sensitive_entity,
+                    replay_score = CASE
+                        WHEN EXCLUDED.has_sensitive_entity THEN 0.0
+                        ELSE memory_episode_metadata.replay_score
+                    END,
+                    updated_at = now()
+                """,
+                episode_id,
+                has_sensitive,
+            )
+        return has_sensitive
+    except Exception as exc:
+        log.warning(
+            "refresh_episode_sensitive_flag_failed",
+            episode_id=str(episode_id),
+            error=str(exc),
+        )
+        return False
