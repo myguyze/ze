@@ -91,8 +91,9 @@ class DreamPromoter:
                 await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.NEEDS_REVIEW.value)
                 needs_review += 1
 
-        # Synthetic fact confidence decay
+        # Synthetic fact confidence decay + hard expiry at valid_until
         await self._run_confidence_decay()
+        await self._expire_stale_synthetic_facts()
 
         duration_ms = int((time.monotonic() - start) * 1000)
         log.info(
@@ -303,6 +304,25 @@ class DreamPromoter:
                   AND contradicted = false
                 """
             )
+
+    async def _expire_stale_synthetic_facts(self) -> None:
+        """Contradict synthesized facts that have passed their valid_until deadline."""
+        async with self._pool.acquire() as conn:
+            result = await conn.execute(
+                """
+                UPDATE memory_facts SET
+                    contradicted = true,
+                    reviewed = false
+                WHERE provenance = 'synthesized'
+                  AND corroborated = false
+                  AND contradicted = false
+                  AND valid_until IS NOT NULL
+                  AND valid_until < now()
+                """
+            )
+        expired = int(result.split()[-1]) if result else 0
+        if expired:
+            log.info("synthetic_facts_expired", count=expired)
 
     async def _decay_source_episodes(self, episode_ids: list[Any], rate: float = _DEFAULT_DECAY_RATE) -> None:
         if not episode_ids:

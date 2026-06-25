@@ -223,3 +223,4 @@ dream:
   critic_model: "anthropic/claude-sonnet-4-6"
   synthetic_fact_valid_days: 90
   job_timeout_seconds: 1800
+  review_notifications_enabled: false  # enable when React review page ships

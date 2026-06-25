@@ -710,51 +710,53 @@ asyncio.create_task(_tag_episode(episode, recent_facts))
 ## Implementation Sequence
 
 ### Step 0 — Foundation
-- [ ] Migration zm009: all new columns on `memory_episodes`, `memory_facts`, `memory_entities`; create dream tables
-- [ ] Dataclasses in `types.py`
-- [ ] `PostgresDreamStore` CRUD + `get_latest_journal_entry()`
+- [x] Migration zm009: all new columns on `memory_episodes`, `memory_facts`, `memory_entities`; create dream tables
+- [x] Dataclasses in `types.py`
+- [x] `PostgresDreamStore` CRUD + `get_latest_journal_entry()`
 
 ### Step 1 — Wake Hook
-- [ ] `replay_score()` in `scorer.py` with sensitive entity check and source weight
-- [ ] `_classify_source()`: default `ze_observed`; mark `user_asserted` only when episode has no tool call outcomes
-- [ ] Wire into `write_episode()` as `asyncio.create_task`
-- [ ] Mark `sensitive=True` on `memory_entities` for: financial entities, credentials, health-related entities
+- [x] `replay_score()` in `scorer.py` with sensitive entity check and source weight
+- [x] `_classify_source()`: default `ze_observed`; mark `user_asserted` only when episode has no tool call outcomes
+- [x] Wire into `write_episode()` as `asyncio.create_task`
+- [x] Mark `sensitive=True` on `memory_entities` for: financial entities, credentials, health-related entities
 
 ### Step 2 — Sleep Pass
-- [ ] `SleepPass.run()`: score refresh, episode selection (skip sensitive), session compression (delegate), fact dedup (delegate), decay, schema/policy candidate detection
-- [ ] Schema candidates require ≥3 distinct sessions; cap at `max_schema_candidates_per_run`
-- [ ] Tests: verify sensitive episode exclusion and candidate detection
+- [x] `SleepPass.run()`: score refresh, episode selection (skip sensitive), session compression (delegate), fact dedup (delegate), decay, schema/policy candidate detection
+- [x] Schema candidates require ≥3 distinct sessions; cap at `max_schema_candidates_per_run`
+- [x] Tests: verify sensitive episode exclusion and candidate detection
 
 ### Step 3 — Scoring Pipeline + Dream Pass
-- [ ] `gates.py`: inject `NLIClient`; implement Gates 1, 2, 3
-- [ ] Non-English fallback for Gate 1: use haiku model for groundedness check
-- [ ] `DreamPass.run()`: schema synthesis, policy extraction, hindsight relabeling (always `needs_review`), plan stress-tests
-- [ ] `DreamCritic.critique_artifact()`: two sequential calls (Call A challenge, Call B verify); negation-aware prompts; both must pass
-- [ ] Tests: mock LLM + NLI model; verify gate rejection paths and two-call critic logic
+- [x] `gates.py`: inject `NLIClient`; implement Gates 1, 2, 3
+- [x] Non-English fallback for Gate 1: use haiku model for groundedness check
+- [x] `DreamPass.run()`: schema synthesis, policy extraction, hindsight relabeling (always `needs_review`), plan stress-tests
+- [x] `DreamCritic.critique_artifact()`: two sequential calls (Call A challenge, Call B verify); negation-aware prompts; both must pass
+- [x] Tests: mock LLM + NLI model; verify gate rejection paths and two-call critic logic
 
 ### Step 4 — Morning Integration + Promoter
-- [ ] `DreamPromoter.promote()`: support validation (session diversity, temporal spread, user-asserted cap), auto-promote, needs-review flagging, forgetting track
-- [ ] `DreamPromoter.apply_user_decision()`: approve/reject/revise
-- [ ] `DreamPromoter.rollback_run()`: bulk-mark + contradict + flag derived_from chains
-- [ ] Write facts with `valid_until`, `dream_run_id`, `derived_from`, `provenance="synthesized"`, `corroborated=False`
-- [ ] Confidence decay step: on each morning integration run, decrement `confidence` on non-corroborated synthetic facts older than 30 days; expire at < 0.25
-- [ ] Corroboration detection: in `write_episode()`, after storing the episode, check for any `provenance='synthesized'` facts with cosine ≥ 0.88 to the episode embedding — mark `corroborated=True` on matches
-- [ ] Session contamination tracking: in `retrieve()` path, when a `provenance='synthesized'` fact is fetched for context, record its `dream_artifact_id` in the current session's summary record
-- [ ] Rollback: additionally set `needs_resummary=True` on contaminated session summaries
-- [ ] **LAUNCH-BLOCKING**: verify `PostgresMemoryStore.retrieve()` filters `retrieval_weight > forgetting_weight_threshold`
-- [ ] **LAUNCH-BLOCKING**: verify graph context fetch adds hedging for `provenance="synthesized"` facts ("Ze inferred this from a pattern")
-- [ ] **LAUNCH-BLOCKING**: verify `hindsight_fact` is hardcoded to `needs_review` regardless of scores
+- [x] `DreamPromoter.promote()`: support validation (session diversity, temporal spread, user-asserted cap), auto-promote, needs-review flagging, forgetting track
+- [x] `DreamPromoter.apply_user_decision()`: approve/reject/revise
+- [x] `DreamPromoter.rollback_run()`: bulk-mark + contradict + flag derived_from chains
+- [x] Write facts with `valid_until`, `dream_run_id`, `derived_from`, `provenance="synthesized"`, `corroborated=False`
+- [x] Confidence decay step: on each morning integration run, decrement `confidence` on non-corroborated synthetic facts older than 30 days; expire at < 0.25
+- [x] Stale synthetic fact expiry: contradict facts past `valid_until` that are not corroborated (`_expire_stale_synthetic_facts()` in promoter)
+- [x] Corroboration detection: in `write_episode()`, after storing the episode, check for any `provenance='synthesized'` facts with cosine ≥ 0.88 to the episode embedding — mark `corroborated=True` on matches
+- [x] Session contamination tracking: in `retrieve()` path, when a `provenance='synthesized'` fact is fetched for context, record its `dream_artifact_id` in the current session's summary record
+- [x] Rollback: additionally set `needs_resummary=True` on contaminated session summaries
+- [x] **LAUNCH-BLOCKING**: verify `PostgresMemoryStore.retrieve()` filters `retrieval_weight > forgetting_weight_threshold` — enforced via `episode_retrievable_sql()` in all episode queries in `policies.py`
+- [x] **LAUNCH-BLOCKING**: verify graph context fetch adds hedging for `provenance="synthesized"` facts — `base_agent.py:104` appends "(Ze inferred this from a pattern — treat as unconfirmed)"
+- [x] **LAUNCH-BLOCKING**: verify `hindsight_fact` is hardcoded to `needs_review` regardless of scores — `promoter.py:61`
 
 ### Step 5 — Journal + Briefing Hook
-- [ ] `DreamJournal.write_entry()`
-- [ ] `BriefingJob` pull integration (read-only, no DreamJob import)
-- [ ] REST endpoints; update CLAUDE.md dep graph for `ze_personal` → `ze_memory.dream.store`
-- [ ] Set job timeout on `DreamJob` to prevent indefinite runs
+- [x] `DreamJournal.write_entry()`
+- [x] `BriefingJob` pull integration (read-only, no DreamJob import)
+- [x] REST endpoints; update CLAUDE.md dep graph for `ze_personal` → `ze_memory.dream.store`
+- [x] Set job timeout on `DreamJob` to prevent indefinite runs
+- [x] `DREAM_REVIEW_NOTIFICATIONS_ENABLED` flag (`review_notifications_enabled` in config.yaml); notifier wired into `DreamJob`; disabled by default until React review page ships
 
 ### Step 6 — Job Wiring
-- [ ] `DreamJob(ProactiveJob)` orchestrates Sleep → Dream → Integration → Journal
-- [ ] Wire into `compose.py` and `container.py`
-- [ ] `dream` section in `config.yaml`
+- [x] `DreamJob(ProactiveJob)` orchestrates Sleep → Dream → Integration → Journal
+- [x] Wire into `compose.py` and `container.py`
+- [x] `dream` section in `config.yaml`
 
 ---
 
@@ -764,12 +766,12 @@ asyncio.create_task(_tag_episode(episode, recent_facts))
 - [x] **Provenance enforcement.** Decision: `provenance` column on `memory_facts` in zm009.
 - [x] **Critic model.** Decision: `anthropic/claude-sonnet-4-5` for critic vs haiku for generator — intentional model diversity.
 - [x] **`support_count` independence.** Decision: require distinct_sessions ≥2 AND temporal_spread ≥7d AND user_asserted_count ≤1.
-- [ ] **First release scope:** Recommendation: Sleep pass + gates infrastructure in 78a. Dream pass (synthesis) in 78b. Validate episode selection and sensitive-entity tagging before adding LLM synthesis.
-- [ ] **`_classify_source()` precision:** Heuristic needs tuning. Start conservative — only mark `user_asserted` when no tool call outcomes in episode.
-- [ ] **NLI model language coverage:** DeBERTa-v3-small is English-first. Non-English fallback (LLM-based groundedness) needed before shipping to multilingual users.
-- [ ] **Re-validation job for stale synthetic facts:** Query `memory_facts WHERE provenance='synthesized' AND valid_until < now()` and flag for re-evaluation. Design deferred to Phase 78b.
-- [ ] **Inactivity trigger:** Deferred; cron sufficient for v1.
-- [ ] **Source quality audit:** Before shipping Phase 78b (synthesis), audit current `memory_facts` quality. Dream quality is bounded by source episode quality.
+- [x] **First release scope:** Done — 78a (Sleep + gates) then 78b (Dream synthesis + full pipeline).
+- [x] **`_classify_source()` precision:** Improved in `scorer.py`. Three-layer heuristic: (1) agent-name allowlist now includes `prospecting`, `finance`, `goal`, `automation` — these are always `ze_observed`; (2) tool-result markers in prompt+response string; (3) weak response-phrase signal (`"i found"`, `"search results"`, `"retrieved"`, etc.) catches research-agent summaries where tool markers don't appear in the stored response. Remaining gap: research-agent synthesis without visible tool markers AND none of the phrases — classified `user_asserted`, which is conservative and safe (just reduces replay weight; no false `ze_observed` promotion).
+- [x] **NLI model language coverage:** Non-English fallback implemented in `gates.py` (LLM-based groundedness check when content is non-English).
+- [x] **Re-validation job for stale synthetic facts:** `_expire_stale_synthetic_facts()` in `promoter.py` — contradicts facts past `valid_until` that are not corroborated; runs each morning integration.
+- [x] **Inactivity trigger:** Deferred by design; cron sufficient for v1.
+- [x] **Source quality audit:** Implemented as `GET /api/v0/memory/facts/quality` — a diagnostic endpoint returning total, by_provenance, avg_confidence, low_confidence_count, contradicted_count, synthesized_unreviewed, synthesized_uncorroborated, synthesized_expired. Single SQL query, no new tables. Not a recurring job — the dream pipeline's own confidence decay and `_expire_stale_synthetic_facts()` handle ongoing maintenance; this endpoint is for operator inspection before trusting synthesis output.
 
 ---
 

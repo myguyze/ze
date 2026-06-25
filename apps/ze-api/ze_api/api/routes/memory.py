@@ -6,6 +6,7 @@ from ze_api.api.schemas import (
     ConsolidationReportResponse,
     FactReviewRequest,
     MemoryDigestResponse,
+    MemoryFactQualityResponse,
     UserFactResponse,
     UserProfileResponse,
 )
@@ -84,6 +85,52 @@ async def consolidate_memory(consolidator=Depends(get_memory_consolidator)) -> C
         session_episodes_archived=report.session_episodes_archived,
         profile_updated=report.profile_updated,
         duration_ms=report.duration_ms,
+    )
+
+
+@router.get(
+    "/facts/quality",
+    response_model=MemoryFactQualityResponse,
+    operation_id="getFactQuality",
+    summary="Memory fact quality audit",
+    description=(
+        "Diagnostic snapshot of memory_facts health: distribution by provenance, "
+        "confidence stats, contradicted count, and synthesized-fact lifecycle status. "
+        "Use to assess source pool quality before trusting dream synthesis output."
+    ),
+)
+async def get_fact_quality(container=Depends(get_container)) -> MemoryFactQualityResponse:
+    async with container.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT
+                COUNT(*)                                                          AS total,
+                COUNT(*) FILTER (WHERE provenance = 'raw')                        AS raw_count,
+                COUNT(*) FILTER (WHERE provenance = 'synthesized')                AS synthesized_count,
+                COALESCE(AVG(confidence), 0.0)                                    AS avg_confidence,
+                COUNT(*) FILTER (WHERE confidence < 0.5)                          AS low_confidence_count,
+                COUNT(*) FILTER (WHERE contradicted = true)                       AS contradicted_count,
+                COUNT(*) FILTER (WHERE provenance = 'synthesized'
+                                   AND reviewed = false)                          AS synthesized_unreviewed,
+                COUNT(*) FILTER (WHERE provenance = 'synthesized'
+                                   AND corroborated = false
+                                   AND contradicted = false)                      AS synthesized_uncorroborated,
+                COUNT(*) FILTER (WHERE provenance = 'synthesized'
+                                   AND valid_until IS NOT NULL
+                                   AND valid_until < now()
+                                   AND contradicted = false)                      AS synthesized_expired
+            FROM memory_facts
+            """
+        )
+    return MemoryFactQualityResponse(
+        total=row["total"],
+        by_provenance={"raw": row["raw_count"], "synthesized": row["synthesized_count"]},
+        avg_confidence=round(float(row["avg_confidence"]), 4),
+        low_confidence_count=row["low_confidence_count"],
+        contradicted_count=row["contradicted_count"],
+        synthesized_unreviewed=row["synthesized_unreviewed"],
+        synthesized_uncorroborated=row["synthesized_uncorroborated"],
+        synthesized_expired=row["synthesized_expired"],
     )
 
 

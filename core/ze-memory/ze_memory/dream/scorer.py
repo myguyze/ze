@@ -9,8 +9,18 @@ from ze_memory.consolidation_store import _cosine_similarity
 
 log = get_logger(__name__)
 
-_SIGNAL_ORIGIN_AGENTS = frozenset({"email", "calendar", "workflow", "reminders", "news"})
+_SIGNAL_ORIGIN_AGENTS = frozenset({
+    "email", "calendar", "workflow", "reminders", "news",
+    "prospecting", "finance", "goal", "automation",
+})
 _TOOL_RESULT_MARKERS = ("tool_result", "tool_use", '"type": "tool"', "ToolResult", "<tool_response>")
+# Weak secondary signal: phrases that indicate Ze retrieved external data rather than
+# recording something the user stated. Conservative list — only phrases that are
+# nearly never user-authored in conversation.
+_ZE_OBSERVED_RESPONSE_PHRASES = (
+    "i found", "search results", "according to", "retrieved",
+    "i looked up", "based on the data", "from the api",
+)
 
 
 def _classify_source(agent: str, prompt: str, response: str) -> str:
@@ -19,6 +29,8 @@ def _classify_source(agent: str, prompt: str, response: str) -> str:
         return "ze_observed"
     combined = (prompt + " " + response).lower()
     if any(marker.lower() in combined for marker in _TOOL_RESULT_MARKERS):
+        return "ze_observed"
+    if any(phrase in combined for phrase in _ZE_OBSERVED_RESPONSE_PHRASES):
         return "ze_observed"
     return "user_asserted"
 

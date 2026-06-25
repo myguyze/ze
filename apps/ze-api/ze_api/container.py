@@ -382,6 +382,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         client=shared.openrouter_client,
         nli_client=shared.nli_client,
         settings=settings,
+        notifier=notifier,
     )
 
     container.dream_store = dream_store

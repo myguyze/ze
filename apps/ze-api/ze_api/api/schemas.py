@@ -130,6 +130,17 @@ class ConsolidationReportResponse(BaseModel):
     duration_ms: int
 
 
+class MemoryFactQualityResponse(BaseModel):
+    total: int
+    by_provenance: dict[str, int]
+    avg_confidence: float
+    low_confidence_count: int
+    contradicted_count: int
+    synthesized_unreviewed: int
+    synthesized_uncorroborated: int
+    synthesized_expired: int
+
+
 class FactReviewAction(BaseModel):
     id: UUIDType
     action: Literal["confirm", "reject", "edit"]

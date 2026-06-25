@@ -28,11 +28,13 @@ class DreamJob:
         client: Any | None = None,
         nli_client: Any | None = None,
         settings: Any = None,
+        notifier: Any | None = None,
     ) -> None:
         self._pool = pool
         self._dream_store = dream_store
         self._client = client
         self._settings = settings
+        self._notifier = notifier
         self._sleep_pass = SleepPass(
             pool=pool,
             embedder=embedder,
@@ -151,6 +153,14 @@ class DreamJob:
                 pending_review=artifacts_pending,
                 synthesis_model=synthesis_model,
             )
+
+        if error is None and artifacts_pending > 0 and self._notifier is not None:
+            cfg = self._dream_config()
+            if cfg.get("review_notifications_enabled", False):
+                await self._notifier.push(
+                    f"Ze dreamed overnight — {artifacts_pending} insight(s) await your review.",
+                    urgency="normal",
+                )
 
         log.info(
             "dream_job_complete",

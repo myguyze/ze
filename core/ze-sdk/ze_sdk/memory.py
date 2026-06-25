@@ -11,6 +11,13 @@ from ze_memory.types import (
 from ze_memory.store import MemoryStore
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.dream.store import PostgresDreamStore
+from ze_memory.dream.types import (
+    ArtifactStatus,
+    ArtifactType,
+    DreamArtifact,
+    DreamJournalEntry,
+    DreamRun,
+)
 from ze_plugin.signals import SignalSource
 
 __all__ = [
@@ -26,4 +33,9 @@ __all__ = [
     "MemoryStore",
     "PostgresMemoryStore",
     "PostgresDreamStore",
+    "ArtifactStatus",
+    "ArtifactType",
+    "DreamArtifact",
+    "DreamJournalEntry",
+    "DreamRun",
 ]
