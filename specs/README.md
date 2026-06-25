@@ -7,7 +7,7 @@ Design and implementation specs for the Ze personal AI assistant.
 ```
 specs/
 ├── TEMPLATE.md       ← template for new specs
-├── phases/           ← feature and phase implementation specs (00–81)
+├── phases/           ← feature and phase implementation specs (00–82)
 ├── core/             ← ze-core infrastructure layer specs
 └── arch/             ← architecture decision records
 ```
@@ -108,6 +108,7 @@ explicitly deferred before implementation begins.
 | 79 | [NLI Cross-Encoder Integration](phases/79-nli-model.md) | ✅ Done |
 | 80 | [NLI Client + Plugin Access](phases/80-nli-client.md) | ✅ Done |
 | 81 | [Plugin NLI Adoption](phases/81-plugin-nli-adoption.md) | ✅ Done |
+| 82 | [ze-web FSD Restructure](phases/82-ze-web-fsd.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

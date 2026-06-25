@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./globals.css";
-import { applyConfig } from "@/lib/client";
+import "@/app/styles/globals.css";
 import { App } from "@/app/App";
+import { applyConfig } from "@/shared/lib";
 
 applyConfig();
 

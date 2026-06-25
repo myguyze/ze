@@ -64,6 +64,8 @@ A Tauri desktop wrapper can be added later without any changes to the React code
 
 ## Package Layout
 
+> **Superseded by [82-ze-web-fsd.md](82-ze-web-fsd.md).** The layout below reflects the pre-FSD structure. Current layout: `app/` → `pages/` → `widgets/` → `features/` → `entities/` → `shared/`. See [docs/frontend.md](../../docs/frontend.md).
+
 ```
 apps/ze-web/
   package.json

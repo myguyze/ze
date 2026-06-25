@@ -2,38 +2,37 @@
 
 React web client for Ze. Connects to `ze-api` over WebSocket for chat, renders server-driven UI components, and provides management pages for goals, contacts, reminders, news, and costs.
 
+Architecture: [Feature-Sliced Design](https://feature-sliced.design/). See [docs/frontend.md](../../docs/frontend.md) and [specs/phases/82-ze-web-fsd.md](../../specs/phases/82-ze-web-fsd.md).
+
 ## Role in Ze
 
-`ze-web` is the user's window into Ze. All conversational interaction happens here over WebSocket; management pages (goals, contacts, reminders, news, costs, settings) use the REST API. Server-driven UI components from agents render inline in the chat without requiring frontend deploys.
+`ze-web` is the user's window into Ze. All conversational interaction happens here over WebSocket; management pages use the REST API via `@ze/client`. Server-driven UI components from agents render inline in the chat without requiring frontend deploys.
 
-### Key features
+## Source layout
 
-- Real-time chat with confirmation bar, typing indicator, and session management
-- Server-driven UI — cards, forms, tables, timelines rendered from agent component descriptors
-- Management pages — goals, contacts, reminders, news, costs, settings
-- Onboarding flow — multi-step setup coordinated with `ze-onboarding`
-- Context overlay — floating access to background activity
-
-### Integration
-
-Connects to `ze-api` at `/ws` (WebSocket) and REST routes. No Python dependencies — built with Bun, Vite, React, and Tailwind. Runs alongside the backend via `make dev-full` or standalone via `make web`.
-
-## Responsibilities
+```
+src/
+├── app/           # bootstrap, router, providers, global styles
+├── pages/         # thin route entry points (one slice per route)
+├── widgets/       # composite screen sections
+├── features/      # user actions (export-data, load-chat-history, …)
+├── entities/      # domain nouns (goal, message, contact, …)
+└── shared/        # UI kit, lib, API wiring, config
+```
 
 | Path | What it provides |
-|---|---|
-| `src/features/chat/` | Chat session, message list, confirmation bar, typing indicator |
-| `src/features/websocket/` | WebSocket connection, protocol types, refresh handler |
-| `src/components/server-driven/` | Component renderer for agent-emitted UI descriptors |
-| `src/pages/` | Chat, goals, contacts, reminders, news, costs, settings, onboarding |
-| `src/lib/api.ts` | REST client for management endpoints |
-| `src/app/router.tsx` | Client-side routing |
+|------|------------------|
+| `app/router/routes.ts` | Route registry — paths, lazy imports, nav meta |
+| `widgets/chat-workspace/` | Main chat UI |
+| `widgets/*-overview/` | Management list screens |
+| `entities/message/` | Message bubbles, chat input |
+| `entities/primitive-tree/` | Server-driven UI renderer |
+| `shared/api/ws-client.ts` | WebSocket singleton |
+| `shared/config/` | Server URL + API key (`localStorage`) |
 
 ## Dependencies
 
-No Python dependencies. Connects to `ze-api` at runtime over WebSocket (`/ws`) and REST.
-
-Stack: React 19, Vite, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Zustand.
+Stack: React 19, Vite, TypeScript, Tailwind CSS, TanStack Query, Zustand, `@ze/client`, `@ze/ui`.
 
 ## Running
 
@@ -43,16 +42,13 @@ make web-build    # production build
 make dev-full     # backend + web app together
 ```
 
-Set `VITE_ZE_API_URL` and `VITE_ZE_API_KEY` (see `src/config/AppConfig.ts`) to point at your backend.
+Configure server URL and API key in the onboarding flow or Settings. No `VITE_*` env vars.
 
-## Testing
-
-From the repo root:
+## Quality
 
 ```bash
-make test-web
+make test-web     # vitest
+make lint-web     # ESLint (FSD import boundaries)
 ```
 
-See [docs/testing.md](../../docs/testing.md).
-
-WebSocket protocol reference: [docs/native-interface.md](../../docs/native-interface.md).
+See [docs/testing.md](../../docs/testing.md). WebSocket protocol: [docs/native-interface.md](../../docs/native-interface.md).

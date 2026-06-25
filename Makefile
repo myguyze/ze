@@ -83,6 +83,7 @@ help:
 	@echo ""
 	@echo "  Code quality"
 	@echo "    lint             Lint all packages with ruff"
+	@echo "    lint-web         Lint ze-web with ESLint (FSD boundaries)"
 	@echo "    format           Auto-format and fix all packages with ruff"
 	@echo "    clean            Remove __pycache__, .pytest_cache, .ruff_cache, *.pyc"
 	@echo ""
@@ -346,10 +347,13 @@ codegen:
 	bun run scripts/codegen.ts
 
 # ── Code quality ──────────────────────────────────────────────────────────────
-.PHONY: lint format clean
+.PHONY: lint lint-web format clean
 
 lint:
 	uv run ruff check .
+
+lint-web:
+	cd $(ZE_WEB) && bun run lint
 
 format:
 	uv run ruff format .

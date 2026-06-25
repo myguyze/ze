@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router-dom";
-import { hasConfig } from "@/config/AppConfig";
-import { OnboardingFlow } from "@/pages/onboarding/OnboardingFlow";
-import { router } from "@/app/router";
+import { bootstrapWs } from "@/app/bootstrap-ws";
 import { Providers } from "@/app/providers";
-import { startWs } from "@/features/websocket/useWebSocket";
+import { router } from "@/app/router";
+import { OnboardingWizard } from "@/widgets/onboarding-wizard";
+import { startWs } from "@/shared/api";
+import { hasConfig } from "@/shared/config";
+
+bootstrapWs();
 
 export function App() {
   const [configured, setConfigured] = useState(hasConfig);
@@ -20,7 +23,7 @@ export function App() {
   return (
     <Providers>
       {!configured ? (
-        <OnboardingFlow onComplete={handleOnboardingComplete} />
+        <OnboardingWizard onComplete={handleOnboardingComplete} />
       ) : (
         <RouterProvider router={router} />
       )}
