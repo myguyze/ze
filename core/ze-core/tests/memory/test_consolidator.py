@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 from ze_memory.consolidation_store import PostgresConsolidationStore
@@ -23,6 +23,7 @@ def _store(**overrides):
     s.delete_old_episode_summaries = AsyncMock(return_value=0)
     s.insert_archive_episode = AsyncMock()
     s.delete_episodes_by_ids = AsyncMock()
+    s.session_has_eager_summary = AsyncMock(return_value=False)
     s.fetch_active_fact_summaries = AsyncMock(return_value=[])
     s.fetch_recent_episode_summaries = AsyncMock(return_value=[])
     s.upsert_profile_facets = AsyncMock()
@@ -110,7 +111,11 @@ class TestDedupFacts:
         embedder = MagicMock()
         embedder.encode = MagicMock(side_effect=_encode)
         client = _client(response="merged fact")
-        merged = await _consolidator(store=store, embedder=embedder, client=client).dedup_facts()
+        with patch(
+            "ze_memory.consolidator.nli_scores_async",
+            new=AsyncMock(return_value=[{"contradiction": 0.05, "neutral": 0.1, "entailment": 0.85}]),
+        ):
+            merged = await _consolidator(store=store, embedder=embedder, client=client).dedup_facts()
         assert merged == 1
         client.complete.assert_awaited_once()
         assert store.insert_merged_fact.await_count == 1

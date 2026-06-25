@@ -26,6 +26,7 @@ from ze_core.telemetry.reconciler import CostReconciler
 from ze_core.telemetry.tracker import CostTracker
 from ze_data.domain import DataDomain
 from ze_data.portability.assembler import bulk_insert
+from ze_memory.consolidation_store import PostgresConsolidationStore
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
@@ -81,7 +82,7 @@ async def build_engine_stack(
     )
 
     memory_consolidator = MemoryConsolidator(
-        store=memory_store,
+        store=PostgresConsolidationStore(pool),
         embedder=embedder,
         openrouter_client=openrouter_client,
         settings=settings,

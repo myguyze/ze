@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 
 from ze_correlation.job import CorrelationJob
 from ze_correlation.push import CorrelationPushConsumer
-from ze_correlation.types import Hypothesis
+from ze_correlation.types import EvidenceRef, Hypothesis
 
 UTC = timezone.utc
 
@@ -211,6 +211,37 @@ async def test_novelty_no_embedder_skips_check():
     consumer, mocks = _make_consumer(hypotheses=[h], embedder=None)
     await consumer.run_once()
     mocks["notifier"].push.assert_awaited_once()
+
+
+@patch("ze_correlation.push.nli_scores_async", new_callable=AsyncMock)
+async def test_low_grounding_rejected(mock_nli):
+    mock_nli.return_value = [{"contradiction": 0.5, "neutral": 0.4, "entailment": 0.1}]
+    evidence = [
+        EvidenceRef(
+            kind="signal",
+            id=uuid4(),
+            label="Stock market moved sharply",
+            external_ref=None,
+            origin="graph_recall",
+            retrieved_at=datetime.now(UTC),
+        )
+    ]
+    h = Hypothesis(
+        id=uuid4(),
+        summary="User's coffee preference changed",
+        narrative="Possible link",
+        relation="pattern",
+        confidence=0.75,
+        relevance=0.65,
+        evidence=evidence,
+        entities=[uuid4()],
+        created_at=datetime.now(UTC),
+    )
+    settings = _make_settings()
+    settings.config["memory"] = {"nli_grounding_threshold": 0.30}
+    consumer, mocks = _make_consumer(settings, hypotheses=[h])
+    await consumer.run_once()
+    mocks["notifier"].push.assert_not_awaited()
 
 
 # ── surfaced flag ─────────────────────────────────────────────────────────────

@@ -16,10 +16,15 @@ from ze_memory.defaults import (
     MERGE_SILENT_THRESHOLD,
     MIN_SESSION_EPISODES,
     MODEL_SYNTHESIS,
+    NLI_CONTRADICTION_THRESHOLD,
+    NLI_ENTAILMENT_THRESHOLD,
+    NLI_LOWER_COSINE_BOUND,
     SESSION_GROUPING_ENABLED,
     UNREVIEWED_TTL_DAYS,
 )
 from ze_memory.consolidation_store import PostgresConsolidationStore, _cosine_similarity
+from ze_memory.nli import nli_scores_async
+from ze_memory.nli_config import nli_config
 from ze_memory.synthesizer import ProfileSynthesizer
 from ze_memory.types import ConsolidationReport
 
@@ -75,8 +80,12 @@ class MemoryConsolidator:
 
     async def dedup_facts(self) -> int:
         cfg = self._memory_config()
+        nli_cfg = nli_config(self._settings)
         silent_threshold = cfg.get("merge_silent_threshold", MERGE_SILENT_THRESHOLD)
         llm_threshold = cfg.get("merge_llm_threshold", MERGE_LLM_THRESHOLD)
+        nli_lower = float(nli_cfg.get("nli_lower_cosine_bound", NLI_LOWER_COSINE_BOUND))
+        nli_contra = float(nli_cfg.get("nli_contradiction_threshold", NLI_CONTRADICTION_THRESHOLD))
+        nli_entail = float(nli_cfg.get("nli_entailment_threshold", NLI_ENTAILMENT_THRESHOLD))
 
         rows = await self._store.fetch_active_facts()
         if len(rows) < 2:
@@ -89,6 +98,11 @@ class MemoryConsolidator:
         for i in range(len(rows)):
             if rows[i]["id"] in contradicted_ids:
                 continue
+
+            nli_batch_j: list[int] = []
+            nli_batch_sims: list[float] = []
+            nli_batch_pairs: list[tuple[str, str]] = []
+
             for j in range(i + 1, len(rows)):
                 if rows[j]["id"] in contradicted_ids:
                     continue
@@ -102,23 +116,56 @@ class MemoryConsolidator:
                     contradicted_ids.add(rows[drop]["id"])
                     await self._store.mark_contradicted(rows[drop]["id"])
                     merged += 1
-                elif sim >= llm_threshold:
-                    merged_value = await self._llm_merge(rows[i]["value"], rows[j]["value"])
+                elif sim >= nli_lower:
+                    nli_batch_j.append(j)
+                    nli_batch_sims.append(sim)
+                    nli_batch_pairs.append((rows[i]["value"], rows[j]["value"]))
+
+            if not nli_batch_pairs:
+                continue
+
+            scores = await nli_scores_async(nli_batch_pairs)
+            for j_idx, sim, score in zip(nli_batch_j, nli_batch_sims, scores):
+                if rows[i]["id"] in contradicted_ids or rows[j_idx]["id"] in contradicted_ids:
+                    continue
+                if score is None:
+                    continue
+
+                if score["contradiction"] >= nli_contra:
+                    drop_idx = self._newer_fact_drop_index(rows, i, j_idx)
+                    contradicted_ids.add(rows[drop_idx]["id"])
+                    await self._store.mark_contradicted(rows[drop_idx]["id"])
+                    merged += 1
+                    continue
+
+                if sim >= llm_threshold and score["entailment"] >= nli_entail:
+                    merged_value = await self._llm_merge(
+                        rows[i]["value"], rows[j_idx]["value"]
+                    )
                     if merged_value:
                         new_emb = self._embedder.encode(merged_value)
                         await self._store.mark_contradicted(rows[i]["id"])
-                        await self._store.mark_contradicted(rows[j]["id"])
+                        await self._store.mark_contradicted(rows[j_idx]["id"])
                         await self._store.insert_merged_fact(
                             rows[i]["predicate"],
                             merged_value,
-                            max(rows[i]["confidence"], rows[j]["confidence"]),
+                            max(rows[i]["confidence"], rows[j_idx]["confidence"]),
                             new_emb,
                         )
                         contradicted_ids.add(rows[i]["id"])
-                        contradicted_ids.add(rows[j]["id"])
+                        contradicted_ids.add(rows[j_idx]["id"])
                         merged += 1
 
         return merged
+
+    @staticmethod
+    def _newer_fact_drop_index(rows: list, i: int, j: int) -> int:
+        """Return index of the older fact to contradict; keep max(created_at)."""
+        created_i = rows[i].get("created_at")
+        created_j = rows[j].get("created_at")
+        if created_i is not None and created_j is not None:
+            return j if created_i >= created_j else i
+        return j if rows[i]["confidence"] >= rows[j]["confidence"] else i
 
     async def expire_facts(self) -> tuple[int, int]:
         cfg = self._memory_config()

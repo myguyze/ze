@@ -11,6 +11,8 @@ from ze_logging import get_logger
 from ze_correlation.engine import CorrelationEngine
 from ze_correlation.store import PostgresHypothesisStore
 from ze_correlation.types import Hypothesis
+from ze_memory.nli import nli_grounding_score, nli_scores_async
+from ze_memory.nli_config import nli_config
 
 log = get_logger(__name__)
 
@@ -39,6 +41,7 @@ class CorrelationPushConsumer:
         self._notifier = notifier
         self._push_log = push_log
         self._embedder = embedder
+        self._settings = settings
         self._cfg = _load_config(settings)
 
     async def run_once(self, *, seeds: list[UUID] | None = None) -> list[Hypothesis]:
@@ -111,8 +114,33 @@ class CorrelationPushConsumer:
             return False
         if not await self._passes_novelty(hypothesis):
             return False
+        if not await self._passes_grounding(hypothesis):
+            return False
         if not await self._within_budget():
             return False
+        return True
+
+    async def _passes_grounding(self, hypothesis: Hypothesis) -> bool:
+        labels = [ref.label for ref in hypothesis.evidence if ref.label]
+        if not labels:
+            return True
+        try:
+            pairs = [(label, hypothesis.summary) for label in labels]
+            scores = await nli_scores_async(pairs)
+            grounded = nli_grounding_score(hypothesis.summary, labels, scores=scores)
+            threshold = float(
+                nli_config(self._settings).get("nli_grounding_threshold", 0.30)
+            )
+            if grounded < threshold:
+                log.info(
+                    "correlation_push_grounding_failed",
+                    hypothesis_id=str(hypothesis.id),
+                    grounded=grounded,
+                    threshold=threshold,
+                )
+                return False
+        except Exception as exc:
+            log.warning("correlation_push_grounding_check_failed", error=str(exc))
         return True
 
     async def _passes_novelty(self, hypothesis: Hypothesis) -> bool:

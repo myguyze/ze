@@ -11,6 +11,14 @@ models:
   workflow_verify:  anthropic/claude-3.5-haiku
 
 memory:
+  nli_contradiction_threshold: 0.60
+  nli_entailment_threshold: 0.70
+  nli_lower_cosine_bound: 0.60
+  nli_write_time_check: true
+  nli_grounding_threshold: 0.30
+  nli_retrieval_rerank: true
+  nli_rerank_candidate_multiplier: 2
+  nli_rerank_min_candidates: 5
   consolidation:
     episode_archive_days: 7
     episode_archive_batch: 50

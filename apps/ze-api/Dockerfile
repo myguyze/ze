@@ -20,6 +20,15 @@ COPY apps/ze-api/ apps/ze-api/
 
 RUN uv sync --no-dev --package ze-api
 
+ENV HF_HOME=/app/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+RUN mkdir -p "$HF_HOME" && python -c "\
+from ze_core.embeddings import get_embedder; \
+from ze_memory.nli import get_nli_model; \
+get_embedder(); \
+get_nli_model(); \
+print('models cached')"
+
 ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /app/apps/ze-api
 

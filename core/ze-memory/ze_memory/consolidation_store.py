@@ -48,7 +48,7 @@ class PostgresConsolidationStore:
     async def fetch_active_facts(self) -> list:
         async with self._pool.acquire() as conn:
             return await conn.fetch(
-                "SELECT id, predicate, value, confidence"
+                "SELECT id, predicate, value, confidence, created_at"
                 " FROM memory_facts WHERE contradicted = false ORDER BY updated_at DESC"
             )
 

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from ze_logging import get_logger
 from ze_agents.tasks import fire_and_forget
-from ze_memory.consolidation_store import _cosine_similarity as _cosine_similarity  # noqa: F401
+from ze_memory.consolidation_store import _cosine_similarity
 
 from ze_memory.defaults import (
     DEFAULT_EPISODE_BUDGET_TOKENS,
@@ -17,6 +17,8 @@ from ze_memory.dream.scorer import refresh_episode_sensitive_flag, tag_episode_m
 from ze_memory.dream.sensitive import is_sensitive_entity
 from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
+from ze_memory.nli import nli_scores_async
+from ze_memory.nli_config import nli_config
 from ze_memory.graph.predicates import (
     BELONGS_TO_GOAL,
     DESCRIBES,
@@ -533,8 +535,22 @@ class PostgresMemoryStore:
         from ze_memory.projection import _session_summary_from_row
         return _session_summary_from_row(row)
 
-    async def search_session_summaries(self, embedding: Any, limit: int) -> list[SessionSummary]:
+    async def search_session_summaries(
+        self,
+        embedding: Any,
+        limit: int,
+        *,
+        query_text: str | None = None,
+    ) -> list[SessionSummary]:
+        cfg = nli_config(self._settings)
         emb_list = _to_list(embedding)
+        fetch_limit = limit
+        if (
+            query_text
+            and cfg.get("nli_retrieval_rerank")
+        ):
+            fetch_limit = limit * int(cfg.get("nli_rerank_candidate_multiplier", 2))
+
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -546,21 +562,46 @@ class PostgresMemoryStore:
                 LIMIT $2
                 """,
                 emb_list,
-                limit,
+                fetch_limit,
             )
+
+        row_list = list(rows)
+        if (
+            query_text
+            and cfg.get("nli_retrieval_rerank")
+            and len(row_list) >= int(cfg.get("nli_rerank_min_candidates", 5))
+        ):
+            row_list = await self._rerank_session_summary_rows(row_list, query_text, limit)
+
         from ze_memory.projection import session_summaries_from_rows
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
-        return session_summaries_from_rows(list(rows), DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+        return session_summaries_from_rows(row_list, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+
+    async def _rerank_session_summary_rows(
+        self,
+        rows: list,
+        query_text: str,
+        limit: int,
+    ) -> list:
+        pairs = [(row["summary"], query_text) for row in rows]
+        scores = await nli_scores_async(pairs)
+        ranked: list[tuple[float, Any]] = []
+        for row, score in zip(rows, scores):
+            if score is None:
+                ranked.append((0.0, row))
+            else:
+                ranked.append((score["entailment"] + 0.5 * score["neutral"], row))
+        ranked.sort(key=lambda item: item[0], reverse=True)
+        return [row for _, row in ranked[:limit]]
 
     # ── internal ──────────────────────────────────────────────────────────────
 
     async def _write_fact_with_contradiction_check(self, fact: Fact) -> UUID | None:
         value_emb = self._embedder.encode(fact.value)
         emb_list = _to_list(value_emb)
+        nli_cfg = nli_config(self._settings)
 
         async with self._pool.acquire() as conn:
-            # Invalidate prior facts for the same (predicate, subject).
-            # IS NOT DISTINCT FROM handles NULL subject_id correctly.
             await conn.execute(
                 """
                 UPDATE memory_facts
@@ -571,6 +612,10 @@ class PostgresMemoryStore:
                 """,
                 fact.predicate,
                 fact.subject_id,
+            )
+
+            await self._apply_semantic_contradiction_check(
+                conn, fact, value_emb, emb_list, nli_cfg
             )
 
             row = await conn.fetchrow(
@@ -600,6 +645,60 @@ class PostgresMemoryStore:
                 label="link_fact_relationships",
             )
         return fact_id
+
+    async def _apply_semantic_contradiction_check(
+        self,
+        conn: Any,
+        fact: Fact,
+        value_emb: Any,
+        emb_list: str,
+        nli_cfg: dict,
+    ) -> None:
+        if not nli_cfg.get("nli_write_time_check", True):
+            return
+
+        nli_lower = float(nli_cfg.get("nli_lower_cosine_bound", 0.60))
+        nli_contra = float(nli_cfg.get("nli_contradiction_threshold", 0.60))
+
+        candidates = await conn.fetch(
+            """
+            SELECT id, value, embedding
+            FROM memory_facts
+            WHERE contradicted = false
+              AND subject_id IS NOT DISTINCT FROM $1
+              AND embedding IS NOT NULL
+            ORDER BY embedding <=> $2::vector
+            LIMIT 10
+            """,
+            fact.subject_id,
+            emb_list,
+        )
+
+        pairs: list[tuple[str, str]] = []
+        candidate_ids: list[UUID] = []
+        for row in candidates:
+            sim = _cosine_similarity(value_emb, row["embedding"])
+            if sim >= nli_lower:
+                pairs.append((row["value"], fact.value))
+                candidate_ids.append(row["id"])
+
+        if not pairs:
+            return
+
+        scores = await nli_scores_async(pairs)
+        for candidate_id, score in zip(candidate_ids, scores):
+            if score is None:
+                continue
+            if score["contradiction"] >= nli_contra:
+                await conn.execute(
+                    "UPDATE memory_facts SET contradicted = true WHERE id = $1",
+                    candidate_id,
+                )
+                log.debug(
+                    "memory_semantic_contradiction",
+                    contradicted_id=str(candidate_id),
+                    predicate=fact.predicate,
+                )
 
     # ── graph relationship helpers ─────────────────────────────────────────────
 
