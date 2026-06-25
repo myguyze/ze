@@ -1,12 +1,13 @@
-"""Tests for ze_memory/nli.py — NLI cross-encoder helpers."""
+"""Tests for ze_core/nli.py — NLI cross-encoder helpers."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
 
-from ze_memory.nli import (
+from ze_core.nli import (
+    LocalNLIClient,
     filter_scorable_pairs,
     is_latin,
     nli_grounding_score,
@@ -36,7 +37,7 @@ def test_filter_scorable_pairs_preserves_indices():
     assert indices == [0, 2]
 
 
-@patch("ze_memory.nli.get_nli_model")
+@patch("ze_core.nli.get_nli_model")
 def test_nli_scores_returns_shape(mock_get_model):
     mock_model = MagicMock()
     mock_model.predict.return_value = np.array([
@@ -53,7 +54,7 @@ def test_nli_scores_returns_shape(mock_get_model):
     assert abs(sum(result[0].values()) - 1.0) < 1e-5
 
 
-@patch("ze_memory.nli.get_nli_model")
+@patch("ze_core.nli.get_nli_model")
 def test_nli_scores_skips_non_latin_pairs(mock_get_model):
     mock_model = MagicMock()
     mock_get_model.return_value = mock_model
@@ -64,7 +65,7 @@ def test_nli_scores_skips_non_latin_pairs(mock_get_model):
     mock_model.predict.assert_not_called()
 
 
-@patch("ze_memory.nli.nli_scores")
+@patch("ze_core.nli.nli_scores")
 async def test_nli_scores_async_delegates(mock_scores):
     mock_scores.return_value = [{"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}]
     result = await nli_scores_async([("a", "b")])
@@ -79,9 +80,23 @@ def test_nli_grounding_score_mean_entailment():
     assert nli_grounding_score("hypothesis", ["e1", "e2"], scores=scores) == 0.7
 
 
+async def test_local_nli_client_scores():
+    client = LocalNLIClient()
+    with patch("ze_core.nli.nli_scores_async", new_callable=AsyncMock) as mock_fn:
+        mock_fn.return_value = [{"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}]
+        result = await client.scores([("a", "b")])
+        assert result[0]["entailment"] == 0.7
+
+
+def test_local_nli_client_grounding_score():
+    client = LocalNLIClient()
+    scores = [{"contradiction": 0.1, "neutral": 0.2, "entailment": 0.8}]
+    assert client.grounding_score("hyp", ["ev"], scores=scores) == 0.8
+
+
 @pytest.mark.slow
 def test_nli_model_loads_real_weights():
-    from ze_memory.nli import get_nli_model
+    from ze_core.nli import get_nli_model
 
     model = get_nli_model()
     assert model is not None

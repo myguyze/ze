@@ -264,7 +264,7 @@ Before every agent execution, `fetch_context` runs:
    ID order and re-budgeted. Episodes, profile, entities, events, and task state stay
    from the policy unchanged. Mid-execution modules (`planner`, `tool_executor`) and
    introspection modules (`profile`, `memory_ui`) skip the cache. See
-   `ze_memory/retrieval_rerank.py` and `ze_memory/nli.py`.
+   `ze_memory/retrieval_rerank.py` and `ze_core/nli.py` (`NLIClient`).
 4. **Profile injection** — all `memory_profile_facets` rows are fetched (highest
    confidence first) and included in the context.
 5. **Graph augmentation** — when `memory.graph.enabled: true` (default), entity and

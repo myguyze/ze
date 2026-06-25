@@ -437,3 +437,5 @@ triggers a one-shot detection run.
   `dismiss_recurring` to persist the decision. No separate confirmation framework.
 - [ ] cadence detection for annual plans: deferred to a future phase. Annual charges
   appear only once in a 90-day window and will not be detected by v1.
+- [ ] semantic merchant merging: Phase 81 adds NLI-backed alias merging before
+  `_normalise(tx.notes)` grouping (`NETFLIX.COM` / `Netflix` / `NETFLIX SUBSCRIPTION`).

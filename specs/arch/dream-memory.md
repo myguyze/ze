@@ -123,7 +123,7 @@ validated in production.
 |----------|--------|-----------|
 | Phase split | 78a = Sleep + foundation; 78b = Dream synthesis + gates | Ship useful consolidation before LLM cost and risk |
 | Episode mutability | `memory_episode_metadata` side table | Keeps source episodes immutable and auditable |
-| NLI model | `cross-encoder/nli-deberta-v3-small` (~90MB local) | Shared singleton in `ze_memory/nli.py` (Phase 79, done). 78b `Gate1_NLI` imports from there — one download, one warm-up |
+| NLI model | `cross-encoder/nli-deberta-v3-small` (~90MB local) | `LocalNLIClient` in `ze_core/nli.py` (Phase 80). 78b `Gate1_NLI` injects `NLIClient` — one download, one warm-up |
 | Critic model | `anthropic/claude-sonnet-4-5` | Haiku-class holistic judges achieve only ~65–70% agreement on factual tasks |
 | Generator model | `anthropic/claude-haiku-4-5` | Cost-efficient synthesis; critic is the quality gate |
 | Fact conflict resolution | `max(created_at)` deterministic rule | Never LLM judgment on conflicts |

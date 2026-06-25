@@ -15,6 +15,8 @@ dependencies = [
     "ze-memory",
     "openrouter>=0.9.1",
     "numpy>=2.0",
+    "sentence-transformers>=3.0,<3.3",
+    "scipy>=1.11",
 ]
 
 [project.optional-dependencies]
@@ -52,7 +54,7 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "slow: marks tests that load the embedding model (deselect with -m 'not slow')",
+    "slow: marks tests that load ML models (deselect with -m 'not slow')",
 ]
 
 [tool.uv.sources]

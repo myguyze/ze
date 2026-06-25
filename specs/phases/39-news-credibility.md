@@ -137,9 +137,11 @@ people read only the headline.
 - Headline: "Government to ban X" / Summary: "A minister said the government was
   'considering options' regarding X."
 
-**Detection.** LLM required — requires assessing whether the summary's claim strength
-supports the headline's claim strength. High confidence because the comparison is
-anchored in the provided text.
+**Detection.** LLM required for full assessment — requires comparing claim strength
+between headline and summary. Phase 81 adds an NLI heuristic pre-pass via `NLIClient`:
+premise = summary, hypothesis = headline; flag when contradiction ≥ 0.50 or entailment
+< 0.30 (cheaper than LLM for obvious mismatches). High confidence because the
+comparison is anchored in the provided text.
 
 ---
 

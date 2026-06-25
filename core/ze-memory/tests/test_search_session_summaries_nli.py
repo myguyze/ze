@@ -1,7 +1,7 @@
 """Tests for NLI re-ranking in search_session_summaries."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from ze_memory.retriever import PostgresMemoryStore
@@ -26,14 +26,19 @@ def _summary_row(session_id: str, summary: str):
     }
 
 
-@patch("ze_memory.retrieval_rerank.nli_scores_async", new_callable=AsyncMock)
-async def test_search_session_summaries_reranks_by_nli(mock_nli):
+async def test_search_session_summaries_reranks_by_nli():
     rows = [
         _summary_row("s1", "Discussed project deadlines"),
         _summary_row("s2", "User prefers tea over coffee"),
     ]
     conn = AsyncMock()
     conn.fetch = AsyncMock(return_value=rows)
+
+    nli = AsyncMock()
+    nli.scores = AsyncMock(return_value=[
+        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
+        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
+    ])
 
     store = PostgresMemoryStore.__new__(PostgresMemoryStore)
     store._pool = MagicMock()
@@ -45,11 +50,7 @@ async def test_search_session_summaries_reranks_by_nli(mock_nli):
             "nli_rerank_min_candidates": 2,
         }
     }
-
-    mock_nli.return_value = [
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
-    ]
+    store._nli = nli
 
     results = await store.search_session_summaries(
         [0.1] * 384,
@@ -59,4 +60,4 @@ async def test_search_session_summaries_reranks_by_nli(mock_nli):
 
     assert len(results) == 1
     assert results[0].session_id == "s2"
-    mock_nli.assert_awaited_once()
+    nli.scores.assert_awaited_once()

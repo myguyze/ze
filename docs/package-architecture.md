@@ -97,6 +97,7 @@ Hard rules:
 | `onboarding/` | Compatibility re-export of `ze_onboarding` onboarding symbols |
 | `types.py` | `AgentContext`, `AgentResult`, `ToolCall`, `GateDecision`, `Mode`, `AbortToken` |
 | `client.py` | `LLMClient` Protocol — the interface `BaseAgent` calls; `OpenRouterClient` satisfies it |
+| `nli.py` | `NLIClient` Protocol — local cross-encoder entailment/contradiction; `LocalNLIClient` satisfies it |
 | `db.py` | `DBPool` Protocol — structural type for asyncpg pools |
 | `channels/` | `Channel` ABC, `ChannelRegistry`, `ChannelType`, `Message`, `SentMessage`, `Thread` |
 | `interface/` | `AppInterface` ABC, `InputPreprocessor`, `Action`, `Notification` |
@@ -180,6 +181,7 @@ packages. Plugin authors never import `ze_core` directly — use `ze_sdk` instea
 | `openrouter/` | `OpenRouterClient` (satisfies `LLMClient` Protocol), streaming, transcription |
 | `telemetry/` | `CostTracker`, `CostReconciler`, `PostgresCostStore`, context vars |
 | `embeddings.py` | Shared `paraphrase-multilingual-MiniLM-L12-v2` singleton |
+| `nli.py` | `LocalNLIClient` — `cross-encoder/nli-deberta-v3-small` singleton (satisfies `NLIClient`) |
 | `container.py` | Base `Container` with DI wiring, plugin support |
 
 **Rule of thumb:** `ze-core` owns everything that powers the engine at runtime but

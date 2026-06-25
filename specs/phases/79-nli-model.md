@@ -29,7 +29,7 @@ probabilities; we use those directly.
 | Decision | Choice | Rationale |
 |---|---|---|
 | Model | `cross-encoder/nli-deberta-v3-small` | ~90 MB local, no API cost, same model as Phase 78b Gate1_NLI — one download, shared singleton |
-| Singleton location | `core/ze-memory/ze_memory/nli.py` | Memory package owns it; 78b loads from the same location |
+| Singleton location | `core/ze-memory/ze_memory/nli.py` (Phase 79) → `core/ze-core/ze_core/nli.py` (Phase 80) | Phase 79 delivered memory-layer integration; Phase 80 promotes to shared `NLIClient` |
 | Loading | Lazy-loaded at first call; cached via module-level `_model` | Consistent with `ze_core/embeddings.py` pattern |
 | Language fallback | Skip NLI, fall back to cosine-only behaviour for non-Latin scripts | DeBERTa is English-primary; multilingual coverage is a Phase 79+ concern |
 | Async execution | `asyncio.get_event_loop().run_in_executor(None, ...)` — CPU-bound inference off the event loop | Consistent with how the embedder is used in consolidation |
@@ -268,7 +268,7 @@ there.
 
 ## NLI model singleton
 
-**File:** `core/ze-memory/ze_memory/nli.py` (new)
+**File:** `core/ze-memory/ze_memory/nli.py` (Phase 79; relocated to `ze_core/nli.py` in Phase 80)
 
 ```python
 from __future__ import annotations

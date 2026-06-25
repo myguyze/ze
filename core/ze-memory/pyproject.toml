@@ -11,8 +11,6 @@ dependencies = [
     "ze-logging",
     "asyncpg>=0.29",
     "numpy>=2.0",
-    "sentence-transformers>=3.0,<3.3",
-    "scipy>=1.11",
 ]
 
 [project.optional-dependencies]

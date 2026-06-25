@@ -115,7 +115,7 @@ Nothing synthetic writes directly to live memory. Every promoted fact carries
 dream→critic→promote loop once episode selection is validated in production.
 
 **NLI model (Phase 79, done):** `cross-encoder/nli-deberta-v3-small` loads as a shared
-singleton in `ze_memory/nli.py` — used for write-time contradiction, nightly dedup,
+singleton in `ze_core/nli.py` via `NLIClient` — used for write-time contradiction, nightly dedup,
 session-cached retrieval re-rank, and correlation grounding. Phase 78b's `Gate1_NLI`
 in `gates.py` will import from the same module (no second download).
 

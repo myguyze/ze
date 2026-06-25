@@ -9,7 +9,7 @@
 **Architectural decisions locked:**
 - Phase split: 78a = Sleep pass + foundation; 78b = Dream pass + NLI gates + two-critic pipeline
 - Review UX: `needs_review` push notifications gated behind `DREAM_REVIEW_NOTIFICATIONS_ENABLED` feature flag until React review page ships
-- NLI model: `cross-encoder/nli-deberta-v3-small` (~90MB) — shared singleton in `ze_memory/nli.py` (Phase 79, done). 78b `Gate1_NLI` in `gates.py` imports from there
+- NLI model: `cross-encoder/nli-deberta-v3-small` (~90MB) — shared singleton in `ze_core/nli.py` via `NLIClient` (Phase 80). 78b `Gate1_NLI` in `gates.py` injects `NLIClient` from dep_map
 - Episode mutability: decay fields (`retrieval_weight`, `replay_count`, `replay_score`, `last_replayed_at`, `provenance`, `source`, `has_sensitive_entity`) live on a separate `memory_episode_metadata` side table, not directly on `memory_episodes` — keeps the source record immutable
 - Critic model: `anthropic/claude-sonnet-4-5` (confirmed available on OpenRouter, already in use in codebase)
 - Conflict resolution: deterministic `max(created_at)` for fact conflicts — never LLM judgment
@@ -327,7 +327,7 @@ artifact.content + source_episodes
 
 **Why two critic calls:** A single framing exhibits sycophantic anchoring — the model tends to agree with whatever it just generated. Call A challenges aggressively; Call B verifies constructively. A claim that passes aggressive challenge but fails constructive verification is a plausible-sounding confabulation. Using sonnet-class (vs haiku generator) adds model diversity — the strongest known defense against shared-bias failure in LLM-as-judge settings.
 
-**NLI model:** `cross-encoder/nli-deberta-v3-small` (~90MB, ~100ms/claim on CPU). Singleton in `ze_memory/nli.py` (Phase 79). 78b `gates.py` imports `get_nli_model()` from there — no second download. No API cost.
+**NLI model:** `cross-encoder/nli-deberta-v3-small` (~90MB, ~100ms/claim on CPU). `LocalNLIClient` in `ze_core/nli.py` (Phase 80). 78b `gates.py` receives `NLIClient` via DI — no second download. No API cost.
 
 **Non-English episodes:** DeBERTa-v3-small is English-first. For non-English artifacts, fall back to an LLM-based groundedness check using the synthesis model.
 
@@ -703,7 +703,7 @@ asyncio.create_task(_tag_episode(episode, recent_facts))
 | `ze_proactive.job` | `ProactiveJob` protocol |
 | `ze_proactive.scheduler` | `add_cron_job()` |
 | `ze_proactive.notifier` | Push morning briefing with dream summary |
-| `cross-encoder/nli-deberta-v3-small` | Gate 1 NLI groundedness — `ze_memory/nli.py` singleton (Phase 79); imported by `gates.py` in 78b |
+| `cross-encoder/nli-deberta-v3-small` | Gate 1 NLI groundedness — `NLIClient` via `ze_core/nli.py` (Phase 80); injected into `gates.py` in 78b |
 
 ---
 
@@ -726,7 +726,7 @@ asyncio.create_task(_tag_episode(episode, recent_facts))
 - [ ] Tests: verify sensitive episode exclusion and candidate detection
 
 ### Step 3 — Scoring Pipeline + Dream Pass
-- [ ] `gates.py`: import NLI from `ze_memory/nli.py`; implement Gates 1, 2, 3
+- [ ] `gates.py`: inject `NLIClient`; implement Gates 1, 2, 3
 - [ ] Non-English fallback for Gate 1: use haiku model for groundedness check
 - [ ] `DreamPass.run()`: schema synthesis, policy extraction, hindsight relabeling (always `needs_review`), plan stress-tests
 - [ ] `DreamCritic.critique_artifact()`: two sequential calls (Call A challenge, Call B verify); negation-aware prompts; both must pass

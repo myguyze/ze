@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from scipy.special import softmax
 
@@ -90,3 +90,24 @@ def nli_grounding_score(
     if not entailments:
         return 0.0
     return float(sum(entailments) / len(entailments))
+
+
+class LocalNLIClient:
+    """CPU cross-encoder NLI — satisfies NLIClient."""
+
+    async def scores(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[dict[str, float] | None]:
+        return await nli_scores_async(pairs)
+
+    def grounding_score(
+        self,
+        hypothesis: str,
+        evidence_texts: list[str],
+        scores: list[dict[str, float] | None] | None = None,
+    ) -> float:
+        return nli_grounding_score(hypothesis, evidence_texts, scores=scores)
+
+    def pair_is_scorable(self, premise: str, hypothesis: str) -> bool:
+        return pair_is_scorable(premise, hypothesis)

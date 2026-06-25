@@ -4,8 +4,8 @@ from typing import Any
 from uuid import UUID
 
 from ze_logging import get_logger
+from ze_agents.nli import NLIClient
 from ze_agents.types import RetrievalRequest
-from ze_memory.nli import nli_scores_async
 from ze_memory.nli_config import nli_config
 from ze_memory.retrieval_cache import (
     PostgresRetrievalCacheStore,
@@ -59,11 +59,12 @@ async def rerank_rows(
     query_text: str,
     *,
     min_candidates: int,
+    nli_client: NLIClient | None = None,
 ) -> list[Any]:
-    if len(rows) < min_candidates:
+    if len(rows) < min_candidates or nli_client is None:
         return list(rows)
     pairs = [(row[text_field], query_text) for row in rows]
-    scores = await nli_scores_async(pairs)
+    scores = await nli_client.scores(pairs)
     ranked: list[tuple[float, Any]] = []
     for row, score in zip(rows, scores):
         ranked.append((nli_rank_score(score), row))
@@ -77,12 +78,14 @@ async def rerank_row_ids(
     query_text: str,
     *,
     min_candidates: int,
+    nli_client: NLIClient | None = None,
 ) -> list[UUID]:
     ordered = await rerank_rows(
         rows,
         text_field,
         query_text,
         min_candidates=min_candidates,
+        nli_client=nli_client,
     )
     return [row["id"] for row in ordered]
 
@@ -179,9 +182,11 @@ async def build_retrieval_cache(
     pool: Any,
     settings: Any,
     request: RetrievalRequest,
+    *,
+    nli_client: NLIClient | None = None,
 ) -> None:
     cfg = nli_config(settings)
-    if not should_build_retrieval_cache(request, cfg):
+    if not should_build_retrieval_cache(request, cfg) or nli_client is None:
         return
 
     limits = MODULE_RERANK_LIMITS[request.module]
@@ -202,6 +207,7 @@ async def build_retrieval_cache(
             "value",
             request.query_text,
             min_candidates=min_candidates,
+            nli_client=nli_client,
         )
 
     summary_ids: list[UUID] = []
@@ -214,6 +220,7 @@ async def build_retrieval_cache(
                 "summary",
                 request.query_text,
                 min_candidates=min_candidates,
+                nli_client=nli_client,
             )
 
     session_id = request.current_session_id

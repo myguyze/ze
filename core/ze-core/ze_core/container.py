@@ -287,6 +287,9 @@ class Container:
         from ze_core.embeddings import get_embedder
 
         embedder = get_embedder()
+        from ze_core.nli import LocalNLIClient
+
+        nli_client = LocalNLIClient()
 
         # 4. Build OpenRouterClient
         from ze_core.openrouter.client import OpenRouterClient
@@ -359,6 +362,7 @@ class Container:
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,
+                nli_client=nli_client,
             )
             memory_consolidator = None
         else:
@@ -370,12 +374,14 @@ class Container:
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,
+                nli_client=nli_client,
             )
             memory_consolidator = MemoryConsolidator(
                 store=PostgresConsolidationStore(pool),
                 embedder=embedder,
                 openrouter_client=openrouter_client,
                 settings=settings,
+                nli_client=nli_client,
             )
 
         # 12. Build LangGraph checkpointer and compile graph

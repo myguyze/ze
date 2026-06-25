@@ -22,8 +22,8 @@ from ze_memory.defaults import (
     SESSION_GROUPING_ENABLED,
     UNREVIEWED_TTL_DAYS,
 )
+from ze_agents.nli import NLIClient
 from ze_memory.consolidation_store import PostgresConsolidationStore, _cosine_similarity
-from ze_memory.nli import nli_scores_async
 from ze_memory.nli_config import nli_config
 from ze_memory.synthesizer import ProfileSynthesizer
 from ze_memory.types import ConsolidationReport
@@ -38,11 +38,13 @@ class MemoryConsolidator:
         embedder: Any,
         openrouter_client: Any,
         settings: Any = None,
+        nli_client: NLIClient | None = None,
     ) -> None:
         self._store = store
         self._embedder = embedder
         self._client = openrouter_client
         self._settings = settings
+        self._nli = nli_client
         self._synthesizer = ProfileSynthesizer(
             store=store,
             openrouter_client=openrouter_client,
@@ -124,7 +126,11 @@ class MemoryConsolidator:
             if not nli_batch_pairs:
                 continue
 
-            scores = await nli_scores_async(nli_batch_pairs)
+            nli = getattr(self, "_nli", None)
+            if nli is None:
+                continue
+
+            scores = await nli.scores(nli_batch_pairs)
             for j_idx, sim, score in zip(nli_batch_j, nli_batch_sims, scores):
                 if rows[i]["id"] in contradicted_ids or rows[j_idx]["id"] in contradicted_ids:
                     continue

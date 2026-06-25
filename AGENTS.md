@@ -1,4 +1,4 @@
-# Ze — Claude Code Guide
+# Ze — Codex Guide
 
 ## What this is
 

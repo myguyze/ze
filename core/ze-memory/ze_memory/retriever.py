@@ -13,11 +13,11 @@ from ze_memory.defaults import (
     DEFAULT_FACT_BUDGET_TOKENS,
     MODEL_SYNTHESIS,
 )
+from ze_agents.nli import NLIClient
 from ze_memory.dream.scorer import refresh_episode_sensitive_flag, tag_episode_metadata
 from ze_memory.dream.sensitive import is_sensitive_entity
 from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
-from ze_memory.nli import nli_scores_async
 from ze_memory.nli_config import nli_config
 from ze_memory.retrieval_cache import PostgresRetrievalCacheStore, query_hash
 from ze_memory.retrieval_rerank import (
@@ -87,6 +87,7 @@ class PostgresMemoryStore:
         settings: Any = None,
         policy_registry: Any = None,
         graph_store: GraphStore | None = None,
+        nli_client: NLIClient | None = None,
     ) -> None:
         self._pool = pool
         self._embedder = embedder
@@ -96,6 +97,7 @@ class PostgresMemoryStore:
         self._graph_store = graph_store
         self._traversal = self._build_traversal(graph_store, settings)
         self._retrieval_cache = PostgresRetrievalCacheStore(pool)
+        self._nli = nli_client
 
     def apply_policy_registry(self, registry: Any) -> None:
         """Replace the retrieval policy registry (called after plugins are discovered)."""
@@ -125,7 +127,12 @@ class PostgresMemoryStore:
             if cached is not None:
                 ctx = await self._apply_retrieval_cache(ctx, cached)
             fire_and_forget(
-                build_retrieval_cache(self._pool, self._settings, request),
+                build_retrieval_cache(
+                    self._pool,
+                    self._settings,
+                    request,
+                    nli_client=getattr(self, "_nli", None),
+                ),
                 label="retrieval_cache_build",
             )
 
@@ -635,6 +642,7 @@ class PostgresMemoryStore:
             "summary",
             query_text,
             min_candidates=min_candidates,
+            nli_client=getattr(self, "_nli", None),
         )
         return ranked[:limit]
 
@@ -698,7 +706,8 @@ class PostgresMemoryStore:
         emb_list: str,
         nli_cfg: dict,
     ) -> None:
-        if not nli_cfg.get("nli_write_time_check", True):
+        nli = getattr(self, "_nli", None)
+        if not nli_cfg.get("nli_write_time_check", True) or nli is None:
             return
 
         nli_lower = float(nli_cfg.get("nli_lower_cosine_bound", 0.60))
@@ -729,7 +738,7 @@ class PostgresMemoryStore:
         if not pairs:
             return
 
-        scores = await nli_scores_async(pairs)
+        scores = await nli.scores(pairs)
         for candidate_id, score in zip(candidate_ids, scores):
             if score is None:
                 continue

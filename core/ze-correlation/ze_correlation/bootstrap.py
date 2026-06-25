@@ -55,6 +55,7 @@ def register_proactive_jobs(
         push_log=push_log_store,
         settings=settings,
         embedder=shared.embedder,
+        nli_client=shared.nli_client,
     )
     correlation_job = CorrelationJob(push_consumer=push_consumer)
     scheduler.add_cron_job(

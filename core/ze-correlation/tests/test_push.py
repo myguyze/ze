@@ -76,6 +76,7 @@ def _make_consumer(
     pushed_count: int = 0,
     recent_summaries: list[str] | None = None,
     embedder: MagicMock | None = None,
+    nli_client: MagicMock | None = None,
 ) -> tuple[CorrelationPushConsumer, dict]:
     if settings is None:
         settings = _make_settings()
@@ -99,6 +100,11 @@ def _make_consumer(
     push_log.count_sent_within_hours = AsyncMock(return_value=pushed_count)
     push_log.log = AsyncMock()
 
+    if nli_client is None:
+        nli_client = AsyncMock()
+        nli_client.scores = AsyncMock(return_value=[])
+        nli_client.grounding_score = MagicMock(return_value=1.0)
+
     consumer = CorrelationPushConsumer(
         engine=engine,
         hypothesis_store=hypothesis_store,
@@ -107,6 +113,7 @@ def _make_consumer(
         push_log=push_log,
         settings=settings,
         embedder=embedder,
+        nli_client=nli_client,
     )
     mocks = {
         "engine": engine,
@@ -213,9 +220,12 @@ async def test_novelty_no_embedder_skips_check():
     mocks["notifier"].push.assert_awaited_once()
 
 
-@patch("ze_correlation.push.nli_scores_async", new_callable=AsyncMock)
-async def test_low_grounding_rejected(mock_nli):
-    mock_nli.return_value = [{"contradiction": 0.5, "neutral": 0.4, "entailment": 0.1}]
+async def test_low_grounding_rejected():
+    nli = AsyncMock()
+    nli.scores = AsyncMock(
+        return_value=[{"contradiction": 0.5, "neutral": 0.4, "entailment": 0.1}]
+    )
+    nli.grounding_score = MagicMock(return_value=0.1)
     evidence = [
         EvidenceRef(
             kind="signal",
@@ -239,7 +249,7 @@ async def test_low_grounding_rejected(mock_nli):
     )
     settings = _make_settings()
     settings.config["memory"] = {"nli_grounding_threshold": 0.30}
-    consumer, mocks = _make_consumer(settings, hypotheses=[h])
+    consumer, mocks = _make_consumer(settings, hypotheses=[h], nli_client=nli)
     await consumer.run_once()
     mocks["notifier"].push.assert_not_awaited()
 

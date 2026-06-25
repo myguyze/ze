@@ -68,7 +68,8 @@ in `config.yaml`; the `NewsSource` ABC is identical for both.
   launch use case with zero extra credentials. API-backed sources can be added later by
   implementing `NewsSource`.
 - **Deduplication across sources** — URL is the dedup key. Two sources covering the
-  same story with different URLs produce two records. Semantic dedup is a future concern.
+  same story with different URLs produce two records. Semantic dedup via NLI is planned
+  in Phase 81 (`81-plugin-nli-adoption.md`).
 - **Morning briefing integration in this phase** — the briefing job in `ze/jobs/` can
   call `NewsStore.get_recent()` directly once this package lands. Wiring that is a
   follow-on change to `ze/`, not to `ze-news`.

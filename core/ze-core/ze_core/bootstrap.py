@@ -7,6 +7,7 @@ from typing import Any
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from ze_agents.client import LLMClient
+from ze_agents.nli import NLIClient
 from ze_agents.hooks import register_hook
 from ze_logging import get_logger
 from ze_agents.settings import Settings as CoreSettings
@@ -16,6 +17,7 @@ from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze_core.checkpoint_serde import build_checkpoint_serde
 from ze_core.embeddings import get_embedder
+from ze_core.nli import LocalNLIClient
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.routing.complexity import ComplexityEstimator
 from ze_core.routing.router import EmbeddingRouter
@@ -40,6 +42,7 @@ class EngineStack:
     pool: asyncpg.Pool
     checkpointer_pool: Any
     embedder: Any
+    nli_client: LocalNLIClient
     openrouter_client: OpenRouterClient
     cost_store: PostgresCostStore
     cost_tracker: CostTracker
@@ -58,6 +61,7 @@ async def build_engine_stack(
     settings: Any,
 ) -> EngineStack:
     embedder = get_embedder()
+    nli_client = LocalNLIClient()
     core_settings = settings.to_core_settings()
 
     cost_store = PostgresCostStore(pool=pool)
@@ -79,6 +83,7 @@ async def build_engine_stack(
         openrouter_client=openrouter_client,
         settings=settings,
         graph_store=graph_store,
+        nli_client=nli_client,
     )
 
     memory_consolidator = MemoryConsolidator(
@@ -86,6 +91,7 @@ async def build_engine_stack(
         embedder=embedder,
         openrouter_client=openrouter_client,
         settings=settings,
+        nli_client=nli_client,
     )
 
     session_summariser = SessionSummariser(
@@ -104,6 +110,8 @@ async def build_engine_stack(
         asyncpg.Pool: pool,
         OpenRouterClient: openrouter_client,
         LLMClient: openrouter_client,
+        NLIClient: nli_client,
+        LocalNLIClient: nli_client,
         PostgresMemoryStore: memory_store,
     }
 
@@ -111,6 +119,7 @@ async def build_engine_stack(
         pool=pool,
         checkpointer_pool=checkpointer_pool,
         embedder=embedder,
+        nli_client=nli_client,
         openrouter_client=openrouter_client,
         cost_store=cost_store,
         cost_tracker=cost_tracker,

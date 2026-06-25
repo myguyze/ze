@@ -7,6 +7,7 @@ from typing import Any
 import aiohttp
 from sentence_transformers import SentenceTransformer
 
+from ze_agents.nli import NLIClient
 from ze_agents.bootstrap import bootstrap_agents
 from ze_agents.interface.types import RawInput
 from ze_agents.interface.validation import validate_interface
@@ -19,6 +20,7 @@ from ze_automation.bootstrap import (
 )
 from ze_browser import BrowserClient
 from ze_components.hook import ComponentCollectionHook
+from ze_core.nli import LocalNLIClient
 from ze_core.bootstrap import (
     build_checkpointer,
     build_engine_stack,
@@ -58,6 +60,7 @@ from ze_api.interface.native import NativeAppInterface
 from ze_logging import get_logger
 from ze_api.settings import Settings, get_settings
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
+import ze_agents.nli_tools  # noqa: F401 — registers shared NLI tools at import time
 
 log = get_logger(__name__)
 
@@ -230,6 +233,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         ProactiveNotifier: notifier,
         PushLogStore: push_log_store,
         SentenceTransformer: shared.embedder,
+        NLIClient: shared.nli_client,
+        LocalNLIClient: shared.nli_client,
         BrowserClient: browser_client,
     })
 
