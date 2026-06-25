@@ -133,7 +133,7 @@ ze-automation → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflo
 ze-sdk        → ze-agents, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  core/  ← plugin entry point
 ze-core       → ze-agents, ze-plugin     core/  ← engine; never a plugin dep
 ze-google       (no ze deps)             integrations/
-ze-personal   → ze-sdk, ze-memory.dream.store (read-only)   plugins/
+ze-personal   → ze-sdk                   plugins/
 ze-email      → ze-sdk, ze-google, ze-personal             plugins/
 ze-prospecting→ ze-sdk, ze-browser, ze-personal            plugins/
 ze-calendar   → ze-sdk, ze-google, ze-personal             plugins/
