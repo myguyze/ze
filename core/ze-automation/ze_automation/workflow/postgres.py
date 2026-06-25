@@ -121,6 +121,23 @@ class PostgresWorkflowStore:
                 enabled, workflow_id,
             )
 
+    async def update_schedule(
+        self,
+        workflow_id: UUID,
+        schedule: str | None,
+        next_run_at: datetime | None,
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE workflows
+                SET schedule = $1, next_run_at = $2, updated_at = NOW()
+                WHERE id = $3
+                """,
+                schedule, next_run_at, workflow_id,
+            )
+        log.info("workflow_schedule_updated", id=str(workflow_id), schedule=schedule)
+
     async def delete(self, workflow_id: UUID) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute("DELETE FROM workflows WHERE id = $1", workflow_id)

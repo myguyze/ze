@@ -136,6 +136,55 @@ async def test_run_creates_workflow_via_tool():
     assert "morning-digest" in result.response
 
 
+async def test_run_updates_workflow_schedule_via_tool():
+    import ze_automation.agents.workflow.tools  # noqa
+
+    from uuid import uuid4
+    from datetime import datetime
+    from ze_automation.workflow.types import Workflow, WorkflowStep
+
+    wf = Workflow(
+        id=uuid4(), name="daily-digest", description="desc",
+        steps=[WorkflowStep(task="Fetch news")], schedule="0 8 * * *", enabled=True,
+        last_run_at=None, next_run_at=None,
+        created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
+    )
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_schedule = AsyncMock()
+
+    planner = AsyncMock()
+    planner.extract_schedule = AsyncMock(return_value="0 9 * * 1")
+
+    scheduler = AsyncMock()
+    scheduler.remove_workflow = AsyncMock()
+    scheduler.add_workflow = AsyncMock()
+
+    client = AsyncMock()
+    client.complete_with_tools = AsyncMock(side_effect=[
+        (None, [{"id": "c1", "name": "update_workflow", "arguments": {
+            "workflow_name": "daily-digest",
+            "schedule_description": "every Monday at 9am",
+        }}]),
+        ("Updated daily-digest to run every Monday at 9am.", None),
+    ])
+    client.complete = AsyncMock(return_value="ok")
+
+    agent = WorkflowManagerAgent(
+        openrouter_client=client,
+        workflow_store=store,
+        workflow_planner=planner,
+        workflow_scheduler=scheduler,
+    )
+    result = await agent.run(make_ctx("change daily-digest to Monday 9am", intent="manage"))
+
+    planner.extract_schedule.assert_called_once_with("every Monday at 9am")
+    store.update_schedule.assert_called_once()
+    scheduler.remove_workflow.assert_called_once_with(wf.id)
+    scheduler.add_workflow.assert_called_once()
+    assert "Monday" in result.response
+
+
 async def test_run_trigger_workflow_via_tool():
     import ze_automation.agents.workflow.tools  # noqa
 

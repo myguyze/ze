@@ -87,6 +87,46 @@ async def create_workflow(
     }
 
 
+@tool(
+    access=ToolAccess.WRITE,
+    description="Update a workflow's recurring schedule from a natural-language description.",
+)
+async def update_workflow(
+    store: WorkflowStore,
+    planner: WorkflowPlanner,
+    scheduler: WorkflowScheduler,
+    workflow_name: str,
+    schedule_description: str,
+) -> dict:
+    wf = await store.get_by_name(workflow_name)
+    if wf is None:
+        return {"error": f"No workflow named '{workflow_name}' found."}
+    try:
+        schedule = await planner.extract_schedule(schedule_description)
+    except WorkflowPlanError as exc:
+        return {"error": f"Couldn't parse the schedule: {exc}"}
+
+    next_run = None
+    if schedule:
+        from apscheduler.triggers.cron import CronTrigger
+        trigger = CronTrigger.from_crontab(schedule)
+        next_run = trigger.get_next_fire_time(None, datetime.now(tz=timezone.utc))
+
+    await store.update_schedule(wf.id, schedule, next_run)
+    await scheduler.remove_workflow(wf.id)
+
+    if schedule and wf.enabled:
+        wf.schedule = schedule
+        wf.next_run_at = next_run
+        await scheduler.add_workflow(wf)
+
+    return {
+        "name": workflow_name,
+        "schedule": schedule,
+        "next_run_at": next_run.isoformat() if next_run else None,
+    }
+
+
 @tool(access=ToolAccess.WRITE, description="Enable a workflow by name so it runs on its schedule.")
 async def enable_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str) -> dict:
     wf = await store.get_by_name(workflow_name)

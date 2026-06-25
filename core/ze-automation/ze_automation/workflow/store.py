@@ -20,6 +20,13 @@ class WorkflowStore(Protocol):
 
     async def set_enabled(self, workflow_id: UUID, enabled: bool) -> None: ...
 
+    async def update_schedule(
+        self,
+        workflow_id: UUID,
+        schedule: str | None,
+        next_run_at: datetime | None,
+    ) -> None: ...
+
     async def delete(self, workflow_id: UUID) -> None: ...
 
     async def update_run_timestamps(

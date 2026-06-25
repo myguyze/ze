@@ -20,6 +20,7 @@ Available tools:
 - list_workflows: list all stored workflows
 - get_workflow: get full details of a workflow by name, including steps
 - create_workflow: create a new workflow (workflow_name, description, optional schedule_description)
+- update_workflow: change a workflow's schedule (workflow_name, schedule_description)
 - enable_workflow / disable_workflow: toggle a workflow on or off (workflow_name)
 - delete_workflow: remove a workflow permanently (workflow_name)
 - trigger_workflow: run a workflow immediately outside its schedule (workflow_name)
@@ -42,7 +43,8 @@ class WorkflowManagerAgent(BaseAgent):
       Named automation workflows and recurring scheduled tasks.
       Use for: "create a workflow that does X every day", "automate X on a schedule",
       "list my workflows", "run the X workflow now", "trigger the X automation",
-      "enable/disable the Y workflow", "delete the Z automation", "set up a recurring task".
+      "enable/disable the Y workflow", "change when the X workflow runs", "delete the Z automation",
+      "set up a recurring task".
       Not for one-off reminders (use reminders), long-term goals, or calendar events.
     """
     model = "anthropic/claude-sonnet-4-5"
@@ -52,6 +54,7 @@ class WorkflowManagerAgent(BaseAgent):
         "list_workflows",
         "get_workflow",
         "create_workflow",
+        "update_workflow",
         "enable_workflow",
         "disable_workflow",
         "delete_workflow",
@@ -59,7 +62,7 @@ class WorkflowManagerAgent(BaseAgent):
     ]
     intents = {
         "read":   Intent(Mode.AUTONOMOUS, "List or inspect stored workflows."),
-        "manage": Intent(Mode.CONFIRM,    "Create, enable, disable, delete, or trigger a workflow."),
+        "manage": Intent(Mode.CONFIRM,    "Create, update, enable, disable, delete, or trigger a workflow."),
     }
 
     def __init__(
