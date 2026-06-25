@@ -152,6 +152,11 @@ class PostgresMemoryStore:
                     emb_list,
                 )
             episode_id: UUID = row["id"]
+            from ze_memory.dream.scorer import tag_episode_metadata
+            fire_and_forget(
+                tag_episode_metadata(self._pool, episode_id, agent, prompt, response),
+                label="tag_episode_metadata",
+            )
             if self._graph_store is not None:
                 fire_and_forget(
                     self._link_episode_entities(episode_id, f"{prompt} {response}"),

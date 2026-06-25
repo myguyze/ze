@@ -11,6 +11,24 @@ from ze_proactive.scheduler import ProactiveScheduler
 log = get_logger(__name__)
 
 
+def dream_enabled(settings: Any) -> bool:
+    cfg = getattr(settings, "config", None) or {}
+    return bool(cfg.get("dream", {}).get("enabled", False))
+
+
+def register_dream_jobs(
+    scheduler: ProactiveScheduler,
+    settings: Any,
+    dream_job: Any,
+) -> None:
+    if not dream_enabled(settings):
+        return
+    cfg = (getattr(settings, "config", None) or {}).get("dream", {})
+    cron = cfg.get("cron", "0 3 * * *")
+    scheduler.add_cron_job(fn=dream_job.run, cron=cron, job_id=dream_job.job_id)
+    log.info("dream_job_scheduled", cron=cron)
+
+
 def consolidation_enabled(settings: Any) -> bool:
     cfg = getattr(settings, "config", None) or {}
     mem = cfg.get("memory", {}).get("consolidation", {})

@@ -364,6 +364,18 @@ async def build_container(settings: Settings) -> ZeContainer:
         workflow_graph_builder=build_workflow_graph,
     )
 
+    from ze_memory.dream.store import PostgresDreamStore
+    from ze_memory.dream.job import DreamJob
+
+    dream_store = PostgresDreamStore(pool=pool)
+    dream_job = DreamJob(
+        pool=pool,
+        embedder=shared.embedder,
+        consolidator=shared.memory_consolidator,
+        dream_store=dream_store,
+        settings=settings,
+    )
+
     register_all_proactive_jobs(
         container.proactive_scheduler,
         settings=settings,
@@ -374,6 +386,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         plugins=plugins,
         notifier=notifier,
         push_log_store=push_log_store,
+        dream_job=dream_job,
     )
 
     _ = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])

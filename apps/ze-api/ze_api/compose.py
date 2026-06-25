@@ -6,7 +6,7 @@ from ze_agents.settings import Settings as CoreSettings
 from ze_automation.bootstrap import register_proactive_jobs as register_automation_jobs
 from ze_core.bootstrap import register_engine_jobs
 from ze_correlation.bootstrap import register_proactive_jobs as register_correlation_jobs
-from ze_memory.bootstrap import consolidation_enabled, register_memory_jobs
+from ze_memory.bootstrap import consolidation_enabled, register_dream_jobs, register_memory_jobs
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
@@ -23,6 +23,7 @@ def register_all_proactive_jobs(
     plugins: list,
     notifier: ProactiveNotifier,
     push_log_store: PushLogStore,
+    dream_job: Any = None,
 ) -> None:
     register_automation_jobs(
         scheduler,
@@ -47,3 +48,5 @@ def register_all_proactive_jobs(
             core_settings,
             consolidation_enabled=consolidation_enabled(settings),
         )
+    if dream_job is not None:
+        register_dream_jobs(scheduler, settings, dream_job)
