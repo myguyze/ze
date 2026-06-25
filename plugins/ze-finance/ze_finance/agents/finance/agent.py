@@ -32,6 +32,7 @@ that risk analysis will be available in a future update.
 
 @agent
 class FinanceAgent(BaseAgent):
+    name = "finance"
     description = "Answers questions about investment portfolio, positions, P&L, and spending"
     # Pinned to Anthropic — financial data must not reach other providers.
     model = "anthropic/claude-haiku-4-5"

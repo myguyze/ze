@@ -77,7 +77,7 @@ class ZePlugin(ABC):
         Policies are merged into the memory store registry at startup; duplicate keys
         across plugins raise ``AgentConfigError``.
         """
-        return ()
+        return {}
 
     def pre_route_node(self) -> Callable | None:
         """Return an async node to insert between preprocess and embed_route."""

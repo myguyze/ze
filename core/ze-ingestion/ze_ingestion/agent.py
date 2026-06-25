@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ze_agents.base_agent import BaseAgent
+from ze_agents.client import LLMClient
 from ze_logging import get_logger
 from ze_agents.registry import agent
 from ze_agents.tool import ToolAccess, tool
@@ -76,7 +77,7 @@ class IngestionAgent(BaseAgent):
     default_mode = Mode.AUTONOMOUS
     tools = ["ingest_url", "ingest_text"]
 
-    def __init__(self, openrouter_client: object) -> None:
+    def __init__(self, openrouter_client: LLMClient) -> None:
         self._client = openrouter_client
 
     async def run(self, ctx: AgentContext) -> AgentResult:
@@ -84,7 +85,7 @@ class IngestionAgent(BaseAgent):
         system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx)
         response, loop_tool_calls = await self.agentic_loop(
             ctx,
-            client=self._client,  # type: ignore[arg-type]
+            client=self._client,
             messages=list(ctx.messages),
             system=system,
         )
