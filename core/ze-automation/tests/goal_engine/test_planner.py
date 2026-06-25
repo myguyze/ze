@@ -104,6 +104,19 @@ async def test_plan_raises_on_invalid_json(planner, client):
         await planner.plan(_make_goal())
 
 
+async def test_plan_parses_markdown_fenced_json(planner, client):
+    payload = json.dumps({
+        "milestones": [
+            {"title": "Research", "description": "Find sources", "sequence": 1, "intent": "read"},
+        ],
+        "gates": [{"after_sequence": 1, "title": "Review sources"}],
+    })
+    client.complete = AsyncMock(return_value=f"```json\n{payload}\n```")
+    milestones, gates = await planner.plan(_make_goal())
+    assert len(milestones) == 1
+    assert len(gates) == 1
+
+
 async def test_replan_remaining_normalises_sequences(planner, client):
     client.complete = AsyncMock(return_value=json.dumps({
         "milestones": [

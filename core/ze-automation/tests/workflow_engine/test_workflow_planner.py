@@ -102,3 +102,23 @@ class TestExtractProcedure:
         assert "Step A" in prompt
         assert "Step B" not in prompt
         assert "Step C" in prompt
+
+
+class TestPlan:
+    async def test_parses_markdown_fenced_json_array(self):
+        payload = json.dumps([
+            {"task": "Send reminder", "agent_hint": "email", "intent": "create", "verify": None},
+        ])
+        planner = _make_planner(f"```json\n{payload}\n```")
+        steps = await planner.plan("Remind João to water plants")
+        assert len(steps) == 1
+        assert steps[0].task == "Send reminder"
+        assert steps[0].agent_hint == "email"
+
+
+class TestExtractSchedule:
+    async def test_parses_markdown_fenced_json_object(self):
+        payload = json.dumps({"cron": "0 8 * * 1"})
+        planner = _make_planner(f"```json\n{payload}\n```")
+        cron = await planner.extract_schedule("every Monday at 8am")
+        assert cron == "0 8 * * 1"

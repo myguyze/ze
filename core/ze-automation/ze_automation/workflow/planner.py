@@ -62,6 +62,27 @@ Output ONLY a JSON object — no explanation, no markdown:
 """
 
 
+def _extract_json(raw: str) -> str:
+    text = raw.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    if text.startswith("["):
+        start = text.find("[")
+        end = text.rfind("]") + 1
+        if end > start:
+            return text[start:end]
+
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start != -1 and end > start:
+        return text[start:end]
+    return text
+
+
 class WorkflowPlanner:
     def __init__(self, openrouter_client: LLMClient) -> None:
         self._client = openrouter_client
@@ -73,7 +94,7 @@ class WorkflowPlanner:
             system=_PLAN_SYSTEM,
         )
         try:
-            data = json.loads(raw)
+            data = json.loads(_extract_json(raw))
             if not isinstance(data, list) or len(data) == 0:
                 raise ValueError("Expected a non-empty JSON array")
             steps = [
@@ -109,7 +130,7 @@ class WorkflowPlanner:
                 model=defaults.MODEL_WORKFLOW_PLAN,
                 system=_PROCEDURE_SYSTEM,
             )
-            data = json.loads(raw)
+            data = json.loads(_extract_json(raw))
             if not data.get("name"):
                 return None
             return Procedure(
@@ -131,7 +152,7 @@ class WorkflowPlanner:
             system=_SCHEDULE_SYSTEM,
         )
         try:
-            data = json.loads(raw)
+            data = json.loads(_extract_json(raw))
             return data.get("cron")
         except (json.JSONDecodeError, KeyError) as exc:
             log.warning("workflow_schedule_parse_error", error=str(exc), raw=raw[:200])

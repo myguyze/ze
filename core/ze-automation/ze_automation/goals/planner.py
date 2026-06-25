@@ -232,11 +232,26 @@ Rules:
 """
 
 _PROPER_NOUN_RE = re.compile(r"[A-Z][a-z]+|\d{4}|\bQ[1-4]\b")
+_PLAN_MAX_TOKENS = 4000
+
+
+def _extract_json_object(raw: str) -> str:
+    text = raw.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start != -1 and end > start:
+        return text[start:end]
+    return text
 
 
 def _parse_plan(raw: str, goal_id: UUID) -> tuple[list[Milestone], list[VerificationGate]]:
     try:
-        data = json.loads(raw)
+        data = json.loads(_extract_json_object(raw))
         if not isinstance(data, dict):
             raise ValueError("Expected a JSON object")
 
@@ -319,6 +334,7 @@ class GoalPlanner:
             messages=[{"role": "user", "content": prompt}],
             model=self._model,
             system=_PLAN_SYSTEM,
+            max_tokens=_PLAN_MAX_TOKENS,
         )
 
         milestones, gates = _parse_plan(raw, _SENTINEL_GOAL_ID)
@@ -373,6 +389,7 @@ class GoalPlanner:
             messages=[{"role": "user", "content": prompt}],
             model=self._model,
             system=_PLAN_SYSTEM,
+            max_tokens=_PLAN_MAX_TOKENS,
         )
 
         milestones, gates = _parse_plan(raw, _SENTINEL_GOAL_ID)
