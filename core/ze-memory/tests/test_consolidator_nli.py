@@ -98,3 +98,9 @@ async def test_low_cosine_skips_nli():
 
     assert merged == 0
     nli.scores.assert_not_awaited()
+
+
+def test_cosine_similarity_parses_pgvector_string():
+    from ze_memory.consolidation_store import _cosine_similarity
+
+    assert _cosine_similarity([1.0, 0.0], "[1.0,0.0]") == pytest.approx(1.0)

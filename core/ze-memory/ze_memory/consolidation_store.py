@@ -6,6 +6,7 @@ dependency.
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
@@ -14,17 +15,29 @@ def _to_list(embedding: Any) -> str:
     return "[" + ",".join(str(v) for v in vals) + "]"
 
 
-def _cosine_similarity(a: Any, b: Any) -> float:
-    if hasattr(a, "dot"):
-        dot = float(a.dot(b))
-        norm_a = float((a * a).sum() ** 0.5)
-        norm_b = float((b * b).sum() ** 0.5)
+def _as_float_vector(embedding: Any) -> list[float]:
+    if embedding is None:
+        return []
+    if hasattr(embedding, "tolist"):
+        vals = embedding.tolist()
+    elif isinstance(embedding, str):
+        text = embedding.strip()
+        if not text.startswith("["):
+            return []
+        vals = json.loads(text)
     else:
-        a_l = list(a)
-        b_l = list(b)
-        dot = sum(x * y for x, y in zip(a_l, b_l))
-        norm_a = sum(x * x for x in a_l) ** 0.5
-        norm_b = sum(y * y for y in b_l) ** 0.5
+        vals = list(embedding)
+    return [float(x) for x in vals]
+
+
+def _cosine_similarity(a: Any, b: Any) -> float:
+    a_l = _as_float_vector(a)
+    b_l = _as_float_vector(b)
+    if not a_l or not b_l:
+        return 0.0
+    dot = sum(x * y for x, y in zip(a_l, b_l))
+    norm_a = sum(x * x for x in a_l) ** 0.5
+    norm_b = sum(y * y for y in b_l) ** 0.5
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
     return dot / (norm_a * norm_b)
