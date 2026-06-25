@@ -155,3 +155,159 @@ class PostgresDreamStore:
                 "SELECT * FROM memory_dream_journal ORDER BY created_at DESC LIMIT 1"
             )
         return dict(row) if row else None
+
+    async def list_journal_entries(self, limit: int = 10) -> list[dict]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM memory_dream_journal ORDER BY created_at DESC LIMIT $1",
+                limit,
+            )
+        return [dict(r) for r in rows]
+
+    async def get_artifact_row(self, artifact_id: UUID) -> dict | None:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM memory_dream_artifacts WHERE id = $1",
+                artifact_id,
+            )
+        return dict(row) if row else None
+
+    async def get_pending_artifacts_by_type(self, run_id: UUID, artifact_type: str) -> list[dict]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT * FROM memory_dream_artifacts
+                WHERE run_id = $1 AND artifact_type = $2 AND status = 'pending'
+                ORDER BY created_at
+                """,
+                run_id,
+                artifact_type,
+            )
+        return [dict(r) for r in rows]
+
+    async def get_pending_artifacts_for_run(self, run_id: UUID) -> list[dict]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT * FROM memory_dream_artifacts
+                WHERE run_id = $1 AND status IN ('pending', 'rejected')
+                ORDER BY created_at
+                """,
+                run_id,
+            )
+        return [dict(r) for r in rows]
+
+    async def get_needs_review_artifacts(self, limit: int = 50) -> list[dict]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT * FROM memory_dream_artifacts
+                WHERE status = 'needs_review'
+                ORDER BY created_at DESC
+                LIMIT $1
+                """,
+                limit,
+            )
+        return [dict(r) for r in rows]
+
+    async def update_artifact_gate1(self, artifact_id: UUID, faithfulness_score: float) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE memory_dream_artifacts SET faithfulness_score = $2 WHERE id = $1",
+                artifact_id,
+                faithfulness_score,
+            )
+
+    async def update_artifact_gate2(self, artifact_id: UUID, novelty_score: float) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE memory_dream_artifacts SET novelty_score = $2 WHERE id = $1",
+                artifact_id,
+                novelty_score,
+            )
+
+    async def update_artifact_gate3(self, artifact_id: UUID, retrievable: bool) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE memory_dream_artifacts SET retrievable = $2 WHERE id = $1",
+                artifact_id,
+                retrievable,
+            )
+
+    async def update_artifact_critics(
+        self,
+        artifact_id: UUID,
+        critic_a_verdict: str,
+        critic_a_reason: str | None,
+        critic_b_verdict: str,
+        critic_b_reason: str | None,
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE memory_dream_artifacts SET
+                    critic_a_verdict = $2,
+                    critic_a_reason  = $3,
+                    critic_b_verdict = $4,
+                    critic_b_reason  = $5
+                WHERE id = $1
+                """,
+                artifact_id,
+                critic_a_verdict,
+                critic_a_reason,
+                critic_b_verdict,
+                critic_b_reason,
+            )
+
+    async def mark_artifact_promoted(
+        self,
+        artifact_id: UUID,
+        promoted_to: str | None = None,
+        promoted_id: UUID | None = None,
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE memory_dream_artifacts SET
+                    status      = 'promoted',
+                    promoted_to = $2,
+                    promoted_id = $3
+                WHERE id = $1
+                """,
+                artifact_id,
+                promoted_to,
+                promoted_id,
+            )
+
+    async def mark_artifact_reviewed(self, artifact_id: UUID) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE memory_dream_artifacts SET reviewed_at = now() WHERE id = $1",
+                artifact_id,
+            )
+
+    async def set_revised_content(self, artifact_id: UUID, content: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE memory_dream_artifacts SET
+                    user_revised_content = $2,
+                    status = 'revised'
+                WHERE id = $1
+                """,
+                artifact_id,
+                content,
+            )
+
+    async def count_artifacts_by_status(self, run_id: UUID) -> dict[str, int]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT status, count(*) AS n
+                FROM memory_dream_artifacts
+                WHERE run_id = $1
+                GROUP BY status
+                """,
+                run_id,
+            )
+        return {r["status"]: r["n"] for r in rows}

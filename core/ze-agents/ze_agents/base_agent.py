@@ -97,7 +97,14 @@ class BaseAgent(ABC):
         if memory is None:
             return "(none)"
         facts = getattr(memory, "facts", []) or []
-        lines = [f"- {getattr(f, 'predicate', getattr(f, 'key', '?'))}: {f.value}" for f in facts]
+        lines = []
+        for f in facts:
+            predicate = getattr(f, "predicate", getattr(f, "key", "?"))
+            value = f.value
+            if getattr(f, "provenance", "raw") == "synthesized":
+                lines.append(f"- {predicate}: {value} (Ze inferred this from a pattern — treat as approximate)")
+            else:
+                lines.append(f"- {predicate}: {value}")
         return "\n".join(lines) if lines else "(none)"
 
     def _format_contacts(self, ctx: AgentContext) -> str:

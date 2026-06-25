@@ -80,7 +80,8 @@ class CompanionPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY
@@ -154,7 +155,8 @@ class ResearchPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -203,7 +205,8 @@ class GoalsPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -239,7 +242,8 @@ class WorkflowPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -268,7 +272,8 @@ class CalendarPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -309,7 +314,8 @@ class RemindersPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -337,7 +343,8 @@ class EmailPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -402,7 +409,8 @@ class ProspectingPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -454,7 +462,8 @@ class PlannerPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -498,7 +507,8 @@ class ToolExecutorPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY embedding <=> $1::vector
@@ -528,7 +538,8 @@ class ProfilePolicy:
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 "SELECT id, subject_id, predicate, object_text, object_id, value,"
-                " confidence, reviewed, contradicted, source_episode_id, source_refs"
+                " confidence, reviewed, contradicted, source_episode_id, source_refs,"
+                " COALESCE(provenance, 'raw') AS provenance"
                 " FROM memory_facts WHERE contradicted = false"
                 " ORDER BY confidence DESC, updated_at DESC LIMIT 50"
             )
@@ -556,7 +567,8 @@ class MemoryUIPolicy:
             fact_rows = await conn.fetch(
                 """
                 SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs
+                       confidence, reviewed, contradicted, source_episode_id, source_refs,
+                       COALESCE(provenance, 'raw') AS provenance
                 FROM memory_facts
                 WHERE contradicted = false
                 ORDER BY updated_at DESC LIMIT 100

@@ -114,18 +114,20 @@ def token_estimate(ctx: MemoryContext) -> int:
 
 
 def _fact_from_row(row: Any) -> Fact:
+    row_dict = dict(row) if not isinstance(row, dict) else row
     return Fact(
-        predicate=row["predicate"],
-        value=row["value"],
-        id=row["id"],
-        subject_id=row["subject_id"],
-        object_text=row["object_text"],
-        object_id=row["object_id"],
-        confidence=row["confidence"],
-        reviewed=row["reviewed"],
-        contradicted=row["contradicted"],
-        source_episode_id=row["source_episode_id"],
-        source_refs=_load_uuids(row["source_refs"]),
+        predicate=row_dict["predicate"],
+        value=row_dict["value"],
+        id=row_dict["id"],
+        subject_id=row_dict["subject_id"],
+        object_text=row_dict["object_text"],
+        object_id=row_dict["object_id"],
+        confidence=row_dict["confidence"],
+        reviewed=row_dict["reviewed"],
+        contradicted=row_dict["contradicted"],
+        source_episode_id=row_dict["source_episode_id"],
+        source_refs=_load_uuids(row_dict["source_refs"]),
+        provenance=row_dict.get("provenance", "raw"),
     )
 
 

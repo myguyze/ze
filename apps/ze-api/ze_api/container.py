@@ -90,6 +90,7 @@ class ZeContainer(CoreContainer):
     _push_log_store: PushLogStore
     data_portability_service: DataPortabilityService
     ingestion_pipeline: Any
+    dream_store: Any
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -378,8 +379,12 @@ async def build_container(settings: Settings) -> ZeContainer:
         embedder=shared.embedder,
         consolidator=shared.memory_consolidator,
         dream_store=dream_store,
+        client=shared.openrouter_client,
+        nli_client=shared.nli_client,
         settings=settings,
     )
+
+    container.dream_store = dream_store
 
     register_all_proactive_jobs(
         container.proactive_scheduler,

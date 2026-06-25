@@ -139,6 +139,18 @@ class PostgresMemoryStore:
         if self._traversal is not None:
             ctx = await self._graph_augment(ctx)
 
+        session_id = request.current_session_id
+        if session_id and ctx.facts:
+            synthesized_ids = [
+                f.id for f in ctx.facts
+                if getattr(f, "provenance", None) == "synthesized" and f.id is not None
+            ]
+            if synthesized_ids:
+                fire_and_forget(
+                    self._record_session_contamination(session_id, synthesized_ids),
+                    label="record_session_contamination",
+                )
+
         return ctx
 
     async def _apply_retrieval_cache(
@@ -212,6 +224,11 @@ class PostgresMemoryStore:
                 tag_episode_metadata(self._pool, episode_id, agent, prompt, response),
                 label="tag_episode_metadata",
             )
+            if embedding is not None:
+                fire_and_forget(
+                    self._check_synthetic_corroboration(episode_id, _to_list(embedding)),
+                    label="check_synthetic_corroboration",
+                )
             if self._graph_store is not None:
                 fire_and_forget(
                     self._link_episode_entities(episode_id, f"{prompt} {response}"),
@@ -697,6 +714,69 @@ class PostgresMemoryStore:
                 label="link_fact_relationships",
             )
         return fact_id
+
+    async def _record_session_contamination(
+        self, session_id: str, dream_fact_ids: list[UUID]
+    ) -> None:
+        """Track which sessions fetched synthesized facts, to exclude from dream source pool."""
+        try:
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    """
+                    UPDATE memory_session_summaries SET
+                        dream_artifact_ids = (
+                            SELECT array_agg(DISTINCT elem)
+                            FROM (
+                                SELECT unnest(dream_artifact_ids) AS elem
+                                UNION
+                                SELECT unnest($2::uuid[]) AS elem
+                            ) sub
+                        ),
+                        dream_influenced = true
+                    WHERE session_id = $1
+                    """,
+                    session_id,
+                    dream_fact_ids,
+                )
+        except Exception as exc:
+            log.warning("record_session_contamination_failed", error=str(exc))
+
+    async def _check_synthetic_corroboration(
+        self, episode_id: UUID, episode_emb: list
+    ) -> None:
+        """Mark synthesized facts as corroborated when a new episode endorses the same claim."""
+        try:
+            async with self._pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT id FROM memory_facts
+                    WHERE provenance = 'synthesized'
+                      AND corroborated = false
+                      AND contradicted = false
+                      AND embedding IS NOT NULL
+                      AND 1 - (embedding <=> $1::vector) >= 0.88
+                    LIMIT 20
+                    """,
+                    episode_emb,
+                )
+                if rows:
+                    ids = [r["id"] for r in rows]
+                    await conn.execute(
+                        """
+                        UPDATE memory_facts SET
+                            corroborated = true,
+                            last_corroborated_at = now()
+                        WHERE id = ANY($1::uuid[])
+                        """,
+                        ids,
+                    )
+                    log.debug(
+                        "synthetic_facts_corroborated",
+                        episode_id=str(episode_id),
+                        count=len(ids),
+                    )
+        except Exception as exc:
+            log.warning("synthetic_corroboration_check_failed", error=str(exc))
 
     async def _apply_semantic_contradiction_check(
         self,

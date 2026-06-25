@@ -79,6 +79,7 @@ class Fact:
     source_episode_id: UUID | None = None
     source_refs: list[UUID] = field(default_factory=list)
     embedding: Any = field(default=None, repr=False, compare=False)
+    provenance: str = "raw"
 
 
 @dataclass

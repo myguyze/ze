@@ -404,7 +404,7 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 74 | Automation substrate — `ze-automation` core package owns full automation stack (types, stores, planners, executors, agents, migrations); `ze-personal` reduced to persona + contacts + onboarding | Done |
 | 76 | ze-api shell cleanup — domain bootstrap into package modules; `ZeApiSettings` shell; test relocation; delete `ze_api/bootstrap.py`; `compose.py` for proactive jobs | Done |
 | 77 | ze-logging — structlog configuration extracted from ze-api/ze-agents into `core/ze-logging`; `get_logger` via ze-sdk | Done |
-| 78 | Dream Memory — sleep pass, dream journal, retrieval weight, sensitive tagging (78a); dream synthesis + gates pending (78b) | In Progress |
+| 78 | Dream Memory — sleep pass (78a) + dream synthesis, NLI gates, two-critic pipeline, promoter, REST API (78b) | Done |
 | 79 | NLI cross-encoder — contradiction detection, retrieval re-rank cache, correlation grounding (`ze_core/nli.py`) | Done |
 | 80 | NLI Client + plugin access — `NLIClient` Protocol, DI, shared `@tool`s | Done |
 | 81 | Plugin NLI adoption — news dedup, finance merchant merging | Pending |

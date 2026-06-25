@@ -458,3 +458,56 @@ WsOutboundFrame = Annotated[
 class WsSchemaResponse(BaseModel):
     inbound: dict[str, Any]
     outbound: dict[str, Any]
+
+
+# ── REST: dream memory ─────────────────────────────────────────────────────────
+
+class DreamJournalEntryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUIDType
+    run_id: UUIDType
+    summary: str
+    episodes_processed: int
+    insights_promoted: int
+    procedures_extracted: int
+    plan_risks_surfaced: int
+    pending_review: int
+    created_at: datetime
+
+
+class DreamArtifactResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUIDType
+    run_id: UUIDType
+    artifact_type: str
+    content: str
+    source_episode_ids: list[UUIDType]
+    source_fact_ids: list[UUIDType]
+    support_count: int
+    distinct_session_count: int
+    temporal_spread_days: int
+    user_asserted_source_count: int
+    faithfulness_score: float | None
+    novelty_score: float | None
+    retrievable: bool | None
+    critic_a_verdict: str | None
+    critic_a_reason: str | None
+    critic_b_verdict: str | None
+    critic_b_reason: str | None
+    status: str
+    user_revised_content: str | None
+    promoted_to: str | None
+    promoted_id: UUIDType | None
+    created_at: datetime
+    reviewed_at: datetime | None
+
+
+class DreamReviseRequest(BaseModel):
+    content: str
+
+
+class DreamRollbackResponse(BaseModel):
+    rolled_back: int
+    summaries_flagged: int

@@ -73,3 +73,7 @@ def get_message_store(request: Request) -> MessageStore:
 
 def get_connection_manager(request: Request):
     return request.app.state.container.connection_manager
+
+
+def get_dream_store(request: Request):
+    return request.app.state.container.dream_store
