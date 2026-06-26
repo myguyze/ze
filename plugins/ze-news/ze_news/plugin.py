@@ -156,7 +156,6 @@ class NewsPlugin(ZePlugin):
                 kind="settings_section",
                 label="News",
                 icon="newspaper",
-                path="news",
                 settings_operation_id="getNewsSettings",
             ),
         ]
