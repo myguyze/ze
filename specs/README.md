@@ -138,3 +138,4 @@ explicitly deferred before implementation begins.
 | [Correlation Engine](arch/correlation-engine.md) | Bounded relevance-gated correlation over a shared signal/graph substrate; not a world model |
 | [Dream Memory](arch/dream-memory.md) | Offline wake/sleep/dream/morning consolidation loop; staging buffer + critic-gated promotion |
 | [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
+| [Communication Hub](arch/communication-hub.md) | Channel identity contract, thread ownership, memory contribution policy, signal filtering, extensibility |

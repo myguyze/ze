@@ -60,3 +60,4 @@ class InboundMessage:
     body: str
     thread_id: str | None
     received_at: datetime
+    headers: dict[str, str] = field(default_factory=dict)  # raw transport headers for sender classification
