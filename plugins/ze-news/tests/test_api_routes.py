@@ -13,6 +13,21 @@ from ze_plugin.api_auth import require_api_key
 
 API_KEY = "test-key"
 
+_PRIMITIVE_TYPE_NAMES = frozenset(
+    {"col", "row", "text", "badge", "divider", "spacer", "button", "progress", "table", "form", "connections"}
+)
+
+
+def _assert_valid_tree(nodes: list) -> None:
+    """Recursively verify every node carries a known primitive type."""
+    for node in nodes:
+        assert isinstance(node, dict), f"tree node must be a dict, got {type(node)}"
+        assert "type" in node, f"tree node missing 'type': {node}"
+        assert node["type"] in _PRIMITIVE_TYPE_NAMES, f"unknown primitive type {node['type']!r}"
+        for child_key in ("children", "fields", "connections"):
+            if child_key in node and isinstance(node[child_key], list):
+                _assert_valid_tree(node[child_key])
+
 
 def _make_app(store=None) -> FastAPI:
     app = FastAPI()
@@ -39,6 +54,7 @@ async def test_get_news_page_returns_tree():
     data = resp.json()
     assert data["title"] == "News"
     assert isinstance(data["tree"], list)
+    _assert_valid_tree(data["tree"])
     store.get_recent.assert_awaited_once()
 
 
@@ -60,6 +76,7 @@ async def test_get_news_settings_returns_tree():
     data = resp.json()
     assert data["title"] == "News"
     assert isinstance(data["tree"], list)
+    _assert_valid_tree(data["tree"])
 
 
 @pytest.mark.asyncio
