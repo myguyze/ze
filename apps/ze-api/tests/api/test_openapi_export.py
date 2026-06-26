@@ -9,6 +9,7 @@ def test_collect_static_plugin_routers_includes_news():
     assert "/api/v0/news/page" in paths
     assert "/api/v0/news/settings" in paths
     assert "/api/v0/contacts/page" in paths
+    assert "/api/v0/reminders/page" in paths
 
 
 def test_export_openapi_includes_ui_manifest():

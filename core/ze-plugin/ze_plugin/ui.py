@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 CORE_RESERVED_NAV_PATHS = frozenset(
-    {"goals", "reminders", "costs", "settings"}
+    {"goals", "costs", "settings"}
 )
 
 

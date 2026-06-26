@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ze_api.api import dependencies
-from ze_api.api.routes import costs, goals, reminders
+from ze_api.api.routes import costs, goals
 
 
 @pytest.fixture
@@ -19,33 +19,13 @@ def container():
         status=SimpleNamespace(value="active"),
         created_at="2026-06-01T00:00:00+00:00",
     )
-    reminder = SimpleNamespace(
-        id=uuid4(),
-        label="Call João",
-        fire_at="2026-06-15T09:00:00+00:00",
-        sent=False,
-    )
-    person = SimpleNamespace(
-        id=uuid4(),
-        name="Maria",
-        contact_info={"email": "maria@example.com"},
-        notes="Met at conference",
-    )
 
     goal_store = AsyncMock()
     goal_store.list_for_display = AsyncMock(return_value=[goal])
 
-    reminder_store = AsyncMock()
-    reminder_store.list_all = AsyncMock(return_value=[reminder])
-
-    person_store = AsyncMock()
-    person_store.list_confirmed = AsyncMock(return_value=[person])
-
     return SimpleNamespace(
         _plugin_stores={
             "goal_store": goal_store,
-            "reminder_store": reminder_store,
-            "person_store": person_store,
         },
     )
 
@@ -70,7 +50,6 @@ def client(container, mock_pool):
     app = FastAPI()
     app.state.container = container
     app.include_router(goals.router, prefix="/api/v0")
-    app.include_router(reminders.router, prefix="/api/v0")
     app.include_router(costs.router, prefix="/api/v0/costs")
 
     app.dependency_overrides[dependencies.get_pool] = lambda: pool
@@ -107,15 +86,6 @@ def test_start_goal(client, container):
     assert resp.status_code == 200
     assert resp.json()["status"] == "active"
     executor.approve_plan.assert_awaited_once_with(goal_id)
-
-
-def test_list_reminders(client):
-    resp = client.get("/api/v0/reminders")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["label"] == "Call João"
-    assert data[0]["fired"] is False
 
 
 def test_web_cost_summary(client):

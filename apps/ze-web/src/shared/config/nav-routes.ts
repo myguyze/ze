@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   MessageCircle,
   Target,
-  Bell,
   BarChart2,
   Settings,
 } from "lucide-react";
@@ -19,7 +18,6 @@ export const navRoutes: NavRouteMeta[] = [
   // Core-owned routes — plugin nav from GET /api/v0/ui/manifest is merged at runtime.
   { path: "/", label: "Chat", icon: MessageCircle, index: true, showInMobileNav: true },
   { path: "goals", label: "Goals", icon: Target, showInMobileNav: true },
-  { path: "reminders", label: "Reminders", icon: Bell, showInMobileNav: true },
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
 ];
 

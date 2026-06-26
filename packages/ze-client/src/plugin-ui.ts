@@ -2,6 +2,7 @@ import {
   getContactsPage,
   getNewsPage,
   getNewsSettings,
+  getRemindersPage,
   type PluginPageResponse,
   type UiContributionSchema,
 } from "./generated";
@@ -11,6 +12,13 @@ type PageLoader = () => Promise<PluginPageResponse>;
 const PAGE_LOADERS: Record<string, PageLoader> = {
   getContactsPage: async () => {
     const { data, error } = await getContactsPage();
+    if (error || !data) {
+      throw new Error("Failed to load plugin page");
+    }
+    return data;
+  },
+  getRemindersPage: async () => {
+    const { data, error } = await getRemindersPage();
     if (error || !data) {
       throw new Error("Failed to load plugin page");
     }

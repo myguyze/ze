@@ -187,13 +187,6 @@ class GoalActionResponse(BaseModel):
     status: str
 
 
-class ReminderListItem(BaseModel):
-    id: UUIDType
-    label: str
-    fire_at: datetime
-    fired: bool
-
-
 class AgentCostBucket(BaseModel):
     usd: float
     tokens: int
