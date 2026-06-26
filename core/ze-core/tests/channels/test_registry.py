@@ -2,9 +2,9 @@ from datetime import datetime
 
 import pytest
 
-from ze_plugin.channels.base import Channel
-from ze_plugin.channels.registry import ChannelRegistry
-from ze_plugin.channels.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_communication.channel import Channel
+from ze_communication.registry import ChannelRegistry
+from ze_communication.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_agents.errors import ChannelNotFoundError
 
 

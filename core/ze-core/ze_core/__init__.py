@@ -2,9 +2,9 @@
 
 from ze_agents.types import Mode
 import ze_agents.defaults as defaults
-from ze_plugin.channels.base import Channel
-from ze_plugin.channels.registry import ChannelRegistry
-from ze_plugin.channels.types import ChannelHandle, ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_communication.channel import Channel
+from ze_communication.registry import ChannelRegistry
+from ze_communication.types import ChannelHandle, ChannelType, Message, SentMessage, Thread, ThreadMessage
 from ze_core.container import Container
 from ze_core.db import DBPool
 from ze_agents.errors import (

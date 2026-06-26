@@ -9,6 +9,7 @@ description = "Public API surface for Ze plugin development"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-communication",
     "ze-data",
     "ze-logging",
     "ze-plugin",
@@ -19,14 +20,15 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-ze-agents     = { workspace = true }
-ze-data       = { workspace = true }
-ze-logging    = { workspace = true }
-ze-plugin     = { workspace = true }
-ze-proactive  = { workspace = true }
-ze-memory     = { workspace = true }
-ze-onboarding = { workspace = true }
-ze-automation = { workspace = true }
+ze-agents        = { workspace = true }
+ze-communication = { workspace = true }
+ze-data          = { workspace = true }
+ze-logging       = { workspace = true }
+ze-plugin        = { workspace = true }
+ze-proactive     = { workspace = true }
+ze-memory        = { workspace = true }
+ze-onboarding    = { workspace = true }
+ze-automation    = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_sdk"]

@@ -8,6 +8,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
+    "ze-communication",
     "ze-logging",
     "ze-plugin",
     "ze-components",
@@ -43,7 +44,7 @@ dev = [
     "pyyaml>=6.0",
     "ze-personal",
     "ze-calendar",
-    "ze-email",
+    "ze-messenger",
     "ze-prospecting",
     "ze-browser",
     "ze-ingestion",
@@ -58,15 +59,16 @@ markers = [
 ]
 
 [tool.uv.sources]
-ze-agents = { workspace = true }
-ze-logging = { workspace = true }
-ze-plugin = { workspace = true }
+ze-agents        = { workspace = true }
+ze-communication = { workspace = true }
+ze-logging       = { workspace = true }
+ze-plugin        = { workspace = true }
 ze-components = { workspace = true }
 ze-data = { workspace = true }
 ze-memory = { workspace = true }
 ze-personal = { workspace = true }
 ze-calendar = { workspace = true }
-ze-email = { workspace = true }
+ze-messenger = { workspace = true }
 ze-prospecting = { workspace = true }
 ze-browser = { workspace = true }
 ze-ingestion = { workspace = true }

@@ -1,8 +1,9 @@
-from ze_plugin.channels.base import Channel
-from ze_plugin.channels.registry import ChannelRegistry
-from ze_plugin.channels.types import (
+from ze_communication.channel import Channel, InboundChannel
+from ze_communication.registry import ChannelRegistry
+from ze_communication.types import (
     ChannelHandle,
     ChannelType,
+    InboundMessage,
     Message,
     SentMessage,
     Thread,
@@ -14,6 +15,8 @@ __all__ = [
     "ChannelHandle",
     "ChannelRegistry",
     "ChannelType",
+    "InboundChannel",
+    "InboundMessage",
     "Message",
     "SentMessage",
     "Thread",

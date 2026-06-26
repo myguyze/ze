@@ -1,5 +1,5 @@
-from ze_plugin.channels.base import Channel
-from ze_plugin.channels.types import ChannelType
+from ze_communication.channel import Channel, InboundChannel
+from ze_communication.types import ChannelType
 from ze_agents.errors import ChannelNotFoundError
 
 
@@ -13,5 +13,12 @@ class ChannelRegistry:
         except KeyError:
             raise ChannelNotFoundError(f"No channel registered for {channel_type!r}")
 
+    def get_inbound(self, channel_type: ChannelType) -> InboundChannel | None:
+        ch = self._channels.get(channel_type)
+        return ch if isinstance(ch, InboundChannel) else None
+
     def available(self) -> list[ChannelType]:
         return list(self._channels.keys())
+
+    def inbound_channels(self) -> list[InboundChannel]:
+        return [c for c in self._channels.values() if isinstance(c, InboundChannel)]

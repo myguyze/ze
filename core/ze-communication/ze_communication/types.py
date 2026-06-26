@@ -48,3 +48,15 @@ class Thread:
     thread_id: str
     channel_type: ChannelType
     messages: list[ThreadMessage] = field(default_factory=list)
+
+
+@dataclass
+class InboundMessage:
+    """A new message received on a channel, not tied to a known outbound thread."""
+    message_id: str
+    channel_type: ChannelType
+    sender: str
+    subject: str | None
+    body: str
+    thread_id: str | None
+    received_at: datetime
