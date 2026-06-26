@@ -70,15 +70,15 @@ export type Ids = string[];
 export type Type11 = "confirm";
 export type Id4 = string;
 export type Choice = "approve" | "deny";
-export type Type15 = "action";
+export type Type12 = "action";
 export type Payload = string;
-export type Type12 = "command";
+export type Type13 = "command";
 export type Name = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
-export type Type13 = "component_submit";
+export type Type14 = "component_submit";
 export type StepId = string;
 export type SessionId1 = string | null;
 export type ThreadId2 = string | null;
-export type Type14 = "ping";
+export type Type15 = "ping";
 
 export interface WsProtocol {
   inbound?: WsInboundFrame;
@@ -230,7 +230,7 @@ export interface WsConfirmFrame {
  * via the `definition` "WsActionFrame".
  */
 export interface WsActionFrame {
-  type: Type15;
+  type: Type12;
   payload: Payload;
 }
 /**
@@ -238,7 +238,7 @@ export interface WsActionFrame {
  * via the `definition` "WsCommandFrame".
  */
 export interface WsCommandFrame {
-  type: Type12;
+  type: Type13;
   name: Name;
 }
 /**
@@ -246,7 +246,7 @@ export interface WsCommandFrame {
  * via the `definition` "WsComponentSubmitFrame".
  */
 export interface WsComponentSubmitFrame {
-  type: Type13;
+  type: Type14;
   step_id: StepId;
   values: Values;
   session_id?: SessionId1;
@@ -260,5 +260,5 @@ export interface Values {
  * via the `definition` "WsPingFrame".
  */
 export interface WsPingFrame {
-  type: Type14;
+  type: Type15;
 }

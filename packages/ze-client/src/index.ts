@@ -38,5 +38,8 @@ export type {
 // Blob helpers — use raw fetch for binary downloads and pre-auth health checks
 export { downloadExport, importArchive, healthCheck, type ImportResponse } from "./blob";
 
+// Plugin UI loaders — dispatch manifest operation IDs to generated SDK methods
+export { loadPluginPage, loadPluginSettings } from "./plugin-ui";
+
 // Error class for wrapping HTTP failures from blob helpers
 export { ApiError } from "./error";

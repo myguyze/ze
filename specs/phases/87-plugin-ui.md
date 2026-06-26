@@ -1,6 +1,6 @@
 # Phase 87 — Plugin UI Platform
 
-**Status:** Pending (87a–87c done)
+**Status:** Done (87a–87d)
 **Depends on:** Phase 66 (Primitive UI), Phase 72 (API Client Codegen), Phase 75 (`@ze/ui`), Phase 76 (ze-api shell), Phase 82 (ze-web FSD)
 **Architecture:** [arch/plugin-ui.md](../arch/plugin-ui.md)
 
@@ -50,7 +50,7 @@ Delivery is split into sub-phases (87a–87d). Each sub-phase is independently s
 | Generic `PluginPage` (87b) | ✅ Done |
 | `rest_routes()` hook (87b) | ✅ Done |
 | Settings sections (87c) | ✅ Done |
-| Codegen types (87d) | 🔲 Pending |
+| Codegen types (87d) | ✅ Done |
 
 ---
 

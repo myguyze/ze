@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetProfileData, GetProfileResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListContactsData, ListContactsResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses } from './types.gen';
+import type { ApproveDreamArtifactData, ApproveDreamArtifactErrors, ApproveDreamArtifactResponses, ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetDreamArtifactData, GetDreamArtifactErrors, GetDreamArtifactResponses, GetFactQualityData, GetFactQualityResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetNewsPageData, GetNewsPageErrors, GetNewsPageResponses, GetNewsSettingsData, GetNewsSettingsResponses, GetProfileData, GetProfileResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetUiManifestData, GetUiManifestResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListChannelsData, ListChannelsResponses, ListContactsData, ListContactsResponses, ListDreamArtifactsData, ListDreamArtifactsResponses, ListDreamJournalData, ListDreamJournalErrors, ListDreamJournalResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReceiveWebhookData, ReceiveWebhookErrors, ReceiveWebhookResponses, RejectDreamArtifactData, RejectDreamArtifactErrors, RejectDreamArtifactResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, ReviseDreamArtifactData, ReviseDreamArtifactErrors, ReviseDreamArtifactResponses, RollbackDreamRunData, RollbackDreamRunErrors, RollbackDreamRunResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -117,6 +117,17 @@ export const getMemoryDigest = <ThrowOnError extends boolean = false>(options?: 
 export const consolidateMemory = <ThrowOnError extends boolean = false>(options?: Options<ConsolidateMemoryData, ThrowOnError>): RequestResult<ConsolidateMemoryResponses, unknown, ThrowOnError> => (options?.client ?? client).post<ConsolidateMemoryResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v0/memory/consolidate',
+    ...options
+});
+
+/**
+ * Memory fact quality audit
+ *
+ * Diagnostic snapshot of memory_facts health: distribution by provenance, confidence stats, contradicted count, and synthesized-fact lifecycle status. Use to assess source pool quality before trusting dream synthesis output.
+ */
+export const getFactQuality = <ThrowOnError extends boolean = false>(options?: Options<GetFactQualityData, ThrowOnError>): RequestResult<GetFactQualityResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetFactQualityResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/facts/quality',
     ...options
 });
 
@@ -253,17 +264,6 @@ export const listContacts = <ThrowOnError extends boolean = false>(options?: Opt
 });
 
 /**
- * List recent news articles
- *
- * Returns recent news articles from configured RSS sources, newest first.
- */
-export const listNews = <ThrowOnError extends boolean = false>(options?: Options<ListNewsData, ThrowOnError>): RequestResult<ListNewsResponses, ListNewsErrors, ThrowOnError> => (options?.client ?? client).get<ListNewsResponses, ListNewsErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/v0/news',
-    ...options
-});
-
-/**
  * List chat sessions
  *
  * Returns all chat sessions ordered by most recently active.
@@ -377,5 +377,163 @@ export const ingest = <ThrowOnError extends boolean = false>(options?: Options<I
 export const getWsSchema = <ThrowOnError extends boolean = false>(options?: Options<GetWsSchemaData, ThrowOnError>): RequestResult<GetWsSchemaResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetWsSchemaResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v0/ws-schema',
+    ...options
+});
+
+/**
+ * List dream journal entries
+ *
+ * Return recent dream journal entries, newest first.
+ */
+export const listDreamJournal = <ThrowOnError extends boolean = false>(options?: Options<ListDreamJournalData, ThrowOnError>): RequestResult<ListDreamJournalResponses, ListDreamJournalErrors, ThrowOnError> => (options?.client ?? client).get<ListDreamJournalResponses, ListDreamJournalErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/journal',
+    ...options
+});
+
+/**
+ * List artifacts pending review
+ *
+ * Return staged dream artifacts with status=needs_review.
+ */
+export const listDreamArtifacts = <ThrowOnError extends boolean = false>(options?: Options<ListDreamArtifactsData, ThrowOnError>): RequestResult<ListDreamArtifactsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListDreamArtifactsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/artifacts',
+    ...options
+});
+
+/**
+ * Get dream artifact detail
+ *
+ * Return a single dream artifact with its scoring results.
+ */
+export const getDreamArtifact = <ThrowOnError extends boolean = false>(options: Options<GetDreamArtifactData, ThrowOnError>): RequestResult<GetDreamArtifactResponses, GetDreamArtifactErrors, ThrowOnError> => (options.client ?? client).get<GetDreamArtifactResponses, GetDreamArtifactErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}',
+    ...options
+});
+
+/**
+ * Approve a dream artifact
+ *
+ * Promote the artifact to long-term memory.
+ */
+export const approveDreamArtifact = <ThrowOnError extends boolean = false>(options: Options<ApproveDreamArtifactData, ThrowOnError>): RequestResult<ApproveDreamArtifactResponses, ApproveDreamArtifactErrors, ThrowOnError> => (options.client ?? client).post<ApproveDreamArtifactResponses, ApproveDreamArtifactErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/approve',
+    ...options
+});
+
+/**
+ * Reject a dream artifact
+ *
+ * Mark the artifact rejected and decrement source episode retrieval weight.
+ */
+export const rejectDreamArtifact = <ThrowOnError extends boolean = false>(options: Options<RejectDreamArtifactData, ThrowOnError>): RequestResult<RejectDreamArtifactResponses, RejectDreamArtifactErrors, ThrowOnError> => (options.client ?? client).post<RejectDreamArtifactResponses, RejectDreamArtifactErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/reject',
+    ...options
+});
+
+/**
+ * Revise and promote a dream artifact
+ *
+ * Replace the artifact content with a user-edited version, then promote it.
+ */
+export const reviseDreamArtifact = <ThrowOnError extends boolean = false>(options: Options<ReviseDreamArtifactData, ThrowOnError>): RequestResult<ReviseDreamArtifactResponses, ReviseDreamArtifactErrors, ThrowOnError> => (options.client ?? client).post<ReviseDreamArtifactResponses, ReviseDreamArtifactErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/revise',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Roll back a dream run
+ *
+ * Bulk-mark all promoted artifacts from the run as rolled_back, contradict promoted facts, and flag contaminated session summaries for re-summarisation.
+ */
+export const rollbackDreamRun = <ThrowOnError extends boolean = false>(options: Options<RollbackDreamRunData, ThrowOnError>): RequestResult<RollbackDreamRunResponses, RollbackDreamRunErrors, ThrowOnError> => (options.client ?? client).post<RollbackDreamRunResponses, RollbackDreamRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/dream/runs/{run_id}/rollback',
+    ...options
+});
+
+/**
+ * List connected communication channels
+ *
+ * Returns channels Ze is connected to with poll state and last poll time.
+ */
+export const listChannels = <ThrowOnError extends boolean = false>(options?: Options<ListChannelsData, ThrowOnError>): RequestResult<ListChannelsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListChannelsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/channels',
+    ...options
+});
+
+/**
+ * Update channel configuration
+ *
+ * Toggle poll_enabled or set as default outbound.
+ */
+export const updateChannel = <ThrowOnError extends boolean = false>(options: Options<UpdateChannelData, ThrowOnError>): RequestResult<UpdateChannelResponses, UpdateChannelErrors, ThrowOnError> => (options.client ?? client).patch<UpdateChannelResponses, UpdateChannelErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/channels/{channel_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * UI shell manifest
+ *
+ * Returns plugin-contributed nav entries and settings sections. Core routes (chat, goals, settings) are not included — they are hardcoded in the web client.
+ */
+export const getUiManifest = <ThrowOnError extends boolean = false>(options?: Options<GetUiManifestData, ThrowOnError>): RequestResult<GetUiManifestResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetUiManifestResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/ui/manifest',
+    ...options
+});
+
+/**
+ * Receive inbound webhook from an external source
+ *
+ * Authenticated by the source's own signing scheme, not the Ze API key.
+ */
+export const receiveWebhook = <ThrowOnError extends boolean = false>(options: Options<ReceiveWebhookData, ThrowOnError>): RequestResult<ReceiveWebhookResponses, ReceiveWebhookErrors, ThrowOnError> => (options.client ?? client).post<ReceiveWebhookResponses, ReceiveWebhookErrors, ThrowOnError>({ url: '/api/v0/webhooks/{source}', ...options });
+
+/**
+ * List recent news articles
+ *
+ * Returns recent news articles from configured RSS sources, newest first.
+ */
+export const listNews = <ThrowOnError extends boolean = false>(options?: Options<ListNewsData, ThrowOnError>): RequestResult<ListNewsResponses, ListNewsErrors, ThrowOnError> => (options?.client ?? client).get<ListNewsResponses, ListNewsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/news',
+    ...options
+});
+
+/**
+ * News overview page
+ *
+ * Returns the server-driven UI tree for the news management screen.
+ */
+export const getNewsPage = <ThrowOnError extends boolean = false>(options?: Options<GetNewsPageData, ThrowOnError>): RequestResult<GetNewsPageResponses, GetNewsPageErrors, ThrowOnError> => (options?.client ?? client).get<GetNewsPageResponses, GetNewsPageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/news/page',
+    ...options
+});
+
+/**
+ * News settings panel
+ *
+ * Returns the server-driven UI tree for the news settings section.
+ */
+export const getNewsSettings = <ThrowOnError extends boolean = false>(options?: Options<GetNewsSettingsData, ThrowOnError>): RequestResult<GetNewsSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetNewsSettingsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/news/settings',
     ...options
 });

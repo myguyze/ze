@@ -1,6 +1,5 @@
-export type { UiContribution, UiContributionKind, UiManifest, PluginPageResponse } from "./model/types";
+export type { UiContribution, UiManifest, PluginPageResponse } from "./model/types";
 export { mergeMobileNavRoutes, mergeNavRoutes, pluginNavRoutes } from "./model/merge-nav-routes";
-export { settingsEndpoint, settingsSegment } from "./model/settings-endpoint";
 export { fetchUiManifest } from "./api/fetchUiManifest";
 export { fetchPluginPage } from "./api/fetchPluginPage";
 export { fetchPluginSettings } from "./api/fetchPluginSettings";

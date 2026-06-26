@@ -125,6 +125,79 @@ export type CapabilityModeUpdate = {
 };
 
 /**
+ * ChannelInfo
+ */
+export type ChannelInfo = {
+    /**
+     * Channel Id
+     */
+    channel_id: string;
+    /**
+     * Channel Type
+     */
+    channel_type: string;
+    /**
+     * Handle
+     */
+    handle: string;
+    /**
+     * Display Name
+     */
+    display_name: string | null;
+    /**
+     * Is Default Outbound
+     */
+    is_default_outbound: boolean;
+    /**
+     * Poll Enabled
+     */
+    poll_enabled: boolean;
+    /**
+     * Supports Push
+     */
+    supports_push: boolean;
+    /**
+     * Last Polled At
+     */
+    last_polled_at: string | null;
+};
+
+/**
+ * ChannelListResponse
+ */
+export type ChannelListResponse = {
+    /**
+     * Channels
+     */
+    channels: Array<ChannelInfo>;
+};
+
+/**
+ * ChannelResponse
+ */
+export type ChannelResponse = {
+    channel: ChannelInfo;
+};
+
+/**
+ * ChannelUpdateRequest
+ */
+export type ChannelUpdateRequest = {
+    /**
+     * Poll Enabled
+     */
+    poll_enabled?: boolean | null;
+    /**
+     * Is Default Outbound
+     */
+    is_default_outbound?: boolean | null;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
+};
+
+/**
  * ConsolidationReportResponse
  */
 export type ConsolidationReportResponse = {
@@ -238,6 +311,170 @@ export type DeleteRequest = {
      * Confirmation Token
      */
     confirmation_token: string;
+};
+
+/**
+ * DreamArtifactResponse
+ */
+export type DreamArtifactResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Artifact Type
+     */
+    artifact_type: string;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Source Episode Ids
+     */
+    source_episode_ids: Array<string>;
+    /**
+     * Source Fact Ids
+     */
+    source_fact_ids: Array<string>;
+    /**
+     * Support Count
+     */
+    support_count: number;
+    /**
+     * Distinct Session Count
+     */
+    distinct_session_count: number;
+    /**
+     * Temporal Spread Days
+     */
+    temporal_spread_days: number;
+    /**
+     * User Asserted Source Count
+     */
+    user_asserted_source_count: number;
+    /**
+     * Faithfulness Score
+     */
+    faithfulness_score: number | null;
+    /**
+     * Novelty Score
+     */
+    novelty_score: number | null;
+    /**
+     * Retrievable
+     */
+    retrievable: boolean | null;
+    /**
+     * Critic A Verdict
+     */
+    critic_a_verdict: string | null;
+    /**
+     * Critic A Reason
+     */
+    critic_a_reason: string | null;
+    /**
+     * Critic B Verdict
+     */
+    critic_b_verdict: string | null;
+    /**
+     * Critic B Reason
+     */
+    critic_b_reason: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * User Revised Content
+     */
+    user_revised_content: string | null;
+    /**
+     * Promoted To
+     */
+    promoted_to: string | null;
+    /**
+     * Promoted Id
+     */
+    promoted_id: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+};
+
+/**
+ * DreamJournalEntryResponse
+ */
+export type DreamJournalEntryResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Summary
+     */
+    summary: string;
+    /**
+     * Episodes Processed
+     */
+    episodes_processed: number;
+    /**
+     * Insights Promoted
+     */
+    insights_promoted: number;
+    /**
+     * Procedures Extracted
+     */
+    procedures_extracted: number;
+    /**
+     * Plan Risks Surfaced
+     */
+    plan_risks_surfaced: number;
+    /**
+     * Pending Review
+     */
+    pending_review: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
+ * DreamReviseRequest
+ */
+export type DreamReviseRequest = {
+    /**
+     * Content
+     */
+    content: string;
+};
+
+/**
+ * DreamRollbackResponse
+ */
+export type DreamRollbackResponse = {
+    /**
+     * Rolled Back
+     */
+    rolled_back: number;
+    /**
+     * Summaries Flagged
+     */
+    summaries_flagged: number;
 };
 
 /**
@@ -592,6 +829,46 @@ export type MemoryDigestResponse = {
 };
 
 /**
+ * MemoryFactQualityResponse
+ */
+export type MemoryFactQualityResponse = {
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * By Provenance
+     */
+    by_provenance: {
+        [key: string]: number;
+    };
+    /**
+     * Avg Confidence
+     */
+    avg_confidence: number;
+    /**
+     * Low Confidence Count
+     */
+    low_confidence_count: number;
+    /**
+     * Contradicted Count
+     */
+    contradicted_count: number;
+    /**
+     * Synthesized Unreviewed
+     */
+    synthesized_unreviewed: number;
+    /**
+     * Synthesized Uncorroborated
+     */
+    synthesized_uncorroborated: number;
+    /**
+     * Synthesized Expired
+     */
+    synthesized_expired: number;
+};
+
+/**
  * MessageSchema
  */
 export type MessageSchema = {
@@ -625,6 +902,22 @@ export type MessageSchema = {
      * Created At
      */
     created_at: string;
+};
+
+/**
+ * PluginPageResponse
+ */
+export type PluginPageResponse = {
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Tree
+     */
+    tree: Array<{
+        [key: string]: unknown;
+    }>;
 };
 
 /**
@@ -751,6 +1044,66 @@ export type StepResultResponse = {
      * Duration Ms
      */
     duration_ms: number;
+};
+
+/**
+ * UiContributionSchema
+ */
+export type UiContributionSchema = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Plugin
+     */
+    plugin: string;
+    /**
+     * Kind
+     */
+    kind: 'nav' | 'settings_section';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Icon
+     */
+    icon: string;
+    /**
+     * Path
+     */
+    path?: string | null;
+    /**
+     * Page Operation Id
+     */
+    page_operation_id?: string | null;
+    /**
+     * Settings Operation Id
+     */
+    settings_operation_id?: string | null;
+    /**
+     * Priority
+     */
+    priority?: number;
+    /**
+     * Show In Mobile Nav
+     */
+    show_in_mobile_nav?: boolean;
+};
+
+/**
+ * UiManifestResponse
+ */
+export type UiManifestResponse = {
+    /**
+     * Nav
+     */
+    nav: Array<UiContributionSchema>;
+    /**
+     * Settings Sections
+     */
+    settings_sections: Array<UiContributionSchema>;
 };
 
 /**
@@ -1248,6 +1601,22 @@ export type ConsolidateMemoryResponses = {
 
 export type ConsolidateMemoryResponse = ConsolidateMemoryResponses[keyof ConsolidateMemoryResponses];
 
+export type GetFactQualityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/memory/facts/quality';
+};
+
+export type GetFactQualityResponses = {
+    /**
+     * Successful Response
+     */
+    200: MemoryFactQualityResponse;
+};
+
+export type GetFactQualityResponse = GetFactQualityResponses[keyof GetFactQualityResponses];
+
 export type GetProfileData = {
     body?: never;
     path?: never;
@@ -1560,46 +1929,6 @@ export type ListContactsResponses = {
 
 export type ListContactsResponse = ListContactsResponses[keyof ListContactsResponses];
 
-export type ListNewsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit
-         *
-         * Maximum articles to return
-         */
-        limit?: number;
-        /**
-         * Tag
-         *
-         * Filter by tag
-         */
-        tag?: string | null;
-    };
-    url: '/api/v0/news';
-};
-
-export type ListNewsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListNewsError = ListNewsErrors[keyof ListNewsErrors];
-
-export type ListNewsResponses = {
-    /**
-     * Response Listnews
-     *
-     * Successful Response
-     */
-    200: Array<ArticleItem>;
-};
-
-export type ListNewsResponse = ListNewsResponses[keyof ListNewsResponses];
-
 export type ListSessionsData = {
     body?: never;
     path?: never;
@@ -1807,3 +2136,387 @@ export type GetWsSchemaResponses = {
 };
 
 export type GetWsSchemaResponse = GetWsSchemaResponses[keyof GetWsSchemaResponses];
+
+export type ListDreamJournalData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v0/memory/dream/journal';
+};
+
+export type ListDreamJournalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListDreamJournalError = ListDreamJournalErrors[keyof ListDreamJournalErrors];
+
+export type ListDreamJournalResponses = {
+    /**
+     * Response Listdreamjournal
+     *
+     * Successful Response
+     */
+    200: Array<DreamJournalEntryResponse>;
+};
+
+export type ListDreamJournalResponse = ListDreamJournalResponses[keyof ListDreamJournalResponses];
+
+export type ListDreamArtifactsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/memory/dream/artifacts';
+};
+
+export type ListDreamArtifactsResponses = {
+    /**
+     * Response Listdreamartifacts
+     *
+     * Successful Response
+     */
+    200: Array<DreamArtifactResponse>;
+};
+
+export type ListDreamArtifactsResponse = ListDreamArtifactsResponses[keyof ListDreamArtifactsResponses];
+
+export type GetDreamArtifactData = {
+    body?: never;
+    path: {
+        /**
+         * Artifact Id
+         */
+        artifact_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}';
+};
+
+export type GetDreamArtifactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDreamArtifactError = GetDreamArtifactErrors[keyof GetDreamArtifactErrors];
+
+export type GetDreamArtifactResponses = {
+    /**
+     * Successful Response
+     */
+    200: DreamArtifactResponse;
+};
+
+export type GetDreamArtifactResponse = GetDreamArtifactResponses[keyof GetDreamArtifactResponses];
+
+export type ApproveDreamArtifactData = {
+    body?: never;
+    path: {
+        /**
+         * Artifact Id
+         */
+        artifact_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/approve';
+};
+
+export type ApproveDreamArtifactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ApproveDreamArtifactError = ApproveDreamArtifactErrors[keyof ApproveDreamArtifactErrors];
+
+export type ApproveDreamArtifactResponses = {
+    /**
+     * Successful Response
+     */
+    200: DreamArtifactResponse;
+};
+
+export type ApproveDreamArtifactResponse = ApproveDreamArtifactResponses[keyof ApproveDreamArtifactResponses];
+
+export type RejectDreamArtifactData = {
+    body?: never;
+    path: {
+        /**
+         * Artifact Id
+         */
+        artifact_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/reject';
+};
+
+export type RejectDreamArtifactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RejectDreamArtifactError = RejectDreamArtifactErrors[keyof RejectDreamArtifactErrors];
+
+export type RejectDreamArtifactResponses = {
+    /**
+     * Successful Response
+     */
+    200: DreamArtifactResponse;
+};
+
+export type RejectDreamArtifactResponse = RejectDreamArtifactResponses[keyof RejectDreamArtifactResponses];
+
+export type ReviseDreamArtifactData = {
+    body: DreamReviseRequest;
+    path: {
+        /**
+         * Artifact Id
+         */
+        artifact_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/dream/artifacts/{artifact_id}/revise';
+};
+
+export type ReviseDreamArtifactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviseDreamArtifactError = ReviseDreamArtifactErrors[keyof ReviseDreamArtifactErrors];
+
+export type ReviseDreamArtifactResponses = {
+    /**
+     * Successful Response
+     */
+    200: DreamArtifactResponse;
+};
+
+export type ReviseDreamArtifactResponse = ReviseDreamArtifactResponses[keyof ReviseDreamArtifactResponses];
+
+export type RollbackDreamRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/dream/runs/{run_id}/rollback';
+};
+
+export type RollbackDreamRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RollbackDreamRunError = RollbackDreamRunErrors[keyof RollbackDreamRunErrors];
+
+export type RollbackDreamRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: DreamRollbackResponse;
+};
+
+export type RollbackDreamRunResponse = RollbackDreamRunResponses[keyof RollbackDreamRunResponses];
+
+export type ListChannelsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/channels';
+};
+
+export type ListChannelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ChannelListResponse;
+};
+
+export type ListChannelsResponse = ListChannelsResponses[keyof ListChannelsResponses];
+
+export type UpdateChannelData = {
+    body: ChannelUpdateRequest;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: string;
+    };
+    query?: never;
+    url: '/api/v0/channels/{channel_id}';
+};
+
+export type UpdateChannelErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateChannelError = UpdateChannelErrors[keyof UpdateChannelErrors];
+
+export type UpdateChannelResponses = {
+    /**
+     * Successful Response
+     */
+    200: ChannelResponse;
+};
+
+export type UpdateChannelResponse = UpdateChannelResponses[keyof UpdateChannelResponses];
+
+export type GetUiManifestData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/ui/manifest';
+};
+
+export type GetUiManifestResponses = {
+    /**
+     * Successful Response
+     */
+    200: UiManifestResponse;
+};
+
+export type GetUiManifestResponse = GetUiManifestResponses[keyof GetUiManifestResponses];
+
+export type ReceiveWebhookData = {
+    body?: never;
+    path: {
+        /**
+         * Source
+         */
+        source: string;
+    };
+    query?: never;
+    url: '/api/v0/webhooks/{source}';
+};
+
+export type ReceiveWebhookErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReceiveWebhookError = ReceiveWebhookErrors[keyof ReceiveWebhookErrors];
+
+export type ReceiveWebhookResponses = {
+    /**
+     * Response Receive Webhook
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ReceiveWebhookResponse = ReceiveWebhookResponses[keyof ReceiveWebhookResponses];
+
+export type ListNewsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * Maximum articles to return
+         */
+        limit?: number;
+        /**
+         * Tag
+         *
+         * Filter by tag
+         */
+        tag?: string | null;
+    };
+    url: '/api/v0/news';
+};
+
+export type ListNewsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListNewsError = ListNewsErrors[keyof ListNewsErrors];
+
+export type ListNewsResponses = {
+    /**
+     * Response Listnews
+     *
+     * Successful Response
+     */
+    200: Array<ArticleItem>;
+};
+
+export type ListNewsResponse = ListNewsResponses[keyof ListNewsResponses];
+
+export type GetNewsPageData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * Maximum articles to return
+         */
+        limit?: number;
+    };
+    url: '/api/v0/news/page';
+};
+
+export type GetNewsPageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetNewsPageError = GetNewsPageErrors[keyof GetNewsPageErrors];
+
+export type GetNewsPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: PluginPageResponse;
+};
+
+export type GetNewsPageResponse = GetNewsPageResponses[keyof GetNewsPageResponses];
+
+export type GetNewsSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/news/settings';
+};
+
+export type GetNewsSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PluginPageResponse;
+};
+
+export type GetNewsSettingsResponse = GetNewsSettingsResponses[keyof GetNewsSettingsResponses];

@@ -8,8 +8,7 @@ import { EmptyState, ErrorState, ListSkeleton } from "@/shared/ui";
 import { usePluginScreenActions } from "@/entities/primitive-tree";
 
 export function PluginScreen({ entry }: { entry: UiContribution }) {
-  const path = entry.path ?? "";
-  const { data, isLoading, isError, refetch } = usePluginPageQuery(path);
+  const { data, isLoading, isError, refetch } = usePluginPageQuery(entry);
   const actions = usePluginScreenActions(() => {
     void refetch();
   });
@@ -53,7 +52,7 @@ export function PluginScreen({ entry }: { entry: UiContribution }) {
         <ErrorState message="This page returned an invalid UI tree." onRetry={() => void refetch()} />
       )}
 
-      <FloatingButton screen={path} />
+      <FloatingButton screen={entry.path ?? entry.id} />
     </div>
   );
 }
