@@ -1,3 +1,5 @@
+import type { UiManifest } from "@/entities/ui-manifest";
+
 export const queryKeys = {
   goals: ["goals"] as const,
   costs: ["costs"] as const,
@@ -7,13 +9,24 @@ export const queryKeys = {
   pluginSettings: (id: string) => ["plugin-settings", id] as const,
 };
 
-const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
+const CORE_REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
   goals: queryKeys.goals,
-  reminders: queryKeys.pluginPage("ze_calendar.reminders.overview"),
-  contacts: queryKeys.pluginPage("ze_personal.contacts.overview"),
   costs: queryKeys.costs,
 };
 
-export function refreshKeysForScreen(screen: string): readonly string[] | undefined {
-  return REFRESH_SCREEN_MAP[screen];
+export function refreshKeysForScreen(
+  screen: string,
+  manifest?: UiManifest | null,
+): readonly string[] | undefined {
+  const coreKeys = CORE_REFRESH_SCREEN_MAP[screen];
+  if (coreKeys) {
+    return coreKeys;
+  }
+
+  const pluginEntry = manifest?.nav.find((item) => item.path === screen);
+  if (pluginEntry) {
+    return queryKeys.pluginPage(pluginEntry.id);
+  }
+
+  return undefined;
 }

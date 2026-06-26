@@ -1,3 +1,4 @@
+import { invokeSdkOperation } from "@ze/client";
 import type { PrimitiveRendererActions } from "@ze/ui/react";
 import { useMemo } from "react";
 import { useSendNotice } from "@/features/send-context-notice";
@@ -15,7 +16,12 @@ export function usePluginScreenActions(onRestAction?: () => void): PrimitiveRend
     () => ({
       onButtonAction: (action: string) => {
         if (action.startsWith("rest:")) {
-          onRestAction?.();
+          const operationId = action.slice(5);
+          void invokeSdkOperation(operationId)
+            .then(() => onRestAction?.())
+            .catch(() => {
+              showNotice("Action failed. Try again.");
+            });
           return;
         }
         const text = action.startsWith("msg:") ? action.slice(4) : action;

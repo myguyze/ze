@@ -40,6 +40,7 @@ export { downloadExport, importArchive, healthCheck, type ImportResponse } from 
 
 // Plugin UI loaders — dispatch manifest operation IDs to generated SDK methods
 export { loadPluginPage, loadPluginSettings } from "./plugin-ui";
+export { invokeSdkOperation, loadPluginOperation } from "./sdk-dispatch";
 
 // Error class for wrapping HTTP failures from blob helpers
 export { ApiError } from "./error";
