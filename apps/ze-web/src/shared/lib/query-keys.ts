@@ -5,6 +5,7 @@ export const queryKeys = {
   costs: ["costs"] as const,
   news: ["news"] as const,
   sessions: ["sessions"] as const,
+  uiManifest: ["ui-manifest"] as const,
 };
 
 const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {

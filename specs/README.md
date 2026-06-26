@@ -112,7 +112,7 @@ explicitly deferred before implementation begins.
 | 83 | [ze-communication + ze-messenger](phases/83-ze-communication.md) | ✅ Done |
 | 85 | [Ze Messaging Hub](phases/85-messaging-hub.md) | 🔲 Pending |
 | 86 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
-| 87 | [Plugin UI Platform](phases/87-plugin-ui.md) | 🔲 Pending |
+| 87 | [Plugin UI Platform](phases/87-plugin-ui.md) | 🔄 In Progress (87a done) |
 
 ## Ze Core specs (`core/`)
 

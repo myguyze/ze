@@ -1,6 +1,6 @@
 # Phase 87 — Plugin UI Platform
 
-**Status:** Pending
+**Status:** Pending (87a done)
 **Depends on:** Phase 66 (Primitive UI), Phase 72 (API Client Codegen), Phase 75 (`@ze/ui`), Phase 76 (ze-api shell), Phase 82 (ze-web FSD)
 **Architecture:** [arch/plugin-ui.md](../arch/plugin-ui.md)
 
@@ -37,7 +37,22 @@ Delivery is split into sub-phases (87a–87d). Each sub-phase is independently s
 
 ---
 
-## Sub-phases
+## Implementation Status
+
+| Feature | Status |
+|---------|--------|
+| `UiContribution` / `UiManifest` types (`ze_plugin/ui.py`) | ✅ Done |
+| `ZePlugin.ui_contributions()` hook | ✅ Done |
+| `collect_ui_contributions()` with dedup + core path guard | ✅ Done |
+| `GET /api/v0/ui/manifest` | ✅ Done |
+| Dynamic nav merge in `AppShell` | ✅ Done |
+| `ze_sdk.ui` re-exports | ✅ Done |
+| Generic `PluginPage` (87b) | 🔲 Pending |
+| `rest_routes()` hook (87b) | 🔲 Pending |
+| Settings sections (87c) | 🔲 Pending |
+| Codegen types (87d) | 🔲 Pending |
+
+---
 
 | Sub-phase | Scope | Acceptance |
 |-----------|-------|------------|

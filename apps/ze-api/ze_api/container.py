@@ -53,6 +53,7 @@ from ze_personal.channels.watermark_store import ChannelWatermarkStore
 from ze_personal.channels.thread_channel_map import ThreadChannelMap
 from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_plugin.bootstrap import discover_and_instantiate_plugins
+from ze_plugin.ui import collect_ui_contributions
 from ze_communication.registry import ChannelRegistry
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
@@ -98,6 +99,7 @@ class ZeContainer(CoreContainer):
     dream_store: Any
     channel_registry: ChannelRegistry | None
     webhook_dispatcher: Any | None
+    ui_manifest: Any
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -328,6 +330,14 @@ async def build_container(settings: Settings) -> ZeContainer:
     if signal_sources:
         log.info("signal_sources_collected", keys=list(signal_sources))
 
+    ui_manifest = collect_ui_contributions(plugins)
+    if ui_manifest.nav or ui_manifest.settings_sections:
+        log.info(
+            "ui_manifest_built",
+            nav=[item.id for item in ui_manifest.nav],
+            settings=[item.id for item in ui_manifest.settings_sections],
+        )
+
     import_automation_agents()
     import_ingestion_agents()
     bootstrap_agents(deps=agent_deps, plugins=plugins)
@@ -380,6 +390,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         ingestion_pipeline=ingestion.pipeline,
         channel_registry=channel_registry,
         webhook_dispatcher=webhook_dispatcher,
+        ui_manifest=ui_manifest,
     )
 
     webhook_dispatcher._container = container

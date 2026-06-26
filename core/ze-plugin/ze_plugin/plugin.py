@@ -133,6 +133,10 @@ class ZePlugin(ABC):
         """
         return []
 
+    def ui_contributions(self) -> list:
+        """Shell UI contributions (nav, settings sections). Default: none."""
+        return []
+
     def channels(self) -> list[Any]:
         """Return communication channel instances this plugin provides."""
         return []

@@ -18,6 +18,7 @@ export interface NavRouteMeta {
 }
 
 export const navRoutes: NavRouteMeta[] = [
+  // Core-owned routes — plugin nav from GET /api/v0/ui/manifest is merged at runtime.
   { path: "/", label: "Chat", icon: MessageCircle, index: true, showInMobileNav: true },
   { path: "goals", label: "Goals", icon: Target, showInMobileNav: true },
   { path: "reminders", label: "Reminders", icon: Bell, showInMobileNav: true },

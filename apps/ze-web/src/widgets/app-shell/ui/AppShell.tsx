@@ -1,10 +1,11 @@
 import { Settings } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, NavLink } from "react-router-dom";
+import { mergeMobileNavRoutes, mergeNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
 import { RefreshHandler } from "@/features/invalidate-on-ws-refresh";
 import { useOverlay } from "@/features/open-context-overlay";
 import { NoticeBanner } from "@/features/send-context-notice";
-import { navRoutes, settingsNavRoute, mobileNavRoutes } from "@/shared/config";
+import { navRoutes, settingsNavRoute } from "@/shared/config";
 import { cn } from "@/shared/lib/cn";
 import { ContextOverlay } from "./ContextOverlay";
 
@@ -21,6 +22,16 @@ const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 export function AppShell() {
+  const { data: uiManifest } = useUiManifestQuery();
+  const desktopNavRoutes = useMemo(
+    () => mergeNavRoutes(navRoutes, uiManifest?.nav),
+    [uiManifest?.nav],
+  );
+  const mobileNavRoutes = useMemo(
+    () => mergeMobileNavRoutes(navRoutes, settingsNavRoute, uiManifest?.nav),
+    [uiManifest?.nav],
+  );
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -41,7 +52,7 @@ export function AppShell() {
         </div>
 
         <div className="flex-1 py-4 space-y-1 px-2">
-          {navRoutes.map(({ path, icon: Icon, label, index }) => (
+          {desktopNavRoutes.map(({ path, icon: Icon, label, index }) => (
             <NavLink key={path} to={path} end={index} className={navLinkClass}>
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="hidden lg:block">{label}</span>
