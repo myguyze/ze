@@ -691,8 +691,8 @@ class PostgresMemoryStore:
                 "INSERT INTO memory_facts"
                 " (subject_id, predicate, object_text, object_id, value,"
                 "  confidence, reviewed, contradicted,"
-                "  source_episode_id, source_refs, embedding)"
-                " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::vector)"
+                "  source_episode_id, source_refs, embedding, agent)"
+                " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::vector, $12)"
                 " RETURNING id",
                 fact.subject_id,
                 fact.predicate,
@@ -705,6 +705,7 @@ class PostgresMemoryStore:
                 fact.source_episode_id,
                 json.dumps([str(r) for r in fact.source_refs]),
                 emb_list,
+                fact.agent,
             )
             fact_id: UUID = row["id"]
 

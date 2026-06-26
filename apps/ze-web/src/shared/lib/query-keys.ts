@@ -6,6 +6,7 @@ export const queryKeys = {
   costs: ["costs"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
+  memoryFeed: (type: string, agent?: string) => ["memory-feed", type, agent ?? ""] as const,
   pluginPage: (path: string) => ["plugin-page", path] as const,
   pluginSettings: (id: string) => ["plugin-settings", id] as const,
 };

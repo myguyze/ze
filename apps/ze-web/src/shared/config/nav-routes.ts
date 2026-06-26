@@ -4,6 +4,7 @@ import {
   Target,
   Workflow,
   BarChart2,
+  Brain,
   Settings,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "goals", label: "Goals", icon: Target, showInMobileNav: true },
   { path: "workflows", label: "Workflows", icon: Workflow, showInMobileNav: true },
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
+  { path: "brain-memory", label: "Memory", icon: Brain, showInMobileNav: false },
 ];
 
 export const settingsNavRoute: NavRouteMeta = {

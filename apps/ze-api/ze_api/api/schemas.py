@@ -512,6 +512,30 @@ class DreamRollbackResponse(BaseModel):
     summaries_flagged: int
 
 
+# ── REST: memory feed ─────────────────────────────────────────────────────────
+
+class MemoryFeedItem(BaseModel):
+    id: UUIDType
+    type: Literal["fact", "episode"]
+    key: str | None
+    value: str | None
+    confidence: float | None
+    reviewed: bool | None
+    contradicted: bool | None
+    provenance: str | None
+    summary: str | None
+    prompt_snippet: str | None
+    agent: str
+    created_at: datetime
+
+
+class MemoryFeedResponse(BaseModel):
+    items: list[MemoryFeedItem]
+    next_before: datetime | None
+    total_facts: int
+    total_episodes: int
+
+
 # ── REST: channels ────────────────────────────────────────────────────────────
 
 class ChannelInfo(BaseModel):

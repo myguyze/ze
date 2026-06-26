@@ -238,6 +238,26 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
 - Slow tests (embedding model): mark with `@pytest.mark.slow`, skipped by default.
   Pass `SLOW=1` (e.g. `make test-core SLOW=1`) or run `make test-all`.
 
+### ze-web (React / FSD)
+
+`apps/ze-web/src/` follows **Feature-Sliced Design**. Layer order (higher may import lower, never reverse):
+
+```
+pages → widgets → features → entities → shared
+```
+
+**Query hooks** — always in `entities/<name>/api/use<Name>Query.ts`, exported from `entities/<name>/index.ts`. Widgets import from the entity index, never call SDK directly.
+
+**Mutations** — entity-bound mutations in `entities/<name>/api/use<Name>Mutation.ts`; side-effect features (delete, export) in `features/<name>/api/use<Name>.ts`.
+
+**Format / util helpers** — in `<slice>/lib/format.ts` within the slice that owns them. Do not add to `shared/lib/` unless used by ≥ 2 unrelated slices.
+
+**SDK types** — import `type { Foo }` directly from `@ze/client` in any layer; no re-export wrapper needed.
+
+**Tailwind opacity** — non-standard steps must use arbitrary-value syntax: `bg-white/[0.03]` not `bg-white/3`. Standard steps (5, 10, 15, 20 …) use the shorthand form.
+
+**Routes** — core-owned routes declared in `shared/config/nav-routes.ts` + `app/router/routes.ts`. Plugin routes injected at runtime via `GET /api/v0/ui/manifest`.
+
 ### Native app interface
 
 - The `NativeAppInterface` in `ze_api/interface/native.py` handles all outbound delivery:
@@ -414,3 +434,10 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 81 | Plugin NLI adoption — news dedup, finance merchant merging | Pending |
 | 83 | ze-communication + ze-messenger — channel contract extracted to `core/ze-communication`; `GmailChannel` moved to `ze-google` as `InboundChannel`; `ze-email` renamed to `ze-messenger` | Done |
 | 85 | Messaging Hub — `channel_id` identity, `UserChannelStore`/`ChannelWatermarkStore`/`ThreadChannelMap` (ze-personal), `InboundPollingJob`, `InboundMessageProcessor`, `MessagingSignalSource` (ze-messenger), thread-aware `send_email`, `ChannelRegistry` on container, `GET/PATCH /api/v0/channels` | Done |
+| 88 | Memory Feed — reverse-chronological paginated stream of facts + episodes; `GET /api/v0/memory/feed` with cursor pagination + type/agent filters; `/brain/memory` React page with infinite scroll + inline fact review | Pending |
+| 89 | Message Trace — per-message explainability; `trace` JSONB column on `messages`; `record_trace` graph node; `GET /api/v0/messages/{id}/trace`; collapsible "Why?" panel in chat UI | Pending |
+| 90 | Ze's Mind Split-Pane — real-time context sidebar in chat; `trace_update` WS frame emitted post-graph; 320 px resizable right panel showing routing/memory/tools for latest message | Pending |
+| 91 | Goal Dashboard v2 — `GET /api/v0/goals/{id}` detail + `GET /api/v0/goals/{id}/traces`; milestone timeline, gate status, execution trace log, learnings sidebar at `/goals/:goalId` | Pending |
+| 92 | Agent Activity Heatmap — calendar heatmap of agent usage by day; `GET /api/v0/activity/heatmap` aggregates `messages.trace`; `/brain/activity` page using `@uiw/react-heat-map` | Pending |
+| 93 | Temporal Memory Timeline — `as_of` param on `GET /api/v0/memory/feed`; `GET /api/v0/memory/timeline-bounds`; date scrubber on Memory Feed page for time-travel memory view | Pending |
+| 94 | Memory Graph View — interactive entity/relationship graph; `GET /api/v0/memory/graph` + entity detail endpoint; `/brain/graph` page using React Flow + dagre layout; click-to-expand neighbourhoods | Pending |

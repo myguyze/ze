@@ -869,6 +869,82 @@ export type MemoryFactQualityResponse = {
 };
 
 /**
+ * MemoryFeedItem
+ */
+export type MemoryFeedItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Type
+     */
+    type: 'fact' | 'episode';
+    /**
+     * Key
+     */
+    key: string | null;
+    /**
+     * Value
+     */
+    value: string | null;
+    /**
+     * Confidence
+     */
+    confidence: number | null;
+    /**
+     * Reviewed
+     */
+    reviewed: boolean | null;
+    /**
+     * Contradicted
+     */
+    contradicted: boolean | null;
+    /**
+     * Provenance
+     */
+    provenance: string | null;
+    /**
+     * Summary
+     */
+    summary: string | null;
+    /**
+     * Prompt Snippet
+     */
+    prompt_snippet: string | null;
+    /**
+     * Agent
+     */
+    agent: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
+ * MemoryFeedResponse
+ */
+export type MemoryFeedResponse = {
+    /**
+     * Items
+     */
+    items: Array<MemoryFeedItem>;
+    /**
+     * Next Before
+     */
+    next_before: string | null;
+    /**
+     * Total Facts
+     */
+    total_facts: number;
+    /**
+     * Total Episodes
+     */
+    total_episodes: number;
+};
+
+/**
  * MessageSchema
  */
 export type MessageSchema = {
@@ -1524,6 +1600,56 @@ export type UpdateCapabilityResponses = {
 
 export type UpdateCapabilityResponse2 = UpdateCapabilityResponses[keyof UpdateCapabilityResponses];
 
+export type GetMemoryFeedData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * Max items per page
+         */
+        limit?: number;
+        /**
+         * Before
+         *
+         * Return items older than this timestamp
+         */
+        before?: string | null;
+        /**
+         * Type
+         *
+         * Filter by item type
+         */
+        type?: 'fact' | 'episode' | 'all';
+        /**
+         * Agent
+         *
+         * Filter by originating agent name
+         */
+        agent?: string | null;
+    };
+    url: '/api/v0/memory/feed';
+};
+
+export type GetMemoryFeedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMemoryFeedError = GetMemoryFeedErrors[keyof GetMemoryFeedErrors];
+
+export type GetMemoryFeedResponses = {
+    /**
+     * Successful Response
+     */
+    200: MemoryFeedResponse;
+};
+
+export type GetMemoryFeedResponse = GetMemoryFeedResponses[keyof GetMemoryFeedResponses];
+
 export type ListFactsData = {
     body?: never;
     path?: never;
@@ -1564,7 +1690,7 @@ export type ReviewFactsResponses = {
      *
      * Successful Response
      */
-    200: Array<UserFactResponse>;
+    200: Array<MemoryFeedItem>;
 };
 
 export type ReviewFactsResponse = ReviewFactsResponses[keyof ReviewFactsResponses];

@@ -346,6 +346,8 @@ async def gather_fact_proposals(
 
     client = configurable.get("openrouter_client")
     if client is None:
+        for f in explicit_facts:
+            f.agent = agent
         return explicit_facts
 
     settings = configurable.get("settings")
@@ -359,4 +361,7 @@ async def gather_fact_proposals(
         response=response,
         model=model,
     )
-    return merge_fact_proposals(explicit_facts, extracted)
+    merged = merge_fact_proposals(explicit_facts, extracted)
+    for f in merged:
+        f.agent = agent
+    return merged

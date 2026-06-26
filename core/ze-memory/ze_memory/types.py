@@ -80,6 +80,7 @@ class Fact:
     source_refs: list[UUID] = field(default_factory=list)
     embedding: Any = field(default=None, repr=False, compare=False)
     provenance: str = "raw"
+    agent: str = "unknown"
 
 
 @dataclass

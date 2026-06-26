@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApproveDreamArtifactData, ApproveDreamArtifactErrors, ApproveDreamArtifactResponses, ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetContactsPageData, GetContactsPageResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetDreamArtifactData, GetDreamArtifactErrors, GetDreamArtifactResponses, GetFactQualityData, GetFactQualityResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetNewsPageData, GetNewsPageErrors, GetNewsPageResponses, GetNewsSettingsData, GetNewsSettingsResponses, GetProfileData, GetProfileResponses, GetRemindersPageData, GetRemindersPageResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetUiManifestData, GetUiManifestResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListChannelsData, ListChannelsResponses, ListContactsData, ListContactsResponses, ListDreamArtifactsData, ListDreamArtifactsResponses, ListDreamJournalData, ListDreamJournalErrors, ListDreamJournalResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReceiveWebhookData, ReceiveWebhookErrors, ReceiveWebhookResponses, RejectDreamArtifactData, RejectDreamArtifactErrors, RejectDreamArtifactResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, ReviseDreamArtifactData, ReviseDreamArtifactErrors, ReviseDreamArtifactResponses, RollbackDreamRunData, RollbackDreamRunErrors, RollbackDreamRunResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses } from './types.gen';
+import type { ApproveDreamArtifactData, ApproveDreamArtifactErrors, ApproveDreamArtifactResponses, ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetContactsPageData, GetContactsPageResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetDreamArtifactData, GetDreamArtifactErrors, GetDreamArtifactResponses, GetFactQualityData, GetFactQualityResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetMemoryFeedData, GetMemoryFeedErrors, GetMemoryFeedResponses, GetNewsPageData, GetNewsPageErrors, GetNewsPageResponses, GetNewsSettingsData, GetNewsSettingsResponses, GetProfileData, GetProfileResponses, GetRemindersPageData, GetRemindersPageResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetUiManifestData, GetUiManifestResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListChannelsData, ListChannelsResponses, ListContactsData, ListContactsResponses, ListDreamArtifactsData, ListDreamArtifactsResponses, ListDreamJournalData, ListDreamJournalErrors, ListDreamJournalResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReceiveWebhookData, ReceiveWebhookErrors, ReceiveWebhookResponses, RejectDreamArtifactData, RejectDreamArtifactErrors, RejectDreamArtifactResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, ReviseDreamArtifactData, ReviseDreamArtifactErrors, ReviseDreamArtifactResponses, RollbackDreamRunData, RollbackDreamRunErrors, RollbackDreamRunResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -73,6 +73,17 @@ export const updateCapability = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
+ * Memory feed
+ *
+ * Reverse-chronological stream of facts and episodes. Cursor-paginated via the `before` timestamp. Filter by `type` (fact/episode/all) and `agent`.
+ */
+export const getMemoryFeed = <ThrowOnError extends boolean = false>(options?: Options<GetMemoryFeedData, ThrowOnError>): RequestResult<GetMemoryFeedResponses, GetMemoryFeedErrors, ThrowOnError> => (options?.client ?? client).get<GetMemoryFeedResponses, GetMemoryFeedErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/feed',
+    ...options
+});
+
+/**
  * List user facts
  *
  * Return all user facts, reviewed and unreviewed, newest first.
@@ -84,9 +95,9 @@ export const listFacts = <ThrowOnError extends boolean = false>(options?: Option
 });
 
 /**
- * Review user facts
+ * Review memory facts
  *
- * Apply confirm, reject, or edit actions to user facts. Confirm and edit set `reviewed=true`; reject deletes the row. Edit requires `value` in the action.
+ * Apply confirm, reject, or edit actions to memory facts. Confirm and edit set `reviewed=true`; reject deletes the row. Edit requires `value` in the action.
  */
 export const reviewFacts = <ThrowOnError extends boolean = false>(options: Options<ReviewFactsData, ThrowOnError>): RequestResult<ReviewFactsResponses, ReviewFactsErrors, ThrowOnError> => (options.client ?? client).post<ReviewFactsResponses, ReviewFactsErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

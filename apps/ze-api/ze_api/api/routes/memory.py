@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ze_api.api.dependencies import get_container, get_memory_consolidator, require_api_key
 from ze_api.api.openapi import OPENAPI_RESPONSES_422
@@ -7,12 +10,42 @@ from ze_api.api.schemas import (
     FactReviewRequest,
     MemoryDigestResponse,
     MemoryFactQualityResponse,
+    MemoryFeedItem,
+    MemoryFeedResponse,
     UserFactResponse,
     UserProfileResponse,
 )
 from ze_memory import admin as memory_admin
 
 router = APIRouter(tags=["memory"], dependencies=[Depends(require_api_key)])
+
+
+@router.get(
+    "/feed",
+    response_model=MemoryFeedResponse,
+    operation_id="getMemoryFeed",
+    summary="Memory feed",
+    description=(
+        "Reverse-chronological stream of facts and episodes. "
+        "Cursor-paginated via the `before` timestamp. "
+        "Filter by `type` (fact/episode/all) and `agent`."
+    ),
+)
+async def get_memory_feed(
+    limit: int = Query(default=50, ge=1, le=200, description="Max items per page"),
+    before: datetime | None = Query(default=None, description="Return items older than this timestamp"),
+    type: Literal["fact", "episode", "all"] = Query(default="all", description="Filter by item type"),
+    agent: str | None = Query(default=None, description="Filter by originating agent name"),
+    container=Depends(get_container),
+) -> MemoryFeedResponse:
+    result = await memory_admin.get_memory_feed(
+        container.pool,
+        limit=limit,
+        before=before,
+        type_filter=type,
+        agent_filter=agent,
+    )
+    return MemoryFeedResponse.model_validate(result)
 
 
 @router.get(
@@ -29,11 +62,11 @@ async def list_facts(container=Depends(get_container)) -> list[UserFactResponse]
 
 @router.post(
     "/facts/review",
-    response_model=list[UserFactResponse],
+    response_model=list[MemoryFeedItem],
     operation_id="reviewFacts",
-    summary="Review user facts",
+    summary="Review memory facts",
     description=(
-        "Apply confirm, reject, or edit actions to user facts. Confirm and edit set "
+        "Apply confirm, reject, or edit actions to memory facts. Confirm and edit set "
         "`reviewed=true`; reject deletes the row. Edit requires `value` in the action."
     ),
     responses=OPENAPI_RESPONSES_422,
@@ -41,12 +74,12 @@ async def list_facts(container=Depends(get_container)) -> list[UserFactResponse]
 async def review_facts(
     body: FactReviewRequest,
     container=Depends(get_container),
-) -> list[UserFactResponse]:
+) -> list[MemoryFeedItem]:
     for action in body.actions:
         if action.action == "edit" and action.value is None:
             raise HTTPException(status_code=422, detail="value required for edit action")
     updated = await memory_admin.review_facts(container.pool, body.actions)
-    return [UserFactResponse.model_validate(r) for r in updated]
+    return [MemoryFeedItem.model_validate(r) for r in updated]
 
 
 @router.get(

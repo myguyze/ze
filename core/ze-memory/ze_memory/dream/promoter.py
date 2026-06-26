@@ -163,11 +163,11 @@ class DreamPromoter:
                 INSERT INTO memory_facts (
                     predicate, value, embedding, confidence, reviewed,
                     provenance, valid_until, dream_run_id, derived_from,
-                    corroborated, creation_method
+                    corroborated, creation_method, agent
                 ) VALUES (
                     'synthesized_insight', $1, $2::vector, 0.7, false,
                     'synthesized', $3, $4, $5,
-                    false, 'synthesized'
+                    false, 'synthesized', 'dream'
                 )
                 RETURNING id
                 """,
