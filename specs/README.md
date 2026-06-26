@@ -109,6 +109,8 @@ explicitly deferred before implementation begins.
 | 80 | [NLI Client + Plugin Access](phases/80-nli-client.md) | ✅ Done |
 | 81 | [Plugin NLI Adoption](phases/81-plugin-nli-adoption.md) | ✅ Done |
 | 82 | [ze-web FSD Restructure](phases/82-ze-web-fsd.md) | ✅ Done |
+| 83 | [ze-communication + ze-messenger](phases/83-ze-communication.md) | 🔲 Pending |
+| 84 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
