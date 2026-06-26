@@ -341,11 +341,20 @@ Memory accumulates into progressively richer representations through a nightly p
 ```mermaid
 flowchart LR
     A[Facts + Episodes + Events] --> B[Nightly consolidation\ndedup · expire · archive]
-    B --> C[Profile facet synthesis\nstructured portrait]
-    C --> D[Weekly insights\npatterns + tensions]
+    B --> C[Dream phase\nsleep pass → dream pass]
+    C --> D[Profile facet synthesis\nstructured portrait]
+    D --> E[Weekly insights\npatterns + tensions]
 ```
 
-See [docs/memory.md](memory.md) for a deep-dive on types, tables, graph, retrieval
+**Dream phase** (`ze_memory.dream`) — a two-pass offline memory improvement loop running nightly after consolidation:
+
+- **Sleep pass (NREM-like):** replays high-priority episodes, compresses sessions, decays stale traces, detects schema and policy clusters from structural analysis. No LLM calls.
+- **Dream pass (REM-like):** synthesises clusters into insights, procedures, hindsight facts, and plan stress-tests using a haiku-class generator. All outputs land in a staging buffer (`memory_dream_artifacts`).
+- **Scoring pipeline:** every staged artifact passes NLI groundedness gate + embedding novelty gate + retrievability gate, then two adversarial LLM critic calls (sonnet-class, different framings). Both critics must pass.
+- **Morning integration:** artifacts with sufficient session diversity and temporal spread auto-promote to `memory_facts` / `memory_procedures` with `provenance=synthesized`, `valid_until`, and `dream_run_id` lineage for per-run rollback. Borderline cases go to a review queue surfaced in the morning briefing.
+- **Expiry:** synthesized facts that go uncorroborated by raw episodes for 90 days (`valid_until`) are automatically contradicted on the next integration run.
+
+See [docs/dreaming.md](dreaming.md) for a full walkthrough of the pipeline, configuration, REST API, and safety model. See [docs/memory.md](memory.md) for a deep-dive on types, tables, graph, retrieval
 policies, and how to inspect memory. See [docs/scheduled-jobs.md](scheduled-jobs.md) for
 the full lifecycle, schedule, and configuration of every background job.
 
