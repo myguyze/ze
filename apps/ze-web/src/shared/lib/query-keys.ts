@@ -7,6 +7,7 @@ export const queryKeys = {
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
   pluginPage: (path: string) => ["plugin-page", path] as const,
+  pluginSettings: (id: string) => ["plugin-settings", id] as const,
 };
 
 const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {

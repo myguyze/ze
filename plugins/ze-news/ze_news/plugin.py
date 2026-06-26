@@ -149,7 +149,16 @@ class NewsPlugin(ZePlugin):
                 path="news",
                 page_operation_id="getNewsPage",
                 show_in_mobile_nav=True,
-            )
+            ),
+            UiContribution(
+                id="ze_news.settings",
+                plugin="ze_news",
+                kind="settings_section",
+                label="News",
+                icon="newspaper",
+                path="news",
+                settings_operation_id="getNewsSettings",
+            ),
         ]
 
     def rest_routes(self) -> list:

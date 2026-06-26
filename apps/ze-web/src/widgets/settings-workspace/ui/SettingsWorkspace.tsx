@@ -4,13 +4,16 @@ import { useDeleteUserData } from "@/features/delete-user-data";
 import { useExportUserData } from "@/features/export-user-data";
 import { useImportUserData } from "@/features/import-user-data";
 import { useConnectionTest } from "@/features/test-api-connection";
+import { useUiManifestQuery } from "@/entities/ui-manifest";
 import { reconnect } from "@/shared/api";
 import { getConfig, saveConfig, clearConfig } from "@/shared/config";
 import { resetClient } from "@/shared/lib";
 import { Button, Input } from "@/shared/ui";
+import { PluginSettingsSection } from "@/widgets/plugin-settings-section";
 
 export function SettingsWorkspace() {
   const cfg = getConfig();
+  const { data: uiManifest } = useUiManifestQuery();
   const [serverUrl, setServerUrl] = useState(cfg?.serverUrl ?? "");
   const [apiKey, setApiKey] = useState(cfg?.apiKey ?? "");
   const [saved, setSaved] = useState(false);
@@ -103,6 +106,10 @@ export function SettingsWorkspace() {
           {saved ? "Saved ✓" : "Save & reconnect"}
         </Button>
       </div>
+
+      {uiManifest?.settings_sections.map((entry) => (
+        <PluginSettingsSection key={entry.id} entry={entry} />
+      ))}
 
       <div className="space-y-3 pt-4 border-t border-white/10">
         <p className="text-xs font-semibold tracking-widest uppercase text-smoke">Notifications</p>

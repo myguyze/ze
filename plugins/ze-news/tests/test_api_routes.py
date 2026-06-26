@@ -43,6 +43,26 @@ async def test_get_news_page_returns_tree():
 
 
 @pytest.mark.asyncio
+async def test_get_news_settings_returns_tree():
+    app = FastAPI()
+    app.state.container = SimpleNamespace(_plugin_stores={}, settings=SimpleNamespace(ze_api_key=API_KEY))
+    app.state.settings = SimpleNamespace(
+        ze_api_key=API_KEY,
+        config={"news": {"enabled": True, "sources": [{"key": "bbc", "url": "https://x", "tags": []}]}},
+    )
+    app.dependency_overrides[require_api_key] = lambda: None
+    app.include_router(router)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/v0/news/settings", headers={"Authorization": f"Bearer {API_KEY}"})
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == "News"
+    assert isinstance(data["tree"], list)
+
+
+@pytest.mark.asyncio
 async def test_list_news_returns_empty_without_store():
     app = _make_app()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

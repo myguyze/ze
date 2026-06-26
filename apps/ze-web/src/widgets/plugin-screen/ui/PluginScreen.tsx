@@ -5,7 +5,7 @@ import type { UiContribution } from "@/entities/ui-manifest";
 import { usePluginPageQuery } from "@/entities/ui-manifest";
 import { resolveNavIcon } from "@/shared/ui/icons";
 import { EmptyState, ErrorState, ListSkeleton } from "@/shared/ui";
-import { usePluginScreenActions } from "../api/usePluginScreenActions";
+import { usePluginScreenActions } from "@/entities/primitive-tree";
 
 export function PluginScreen({ entry }: { entry: UiContribution }) {
   const path = entry.path ?? "";
