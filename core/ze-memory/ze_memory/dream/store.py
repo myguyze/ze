@@ -299,6 +299,19 @@ class PostgresDreamStore:
                 content,
             )
 
+    async def get_last_successful_run_at(self) -> datetime | None:
+        """Return finished_at of the most recent dream run that completed without error."""
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT finished_at FROM memory_dream_runs
+                WHERE finished_at IS NOT NULL AND error IS NULL
+                ORDER BY finished_at DESC
+                LIMIT 1
+                """
+            )
+        return row["finished_at"] if row else None
+
     async def count_artifacts_by_status(self, run_id: UUID) -> dict[str, int]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(

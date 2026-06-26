@@ -187,7 +187,12 @@ dream:
   synthetic_fact_valid_days: 90      # synthesized facts contradicted after this many days without corroboration
   job_timeout_seconds: 1800
   review_notifications_enabled: false  # enable when React review page ships
+  inactivity_trigger_enabled: false    # fire dream job when user goes idle
+  inactivity_threshold_hours: 6        # hours of silence before triggering
+  inactivity_check_interval_minutes: 30
 ```
+
+**Inactivity trigger** (`inactivity_trigger_enabled`) — when enabled, a watcher runs every `inactivity_check_interval_minutes` and fires the dream job if `MAX(sessions.last_active_at)` is older than `inactivity_threshold_hours` AND no successful dream run has completed since that last session. This means Ze dreams when you take a long break rather than waiting for the 3 AM cron. Disabled by default — the fixed cron is sufficient for v1.
 
 See [configuration.md](configuration.md) for the full key reference.
 

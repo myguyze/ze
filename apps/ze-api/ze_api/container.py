@@ -398,6 +398,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         notifier=notifier,
         push_log_store=push_log_store,
         dream_job=dream_job,
+        pool=pool,
     )
 
     _ = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])

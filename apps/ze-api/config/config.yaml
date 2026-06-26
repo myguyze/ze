@@ -224,3 +224,6 @@ dream:
   synthetic_fact_valid_days: 90
   job_timeout_seconds: 1800
   review_notifications_enabled: false  # enable when React review page ships
+  inactivity_trigger_enabled: false    # fire dream job when idle for N hours (no run since last session)
+  inactivity_threshold_hours: 6
+  inactivity_check_interval_minutes: 30

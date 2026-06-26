@@ -24,6 +24,7 @@ def register_all_proactive_jobs(
     notifier: ProactiveNotifier,
     push_log_store: PushLogStore,
     dream_job: Any = None,
+    pool: Any = None,
 ) -> None:
     register_automation_jobs(
         scheduler,
@@ -49,4 +50,4 @@ def register_all_proactive_jobs(
             consolidation_enabled=consolidation_enabled(settings),
         )
     if dream_job is not None:
-        register_dream_jobs(scheduler, settings, dream_job)
+        register_dream_jobs(scheduler, settings, dream_job, pool=pool)
