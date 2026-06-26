@@ -135,10 +135,9 @@ function PrimitiveNodeRenderer({ node }: { node: Primitive }) {
       return <FormRenderer node={node} />;
     case "connections":
       return <ConnectionsRenderer node={node} />;
-    default: {
-      const _exhaustive: never = node;
-      return _exhaustive;
-    }
+    default:
+      // Unknown primitive from a newer backend — render nothing, don't crash.
+      return null;
   }
 }
 
