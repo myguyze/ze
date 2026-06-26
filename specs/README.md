@@ -113,6 +113,13 @@ explicitly deferred before implementation begins.
 | 85 | [Ze Messaging Hub](phases/85-messaging-hub.md) | 🔲 Pending |
 | 86 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
 | 87 | [Plugin UI Platform](phases/87-plugin-ui.md) | ✅ Done |
+| 88 | [Memory Feed](phases/88-memory-feed.md) | 🔲 Pending |
+| 89 | [Message Trace](phases/89-message-trace.md) | 🔲 Pending |
+| 90 | [Ze's Mind Split-Pane](phases/90-ze-mind-split-pane.md) | 🔲 Pending |
+| 91 | [Goal Dashboard v2](phases/91-goal-dashboard-v2.md) | 🔲 Pending |
+| 92 | [Agent Activity Heatmap](phases/92-agent-activity-heatmap.md) | 🔲 Pending |
+| 93 | [Temporal Memory Timeline](phases/93-temporal-memory-timeline.md) | 🔲 Pending |
+| 94 | [Memory Graph View](phases/94-memory-graph-view.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
