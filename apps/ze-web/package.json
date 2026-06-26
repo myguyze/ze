@@ -13,12 +13,13 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
-    "@ze/client": "workspace:*",
-    "@ze/ui": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-query": "^5.64.2",
+    "@uiw/react-heat-map": "^2.3.4",
+    "@ze/client": "workspace:*",
+    "@ze/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",

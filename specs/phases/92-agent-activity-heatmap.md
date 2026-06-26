@@ -1,6 +1,6 @@
 # Phase 92 — Agent Activity Heatmap
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 89 (Message Trace — adds `trace` column to `messages`)
 **Packages touched:** `apps/ze-api`, `apps/ze-web`
 
@@ -36,12 +36,12 @@ field). No new data capture is needed; this phase is pure aggregation + visualiz
 
 | Feature | Status |
 |---------|--------|
-| `GET /api/v0/activity/heatmap` endpoint | 🔲 Pending |
-| Schema types | 🔲 Pending |
-| Codegen update | 🔲 Pending |
-| `pages/brain-activity/` FSD slice | 🔲 Pending |
-| `AgentHeatmap` component | 🔲 Pending |
-| `ActivityDayDetail` tooltip/popover | 🔲 Pending |
+| `GET /api/v0/activity/heatmap` endpoint | ✅ Done |
+| Schema types | ✅ Done |
+| Codegen update | ✅ Done |
+| `pages/brain-activity/` FSD slice | ✅ Done |
+| `AgentHeatmap` component | ✅ Done |
+| `ActivityDayDetail` tooltip/popover | ✅ Done |
 
 ---
 
