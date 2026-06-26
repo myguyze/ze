@@ -8,10 +8,11 @@ const MAX_WIDTH = 480;
 interface MindState {
   open: boolean;
   width: number;
-  trace: WsTraceUpdateFrame | null;
+  traces: WsTraceUpdateFrame[];
   pending: boolean;
   toggle: () => void;
-  setTrace: (t: WsTraceUpdateFrame) => void;
+  appendTrace: (t: WsTraceUpdateFrame) => void;
+  clearTraces: () => void;
   setPending: (v: boolean) => void;
   setWidth: (w: number) => void;
 }
@@ -21,10 +22,11 @@ export const useMindStore = create<MindState>()(
     (set) => ({
       open: true,
       width: 320,
-      trace: null,
+      traces: [],
       pending: false,
       toggle: () => set((s) => ({ open: !s.open })),
-      setTrace: (t) => set({ trace: t, pending: false }),
+      appendTrace: (t) => set((s) => ({ traces: [...s.traces, t], pending: false })),
+      clearTraces: () => set({ traces: [], pending: false }),
       setPending: (v) => set({ pending: v }),
       setWidth: (w) => set({ width: Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, w)) }),
     }),

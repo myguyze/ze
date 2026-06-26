@@ -2,22 +2,21 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useMindStore, useTraceSocket } from "@/features/ze-mind-state";
 import { MindEmptyState } from "./EmptyState";
-import { MemorySection } from "./MemorySection";
-import { RoutingSection } from "./RoutingSection";
-import { ToolsSection } from "./ToolsSection";
+import { TraceEntry } from "./TraceEntry";
 
 export function ZeMindPanel() {
   useTraceSocket();
 
   const open = useMindStore((s) => s.open);
   const width = useMindStore((s) => s.width);
-  const trace = useMindStore((s) => s.trace);
+  const traces = useMindStore((s) => s.traces);
   const pending = useMindStore((s) => s.pending);
   const setWidth = useMindStore((s) => s.setWidth);
 
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -46,6 +45,13 @@ export function ZeMindPanel() {
     };
   }, [setWidth]);
 
+  // scroll to bottom when a new trace entry arrives
+  useEffect(() => {
+    if (traces.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [traces.length]);
+
   if (!open) return null;
 
   return (
@@ -59,27 +65,34 @@ export function ZeMindPanel() {
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-plum-voltage/40 transition-colors z-10"
       />
 
-      <div className="px-3 py-2.5 border-b border-white/[0.06] flex-shrink-0">
+      <div className="px-3 py-2.5 border-b border-white/[0.06] flex-shrink-0 flex items-center justify-between">
         <p className="text-xs font-medium text-smoke">Ze's Mind</p>
+        {traces.length > 0 && (
+          <span className="text-[10px] text-smoke/40">{traces.length} turn{traces.length !== 1 ? "s" : ""}</span>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto relative">
-        {pending && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-            <div className="flex items-center gap-2 text-xs text-smoke">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Ze is thinking…
-            </div>
+        {traces.length === 0 && !pending ? (
+          <MindEmptyState />
+        ) : (
+          <div className="text-xs">
+            {traces.map((trace, i) => (
+              <TraceEntry
+                key={trace.message_id}
+                trace={trace}
+                index={i}
+                defaultOpen={i === traces.length - 1}
+              />
+            ))}
+            <div ref={bottomRef} />
           </div>
         )}
 
-        {!trace ? (
-          <MindEmptyState />
-        ) : (
-          <div className="rounded-none border-none text-xs">
-            <RoutingSection trace={trace} />
-            <MemorySection chunks={trace.memory_chunks} />
-            <ToolsSection toolCalls={trace.tool_calls} />
+        {pending && (
+          <div className="sticky bottom-0 flex items-center gap-2 px-3 py-2 bg-black/60 border-t border-white/[0.06] text-xs text-smoke">
+            <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />
+            Ze is thinking…
           </div>
         )}
       </div>
