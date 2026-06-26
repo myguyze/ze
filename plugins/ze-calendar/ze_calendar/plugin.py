@@ -77,6 +77,11 @@ class CalendarPlugin(ZePlugin):
             _domain("calendar.calendar_reminders", "calendar_reminders"),
         ]
 
+    def seed_domains(self):
+        from ze_calendar.seed import calendar_seed_domains
+
+        return calendar_seed_domains()
+
     def rest_stores(self) -> dict[str, Any]:
         return {"reminder_store": self.reminder_store}
 

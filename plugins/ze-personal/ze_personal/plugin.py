@@ -165,6 +165,11 @@ class PersonalPlugin(ZePlugin):
             _domain("workflow.workflows", "workflows", 30),
         ]
 
+    def seed_domains(self):
+        from ze_personal.seed import personal_seed_domains
+
+        return personal_seed_domains()
+
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_personal.contacts.store import PersonStore
         from ze_personal.contacts.channel_store import ContactChannelStore
