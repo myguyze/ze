@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ze-seed"
+version = "0.1.0"
+description = "Ze dev data seeder — curated narrative fixtures for local development"
+requires-python = ">=3.11"
+dependencies = [
+    "ze-memory",
+    "ze-automation",
+    "ze-core",
+    "ze-logging",
+    "ze-onboarding",
+    "pyyaml>=6.0",
+]
+
+[tool.uv.sources]
+ze-memory = { workspace = true }
+ze-automation = { workspace = true }
+ze-core = { workspace = true }
+ze-logging = { workspace = true }
+ze-onboarding = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["ze_seed"]

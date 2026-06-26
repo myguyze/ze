@@ -183,6 +183,10 @@ class ZePlugin(ABC):
         """
         return []
 
+    def seed_domains(self) -> list[Any]:
+        """Return dev seed domains for local development fixtures."""
+        return []
+
     @classmethod
     def integration_types(cls) -> list[type]:
         """Return integration credential types this plugin needs.

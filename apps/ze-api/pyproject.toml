@@ -22,6 +22,7 @@ dependencies = [
     "ze-components",
     "ze-onboarding",
     "ze-calendar",
+    "ze-seed",
     "ze-google",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -74,6 +75,7 @@ ze-notifications = { workspace = true }
 ze-components    = { workspace = true }
 ze-onboarding    = { workspace = true }
 ze-calendar      = { workspace = true }
+ze-seed          = { workspace = true }
 ze-google        = { workspace = true }
 
 [tool.pytest.ini_options]

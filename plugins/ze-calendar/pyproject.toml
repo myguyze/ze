@@ -8,6 +8,7 @@ dependencies = [
     "ze-google",
     "ze-personal",
     "ze-components",
+    "ze-seed",
     "apscheduler>=3.10",
     "asyncpg>=0.30",
     "structlog>=24.4",
@@ -20,6 +21,7 @@ ze-google   = { workspace = true }
 ze-personal = { workspace = true }
 ze-automation = { workspace = true }
 ze-components = { workspace = true }
+ze-seed = { workspace = true }
 
 [dependency-groups]
 dev = [

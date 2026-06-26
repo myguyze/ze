@@ -35,6 +35,8 @@ help:
 	@echo ""
 	@echo "  Development"
 	@echo "    dev              Start backend only (uvicorn --reload on :8000)"
+	@echo "    seed             Apply dev narrative fixtures to the database"
+	@echo "    db-reset-seed    Reset DB, migrate, and apply dev fixtures"
 	@echo "    web              Start React web app (bun dev on :5173)"
 	@echo "    dev-full         Start backend + React web app (Ctrl-C stops both)"
 	@echo "    dev-eval         Start backend without background jobs (use before evals)"
@@ -154,10 +156,11 @@ migrate-stamp:
 	$(ZE_MIGRATE) stamp --purge zc018 zn002 zm008 zo001 zcor001 zcal001 zpros001 zpro001 zi001 zfin002
 
 # ── Development ───────────────────────────────────────────────────────────────
-.PHONY: dev web dev-full dev-eval logs
+.PHONY: dev web dev-full dev-eval logs seed db-reset-seed
 
 dev:
-	AUTO_MIGRATE=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	uv sync -q --package ze-api
+	AUTO_MIGRATE=true AUTO_SEED_DEV_DATA=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run --package ze-api uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 web:
 	cd $(ZE_WEB) && bun run dev
@@ -166,17 +169,25 @@ web:
 # the React web app. Ctrl-C stops both.
 dev-full:
 	@trap 'kill %1 2>/dev/null; exit 0' INT TERM; \
-	AUTO_MIGRATE=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
+	uv sync -q --package ze-api; \
+	AUTO_MIGRATE=true AUTO_SEED_DEV_DATA=true LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run --package ze-api uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000 & \
 	until nc -z localhost 8000 2>/dev/null; do sleep 1; done; \
 	echo "Backend ready — starting React web app..."; \
 	cd $(ZE_WEB) && bun run dev; \
 	kill %1 2>/dev/null
 
 dev-eval:
-	AUTO_MIGRATE=true PUBLIC_URL= LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
+	uv sync -q --package ze-api
+	AUTO_MIGRATE=true PUBLIC_URL= LOG_DEV=true LOG_FILE=$(LOG_FILE) uv run --package ze-api uvicorn ze_api.api.app:app --reload --host 0.0.0.0 --port 8000
 
 logs:
 	tail -f $(LOG_FILE)
+
+seed:
+	cd $(ZE) && uv sync -q --package ze-api && AUTO_SEED_DEV_DATA=true uv run --package ze-api python -m ze_seed apply
+
+db-reset-seed: db-reset
+	cd $(ZE) && uv sync -q --package ze-api && AUTO_SEED_DEV_DATA=true uv run --package ze-api python -m ze_seed apply
 
 # ── Eval ──────────────────────────────────────────────────────────────────────
 .PHONY: eval eval-judge eval-report eval-diff eval-server eval-clean
@@ -237,6 +248,7 @@ TEST_PY_PACKAGES := \
 	test-proactive \
 	test-memory \
 	test-onboarding \
+	test-seed \
 	test-correlation \
 	test-browser \
 	test-notifications \
@@ -255,7 +267,7 @@ TEST_PY_PACKAGES := \
 	test-api
 
 .PHONY: test test-api test-core test-logging test-agents test-communication test-plugin test-sdk test-proactive \
-	test-memory test-onboarding test-correlation test-browser test-notifications \
+	test-memory test-onboarding test-seed test-correlation test-browser test-notifications \
 	test-components test-eval test-google test-trading212 test-ingestion test-automation test-personal test-prospecting test-messenger \
 	test-calendar test-news test-all test-web web-test
 
@@ -291,6 +303,9 @@ test-automation:
 
 test-onboarding:
 	$(call pytest_pkg,core/ze-onboarding/tests)
+
+test-seed:
+	$(call pytest_pkg,core/ze-seed/tests)
 
 test-correlation:
 	$(call pytest_pkg,core/ze-correlation/tests)

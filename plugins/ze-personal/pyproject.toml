@@ -12,6 +12,7 @@ dependencies = [
     "ze-news",
     "ze-automation",
     "ze-components",
+    "ze-seed",
     "asyncpg>=0.30",
     "fastapi>=0.115",
 ]
@@ -31,6 +32,7 @@ ze-sdk = { workspace = true }
 ze-news = { workspace = true }
 ze-automation = { workspace = true }
 ze-components = { workspace = true }
+ze-seed = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

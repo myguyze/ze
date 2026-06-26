@@ -438,7 +438,7 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 89 | Message Trace — per-message explainability; `trace` JSONB column on `messages`; `record_trace` graph node; `GET /api/v0/messages/{id}/trace`; collapsible "Why?" panel in chat UI | Pending |
 | 90 | Ze's Mind Split-Pane — real-time context sidebar in chat; `trace_update` WS frame emitted post-graph; 320 px resizable right panel showing routing/memory/tools for latest message | Done |
 | 91 | Goal Dashboard v2 — `GET /api/v0/goals/{id}` detail + `GET /api/v0/goals/{id}/traces`; milestone timeline, gate status, execution trace log, learnings sidebar at `/goals/:goalId` | Pending |
-| 92 | Agent Activity Heatmap — calendar heatmap of agent usage by day; `GET /api/v0/activity/heatmap` aggregates `messages.trace`; `/brain/activity` page using `@uiw/react-heat-map` | Pending |
+| 92 | Agent Activity Heatmap — calendar heatmap of agent usage by day; `GET /api/v0/activity/heatmap` aggregates `messages.trace`; `/brain/activity` page using `@uiw/react-heat-map` | Done |
 | 93 | Temporal Memory Timeline — `as_of` param on `GET /api/v0/memory/feed`; `GET /api/v0/memory/timeline-bounds`; date scrubber on Memory Feed page for time-travel memory view | Pending |
 | 94 | Memory Graph View — interactive entity/relationship graph; `GET /api/v0/memory/graph` + entity detail endpoint; `/brain/graph` page using React Flow + dagre layout; click-to-expand neighbourhoods | Pending |
 | 95 | Unified Streaming Architecture — switch `invoke_raw_turn` to `astream_events`; emit partial `trace_update` frames as graph nodes complete (routing → memory → tools → final); token streaming for messages already works; trace panel fills progressively | Pending |

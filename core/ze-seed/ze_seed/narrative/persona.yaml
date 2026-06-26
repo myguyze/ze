@@ -1,0 +1,210 @@
+persona:
+  name: Alex
+  communication_style: direct
+  timezone: Europe/Lisbon
+
+facts:
+  - id: "00000006-0001-4000-8000-000000000001"
+    predicate: job_title
+    value: Senior software engineer at a fintech startup in Lisbon
+    agent: companion
+    confidence: 0.95
+  - id: "00000006-0001-4000-8000-000000000002"
+    predicate: timezone
+    value: Europe/Lisbon (UTC+0/+1)
+    agent: companion
+    confidence: 1.0
+  - id: "00000006-0001-4000-8000-000000000003"
+    predicate: communication_preference
+    value: Prefers async communication over meetings; likes concise updates
+    agent: companion
+    confidence: 0.9
+  - id: "00000006-0001-4000-8000-000000000004"
+    predicate: learning_goal
+    value: Learning European Portuguese to reach B1 conversational level
+    agent: companion
+    confidence: 0.95
+  - id: "00000006-0001-4000-8000-000000000005"
+    predicate: language_study
+    value: Uses Duolingo daily and has weekly tutoring sessions with Ana
+    agent: companion
+    confidence: 0.85
+  - id: "00000006-0001-4000-8000-000000000006"
+    predicate: important_person
+    value: Sofia is Alex's partner; they live together in Lisbon
+    agent: companion
+    confidence: 0.9
+  - id: "00000006-0001-4000-8000-000000000007"
+    predicate: important_person
+    value: Marco is Alex's engineering manager at work
+    agent: companion
+    confidence: 0.9
+  - id: "00000006-0001-4000-8000-000000000008"
+    predicate: side_project
+    value: Building a personal finance tracker side project called LedgerLite
+    agent: research
+    confidence: 0.8
+  - id: "00000006-0001-4000-8000-000000000009"
+    predicate: sleep_goal
+    value: Wants to consistently sleep before midnight on weeknights
+    agent: companion
+    confidence: 0.75
+  - id: "00000006-0001-4000-8000-00000000000a"
+    predicate: calendar_preference
+    value: Blocks focus time 9-11am on weekdays for deep work
+    agent: calendar
+    confidence: 0.85
+  - id: "00000006-0001-4000-8000-00000000000b"
+    predicate: dietary_note
+    value: Vegetarian; avoids shellfish
+    agent: companion
+    confidence: 0.7
+  - id: "00000006-0001-4000-8000-00000000000c"
+    predicate: portuguese_progress
+    value: Completed A2 level; working on past tense and subjunctive mood
+    agent: companion
+    confidence: 0.88
+    source_episode_id: "00000007-0001-4000-8000-000000000001"
+
+episodes:
+  - id: "00000007-0001-4000-8000-000000000001"
+    agent: companion
+    prompt: How is my Portuguese coming along?
+    response: You finished A2 last month. Your tutor Ana says your past tense is solid but subjunctive needs work. Duolingo streak is 47 days.
+  - id: "00000007-0001-4000-8000-000000000002"
+    agent: calendar
+    prompt: What's on my calendar tomorrow?
+    response: You have standup at 10am, focus block 9-11am, and a tutoring session with Ana at 6pm.
+  - id: "00000007-0001-4000-8000-000000000003"
+    agent: research
+    prompt: Find good B1 Portuguese practice resources
+    response: Recommended Practice Portuguese podcast, LingQ intermediate stories, and italki conversation partners for European Portuguese.
+  - id: "00000007-0001-4000-8000-000000000004"
+    agent: companion
+    prompt: Remind me about Marco's feedback
+    response: Marco asked for the Q2 roadmap draft by Friday. He prefers a one-pager with milestones, not a slide deck.
+  - id: "00000007-0001-4000-8000-000000000005"
+    agent: companion
+    prompt: Help me plan my side project launch
+    response: LedgerLite MVP is feature-complete. Suggested launch steps — landing page, Product Hunt post, and sharing in indie hacker communities.
+  - id: "00000007-0001-4000-8000-000000000006"
+    agent: calendar
+    prompt: Set a reminder for dentist appointment prep
+    response: Added a reminder to gather insurance card and list of questions before the dentist visit next Tuesday.
+
+contacts:
+  - id: "00000009-0001-4000-8000-000000000001"
+    name: Marco Silva
+    classification: professional
+    relationship_to_user: Engineering manager
+    contact_info:
+      email: marco.silva@fintech.example
+    notes: Prefers async updates; weekly 1:1 on Thursdays
+    confirmed: true
+  - id: "00000009-0001-4000-8000-000000000002"
+    name: Ana Costa
+    classification: professional
+    relationship_to_user: Portuguese tutor
+    contact_info:
+      email: ana.costa@tutor.example
+    notes: Weekly tutoring sessions; European Portuguese focus
+    confirmed: true
+  - id: "00000009-0001-4000-8000-000000000003"
+    name: Sofia Mendes
+    classification: personal
+    relationship_to_user: Partner
+    contact_info:
+      phone: "+351912345678"
+    notes: Lives together in Lisbon
+    confirmed: true
+
+reminders:
+  - id: "0000000a-0001-4000-8000-000000000001"
+    label: Dentist appointment — bring insurance card
+    days_from_now: 5
+  - id: "0000000a-0001-4000-8000-000000000002"
+    label: Prep standup notes for Marco
+    days_from_now: 1
+
+messages:
+  - id: "00000008-0001-4000-8000-000000000001"
+    role: user
+    text: What's the status on my Portuguese goal?
+  - id: "00000008-0001-4000-8000-000000000002"
+    role: assistant
+    text: Your active goal "Reach B1 Portuguese" is progressing well. You've completed 2 of 4 milestones. Milestone 3 (weekly conversation practice) is in progress. There's a verification gate awaiting your approval after milestone 2.
+    trace:
+      agent: goals
+      routing_method: embedding
+      confidence: 0.92
+      score_gap: 0.15
+      is_compound: false
+      subtasks: [goals]
+      memory_chunks:
+        - text: Learning European Portuguese to reach B1 conversational level
+          score: 0.88
+          source: fact
+      tool_calls:
+        - name: list_goals
+          result_snippet: "1 active goal: Reach B1 Portuguese"
+          duration_ms: 45
+          success: true
+      total_duration_ms: 1200
+  - id: "00000008-0001-4000-8000-000000000003"
+    role: user
+    text: What do I have tomorrow?
+  - id: "00000008-0001-4000-8000-000000000004"
+    role: assistant
+    text: Tomorrow you have focus time 9-11am, standup at 10am, and Portuguese tutoring with Ana at 6pm. You also have a reminder to prep standup notes for Marco.
+    trace:
+      agent: calendar
+      routing_method: embedding
+      confidence: 0.89
+      score_gap: 0.12
+      is_compound: false
+      subtasks: [calendar]
+      memory_chunks:
+        - text: Blocks focus time 9-11am on weekdays for deep work
+          score: 0.82
+          source: fact
+      tool_calls:
+        - name: list_reminders
+          result_snippet: "Prep standup notes for Marco"
+          duration_ms: 32
+          success: true
+      total_duration_ms: 980
+  - id: "00000008-0001-4000-8000-000000000005"
+    role: user
+    text: Who is Ana?
+  - id: "00000008-0001-4000-8000-000000000006"
+    role: assistant
+    text: Ana Costa is your Portuguese tutor. You have weekly sessions focused on European Portuguese. She's helped you reach A2 and you're now working toward B1.
+    trace:
+      agent: companion
+      routing_method: embedding
+      confidence: 0.94
+      score_gap: 0.18
+      is_compound: false
+      subtasks: [companion]
+      memory_chunks:
+        - text: Uses Duolingo daily and has weekly tutoring sessions with Ana
+          score: 0.91
+          source: fact
+      tool_calls: []
+      total_duration_ms: 850
+  - id: "00000008-0001-4000-8000-000000000007"
+    role: user
+    text: Thanks, that's helpful
+  - id: "00000008-0001-4000-8000-000000000008"
+    role: assistant
+    text: You're welcome! Let me know if you want help with your Q2 roadmap draft for Marco or anything else on your goals.
+    trace:
+      agent: companion
+      routing_method: embedding
+      confidence: 0.87
+      score_gap: 0.10
+      is_compound: false
+      subtasks: [companion]
+      memory_chunks: []
+      tool_calls: []
+      total_duration_ms: 620
