@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from ze_communication.types import (
     ChannelType,
@@ -8,6 +11,9 @@ from ze_communication.types import (
     SentMessage,
     Thread,
 )
+
+if TYPE_CHECKING:
+    from ze_communication.webhook import WebhookVerifier
 
 
 class Channel(ABC):
@@ -43,6 +49,10 @@ class InboundChannel(Channel):
     @property
     def supports_push(self) -> bool:
         return False
+
+    def webhook_verifier(self) -> "WebhookVerifier | None":
+        """Return a verifier when supports_push is True, else None."""
+        return None
 
     @abstractmethod
     async def poll_new_messages(self, since: datetime) -> list[InboundMessage]: ...

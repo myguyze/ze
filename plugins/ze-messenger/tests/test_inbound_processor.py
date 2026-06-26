@@ -51,6 +51,7 @@ def _make_processor(
         signal_source=signal_source,
         embedder=embedder,
         automated_sender_patterns=automated_patterns or [],
+        llm_client=None,
     )
     return processor, memory, thread_map, signal_source
 
@@ -136,3 +137,45 @@ async def test_replied_to_writes_signal():
 
     memory.write_episode.assert_called_once()
     assert len(signals._buffer) == 1
+
+
+# ── _extract_facts ────────────────────────────────────────────────────────────
+
+async def test_extract_facts_calls_propose_facts():
+    from unittest.mock import patch
+    from ze_memory.types import Fact
+
+    known = MagicMock()
+    known.name = "Alice"
+    processor, memory, _, _ = _make_processor(contact=known)
+
+    llm = AsyncMock()
+    llm.complete = AsyncMock(return_value='[{"predicate": "name", "value": "Alice", "confidence": 0.9}]')
+    processor._llm_client = llm
+
+    await processor._extract_facts(_msg())
+
+    memory.propose_facts.assert_called_once()
+    facts = memory.propose_facts.call_args[0][0]
+    assert len(facts) == 1
+    assert facts[0].value == "Alice"
+
+
+async def test_extract_facts_no_llm_client_is_noop():
+    processor, memory, _, _ = _make_processor()
+    processor._llm_client = None
+    await processor._extract_facts(_msg())
+    memory.propose_facts.assert_not_called()
+
+
+async def test_extract_facts_llm_error_is_swallowed():
+    known = MagicMock()
+    known.name = "Alice"
+    processor, memory, _, _ = _make_processor(contact=known)
+
+    llm = AsyncMock()
+    llm.complete = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
+    processor._llm_client = llm
+
+    await processor._extract_facts(_msg())  # must not raise
+    memory.propose_facts.assert_not_called()

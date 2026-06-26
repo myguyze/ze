@@ -22,8 +22,9 @@ log = structlog.get_logger(__name__)
 
 
 class GmailChannel(InboundChannel):
-    def __init__(self, credentials: GoogleCredentials) -> None:
+    def __init__(self, credentials: GoogleCredentials, public_url: str | None = None) -> None:
         self._creds = credentials
+        self._public_url = public_url
         self._user_email: str | None = None
 
     @property
@@ -41,7 +42,23 @@ class GmailChannel(InboundChannel):
 
     @property
     def supports_push(self) -> bool:
-        return False  # Phase 86 flips this to True and adds register_push()
+        return self._public_url is not None
+
+    def webhook_verifier(self):
+        if self._public_url is None:
+            return None
+        from ze_google.webhook import GmailWebhookVerifier
+        return GmailWebhookVerifier(self._creds, self._public_url)
+
+    async def register_push(self, topic_name: str) -> None:
+        """One-time call to activate Gmail watch via Pub/Sub. Expires after 7 days."""
+        service = self._creds.gmail()
+        await asyncio.to_thread(
+            lambda: service.users().watch(
+                userId="me",
+                body={"topicName": topic_name, "labelIds": ["INBOX"]},
+            ).execute()
+        )
 
     async def send(self, message: Message) -> SentMessage:
         try:

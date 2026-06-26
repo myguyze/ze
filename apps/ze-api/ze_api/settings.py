@@ -45,6 +45,12 @@ class ZeApiSettings(BaseSettings):
     # ── Agent harness ─────────────────────────────────────────────────────────
     max_tool_calls_per_turn: int = 20
 
+    # ── Public URL (used for webhook registration) ────────────────────────────
+    public_url: str = ""
+
+    # ── Gmail push (Pub/Sub topic for push notifications) ─────────────────────
+    gmail_pubsub_topic: str = ""
+
     # ── Ntfy push notifications ───────────────────────────────────────────────
     ntfy_base_url: str = "https://ntfy.sh"
     ntfy_topic: str = ""

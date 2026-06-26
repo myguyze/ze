@@ -125,6 +125,14 @@ class ZePlugin(ABC):
         """
         return []
 
+    def webhook_handlers(self) -> list:
+        """Return WebhookHandler instances this plugin provides.
+
+        Collected by WebhookDispatcher at startup; duplicate ``source_key`` values
+        across plugins raise ``AgentConfigError``.  Default: none.
+        """
+        return []
+
     def channels(self) -> list[Any]:
         """Return communication channel instances this plugin provides."""
         return []

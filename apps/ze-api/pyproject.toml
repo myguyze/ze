@@ -41,6 +41,7 @@ dependencies = [
     "websockets>=13.0",
     "sqlalchemy>=2.0",             # alembic dependency; not used for ORM
     "openrouter>=0.9.1",
+    "cachetools>=5.0",
 ]
 
 [dependency-groups]

@@ -9,6 +9,7 @@ from ze_communication.types import (
     Thread,
     ThreadMessage,
 )
+from ze_communication.webhook import WebhookPayload, WebhookVerifier
 from ze_agents.errors import ChannelSendError
 
 __all__ = [
@@ -23,4 +24,6 @@ __all__ = [
     "SentMessage",
     "Thread",
     "ThreadMessage",
+    "WebhookPayload",
+    "WebhookVerifier",
 ]

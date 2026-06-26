@@ -10,6 +10,7 @@ from ze_logging import get_logger
 from ze_memory.store import MemoryStore
 
 if TYPE_CHECKING:
+    from ze_agents.client import LLMClient
     from ze_personal.channels.thread_channel_map import ThreadChannelMap
     from ze_personal.contacts.channel_store import ContactChannelStore
     from ze_proactive.notifier import ProactiveNotifier
@@ -82,6 +83,7 @@ class InboundMessageProcessor:
         signal_source: MessagingSignalSource,
         embedder: Any,
         automated_sender_patterns: list[str],
+        llm_client: LLMClient | None = None,
     ) -> None:
         self._memory = memory_store
         self._contacts = contact_channel_store
@@ -90,12 +92,13 @@ class InboundMessageProcessor:
         self._signals = signal_source
         self._embedder = embedder
         self._automated_patterns = automated_sender_patterns
+        self._llm_client = llm_client
 
-    async def process(self, msg: InboundMessage, channel_id: str) -> None:
+    async def process(self, msg: InboundMessage, channel_id: str) -> SenderClass:
         sender_class = await self._classify(msg)
 
         if sender_class == SenderClass.AUTOMATED:
-            return
+            return sender_class
 
         if msg.thread_id:
             await self._thread_map.set(msg.thread_id, channel_id)
@@ -134,6 +137,8 @@ class InboundMessageProcessor:
         if significant:
             asyncio.create_task(self._extract_facts(msg))
 
+        return sender_class
+
     async def _classify(self, msg: InboundMessage) -> SenderClass:
         if _is_automated(msg.sender, msg.headers, self._automated_patterns):
             return SenderClass.AUTOMATED
@@ -148,6 +153,22 @@ class InboundMessageProcessor:
         return SenderClass.UNKNOWN_HUMAN
 
     async def _extract_facts(self, msg: InboundMessage) -> None:
-        # Non-blocking async fact pass — episode is already written.
-        # Minimal implementation: no LLM pass yet; extend in a later iteration.
-        pass
+        if self._llm_client is None:
+            return
+        from ze_memory.extractor import extract_facts, fact_extraction_model
+
+        prompt = (
+            f"[Inbound {msg.channel_type} from {msg.sender}]"
+            + (f" Subject: {msg.subject}" if msg.subject else "")
+        )
+        try:
+            facts = await extract_facts(
+                self._llm_client,
+                prompt=prompt,
+                response=msg.body,
+                model=fact_extraction_model(),
+            )
+            if facts:
+                await self._memory.propose_facts(facts)
+        except Exception as exc:
+            log.warning("inbound_fact_extraction_failed", message_id=msg.message_id, error=str(exc))

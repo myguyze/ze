@@ -61,6 +61,7 @@ from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.compose import register_all_proactive_jobs
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_api.interface.native import NativeAppInterface
+from ze_api.webhook import EventDeduplicator, WebhookDispatcher, collect_plugin_webhook_handlers
 from ze_logging import get_logger
 from ze_api.settings import Settings, get_settings
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
@@ -96,6 +97,7 @@ class ZeContainer(CoreContainer):
     ingestion_pipeline: Any
     dream_store: Any
     channel_registry: ChannelRegistry | None
+    webhook_dispatcher: Any | None
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -303,6 +305,16 @@ async def build_container(settings: Settings) -> ZeContainer:
     channel_registry = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])
     log.info("channel_registry_built", channels=list(channel_registry.available()))
 
+    plugin_webhook_handlers = collect_plugin_webhook_handlers(plugins)
+    webhook_dispatcher = WebhookDispatcher(
+        channel_registry=channel_registry,
+        plugin_handlers=plugin_webhook_handlers,
+        container=None,  # back-filled after container construction
+        deduplicator=EventDeduplicator(),
+    )
+    if plugin_webhook_handlers:
+        log.info("webhook_handlers_registered", keys=list(plugin_webhook_handlers))
+
     agent_deps: dict[type, Any] = dict(dep_map)
     agent_deps[ChannelRegistry] = channel_registry
     for plugin in plugins:
@@ -367,7 +379,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         data_portability_service=data_portability_service,
         ingestion_pipeline=ingestion.pipeline,
         channel_registry=channel_registry,
+        webhook_dispatcher=webhook_dispatcher,
     )
+
+    webhook_dispatcher._container = container
 
     for plugin in plugins:
         try:

@@ -36,8 +36,10 @@ class MessengerPlugin(ZePlugin):
         settings: Settings,
         google_credentials: GoogleCredentials | None = None,
         embedder: Any = None,
+        public_url: str = "",
     ) -> None:
         self._google_credentials = google_credentials
+        self._public_url = public_url or ""
         self._memory_store = memory_store
         self._contact_channel_store = contact_channel_store
         self._user_channel_store = user_channel_store
@@ -51,12 +53,16 @@ class MessengerPlugin(ZePlugin):
         from ze_messenger.signals import MessagingSignalSource
         self._signal_source = MessagingSignalSource()
         self._polling_job: Any = None
+        self._gmail_channel: Any = None
 
     def channels(self) -> list:
         if self._google_credentials is None:
             return []
+        import os
         from ze_google.gmail_channel import GmailChannel
-        return [GmailChannel(credentials=self._google_credentials)]
+        public_url = self._public_url or os.environ.get("PUBLIC_URL", "") or None
+        self._gmail_channel = GmailChannel(credentials=self._google_credentials, public_url=public_url)
+        return [self._gmail_channel]
 
     def memory_policies(self) -> dict:
         from ze_memory.policies import EmailPolicy
@@ -105,7 +111,11 @@ class MessengerPlugin(ZePlugin):
             signal_source=self._signal_source,
             embedder=self._embedder,
             automated_sender_patterns=automated_patterns,
+            llm_client=self._llm_client,
         )
+
+        # Expose processor on container so WebhookDispatcher._trigger_messenger can use it.
+        container._webhook_processor = processor
 
         channel_registry = getattr(container, "channel_registry", None)
         if channel_registry is not None:
@@ -126,13 +136,21 @@ class MessengerPlugin(ZePlugin):
         *,
         consolidation_enabled: bool = True,
     ) -> None:
-        if self._polling_job is None:
-            return
+        import os
 
-        proactive_cfg = settings.config.get("proactive", {})
-        poll_seconds = proactive_cfg.get("inbound_poll_interval_seconds", 300)
-        poll_minutes = max(1, poll_seconds // 60)
-        cron = f"*/{poll_minutes} * * * *"
+        if self._polling_job is not None:
+            proactive_cfg = settings.config.get("proactive", {})
+            poll_seconds = proactive_cfg.get("inbound_poll_interval_seconds", 300)
+            poll_minutes = max(1, poll_seconds // 60)
+            cron = f"*/{poll_minutes} * * * *"
+            scheduler.register(self._polling_job, cron=cron)
+            log.info("inbound_poll_scheduled", cron=cron)
 
-        scheduler.register(self._polling_job, cron=cron)
-        log.info("inbound_poll_scheduled", cron=cron)
+        if self._gmail_channel is not None and self._gmail_channel.supports_push:
+            from ze_api.settings import get_settings as get_api_settings
+            from ze_messenger.jobs.gmail_watch_renewal import GmailWatchRenewalJob
+            topic = get_api_settings().gmail_pubsub_topic or os.environ.get("GMAIL_PUBSUB_TOPIC", "")
+            if topic:
+                renewal_job = GmailWatchRenewalJob(channel=self._gmail_channel, topic_name=topic)
+                scheduler.register(renewal_job, cron="0 0 * * 0")  # weekly on Sunday midnight
+                log.info("gmail_watch_renewal_scheduled")
