@@ -359,6 +359,10 @@ async def build_container(settings: Settings) -> ZeContainer:
     data_portability_service = DataPortabilityService(pool=pool, domains=all_domains)
     log.info("data_portability_service_ready", domains=len(all_domains))
 
+    from ze_memory.dream.store import PostgresDreamStore
+
+    dream_store = PostgresDreamStore(pool=pool)
+
     container = ZeContainer(
         settings=settings,
         pool=pool,
@@ -393,6 +397,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         _push_log_store=push_log_store,
         data_portability_service=data_portability_service,
         ingestion_pipeline=ingestion.pipeline,
+        dream_store=dream_store,
         channel_registry=channel_registry,
         webhook_dispatcher=webhook_dispatcher,
         ui_manifest=ui_manifest,
@@ -423,10 +428,8 @@ async def build_container(settings: Settings) -> ZeContainer:
         workflow_graph_builder=build_workflow_graph,
     )
 
-    from ze_memory.dream.store import PostgresDreamStore
     from ze_memory.dream.job import DreamJob
 
-    dream_store = PostgresDreamStore(pool=pool)
     dream_job = DreamJob(
         pool=pool,
         embedder=shared.embedder,
@@ -437,8 +440,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         settings=settings,
         notifier=notifier,
     )
-
-    container.dream_store = dream_store
 
     register_all_proactive_jobs(
         container.proactive_scheduler,

@@ -32,6 +32,7 @@ from ze_memory.consolidation_store import PostgresConsolidationStore
 from ze_memory.consolidator import MemoryConsolidator
 from ze_memory.graph import PostgresGraphStore
 from ze_memory.retriever import PostgresMemoryStore
+from ze_memory.store import MemoryStore
 from ze_memory.session_summary import SessionSummariser
 
 log = get_logger(__name__)
@@ -112,6 +113,7 @@ async def build_engine_stack(
         LLMClient: openrouter_client,
         NLIClient: nli_client,
         LocalNLIClient: nli_client,
+        MemoryStore: memory_store,
         PostgresMemoryStore: memory_store,
     }
 

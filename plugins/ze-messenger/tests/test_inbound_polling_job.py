@@ -151,3 +151,19 @@ async def test_poll_error_on_channel_does_not_crash_job():
     await job.run()  # must not raise
 
     proc.process.assert_not_called()
+
+
+async def test_resolve_user_email_error_does_not_crash_job():
+    from google.auth.exceptions import RefreshError
+
+    channel = _make_channel()
+    channel._resolve_user_email = AsyncMock(
+        side_effect=RefreshError("invalid_grant: Bad Request")
+    )
+    uc = _user_channel(channel.channel_id)
+    job, _, _, proc = _make_job(channels=[channel], user_channels=[uc])
+
+    await job.run()  # must not raise
+
+    channel.poll_new_messages.assert_not_called()
+    proc.process.assert_not_called()

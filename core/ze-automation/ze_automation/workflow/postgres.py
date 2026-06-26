@@ -16,7 +16,24 @@ def _step_to_dict(step: WorkflowStep) -> dict:
     return {"task": step.task, "agent_hint": step.agent_hint, "verify": step.verify, "intent": step.intent}
 
 
-def _step_from_dict(d: dict) -> WorkflowStep:
+def _coerce_jsonb_list(value: object) -> list:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        parsed = json.loads(value)
+        if isinstance(parsed, str):
+            parsed = json.loads(parsed)
+        if isinstance(parsed, list):
+            return parsed
+        return [parsed]
+    if isinstance(value, list):
+        return value
+    return list(value)
+
+
+def _step_from_dict(d: dict | str) -> WorkflowStep:
+    if isinstance(d, str):
+        d = json.loads(d)
     return WorkflowStep(
         task=d["task"],
         agent_hint=d.get("agent_hint"),
@@ -36,7 +53,9 @@ def _step_result_to_dict(r: StepResult) -> dict:
     }
 
 
-def _step_result_from_dict(d: dict) -> StepResult:
+def _step_result_from_dict(d: dict | str) -> StepResult:
+    if isinstance(d, str):
+        d = json.loads(d)
     return StepResult(
         step_index=d["step_index"],
         task=d["task"],
@@ -52,7 +71,7 @@ def _row_to_workflow(row) -> Workflow:
         id=row["id"],
         name=row["name"],
         description=row["description"],
-        steps=[_step_from_dict(s) for s in row["steps"]],
+        steps=[_step_from_dict(s) for s in _coerce_jsonb_list(row["steps"])],
         schedule=row["schedule"],
         enabled=row["enabled"],
         last_run_at=row["last_run_at"],
@@ -76,7 +95,7 @@ class PostgresWorkflowStore:
                 """,
                 workflow.name,
                 workflow.description,
-                json.dumps([_step_to_dict(s) for s in workflow.steps]),
+                [_step_to_dict(s) for s in workflow.steps],
                 workflow.schedule,
                 workflow.enabled,
                 workflow.next_run_at,
@@ -179,7 +198,7 @@ class PostgresWorkflowStore:
                 SET step_results = step_results || $1::jsonb
                 WHERE id = $2
                 """,
-                json.dumps([_step_result_to_dict(result)]),
+                [_step_result_to_dict(result)],
                 execution_id,
             )
 
@@ -215,7 +234,7 @@ class PostgresWorkflowStore:
                 id=r["id"],
                 workflow_id=r["workflow_id"],
                 status=r["status"],
-                step_results=[_step_result_from_dict(d) for d in (r["step_results"] or [])],
+                step_results=[_step_result_from_dict(d) for d in _coerce_jsonb_list(r["step_results"])],
                 error=r["error"],
                 started_at=r["started_at"],
                 completed_at=r["completed_at"],

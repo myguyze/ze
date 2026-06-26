@@ -38,15 +38,17 @@ class InboundPollingJob:
             await self._poll(channel)
 
     async def _poll(self, channel: object) -> None:
-        # Force channel_id resolution (GmailChannel lazy-resolves email address)
-        if hasattr(channel, "_resolve_user_email"):
-            await channel._resolve_user_email()
-
-        since = await self._watermarks.get(channel.channel_id)
         try:
+            if hasattr(channel, "_resolve_user_email"):
+                await channel._resolve_user_email()
+            since = await self._watermarks.get(channel.channel_id)
             messages = await channel.poll_new_messages(since=since)
-        except Exception:
-            _log.warning("inbound_poll_failed", channel_id=channel.channel_id)
+        except Exception as exc:
+            _log.warning(
+                "inbound_poll_failed",
+                channel_id=channel.channel_id,
+                error=str(exc),
+            )
             return
 
         if not messages:
