@@ -2,6 +2,7 @@ import type { UiManifest } from "@/entities/ui-manifest";
 
 export const queryKeys = {
   goals: ["goals"] as const,
+  workflows: ["workflows"] as const,
   costs: ["costs"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
@@ -11,6 +12,7 @@ export const queryKeys = {
 
 const CORE_REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
   goals: queryKeys.goals,
+  workflows: queryKeys.workflows,
   costs: queryKeys.costs,
 };
 

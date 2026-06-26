@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ze_api.api.dependencies import get_workflow_store, require_api_key
 from ze_api.api.schemas import (
@@ -78,9 +78,12 @@ async def list_workflow_executions(
 )
 async def trigger_workflow(
     workflow_id: UUID,
+    request: Request,
     store: WorkflowStore = Depends(get_workflow_store),
 ) -> dict:
     wf = await workflow_rest.get_workflow(store, workflow_id)
     if wf is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
+    scheduler = request.app.state.container.workflow_scheduler
+    await scheduler.trigger_now(workflow_id)
     return {"status": "triggered", "workflow_id": str(workflow_id)}
