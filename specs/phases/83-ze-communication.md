@@ -1,6 +1,6 @@
 # Phase 83 — ze-communication + ze-messenger
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 82 (ze-web FSD) — no hard dep, can run in parallel
 **Packages touched:** `core/ze-communication` (new), `core/ze-plugin`, `core/ze-sdk`, `integrations/ze-google`, `plugins/ze-email` → renamed `plugins/ze-messenger`, `apps/ze-api`
 

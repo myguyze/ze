@@ -1,7 +1,7 @@
-# Phase 84 — Webhook Infrastructure
+# Phase 86 — Webhook Infrastructure
 
 **Status:** Pending
-**Depends on:** Phase 83 (ze-communication + ze-messenger)
+**Depends on:** Phase 85 (Ze Messaging Hub)
 **Packages touched:** `core/ze-communication`, `apps/ze-api`, `integrations/ze-google`
 
 ---
