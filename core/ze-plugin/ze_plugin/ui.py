@@ -4,12 +4,16 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ze_agents.errors import AgentConfigError
+from ze_logging import get_logger
+
+log = get_logger(__name__)
 
 __all__ = [
     "CORE_RESERVED_NAV_PATHS",
     "UiContribution",
     "UiManifest",
     "collect_ui_contributions",
+    "filter_ui_manifest_by_openapi",
 ]
 
 CORE_RESERVED_NAV_PATHS = frozenset(
@@ -83,4 +87,58 @@ def collect_ui_contributions(plugins: list) -> UiManifest:
     return UiManifest(
         nav=tuple(sorted(nav, key=_sort_key)),
         settings_sections=tuple(sorted(settings_sections, key=_sort_key)),
+    )
+
+
+def filter_ui_manifest_by_openapi(
+    manifest: UiManifest,
+    operation_ids: frozenset[str],
+) -> UiManifest:
+    """Drop manifest entries whose operation IDs are missing from OpenAPI."""
+
+    def _valid_nav(item: UiContribution) -> bool:
+        op = item.page_operation_id
+        if op is None:
+            log.warning(
+                "ui_manifest_nav_missing_operation_id",
+                contribution_id=item.id,
+                plugin=item.plugin,
+            )
+            return False
+        if op not in operation_ids:
+            log.warning(
+                "ui_manifest_unknown_operation_id",
+                contribution_id=item.id,
+                plugin=item.plugin,
+                operation_id=op,
+                kind="nav",
+            )
+            return False
+        return True
+
+    def _valid_settings(item: UiContribution) -> bool:
+        op = item.settings_operation_id
+        if op is None:
+            log.warning(
+                "ui_manifest_settings_missing_operation_id",
+                contribution_id=item.id,
+                plugin=item.plugin,
+            )
+            return False
+        if op not in operation_ids:
+            log.warning(
+                "ui_manifest_unknown_operation_id",
+                contribution_id=item.id,
+                plugin=item.plugin,
+                operation_id=op,
+                kind="settings_section",
+            )
+            return False
+        return True
+
+    return UiManifest(
+        nav=tuple(item for item in manifest.nav if _valid_nav(item)),
+        settings_sections=tuple(
+            item for item in manifest.settings_sections if _valid_settings(item)
+        ),
     )

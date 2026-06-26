@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from ze_agents.errors import AgentConfigError
-from ze_plugin.ui import UiContribution, collect_ui_contributions
+from ze_plugin.ui import UiContribution, collect_ui_contributions, filter_ui_manifest_by_openapi
 
 
 def _nav(
@@ -99,3 +99,42 @@ def test_orders_by_priority_then_label():
         ]
     )
     assert [item.path for item in manifest.nav] == ["alpha", "beta"]
+
+
+def test_filter_ui_manifest_keeps_valid_entries():
+    manifest = collect_ui_contributions([_plugin(_nav(), _settings())])
+    operation_ids = frozenset({"getFinancePage", "getNewsSettings"})
+
+    filtered = filter_ui_manifest_by_openapi(manifest, operation_ids)
+
+    assert len(filtered.nav) == 1
+    assert len(filtered.settings_sections) == 1
+
+
+def test_filter_ui_manifest_drops_unknown_nav_operation_id():
+    manifest = collect_ui_contributions([_plugin(_nav())])
+    filtered = filter_ui_manifest_by_openapi(manifest, frozenset())
+
+    assert filtered.nav == ()
+
+
+def test_filter_ui_manifest_drops_unknown_settings_operation_id():
+    manifest = collect_ui_contributions([_plugin(_settings())])
+    filtered = filter_ui_manifest_by_openapi(manifest, frozenset())
+
+    assert filtered.settings_sections == ()
+
+
+def test_filter_ui_manifest_drops_nav_without_page_operation_id():
+    contribution = UiContribution(
+        id="ze_bad.nav",
+        plugin="ze_bad",
+        kind="nav",
+        label="Bad",
+        icon="circle",
+        path="bad",
+    )
+    manifest = collect_ui_contributions([_plugin(contribution)])
+    filtered = filter_ui_manifest_by_openapi(manifest, frozenset({"getAnything"}))
+
+    assert filtered.nav == ()

@@ -3,6 +3,7 @@ from ze_plugin.ui import (
     UiContribution,
     UiManifest,
     collect_ui_contributions,
+    filter_ui_manifest_by_openapi,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "UiContribution",
     "UiManifest",
     "collect_ui_contributions",
+    "filter_ui_manifest_by_openapi",
 ]
