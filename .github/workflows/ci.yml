@@ -54,7 +54,9 @@ jobs:
           uv run pytest apps/ze-api/tests -m 'not slow' -q
           uv run pytest core/ze-core/tests -m 'not slow' -q
           uv run pytest plugins/ze-personal/tests -m 'not slow' -q
-          uv run pytest plugins/ze-email/tests -m 'not slow' -q
+          uv run pytest core/ze-communication/tests -m 'not slow' -q
+          uv run pytest integrations/ze-google/tests -m 'not slow' -q
+          uv run pytest plugins/ze-messenger/tests -m 'not slow' -q
           uv run pytest plugins/ze-calendar/tests -m 'not slow' -q
           uv run pytest plugins/ze-news/tests -m 'not slow' -q
 

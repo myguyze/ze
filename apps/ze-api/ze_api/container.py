@@ -49,7 +49,7 @@ from ze_onboarding import (
 )
 from ze_personal.persona.postgres import PostgresPersonaStore
 from ze_plugin.bootstrap import discover_and_instantiate_plugins
-from ze_plugin.channels.registry import ChannelRegistry
+from ze_communication.registry import ChannelRegistry
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler

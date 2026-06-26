@@ -74,7 +74,8 @@ help:
 	@echo "    test-automation      Run ze-automation tests"
 	@echo "    test-trading212      Run ze-trading212 tests"
 	@echo "    test-personal        Run ze-personal tests"
-	@echo "    test-email           Run ze-email tests"
+	@echo "    test-communication   Run ze-communication tests"
+	@echo "    test-messenger       Run ze-messenger tests"
 	@echo "    test-calendar        Run ze-calendar tests"
 	@echo "    test-prospecting     Run ze-prospecting tests"
 	@echo "    test-news            Run ze-news tests"
@@ -230,6 +231,7 @@ pytest_pkg  = $(if $(SLOW),$(PYTEST_SLOW),$(PYTEST_FAST)) $(1)
 TEST_PY_PACKAGES := \
 	test-logging \
 	test-agents \
+	test-communication \
 	test-plugin \
 	test-sdk \
 	test-proactive \
@@ -246,15 +248,15 @@ TEST_PY_PACKAGES := \
 	test-automation \
 	test-core \
 	test-personal \
-	test-email \
+	test-messenger \
 	test-calendar \
 	test-prospecting \
 	test-news \
 	test-api
 
-.PHONY: test test-api test-core test-logging test-agents test-plugin test-sdk test-proactive \
+.PHONY: test test-api test-core test-logging test-agents test-communication test-plugin test-sdk test-proactive \
 	test-memory test-onboarding test-correlation test-browser test-notifications \
-	test-components test-eval test-google test-trading212 test-ingestion test-automation test-personal test-prospecting test-email \
+	test-components test-eval test-google test-trading212 test-ingestion test-automation test-personal test-prospecting test-messenger \
 	test-calendar test-news test-all test-web web-test
 
 test test-api:
@@ -317,8 +319,11 @@ test-personal:
 test-prospecting:
 	$(call pytest_pkg,plugins/ze-prospecting/tests)
 
-test-email:
-	$(call pytest_pkg,plugins/ze-email/tests)
+test-communication:
+	$(call pytest_pkg,core/ze-communication/tests)
+
+test-messenger:
+	$(call pytest_pkg,plugins/ze-messenger/tests)
 
 test-calendar:
 	$(call pytest_pkg,plugins/ze-calendar/tests)

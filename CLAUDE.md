@@ -33,9 +33,13 @@ ze/                           # monorepo root
 │   │       ├── registry.py   # @agent decorator + AgentRegistry
 │   │       ├── settings.py   # Settings dataclass
 │   │       └── tool.py       # @tool decorator, ToolAccess
-│   ├── ze-plugin/            # Plugin extension framework — ZePlugin ABC, channels, signals
+│   ├── ze-communication/     # Channel contract — types, outbound/inbound ABCs, registry
+│   │   └── ze_communication/
+│   │       ├── types.py      # ChannelType, ChannelHandle, Message, SentMessage, Thread, InboundMessage
+│   │       ├── channel.py    # Channel ABC (outbound), InboundChannel ABC
+│   │       └── registry.py   # ChannelRegistry
+│   ├── ze-plugin/            # Plugin extension framework — ZePlugin ABC, signals
 │   │   └── ze_plugin/
-│   │       ├── channels/     # Channel ABC, ChannelRegistry, types
 │   │       ├── integration.py# ZeIntegration protocol
 │   │       ├── plugin.py     # ZePlugin ABC + DataDomain
 │   │       ├── registry.py   # plugin registry (_registry, get_plugin_registry)
@@ -68,11 +72,10 @@ ze/                           # monorepo root
 │   │       ├── agents/       # research, companion agents (goal/workflow agents live in ze-automation)
 │   │       ├── jobs/         # briefing, insights, contacts jobs
 │   │       └── plugin.py     # PersonalPlugin(ZePlugin) — wires persona + contacts into graphs
-│   ├── ze-email/             # Gmail channel + email agent (ZePlugin)
-│   │   └── ze_email/
-│   │       ├── channel/      # GmailChannel
-│   │       ├── agents/email/ # EmailAgent + tools
-│   │       └── plugin.py     # EmailPlugin(ZePlugin)
+│   ├── ze-messenger/         # Cross-channel messenger agent (ZePlugin)
+│   │   └── ze_messenger/
+│   │       ├── agents/messenger/ # MessengerAgent + Gmail tools
+│   │       └── plugin.py     # MessengerPlugin(ZePlugin)
 │   ├── ze-calendar/          # Calendar, reminders, and timezone domain (ZePlugin)
 │   │   └── ze_calendar/
 │   │       ├── agents/       # CalendarAgent, RemindersAgent + tools
@@ -90,7 +93,7 @@ ze/                           # monorepo root
 │   ├── ze-finance/           # Finance domain (ZePlugin) — in progress
 │   └── ze-legal/             # Legal domain (ZePlugin) — in progress
 ├── integrations/             # External service wrappers — no Ze domain knowledge
-│   └── ze-google/            # Google OAuth2 credentials and service client factories
+│   └── ze-google/            # Google OAuth2 credentials, service client factories, GmailChannel
 ├── apps/                     # Deployment units
 │   ├── ze-api/               # HTTP/WebSocket API, wires all plugins
 │   │   ├── ze_api/
@@ -119,28 +122,29 @@ ze/                           # monorepo root
 ### Package dependency graph
 
 ```
-ze-browser      (no ze deps)             core/
-ze-logging      (no ze deps)             core/
-ze-agents     → ze-logging               core/
-ze-data         (no ze deps)             core/
-ze-plugin     → ze-agents, ze-data       core/
-ze-proactive  → ze-agents                core/
-ze-notifications(no ze deps)             core/
-ze-components   (no ze deps)             core/
-ze-memory     → ze-agents                core/
-ze-eval         (no ze deps — HTTP only) core/  ← eval infrastructure
-ze-automation → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflows; wired by ze-api directly
-ze-sdk        → ze-agents, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  core/  ← plugin entry point
-ze-core       → ze-agents, ze-plugin     core/  ← engine; never a plugin dep
-ze-google       (no ze deps)             integrations/
-ze-personal   → ze-sdk, ze-memory (read-only: ze_memory.dream.store for dream journal)   plugins/
-ze-email      → ze-sdk, ze-google, ze-personal             plugins/
-ze-prospecting→ ze-sdk, ze-browser, ze-personal            plugins/
-ze-calendar   → ze-sdk, ze-google, ze-personal             plugins/
-ze-news       → ze-sdk                   plugins/
-ze-api        → ze-core, ze-data, ze-logging, ze-sdk, ze-personal, ze-automation, ze-email, ze-prospecting,
-                  ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
-ze-web          (React — connects to ze-api over WebSocket, no Python deps)         apps/
+ze-browser        (no ze deps)             core/
+ze-logging        (no ze deps)             core/
+ze-agents       → ze-logging               core/
+ze-communication→ ze-agents                core/  ← channel types, ABCs, registry
+ze-data           (no ze deps)             core/
+ze-plugin       → ze-agents, ze-data       core/
+ze-proactive    → ze-agents                core/
+ze-notifications  (no ze deps)             core/
+ze-components     (no ze deps)             core/
+ze-memory       → ze-agents                core/
+ze-eval           (no ze deps — HTTP only) core/  ← eval infrastructure
+ze-automation   → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflows; wired by ze-api directly
+ze-sdk          → ze-agents, ze-communication, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  core/  ← plugin entry point
+ze-core         → ze-agents, ze-communication, ze-plugin  core/  ← engine; never a plugin dep
+ze-google       → ze-communication         integrations/  ← GmailChannel now lives here
+ze-personal     → ze-sdk, ze-memory (read-only: ze_memory.dream.store for dream journal)   plugins/
+ze-messenger    → ze-sdk, ze-google, ze-personal            plugins/
+ze-prospecting  → ze-sdk, ze-browser, ze-personal           plugins/
+ze-calendar     → ze-sdk, ze-google, ze-personal            plugins/
+ze-news         → ze-sdk                   plugins/
+ze-api          → ze-core, ze-data, ze-logging, ze-sdk, ze-personal, ze-automation, ze-messenger, ze-prospecting,
+                    ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
+ze-web            (React — connects to ze-api over WebSocket, no Python deps)         apps/
 ```
 
 ## Essential commands
@@ -271,7 +275,7 @@ Hot-reloaded on SIGHUP without restart.
 ## Adding a new agent
 
 1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`; see `specs/README.md` for the index).
-2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_email/agents/`,
+2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_messenger/agents/`,
    `ze_prospecting/agents/`, or `ze_calendar/agents/` — decorate with `@agent` from
    `ze_sdk`, subclass `BaseAgent` from `ze_sdk`.
    Put `description`, `model`, `intents`, `tools`, and `timeout` as class
@@ -408,3 +412,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 79 | NLI cross-encoder — contradiction detection, retrieval re-rank cache, correlation grounding (`ze_core/nli.py`) | Done |
 | 80 | NLI Client + plugin access — `NLIClient` Protocol, DI, shared `@tool`s | Done |
 | 81 | Plugin NLI adoption — news dedup, finance merchant merging | Pending |
+| 83 | ze-communication + ze-messenger — channel contract extracted to `core/ze-communication`; `GmailChannel` moved to `ze-google` as `InboundChannel`; `ze-email` renamed to `ze-messenger` | Done |
