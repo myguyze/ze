@@ -194,13 +194,6 @@ class ReminderListItem(BaseModel):
     fired: bool
 
 
-class ContactListItem(BaseModel):
-    id: UUIDType
-    name: str
-    email: str | None = None
-    notes: str | None = None
-
-
 class AgentCostBucket(BaseModel):
     usd: float
     tokens: int

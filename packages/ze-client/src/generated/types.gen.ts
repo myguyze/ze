@@ -1911,24 +1911,6 @@ export type ListRemindersResponses = {
 
 export type ListRemindersResponse = ListRemindersResponses[keyof ListRemindersResponses];
 
-export type ListContactsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v0/contacts';
-};
-
-export type ListContactsResponses = {
-    /**
-     * Response Listcontacts
-     *
-     * Successful Response
-     */
-    200: Array<ContactListItem>;
-};
-
-export type ListContactsResponse = ListContactsResponses[keyof ListContactsResponses];
-
 export type ListSessionsData = {
     body?: never;
     path?: never;
@@ -2520,3 +2502,37 @@ export type GetNewsSettingsResponses = {
 };
 
 export type GetNewsSettingsResponse = GetNewsSettingsResponses[keyof GetNewsSettingsResponses];
+
+export type ListContactsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/contacts';
+};
+
+export type ListContactsResponses = {
+    /**
+     * Response Listcontacts
+     *
+     * Successful Response
+     */
+    200: Array<ContactListItem>;
+};
+
+export type ListContactsResponse = ListContactsResponses[keyof ListContactsResponses];
+
+export type GetContactsPageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/contacts/page';
+};
+
+export type GetContactsPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: PluginPageResponse;
+};
+
+export type GetContactsPageResponse = GetContactsPageResponses[keyof GetContactsPageResponses];

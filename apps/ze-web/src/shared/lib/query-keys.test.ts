@@ -4,7 +4,10 @@ import { refreshKeysForScreen } from "@/shared/lib/query-keys";
 describe("refreshKeysForScreen", () => {
   it("returns query keys for known screens", () => {
     expect(refreshKeysForScreen("goals")).toEqual(["goals"]);
-    expect(refreshKeysForScreen("contacts")).toEqual(["contacts"]);
+    expect(refreshKeysForScreen("contacts")).toEqual([
+      "plugin-page",
+      "ze_personal.contacts.overview",
+    ]);
   });
 
   it("returns undefined for unknown screens", () => {

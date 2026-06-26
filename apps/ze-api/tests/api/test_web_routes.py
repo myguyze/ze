@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ze_api.api import dependencies
-from ze_api.api.routes import contacts, costs, goals, reminders
+from ze_api.api.routes import costs, goals, reminders
 
 
 @pytest.fixture
@@ -71,7 +71,6 @@ def client(container, mock_pool):
     app.state.container = container
     app.include_router(goals.router, prefix="/api/v0")
     app.include_router(reminders.router, prefix="/api/v0")
-    app.include_router(contacts.router, prefix="/api/v0")
     app.include_router(costs.router, prefix="/api/v0/costs")
 
     app.dependency_overrides[dependencies.get_pool] = lambda: pool
@@ -117,15 +116,6 @@ def test_list_reminders(client):
     assert len(data) == 1
     assert data[0]["label"] == "Call João"
     assert data[0]["fired"] is False
-
-
-def test_list_contacts(client):
-    resp = client.get("/api/v0/contacts")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["name"] == "Maria"
-    assert data[0]["email"] == "maria@example.com"
 
 
 def test_web_cost_summary(client):

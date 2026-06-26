@@ -1,9 +1,7 @@
 export const queryKeys = {
   goals: ["goals"] as const,
   reminders: ["reminders"] as const,
-  contacts: ["contacts"] as const,
   costs: ["costs"] as const,
-  news: ["news"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
   pluginPage: (path: string) => ["plugin-page", path] as const,
@@ -13,7 +11,7 @@ export const queryKeys = {
 const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
   goals: queryKeys.goals,
   reminders: queryKeys.reminders,
-  contacts: queryKeys.contacts,
+  contacts: queryKeys.pluginPage("ze_personal.contacts.overview"),
   costs: queryKeys.costs,
 };
 

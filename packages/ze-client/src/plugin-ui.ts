@@ -1,4 +1,5 @@
 import {
+  getContactsPage,
   getNewsPage,
   getNewsSettings,
   type PluginPageResponse,
@@ -8,6 +9,13 @@ import {
 type PageLoader = () => Promise<PluginPageResponse>;
 
 const PAGE_LOADERS: Record<string, PageLoader> = {
+  getContactsPage: async () => {
+    const { data, error } = await getContactsPage();
+    if (error || !data) {
+      throw new Error("Failed to load plugin page");
+    }
+    return data;
+  },
   getNewsPage: async () => {
     const { data, error } = await getNewsPage();
     if (error || !data) {

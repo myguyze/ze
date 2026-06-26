@@ -8,6 +8,7 @@ def test_collect_static_plugin_routers_includes_news():
     paths = [route.path for router in routers for route in router.routes]
     assert "/api/v0/news/page" in paths
     assert "/api/v0/news/settings" in paths
+    assert "/api/v0/contacts/page" in paths
 
 
 def test_export_openapi_includes_ui_manifest():

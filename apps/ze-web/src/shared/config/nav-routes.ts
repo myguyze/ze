@@ -3,7 +3,6 @@ import {
   MessageCircle,
   Target,
   Bell,
-  Users,
   BarChart2,
   Settings,
 } from "lucide-react";
@@ -21,7 +20,6 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "/", label: "Chat", icon: MessageCircle, index: true, showInMobileNav: true },
   { path: "goals", label: "Goals", icon: Target, showInMobileNav: true },
   { path: "reminders", label: "Reminders", icon: Bell, showInMobileNav: true },
-  { path: "contacts", label: "Contacts", icon: Users, showInMobileNav: true },
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
 ];
 
