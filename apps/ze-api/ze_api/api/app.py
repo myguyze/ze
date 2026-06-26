@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     app.state.container = container
     mount_plugin_routers(app, container.plugins)
 
-    log.info("ze_startup_complete")
+    log.info("ze_startup_complete", plugins=len(container.plugins))
     yield
 
     log.info("ze_shutdown")

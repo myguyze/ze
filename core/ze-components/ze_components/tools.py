@@ -23,6 +23,9 @@ from ze_components.patterns.review import review
 from ze_components.patterns.timeline import timeline
 from ze_components.schema import build_render_schema
 from ze_agents.tool import ToolAccess, ToolSpec, _tools
+from ze_logging import get_logger
+
+log = get_logger(__name__)
 
 
 # ── Private schema dataclasses (LLM-facing input contracts only) ───────────────
@@ -381,3 +384,10 @@ async def render_connections(
     title: str | None = None,
 ) -> Connections:
     return connections_list([_coerce_dict(c) for c in connections], title)
+
+
+_RENDER_TOOL_NAMES = tuple(
+    sorted(name for name in _tools if name.startswith("render_"))
+)
+if _RENDER_TOOL_NAMES:
+    log.info("render_tools_registered", tools=list(_RENDER_TOOL_NAMES))

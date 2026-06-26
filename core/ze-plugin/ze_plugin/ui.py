@@ -52,7 +52,23 @@ def collect_ui_contributions(plugins: list) -> UiManifest:
 
     for plugin in plugins:
         plugin_name = type(plugin).__name__
-        for contribution in plugin.ui_contributions():
+        contributions = list(plugin.ui_contributions())
+        if contributions:
+            log.info(
+                "plugin_ui_contributions_registered",
+                plugin=plugin_name,
+                nav=[
+                    contribution.id
+                    for contribution in contributions
+                    if contribution.kind == "nav"
+                ],
+                settings=[
+                    contribution.id
+                    for contribution in contributions
+                    if contribution.kind == "settings_section"
+                ],
+            )
+        for contribution in contributions:
             if contribution.id in seen_ids:
                 raise AgentConfigError(
                     f"Duplicate UI contribution id {contribution.id!r} "
@@ -95,6 +111,8 @@ def filter_ui_manifest_by_openapi(
     operation_ids: frozenset[str],
 ) -> UiManifest:
     """Drop manifest entries whose operation IDs are missing from OpenAPI."""
+    dropped_nav: list[str] = []
+    dropped_settings: list[str] = []
 
     def _valid_nav(item: UiContribution) -> bool:
         op = item.page_operation_id
@@ -104,6 +122,7 @@ def filter_ui_manifest_by_openapi(
                 contribution_id=item.id,
                 plugin=item.plugin,
             )
+            dropped_nav.append(item.id)
             return False
         if op not in operation_ids:
             log.warning(
@@ -113,6 +132,7 @@ def filter_ui_manifest_by_openapi(
                 operation_id=op,
                 kind="nav",
             )
+            dropped_nav.append(item.id)
             return False
         return True
 
@@ -124,6 +144,7 @@ def filter_ui_manifest_by_openapi(
                 contribution_id=item.id,
                 plugin=item.plugin,
             )
+            dropped_settings.append(item.id)
             return False
         if op not in operation_ids:
             log.warning(
@@ -133,12 +154,22 @@ def filter_ui_manifest_by_openapi(
                 operation_id=op,
                 kind="settings_section",
             )
+            dropped_settings.append(item.id)
             return False
         return True
 
-    return UiManifest(
+    filtered = UiManifest(
         nav=tuple(item for item in manifest.nav if _valid_nav(item)),
         settings_sections=tuple(
             item for item in manifest.settings_sections if _valid_settings(item)
         ),
     )
+    if dropped_nav or dropped_settings:
+        log.info(
+            "ui_manifest_filtered",
+            dropped_nav=dropped_nav,
+            dropped_settings=dropped_settings,
+            nav_remaining=len(filtered.nav),
+            settings_remaining=len(filtered.settings_sections),
+        )
+    return filtered

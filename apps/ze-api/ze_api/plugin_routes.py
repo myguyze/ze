@@ -10,6 +10,14 @@ log = get_logger(__name__)
 def mount_plugin_routers(app: FastAPI, plugins: list) -> None:
     for plugin in plugins:
         plugin_name = type(plugin).__name__
-        for router in plugin.rest_routes():
+        routers = plugin.rest_routes()
+        if not routers:
+            continue
+        log.info(
+            "plugin_rest_routes_registered",
+            plugin=plugin_name,
+            count=len(routers),
+            prefixes=[router.prefix or "/" for router in routers],
+        )
+        for router in routers:
             app.include_router(router)
-            log.info("plugin_router_mounted", plugin=plugin_name)

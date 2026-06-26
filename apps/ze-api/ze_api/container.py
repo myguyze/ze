@@ -336,12 +336,11 @@ async def build_container(settings: Settings) -> ZeContainer:
         ui_manifest,
         collect_openapi_operation_ids(),
     )
-    if ui_manifest.nav or ui_manifest.settings_sections:
-        log.info(
-            "ui_manifest_built",
-            nav=[item.id for item in ui_manifest.nav],
-            settings=[item.id for item in ui_manifest.settings_sections],
-        )
+    log.info(
+        "ui_manifest_built",
+        nav=[item.id for item in ui_manifest.nav],
+        settings=[item.id for item in ui_manifest.settings_sections],
+    )
 
     import_automation_agents()
     import_ingestion_agents()
@@ -457,5 +456,18 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     await automation.workflow_scheduler.start()
     await container.proactive_scheduler.start()
+
+    from ze_agents.registry import get_registered_agents
+
+    log.info(
+        "ze_container_ready",
+        plugins=[type(plugin).__name__ for plugin in plugins],
+        agents=sorted(get_registered_agents()),
+        channels=list(channel_registry.available()),
+        ui_nav=len(ui_manifest.nav),
+        ui_settings=len(ui_manifest.settings_sections),
+        signal_sources=sorted(signal_sources),
+        webhook_handlers=sorted(plugin_webhook_handlers),
+    )
 
     return container
