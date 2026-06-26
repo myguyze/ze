@@ -319,7 +319,7 @@ and runs them against a single `alembic_version` table.
 |---|---|---|
 | ze-core | `zc` | user_facts, episodes, user_profile, goals/milestones/gates, persona_state, capability_overrides, LangGraph checkpoints, messages, sessions, pending_confirmations |
 | ze-automation | `zc` (continues ze-core chain) | goal_execution_traces, goal_suggestions (stuck goals col, reuse hint col), workflows, accountability_anomalies |
-| ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted |
+| ze-personal | `zc` (continues ze-automation chain) | contacts, contact_channels, insights, episodes.contacts_extracted, user_channels, user_channel_watermarks, thread_channel_map |
 | ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries, memory_retrieval_cache |
 | ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
 | ze-correlation | `zcor` | correlation_hypothesis |
