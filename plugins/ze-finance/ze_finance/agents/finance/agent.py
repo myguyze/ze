@@ -7,7 +7,7 @@ import ze_finance.agents.finance.tools  # noqa: F401
 from ze_agents.base_agent import BaseAgent
 from ze_agents.client import LLMClient
 from ze_agents.registry import agent
-from ze_agents.types import AgentContext, AgentResult
+from ze_agents.types import AgentContext, AgentResult, Intent, Mode
 from ze_finance.recurring.store import RecurringStore
 from ze_finance.store import PortfolioStore, TransactionStore
 
@@ -33,14 +33,19 @@ that risk analysis will be available in a future update.
 @agent
 class FinanceAgent(BaseAgent):
     name = "finance"
-    description = "Answers questions about investment portfolio, positions, P&L, and spending"
+    description = """
+      Investment portfolio, positions, P&L, returns, spending, and bank transactions.
+      Use for: portfolio summary, positions, investments, P&L, returns, spending,
+      transactions, account balance, Trading212, "how much", "how is my portfolio",
+      "what did I spend", recurring expenses, and subscription tracking.
+    """
     # Pinned to Anthropic — financial data must not reach other providers.
     model = "anthropic/claude-haiku-4-5"
-    intents = [
-        "portfolio", "positions", "investments", "P&L", "returns",
-        "spending", "transactions", "balance", "Trading212",
-        "how much", "how is my", "what did I spend",
-    ]
+    intents = {
+        "read": Intent(Mode.AUTONOMOUS, "Retrieve portfolio, positions, spending, and transaction data."),
+        "confirm": Intent(Mode.CONFIRM, "Confirm or dismiss detected recurring expenses."),
+    }
+    default_mode = Mode.AUTONOMOUS
     tools = [
         "get_portfolio_summary",
         "get_positions",
