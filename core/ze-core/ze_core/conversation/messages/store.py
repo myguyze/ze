@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 import asyncpg
 
-from ze_core.conversation.messages.types import Message
+from ze_core.conversation.messages.types import Message, MessageTrace, MemoryChunkTrace, ToolCallTrace
 
 
 class MessageStore(Protocol):
@@ -16,6 +17,13 @@ class MessageStore(Protocol):
     async def list_by_thread(self, thread_id: str, limit: int = 200) -> list[Message]: ...
     async def mark_read(self, ids: list[UUID]) -> None: ...
     async def list_unread(self, thread_id: str | None = None) -> list[Message]: ...
+    async def save_trace(self, message_id: UUID, trace: MessageTrace) -> None: ...
+    async def get_trace(self, message_id: UUID) -> MessageTrace | None: ...
+    async def list_with_agent(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> list[tuple[UUID, str, datetime]]: ...
 
 
 class PostgresMessageStore:
@@ -100,6 +108,64 @@ class PostgresMessageStore:
                     """,
                 )
         return [_row_to_message(r) for r in rows]
+
+    async def save_trace(self, message_id: UUID, trace: MessageTrace) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE messages SET trace = $1::jsonb WHERE id = $2",
+                json.dumps(asdict(trace)),
+                message_id,
+            )
+
+    async def get_trace(self, message_id: UUID) -> MessageTrace | None:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT trace FROM messages WHERE id = $1", message_id
+            )
+        if row is None or row["trace"] is None:
+            return None
+        data = row["trace"]
+        if isinstance(data, str):
+            data = json.loads(data)
+        return _parse_trace(data)
+
+    async def list_with_agent(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> list[tuple[UUID, str, datetime]]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, trace->>'agent' AS agent, created_at
+                FROM messages
+                WHERE trace IS NOT NULL
+                  AND created_at >= $1
+                  AND created_at < $2
+                ORDER BY created_at ASC
+                """,
+                start,
+                end,
+            )
+        return [(r["id"], r["agent"], r["created_at"]) for r in rows]
+
+
+def _parse_trace(data: dict) -> MessageTrace:
+    return MessageTrace(
+        agent=data["agent"],
+        routing_method=data["routing_method"],
+        confidence=data["confidence"],
+        score_gap=data["score_gap"],
+        is_compound=data["is_compound"],
+        subtasks=data.get("subtasks", []),
+        memory_chunks=[
+            MemoryChunkTrace(**c) for c in data.get("memory_chunks", [])
+        ],
+        tool_calls=[
+            ToolCallTrace(**t) for t in data.get("tool_calls", [])
+        ],
+        total_duration_ms=data.get("total_duration_ms", 0),
+    )
 
 
 def _row_to_message(row: asyncpg.Record) -> Message:

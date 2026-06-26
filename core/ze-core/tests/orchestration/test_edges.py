@@ -125,9 +125,9 @@ def test_after_execute_tool_compound_also_goes_to_correlate():
 
 # ── after_correlate ───────────────────────────────────────────────────────────
 
-def test_after_correlate_single_goes_to_write_memory():
+def test_after_correlate_single_goes_to_record_trace():
     state = base_state(subtask_results=[])
-    assert after_correlate(state) == "write_memory"
+    assert after_correlate(state) == "record_trace"
 
 
 def test_after_correlate_compound_goes_to_synthesize():
@@ -140,9 +140,9 @@ def test_after_correlate_compound_goes_to_synthesize():
     assert after_correlate(state) == "synthesize"
 
 
-def test_after_correlate_compound_no_results_goes_to_write_memory():
+def test_after_correlate_compound_no_results_goes_to_record_trace():
     state = base_state(
         subtask_results=[],
         envelope=make_envelope(is_compound=True, agents=("research", "companion")),
     )
-    assert after_correlate(state) == "write_memory"
+    assert after_correlate(state) == "record_trace"

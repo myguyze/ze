@@ -52,6 +52,7 @@ def make_graph_input(
         "dynamic_plan_high_risk": [],
         "routing_hints": None,
         "correlations": [],
+        "message_trace": None,
     }
 
 

@@ -37,14 +37,14 @@ def after_correlate(state: AgentState) -> str:
     envelope = state.get("envelope")
     if envelope and envelope.is_compound and state.get("subtask_results"):
         return "synthesize"
-    return "write_memory"
+    return "record_trace"
 
 
 def after_await_confirmation(state: AgentState) -> str:
-    """Route to write_memory when the draft IS the final response (DRAFT_ONLY ceiling).
+    """Route to record_trace when the draft IS the final response (DRAFT_ONLY ceiling).
     Otherwise route to execute_tool to perform the approved action."""
     if state.get("final_response"):
-        return "write_memory"
+        return "record_trace"
     return "execute_tool"
 
 

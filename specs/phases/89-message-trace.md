@@ -1,6 +1,6 @@
 # Phase 89 — Message Trace ("Why did Ze do that?")
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 73 (API surface), Phase 82 (ze-web FSD), Phase 87 (Plugin UI)
 **Packages touched:** `core/ze-core`, `apps/ze-api`, `apps/ze-web`
 
@@ -35,15 +35,15 @@ Phase 90 (Ze's Mind Split-Pane), both of which aggregate or display this trace d
 
 | Feature | Status |
 |---------|--------|
-| `zc_trace` migration (add `trace` column to `messages`) | 🔲 Pending |
-| `MessageTrace` dataclass in `ze_core/conversation/messages/types.py` | 🔲 Pending |
-| Trace capture in `synthesize` node | 🔲 Pending |
-| `MessageStore.save_trace()` method | 🔲 Pending |
-| `GET /api/v0/messages/{message_id}/trace` route | 🔲 Pending |
-| Schema types in `schemas.py` | 🔲 Pending |
-| Codegen update | 🔲 Pending |
-| `MessageTracePanel` component | 🔲 Pending |
-| "Why?" hover button on AI messages | 🔲 Pending |
+| `zc_trace` migration (add `trace` column to `messages`) | ✅ Done |
+| `MessageTrace` dataclass in `ze_core/conversation/messages/types.py` | ✅ Done |
+| Trace capture in `synthesize` node | ✅ Done |
+| `MessageStore.save_trace()` method | ✅ Done |
+| `GET /api/v0/messages/{message_id}/trace` route | ✅ Done |
+| Schema types in `schemas.py` | ✅ Done |
+| Codegen update | ✅ Done |
+| `MessageTracePanel` component | ✅ Done |
+| "Why?" hover button on AI messages | ✅ Done |
 
 ---
 

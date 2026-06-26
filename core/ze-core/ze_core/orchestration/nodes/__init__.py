@@ -9,6 +9,7 @@ from ze_core.orchestration.nodes.execution import (
 from ze_core.orchestration.nodes.memory import synthesize, write_memory
 from ze_core.orchestration.nodes.preprocessing import preprocess
 from ze_core.orchestration.nodes.routing import decompose, embed_route, plan_sequential
+from ze_core.orchestration.nodes.trace import record_trace
 
 __all__ = [
     "await_confirmation",
@@ -21,6 +22,7 @@ __all__ = [
     "fetch_context",
     "plan_sequential",
     "preprocess",
+    "record_trace",
     "synthesize",
     "write_memory",
 ]

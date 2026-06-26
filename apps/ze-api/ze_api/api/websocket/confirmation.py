@@ -61,10 +61,12 @@ async def handle_confirm(
                     log.warning("ws_session_preview_update_failed", error=str(exc))
 
             components = outcome.final_state.get("components", [])
+            trace = outcome.final_state.get("message_trace")
             await container.interface.send_with_thread(
                 outcome.response,
                 thread_id=thread_id,
                 components=components or None,
+                trace=trace,
             )
         return None
 

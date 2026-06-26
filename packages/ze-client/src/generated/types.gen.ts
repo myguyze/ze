@@ -807,6 +807,24 @@ export type IngestResponse = {
 };
 
 /**
+ * MemoryChunkTraceResponse
+ */
+export type MemoryChunkTraceResponse = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Score
+     */
+    score: number;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
  * MemoryDigestResponse
  */
 export type MemoryDigestResponse = {
@@ -981,6 +999,48 @@ export type MessageSchema = {
 };
 
 /**
+ * MessageTraceResponse
+ */
+export type MessageTraceResponse = {
+    /**
+     * Agent
+     */
+    agent: string;
+    /**
+     * Routing Method
+     */
+    routing_method: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+    /**
+     * Score Gap
+     */
+    score_gap: number;
+    /**
+     * Is Compound
+     */
+    is_compound: boolean;
+    /**
+     * Subtasks
+     */
+    subtasks: Array<string>;
+    /**
+     * Memory Chunks
+     */
+    memory_chunks: Array<MemoryChunkTraceResponse>;
+    /**
+     * Tool Calls
+     */
+    tool_calls: Array<ToolCallTraceResponse>;
+    /**
+     * Total Duration Ms
+     */
+    total_duration_ms: number;
+};
+
+/**
  * PluginPageResponse
  */
 export type PluginPageResponse = {
@@ -1120,6 +1180,28 @@ export type StepResultResponse = {
      * Duration Ms
      */
     duration_ms: number;
+};
+
+/**
+ * ToolCallTraceResponse
+ */
+export type ToolCallTraceResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Result Snippet
+     */
+    result_snippet: string;
+    /**
+     * Duration Ms
+     */
+    duration_ms: number;
+    /**
+     * Success
+     */
+    success: boolean;
 };
 
 /**
@@ -2105,6 +2187,36 @@ export type ListMessagesResponses = {
 };
 
 export type ListMessagesResponse = ListMessagesResponses[keyof ListMessagesResponses];
+
+export type GetMessageTraceData = {
+    body?: never;
+    path: {
+        /**
+         * Message Id
+         */
+        message_id: string;
+    };
+    query?: never;
+    url: '/api/v0/messages/{message_id}/trace';
+};
+
+export type GetMessageTraceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMessageTraceError = GetMessageTraceErrors[keyof GetMessageTraceErrors];
+
+export type GetMessageTraceResponses = {
+    /**
+     * Successful Response
+     */
+    200: MessageTraceResponse;
+};
+
+export type GetMessageTraceResponse = GetMessageTraceResponses[keyof GetMessageTraceResponses];
 
 export type ExportDataData = {
     body?: never;

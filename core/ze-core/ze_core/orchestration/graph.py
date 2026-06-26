@@ -72,6 +72,7 @@ def graph_builder(
     builder.add_node("draft_response",     ov.get("draft_response",     nodes.draft_response))
     builder.add_node("await_confirmation", ov.get("await_confirmation", nodes.await_confirmation))
     builder.add_node("synthesize",         ov.get("synthesize",         nodes.synthesize))
+    builder.add_node("record_trace",       ov.get("record_trace",       nodes.record_trace))
     builder.add_node("write_memory",       ov.get("write_memory",       nodes.write_memory))
 
     builder.set_entry_point("preprocess")
@@ -98,15 +99,16 @@ def graph_builder(
     builder.add_conditional_edges(
         "correlate",
         after_correlate,
-        {"synthesize": "synthesize", "write_memory": "write_memory"},
+        {"synthesize": "synthesize", "record_trace": "record_trace"},
     )
     builder.add_edge("draft_response", "await_confirmation")
     builder.add_conditional_edges(
         "await_confirmation",
         after_await_confirmation,
-        {"execute_tool": "execute_tool", "write_memory": "write_memory"},
+        {"execute_tool": "execute_tool", "record_trace": "record_trace"},
     )
-    builder.add_edge("synthesize",         "write_memory")
+    builder.add_edge("synthesize",         "record_trace")
+    builder.add_edge("record_trace",       "write_memory")
     builder.add_edge("write_memory",       END)
 
     return builder

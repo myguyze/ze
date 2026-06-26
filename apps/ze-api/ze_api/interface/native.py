@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from uuid import uuid4
 
 from ze_agents.interface.types import Action, ConfirmationRequest, Notification, OutboundMessage
@@ -53,6 +53,7 @@ class NativeAppInterface:
         thread_id: str | None = None,
         components: list[dict] | None = None,
         ntfy_priority: int = 3,
+        trace: Any | None = None,
     ) -> None:
         msg = Message(
             id=uuid4(),
@@ -67,6 +68,12 @@ class NativeAppInterface:
             await self._store.save(msg)
         except Exception as exc:
             log.warning("native_interface_save_failed", error=str(exc))
+
+        if trace is not None:
+            try:
+                await self._store.save_trace(msg.id, trace)
+            except Exception as exc:
+                log.warning("native_interface_save_trace_failed", error=str(exc))
 
         await self._conn.push(msg)
 
@@ -88,9 +95,10 @@ class NativeAppInterface:
         text: str,
         thread_id: str | None,
         components: list[dict] | None = None,
+        trace: Any | None = None,
     ) -> None:
         """Called by the WS handler after graph invocation to attach the thread_id."""
-        await self._send_message(text, thread_id=thread_id, components=components)
+        await self._send_message(text, thread_id=thread_id, components=components, trace=trace)
 
     async def send_confirmation(self, request: ConfirmationRequest) -> None:
         """Deliver a confirmation UI frame over WebSocket (and ntfy if backgrounded)."""

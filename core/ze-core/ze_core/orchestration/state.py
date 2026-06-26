@@ -58,6 +58,9 @@ class AgentState(TypedDict):
     # ── Routing context (populated by pre-route plugin nodes) ────────────────
     routing_hints: str | None            # injected by inject_goal_routing_context
 
+    # ── Trace (Phase 89 — populated by record_trace node) ────────────────────
+    message_trace: Any | None            # MessageTrace; saved to DB after message is persisted
+
 
 def build_state_type(plugins: list[ZePlugin]) -> type:
     """Return a TypedDict class that merges AgentState with all plugin state extensions.

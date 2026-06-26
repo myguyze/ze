@@ -44,6 +44,33 @@ class MessageSchema(BaseModel):
     created_at: datetime
 
 
+# ── REST: message trace ───────────────────────────────────────────────────────
+
+class MemoryChunkTraceResponse(BaseModel):
+    text: str
+    score: float
+    source: str
+
+
+class ToolCallTraceResponse(BaseModel):
+    name: str
+    result_snippet: str
+    duration_ms: int
+    success: bool
+
+
+class MessageTraceResponse(BaseModel):
+    agent: str
+    routing_method: str
+    confidence: float
+    score_gap: float
+    is_compound: bool
+    subtasks: list[str]
+    memory_chunks: list[MemoryChunkTraceResponse]
+    tool_calls: list[ToolCallTraceResponse]
+    total_duration_ms: int
+
+
 # ── REST: capabilities ────────────────────────────────────────────────────────
 
 CapabilityMode = Literal["autonomous", "confirm", "draft_only", "disabled"]

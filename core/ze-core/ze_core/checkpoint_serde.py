@@ -19,6 +19,7 @@ log = get_logger(__name__)
 # Core domain modules scanned on every build. Plugins extend via checkpoint_serde_modules().
 CORE_CHECKPOINT_MODULES: tuple[str, ...] = (
     "ze_core.routing.types",
+    "ze_core.conversation.messages.types",
     "ze_agents.types",
     "ze_memory.types",
 )

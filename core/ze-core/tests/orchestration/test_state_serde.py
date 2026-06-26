@@ -23,6 +23,7 @@ from ze_agents.types import GateDecision
 from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
 from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_core.checkpoint_serde import build_checkpoint_serde
+from ze_core.conversation.messages.types import MemoryChunkTrace, MessageTrace, ToolCallTrace
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
@@ -208,6 +209,17 @@ def test_full_agent_state_dict_round_trips(serde: JsonPlusSerializer) -> None:
         "error": None,
         "dynamic_plan_steps": None,
         "dynamic_plan_high_risk": [],
+        "message_trace": MessageTrace(
+            agent="calendar",
+            routing_method="embedding",
+            confidence=0.92,
+            score_gap=0.30,
+            is_compound=False,
+            subtasks=["calendar"],
+            memory_chunks=[MemoryChunkTrace(text="name: João", score=0.9, source="fact")],
+            tool_calls=[ToolCallTrace(name="get_events", result_snippet="standup", duration_ms=85, success=True)],
+            total_duration_ms=85,
+        ),
     }
 
     for key, value in state.items():
