@@ -3,7 +3,7 @@ import base64
 from email.mime.text import MIMEText
 
 from ze_agents.tool import ToolAccess, tool
-from ze_email.channel.gmail import GmailChannel
+from ze_google.gmail_channel import GmailChannel
 from ze_sdk.channels import ChannelType, Message
 from ze_google.auth import GoogleCredentials
 

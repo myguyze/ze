@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
-
-from ze_email.agents.email.agent import EmailAgent
+from ze_messenger.agents.messenger.agent import MessengerAgent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.settings import Settings
 from ze_sdk.memory import MemoryContext
@@ -66,8 +65,8 @@ def make_ctx(prompt: str = "check my inbox") -> AgentContext:
     )
 
 
-def make_agent(client=None, creds=None) -> EmailAgent:
-    return EmailAgent(
+def make_agent(client=None, creds=None) -> MessengerAgent:
+    return MessengerAgent(
         openrouter_client=client or make_client(),
         google_credentials=creds or make_credentials(),
         settings=make_settings(),
@@ -76,9 +75,9 @@ def make_agent(client=None, creds=None) -> EmailAgent:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
-def test_email_agent_is_registered():
+def test_messenger_agent_is_registered():
     from ze_agents.registry import _registry
-    assert "email" in _registry
+    assert "messenger" in _registry
 
 
 # ── run() — basic structure ───────────────────────────────────────────────────
@@ -86,7 +85,7 @@ def test_email_agent_is_registered():
 async def test_run_returns_agent_result():
     result = await make_agent().run(make_ctx())
     assert isinstance(result, AgentResult)
-    assert result.agent == "email"
+    assert result.agent == "messenger"
 
 
 async def test_run_returns_response_from_agentic_loop():
@@ -123,7 +122,7 @@ async def test_run_lists_emails_when_llm_requests():
 
 async def test_run_list_then_get_in_single_turn():
     """LLM lists emails to find ID, then fetches full content — two tool rounds."""
-    import ze_email.agents.email.tools  # noqa
+    import ze_messenger.agents.messenger.tools  # noqa
 
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
@@ -137,7 +136,6 @@ async def test_run_list_then_get_in_single_turn():
     service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
         "messages": [{"id": "m1"}]
     }
-    # get_email response
     service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
         "id": "m1",
         "snippet": "Meeting tomorrow",
@@ -163,7 +161,7 @@ async def test_run_list_then_get_in_single_turn():
 
 async def test_run_sends_email_when_llm_requests():
     """LLM calls send_email directly."""
-    import ze_email.agents.email.tools  # noqa
+    import ze_messenger.agents.messenger.tools  # noqa
 
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
@@ -206,7 +204,7 @@ async def test_run_no_tool_calls_when_llm_answers_directly():
 
 
 async def test_run_handles_list_emails_failure_gracefully():
-    import ze_email.agents.email.tools  # noqa
+    import ze_messenger.agents.messenger.tools  # noqa
 
     service = MagicMock()
     (

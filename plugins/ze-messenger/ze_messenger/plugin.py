@@ -3,31 +3,25 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ze_sdk import ZePlugin
-from ze_email.channel.gmail import GmailChannel
 
 if TYPE_CHECKING:
     from ze_google.auth import GoogleCredentials
 
 
-class EmailPlugin(ZePlugin):
-    """Registers the Gmail email agent and exposes the Gmail channel."""
+class MessengerPlugin(ZePlugin):
+    """Registers the messenger agent and exposes communication channels."""
 
     def __init__(self, google_credentials: GoogleCredentials | None = None) -> None:
         self._google_credentials = google_credentials
 
-    @property
-    def gmail_channel(self) -> GmailChannel | None:
-        if self._google_credentials is None:
-            return None
-        return GmailChannel(credentials=self._google_credentials)
-
     def channels(self) -> list:
-        ch = self.gmail_channel
-        return [ch] if ch is not None else []
+        if self._google_credentials is None:
+            return []
+        from ze_google.gmail_channel import GmailChannel
+        return [GmailChannel(credentials=self._google_credentials)]
 
     def memory_policies(self) -> dict:
         from ze_memory.policies import EmailPolicy
-
         return {"email": EmailPolicy()}
 
     @classmethod
@@ -39,6 +33,6 @@ class EmailPlugin(ZePlugin):
         if self._google_credentials is None:
             return []
         return [
-            "ze_email.agents.email.tools",
-            "ze_email.agents.email.agent",
+            "ze_messenger.agents.messenger.tools",
+            "ze_messenger.agents.messenger.agent",
         ]

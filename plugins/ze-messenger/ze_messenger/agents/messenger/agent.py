@@ -4,14 +4,14 @@ from ze_agents.base_agent import BaseAgent
 from ze_agents.registry import agent
 from ze_agents.types import Intent, Mode
 from ze_agents.types import AgentContext, AgentResult
-from ze_email.channel.gmail import GmailChannel
+from ze_google.gmail_channel import GmailChannel
 from ze_personal.contacts.extractors import extract_email_contacts
 from ze_google.auth import GoogleCredentials
 from ze_agents.client import LLMClient
 from ze_agents.settings import Settings
 
 _AGENT_INSTRUCTIONS = """\
-You manage the user's Gmail inbox.
+You manage the user's messaging inbox across communication channels.
 
 Available tools:
 - list_emails: search messages using Gmail query syntax (from:, subject:, is:unread, etc.)
@@ -30,15 +30,15 @@ Guidelines:
 
 
 @agent
-class EmailAgent(BaseAgent):
-    name = "email"
-    display_name = "Email"
+class MessengerAgent(BaseAgent):
+    name = "messenger"
+    display_name = "Messenger"
     description = """
-      Gmail inbox and email management.
+      Messaging and inbox management across communication channels.
       Use for: "do I have any emails from X", "check my inbox", "what's in my email",
-      "draft an email to X about Y", "send an email to X", "reply to X's email",
+      "draft a message to X about Y", "send an email to X", "reply to X's email",
       "forward this email", "summarise my email thread", "archive this email",
-      "search my inbox for X". Not for calendar events, reminders, or chat.
+      "search my inbox for X". Not for calendar events or reminders.
     """
     model = "anthropic/claude-haiku-4-5"
     vision_capable = True
@@ -77,7 +77,7 @@ class EmailAgent(BaseAgent):
         contact_proposals = extract_email_contacts(loop_tool_calls)
 
         self._log.info(
-            "email_agent_complete",
+            "messenger_agent_complete",
             session_id=ctx.session_id,
             tool_calls=len(loop_tool_calls),
             contact_proposals=len(contact_proposals),
