@@ -404,6 +404,20 @@ class WsPongFrame(BaseModel):
     type: Literal["pong"]
 
 
+class WsTraceUpdateFrame(BaseModel):
+    type: Literal["trace_update"]
+    message_id: str
+    agent: str
+    routing_method: str
+    confidence: float
+    score_gap: float
+    is_compound: bool
+    subtasks: list[str]
+    memory_chunks: list[MemoryChunkTraceResponse]
+    tool_calls: list[ToolCallTraceResponse]
+    total_duration_ms: int
+
+
 WsInboundFrame = Annotated[
     Union[
         WsMessageFrame,
@@ -415,6 +429,7 @@ WsInboundFrame = Annotated[
         WsErrorFrame,
         WsRefreshFrame,
         WsPongFrame,
+        WsTraceUpdateFrame,
     ],
     Field(discriminator="type"),
 ]

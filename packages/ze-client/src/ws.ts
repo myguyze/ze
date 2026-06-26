@@ -10,6 +10,7 @@ export type {
   WsErrorFrame,
   WsRefreshFrame,
   WsPongFrame,
+  WsTraceUpdateFrame,
   WsSendMessageFrame,
   WsAckFrame,
   WsConfirmFrame,

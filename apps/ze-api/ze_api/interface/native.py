@@ -74,6 +74,15 @@ class NativeAppInterface:
                 await self._store.save_trace(msg.id, trace)
             except Exception as exc:
                 log.warning("native_interface_save_trace_failed", error=str(exc))
+            try:
+                from dataclasses import asdict
+                await self._conn.send_frame({
+                    "type": "trace_update",
+                    "message_id": str(msg.id),
+                    **asdict(trace),
+                })
+            except Exception as exc:
+                log.warning("native_interface_trace_update_failed", error=str(exc))
 
         await self._conn.push(msg)
 

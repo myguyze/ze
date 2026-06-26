@@ -11,7 +11,8 @@ export type WsInboundFrame =
   | WsTokenFrame
   | WsErrorFrame
   | WsRefreshFrame
-  | WsPongFrame;
+  | WsPongFrame
+  | WsTraceUpdateFrame;
 export type Type = "message";
 export type Id = string;
 export type Role = "user" | "assistant";
@@ -48,6 +49,24 @@ export type Detail = string;
 export type Type7 = "refresh";
 export type Screen = string;
 export type Type8 = "pong";
+export type Type9 = "trace_update";
+export type MessageId = string;
+export type Agent = string;
+export type RoutingMethod = string;
+export type Confidence = number;
+export type ScoreGap = number;
+export type IsCompound = boolean;
+export type Subtasks = string[];
+export type Text4 = string;
+export type Score = number;
+export type Source = string;
+export type MemoryChunks = MemoryChunkTraceResponse[];
+export type Name = string;
+export type ResultSnippet = string;
+export type DurationMs = number;
+export type Success = boolean;
+export type ToolCalls = ToolCallTraceResponse[];
+export type TotalDurationMs = number;
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
  * via the `definition` "WsOutboundFrame".
@@ -60,25 +79,25 @@ export type WsOutboundFrame =
   | WsCommandFrame
   | WsComponentSubmitFrame
   | WsPingFrame;
-export type Type9 = "message";
-export type Text4 = string;
+export type Type10 = "message";
+export type Text5 = string;
 export type ThreadId1 = string | null;
 export type Screen1 = string;
 export type GoalId = string | null;
-export type Type10 = "ack";
+export type Type11 = "ack";
 export type Ids = string[];
-export type Type11 = "confirm";
+export type Type12 = "confirm";
 export type Id4 = string;
 export type Choice = "approve" | "deny";
-export type Type12 = "action";
+export type Type13 = "action";
 export type Payload = string;
-export type Type13 = "command";
-export type Name = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
-export type Type14 = "component_submit";
+export type Type14 = "command";
+export type Name1 = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
+export type Type15 = "component_submit";
 export type StepId = string;
 export type SessionId1 = string | null;
 export type ThreadId2 = string | null;
-export type Type15 = "ping";
+export type Type16 = "ping";
 
 export interface WsProtocol {
   inbound?: WsInboundFrame;
@@ -192,11 +211,47 @@ export interface WsPongFrame {
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
+ * via the `definition` "WsTraceUpdateFrame".
+ */
+export interface WsTraceUpdateFrame {
+  type: Type9;
+  message_id: MessageId;
+  agent: Agent;
+  routing_method: RoutingMethod;
+  confidence: Confidence;
+  score_gap: ScoreGap;
+  is_compound: IsCompound;
+  subtasks: Subtasks;
+  memory_chunks: MemoryChunks;
+  tool_calls: ToolCalls;
+  total_duration_ms: TotalDurationMs;
+}
+/**
+ * This interface was referenced by `WsProtocol`'s JSON-Schema
+ * via the `definition` "MemoryChunkTraceResponse".
+ */
+export interface MemoryChunkTraceResponse {
+  text: Text4;
+  score: Score;
+  source: Source;
+}
+/**
+ * This interface was referenced by `WsProtocol`'s JSON-Schema
+ * via the `definition` "ToolCallTraceResponse".
+ */
+export interface ToolCallTraceResponse {
+  name: Name;
+  result_snippet: ResultSnippet;
+  duration_ms: DurationMs;
+  success: Success;
+}
+/**
+ * This interface was referenced by `WsProtocol`'s JSON-Schema
  * via the `definition` "WsSendMessageFrame".
  */
 export interface WsSendMessageFrame {
-  type: Type9;
-  text: Text4;
+  type: Type10;
+  text: Text5;
   thread_id?: ThreadId1;
   context?: WsScreenContext | null;
 }
@@ -213,7 +268,7 @@ export interface WsScreenContext {
  * via the `definition` "WsAckFrame".
  */
 export interface WsAckFrame {
-  type: Type10;
+  type: Type11;
   ids: Ids;
 }
 /**
@@ -221,7 +276,7 @@ export interface WsAckFrame {
  * via the `definition` "WsConfirmFrame".
  */
 export interface WsConfirmFrame {
-  type: Type11;
+  type: Type12;
   id: Id4;
   choice: Choice;
 }
@@ -230,7 +285,7 @@ export interface WsConfirmFrame {
  * via the `definition` "WsActionFrame".
  */
 export interface WsActionFrame {
-  type: Type12;
+  type: Type13;
   payload: Payload;
 }
 /**
@@ -238,15 +293,15 @@ export interface WsActionFrame {
  * via the `definition` "WsCommandFrame".
  */
 export interface WsCommandFrame {
-  type: Type13;
-  name: Name;
+  type: Type14;
+  name: Name1;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
  * via the `definition` "WsComponentSubmitFrame".
  */
 export interface WsComponentSubmitFrame {
-  type: Type14;
+  type: Type15;
   step_id: StepId;
   values: Values;
   session_id?: SessionId1;
@@ -260,5 +315,5 @@ export interface Values {
  * via the `definition` "WsPingFrame".
  */
 export interface WsPingFrame {
-  type: Type15;
+  type: Type16;
 }

@@ -1,6 +1,6 @@
 # Phase 90 — Ze's Mind Split-Pane
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 89 (Message Trace), Phase 45 (Native App Interface / WebSocket)
 **Packages touched:** `core/ze-core`, `apps/ze-api`, `apps/ze-web`
 
@@ -36,12 +36,12 @@ from the trace of the most recent message.
 
 | Feature | Status |
 |---------|--------|
-| `trace_update` WebSocket frame type | 🔲 Pending |
-| Graph nodes emit partial trace frames | 🔲 Pending |
-| `ZeMindPanel` React component | 🔲 Pending |
-| Panel toggle in chat toolbar | 🔲 Pending |
-| Width drag handle | 🔲 Pending |
-| Mobile fallback | 🔲 Pending |
+| `trace_update` WebSocket frame type | ✅ Done |
+| Graph nodes emit partial trace frames | ✅ Done (emitted once post-graph, before message frame) |
+| `ZeMindPanel` React component | ✅ Done |
+| Panel toggle in chat toolbar | ✅ Done |
+| Width drag handle | ✅ Done |
+| Mobile fallback | ✅ Done (hidden on <768px) |
 
 ---
 
