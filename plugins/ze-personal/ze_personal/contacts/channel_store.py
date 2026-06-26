@@ -4,6 +4,7 @@ import asyncpg
 
 from ze_sdk.channels import ChannelHandle, ChannelType
 from ze_logging import get_logger
+from ze_personal.contacts.types import Person
 
 
 def _handle_from_row(row: asyncpg.Record) -> ChannelHandle:
@@ -95,6 +96,25 @@ class ContactChannelStore:
             contact_id=str(contact_id),
             channel_type=channel_type,
         )
+
+    async def find_by_handle(
+        self, channel_type: ChannelType, handle: str
+    ) -> Person | None:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT c.id, c.name
+                FROM contact_channels ch
+                JOIN contacts c ON c.id = ch.contact_id
+                WHERE ch.channel_type = $1 AND ch.handle = $2
+                LIMIT 1
+                """,
+                channel_type.value,
+                handle,
+            )
+        if row is None:
+            return None
+        return Person(id=row["id"], name=row["name"])
 
     async def delete(
         self, contact_id: UUID, channel_type: ChannelType, handle: str

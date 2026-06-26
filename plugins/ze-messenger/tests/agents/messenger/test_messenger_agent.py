@@ -1,9 +1,16 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from ze_messenger.agents.messenger.agent import MessengerAgent
-from ze_agents.types import AgentContext, AgentResult
+import pytest
+
 from ze_agents.settings import Settings
+from ze_agents.types import AgentContext, AgentResult
+from ze_communication.channel import InboundChannel
+from ze_communication.registry import ChannelRegistry
+from ze_communication.types import ChannelType, SentMessage
+from ze_messenger.agents.messenger.agent import MessengerAgent
 from ze_sdk.memory import MemoryContext
+
+from datetime import datetime, timezone
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -28,31 +35,51 @@ def make_client(loop_response: str = "Your inbox is empty.") -> AsyncMock:
     return client
 
 
-def make_credentials(messages: list | None = None) -> MagicMock:
+def make_creds(messages=None):
     service = MagicMock()
-    (
-        service.users.return_value
-             .messages.return_value
-             .list.return_value
-             .execute.return_value
-    ) = {"messages": messages or []}
-    # stub getProfile for GmailChannel._resolve_user_email
-    (
-        service.users.return_value
-             .getProfile.return_value
-             .execute.return_value
-    ) = {"emailAddress": "ze@example.com"}
-    # stub messages.get for GmailChannel.send timestamp fetch
-    (
-        service.users.return_value
-             .messages.return_value
-             .get.return_value
-             .execute.return_value
-    ) = {"id": "msg1", "payload": {"headers": [{"name": "Date", "value": "Mon, 25 May 2026 10:00:00 +0000"}], "parts": []}}
-
+    service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": messages or []
+    }
+    service.users.return_value.getProfile.return_value.execute.return_value = {
+        "emailAddress": "ze@example.com"
+    }
+    service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+        "id": "msg1",
+        "payload": {
+            "headers": [{"name": "Date", "value": "Mon, 25 May 2026 10:00:00 +0000"}],
+            "parts": [],
+        },
+    }
     creds = MagicMock()
     creds.gmail.return_value = service
     return creds
+
+
+def make_gmail_channel(creds=None):
+    from ze_google.gmail_channel import GmailChannel
+    ch = GmailChannel(credentials=creds or make_creds())
+    ch._user_email = "ze@example.com"
+    return ch
+
+
+def make_registry(channel=None):
+    ch = channel or make_gmail_channel()
+    return ChannelRegistry(channels=[ch])
+
+
+def make_user_channel_store():
+    store = AsyncMock()
+    store.get_default_outbound = AsyncMock(return_value=None)
+    store.list_all = AsyncMock(return_value=[])
+    store.get = AsyncMock(return_value=None)
+    return store
+
+
+def make_thread_channel_map():
+    m = AsyncMock()
+    m.get = AsyncMock(return_value=None)
+    m.set = AsyncMock()
+    return m
 
 
 def make_ctx(prompt: str = "check my inbox") -> AgentContext:
@@ -65,10 +92,12 @@ def make_ctx(prompt: str = "check my inbox") -> AgentContext:
     )
 
 
-def make_agent(client=None, creds=None) -> MessengerAgent:
+def make_agent(client=None, registry=None) -> MessengerAgent:
     return MessengerAgent(
         openrouter_client=client or make_client(),
-        google_credentials=creds or make_credentials(),
+        channel_registry=registry or make_registry(),
+        user_channel_store=make_user_channel_store(),
+        thread_channel_map=make_thread_channel_map(),
         settings=make_settings(),
     )
 
@@ -98,7 +127,6 @@ async def test_run_returns_response_from_agentic_loop():
 
 async def test_run_lists_emails_when_llm_requests():
     """LLM calls list_emails once then returns text."""
-
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(side_effect=[
         (None, [{"id": "c1", "name": "list_emails", "arguments": {"query": "is:unread"}}]),
@@ -110,10 +138,11 @@ async def test_run_lists_emails_when_llm_requests():
     service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
         "messages": [{"id": "m1"}, {"id": "m2"}]
     }
-    creds = MagicMock()
+    creds = make_creds()
     creds.gmail.return_value = service
 
-    result = await make_agent(client=client, creds=creds).run(make_ctx())
+    registry = make_registry(make_gmail_channel(creds))
+    result = await make_agent(client=client, registry=registry).run(make_ctx())
 
     assert result.response == "You have 2 unread emails."
     list_calls = [tc for tc in result.tool_calls if tc.tool_name == "list_emails"]
@@ -149,10 +178,11 @@ async def test_run_list_then_get_in_single_turn():
             "body": {"data": ""},
         },
     }
-    creds = MagicMock()
+    creds = make_creds()
     creds.gmail.return_value = service
 
-    result = await make_agent(client=client, creds=creds).run(make_ctx("read email from boss"))
+    registry = make_registry(make_gmail_channel(creds))
+    result = await make_agent(client=client, registry=registry).run(make_ctx("read email from boss"))
 
     assert "boss" in result.response.lower() or "meeting" in result.response.lower()
     assert len([tc for tc in result.tool_calls if tc.tool_name == "list_emails"]) == 1
@@ -160,7 +190,7 @@ async def test_run_list_then_get_in_single_turn():
 
 
 async def test_run_sends_email_when_llm_requests():
-    """LLM calls send_email directly."""
+    """LLM calls send_email — routes through channel registry."""
     import ze_messenger.agents.messenger.tools  # noqa
 
     client = AsyncMock()
@@ -183,14 +213,16 @@ async def test_run_sends_email_when_llm_requests():
     service.users.return_value.getProfile.return_value.execute.return_value = {
         "emailAddress": "ze@example.com"
     }
-    creds = MagicMock()
+    creds = make_creds()
     creds.gmail.return_value = service
+
+    registry = make_registry(make_gmail_channel(creds))
 
     ctx = AgentContext(
         session_id="s1", prompt="send hi to alice", intent="create",
         memory=MemoryContext(), messages=[{"role": "user", "content": "send hi to alice"}],
     )
-    result = await make_agent(client=client, creds=creds).run(ctx)
+    result = await make_agent(client=client, registry=registry).run(ctx)
 
     assert "sent" in result.response.lower() or "alice" in result.response.lower()
     send_calls = [tc for tc in result.tool_calls if tc.tool_name == "send_email"]
@@ -207,13 +239,8 @@ async def test_run_handles_list_emails_failure_gracefully():
     import ze_messenger.agents.messenger.tools  # noqa
 
     service = MagicMock()
-    (
-        service.users.return_value
-             .messages.return_value
-             .list.return_value
-             .execute.side_effect
-    ) = Exception("Gmail API error")
-    creds = MagicMock()
+    service.users.return_value.messages.return_value.list.return_value.execute.side_effect = Exception("Gmail API error")
+    creds = make_creds()
     creds.gmail.return_value = service
 
     client = AsyncMock()
@@ -223,7 +250,8 @@ async def test_run_handles_list_emails_failure_gracefully():
     ])
     client.complete = AsyncMock(return_value="[]")
 
-    result = await make_agent(client=client, creds=creds).run(make_ctx())
+    registry = make_registry(make_gmail_channel(creds))
+    result = await make_agent(client=client, registry=registry).run(make_ctx())
     list_tc = next(tc for tc in result.tool_calls if tc.tool_name == "list_emails")
     assert list_tc.success is False
     assert result.response

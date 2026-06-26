@@ -99,3 +99,43 @@ def test_inbound_channels_filters_correctly():
 def test_inbound_channels_empty_when_none():
     reg = _registry(ChannelType.EMAIL)
     assert reg.inbound_channels() == []
+
+
+# ── channel_id / get_inbound_by_id() ─────────────────────────────────────────
+
+def test_default_channel_id_is_channel_type_value():
+    inbound = _StubInboundChannel(ChannelType.EMAIL)
+    assert inbound.channel_id == "email"
+
+
+class _NamedInboundChannel(_StubChannel, _StubInboundChannel.__bases__[1]):
+    def __init__(self, ctype: ChannelType, cid: str) -> None:
+        self._type = ctype
+        self._cid = cid
+
+    @property
+    def channel_id(self) -> str:
+        return self._cid
+
+    async def poll_new_messages(self, since):
+        return []
+
+
+def test_get_inbound_by_id_returns_channel():
+    ch = _NamedInboundChannel(ChannelType.EMAIL, "gmail:alice@example.com")
+    reg = ChannelRegistry([ch])
+    assert reg.get_inbound_by_id("gmail:alice@example.com") is ch
+
+
+def test_get_inbound_by_id_returns_none_for_missing():
+    ch = _NamedInboundChannel(ChannelType.EMAIL, "gmail:alice@example.com")
+    reg = ChannelRegistry([ch])
+    assert reg.get_inbound_by_id("gmail:bob@example.com") is None
+
+
+def test_inbound_channels_secondary_index_holds_all_instances():
+    ch1 = _NamedInboundChannel(ChannelType.EMAIL, "gmail:alice@example.com")
+    ch2 = _NamedInboundChannel(ChannelType.EMAIL, "gmail:work@example.com")
+    reg = ChannelRegistry([ch1, ch2])
+    ids = {c.channel_id for c in reg.inbound_channels()}
+    assert ids == {"gmail:alice@example.com", "gmail:work@example.com"}

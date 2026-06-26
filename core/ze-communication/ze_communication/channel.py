@@ -28,8 +28,17 @@ class InboundChannel(Channel):
     """Channel that can also receive messages, via polling or push.
 
     Polling callers check supports_push first. If False, call poll_new_messages
-    on a schedule. If True, messages arrive via the webhook path (Phase 84).
+    on a schedule. If True, messages arrive via the webhook path (Phase 86).
     """
+
+    @property
+    def channel_id(self) -> str:
+        """Unique identifier for this channel instance (e.g. "gmail:joao@gmail.com").
+
+        Default returns channel_type.value — correct for single-account deployments.
+        Override in multi-account scenarios.
+        """
+        return self.channel_type.value
 
     @property
     def supports_push(self) -> bool:

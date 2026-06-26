@@ -1,6 +1,6 @@
 # Phase 85 — Ze Messaging Hub
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 83 (ze-communication + ze-messenger)
 **Supersedes:** Phase 84a draft (absorbed into this spec)
 **Packages touched:** `core/ze-communication`, `integrations/ze-google`, `plugins/ze-messenger`,

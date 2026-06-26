@@ -2,10 +2,14 @@ import asyncio
 import base64
 from email.mime.text import MIMEText
 
+from ze_agents.errors import ChannelNotFoundError
 from ze_agents.tool import ToolAccess, tool
-from ze_google.gmail_channel import GmailChannel
-from ze_sdk.channels import ChannelType, Message
+from ze_communication.channel import InboundChannel
+from ze_communication.registry import ChannelRegistry
+from ze_communication.types import ChannelType, Message
 from ze_google.auth import GoogleCredentials
+from ze_personal.channels.thread_channel_map import ThreadChannelMap
+from ze_personal.channels.user_channel_store import UserChannelStore
 
 
 @tool(access=ToolAccess.READ, description="List recent Gmail messages matching a query.")
@@ -56,14 +60,19 @@ async def draft_email(
     return {"id": result.get("id")}
 
 
-@tool(access=ToolAccess.WRITE, description="Send an email via Gmail. Use thread_id to reply in an existing thread.")
+@tool(access=ToolAccess.WRITE, description="Send an email or reply to a thread.")
 async def send_email(
-    gmail_channel: GmailChannel,
+    channel_registry: ChannelRegistry,
+    thread_channel_map: ThreadChannelMap,
+    user_channel_store: UserChannelStore,
     to: str,
     subject: str,
     body: str,
     thread_id: str | None = None,
 ) -> dict:
+    channel = await _resolve_send_channel(
+        channel_registry, thread_channel_map, user_channel_store, thread_id
+    )
     msg = Message(
         channel_type=ChannelType.EMAIL,
         to=to,
@@ -71,8 +80,16 @@ async def send_email(
         body=body,
         thread_id=thread_id,
     )
-    sent = await gmail_channel.send(msg)
-    return {"id": sent.message_id, "thread_id": sent.thread_id}
+    sent = await channel.send(msg)
+
+    if sent.thread_id:
+        await thread_channel_map.set(sent.thread_id, channel.channel_id)
+
+    return {
+        "message_id": sent.message_id,
+        "thread_id": sent.thread_id,
+        "sent_from": channel.channel_id,
+    }
 
 
 @tool(access=ToolAccess.WRITE, description="Archive a Gmail message (remove from inbox).")
@@ -88,6 +105,35 @@ async def archive_email(
             body={"removeLabelIds": ["INBOX"]},
         ).execute()
     )
+
+
+async def _resolve_send_channel(
+    registry: ChannelRegistry,
+    thread_map: ThreadChannelMap,
+    user_channels: UserChannelStore,
+    thread_id: str | None,
+) -> InboundChannel:
+    # 1. Thread known → use the account that owns it
+    if thread_id:
+        channel_id = await thread_map.get(thread_id)
+        if channel_id:
+            channel = registry.get_inbound_by_id(channel_id)
+            if channel is not None:
+                return channel
+
+    # 2. Default outbound
+    uc = await user_channels.get_default_outbound("email")
+    if uc:
+        channel = registry.get_inbound_by_id(uc.channel_id)
+        if channel is not None:
+            return channel
+
+    # 3. Any available email channel
+    for channel in registry.inbound_channels():
+        if channel.channel_type.value == "email":
+            return channel
+
+    raise ChannelNotFoundError("No email channel available")
 
 
 def _build_raw(to: str, subject: str, body: str) -> str:

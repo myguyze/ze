@@ -1,14 +1,15 @@
 from typing import AsyncIterator
 
 from ze_agents.base_agent import BaseAgent
-from ze_agents.registry import agent
-from ze_agents.types import Intent, Mode
-from ze_agents.types import AgentContext, AgentResult
-from ze_google.gmail_channel import GmailChannel
-from ze_personal.contacts.extractors import extract_email_contacts
-from ze_google.auth import GoogleCredentials
 from ze_agents.client import LLMClient
+from ze_agents.registry import agent
 from ze_agents.settings import Settings
+from ze_agents.types import AgentContext, AgentResult, Intent, Mode
+from ze_communication.channel import InboundChannel
+from ze_communication.registry import ChannelRegistry
+from ze_personal.channels.thread_channel_map import ThreadChannelMap
+from ze_personal.channels.user_channel_store import UserChannelStore
+from ze_personal.contacts.extractors import extract_email_contacts
 
 _AGENT_INSTRUCTIONS = """\
 You manage the user's messaging inbox across communication channels.
@@ -54,24 +55,38 @@ class MessengerAgent(BaseAgent):
     def __init__(
         self,
         openrouter_client: LLMClient,
-        google_credentials: GoogleCredentials,
+        channel_registry: ChannelRegistry,
+        user_channel_store: UserChannelStore,
+        thread_channel_map: ThreadChannelMap,
         settings: Settings,
     ) -> None:
-        self._settings = settings
         self._client = openrouter_client
-        self._creds = google_credentials
-        self._gmail_channel = GmailChannel(credentials=google_credentials)
+        self._registry = channel_registry
+        self._user_channels = user_channel_store
+        self._thread_map = thread_channel_map
+        self._settings = settings
 
     async def run(self, ctx: AgentContext) -> AgentResult:
         key = "email.drafting" if ctx.intent in ("create", "update") else "email.reading"
         await self.emit(ctx, key)
+
+        default_channel = await self._default_channel()
+
+        deps: dict = {
+            "channel_registry": self._registry,
+            "thread_channel_map": self._thread_map,
+            "user_channel_store": self._user_channels,
+        }
+        if default_channel is not None and hasattr(default_channel, "_creds"):
+            deps["credentials"] = default_channel._creds
+
         system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx)
         response, loop_tool_calls = await self.agentic_loop(
             ctx,
             client=self._client,
             messages=list(ctx.messages),
             system=system,
-            deps={"credentials": self._creds, "gmail_channel": self._gmail_channel},
+            deps=deps,
         )
 
         contact_proposals = extract_email_contacts(loop_tool_calls)
@@ -91,11 +106,14 @@ class MessengerAgent(BaseAgent):
         )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
-        inbox_tc = await self.call_tool(
-            "list_emails", ctx, credentials=self._creds
-        )
+        default_channel = await self._default_channel()
+        creds = getattr(default_channel, "_creds", None) if default_channel else None
+        inbox_tc = None
+        if creds is not None:
+            inbox_tc = await self.call_tool("list_emails", ctx, credentials=creds)
+
         augmented = ctx.prompt
-        if inbox_tc.success and inbox_tc.result:
+        if inbox_tc and inbox_tc.success and inbox_tc.result:
             augmented = f"{ctx.prompt}\n\nRecent emails:\n{inbox_tc.result}"
 
         async for token in self._client.stream(
@@ -104,3 +122,13 @@ class MessengerAgent(BaseAgent):
             system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx),
         ):
             yield token
+
+    async def _default_channel(self) -> InboundChannel | None:
+        uc = await self._user_channels.get_default_outbound("email")
+        if uc:
+            return self._registry.get_inbound_by_id(uc.channel_id)
+        channels = [
+            c for c in self._registry.inbound_channels()
+            if c.channel_type.value == "email"
+        ]
+        return channels[0] if channels else None

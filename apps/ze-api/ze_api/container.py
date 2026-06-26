@@ -48,6 +48,10 @@ from ze_onboarding import (
     ResetService,
 )
 from ze_personal.persona.postgres import PostgresPersonaStore
+from ze_personal.channels.user_channel_store import UserChannelStore
+from ze_personal.channels.watermark_store import ChannelWatermarkStore
+from ze_personal.channels.thread_channel_map import ThreadChannelMap
+from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_plugin.bootstrap import discover_and_instantiate_plugins
 from ze_communication.registry import ChannelRegistry
 from ze_proactive.notifier import ProactiveNotifier
@@ -91,6 +95,7 @@ class ZeContainer(CoreContainer):
     data_portability_service: DataPortabilityService
     ingestion_pipeline: Any
     dream_store: Any
+    channel_registry: ChannelRegistry | None
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -227,6 +232,12 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
 
     core_settings: CoreSettings = shared.core_settings
+    # Channel stores — created before plugins so they can be auto-wired
+    user_channel_store = UserChannelStore(pool=pool)
+    watermark_store = ChannelWatermarkStore(pool=pool)
+    thread_channel_map = ThreadChannelMap(pool=pool)
+    contact_channel_store = ContactChannelStore(pool=pool)
+
     dep_map = dict(shared.dep_map)
     dep_map.update({
         Settings: settings,
@@ -237,6 +248,10 @@ async def build_container(settings: Settings) -> ZeContainer:
         NLIClient: shared.nli_client,
         LocalNLIClient: shared.nli_client,
         BrowserClient: browser_client,
+        UserChannelStore: user_channel_store,
+        ChannelWatermarkStore: watermark_store,
+        ThreadChannelMap: thread_channel_map,
+        ContactChannelStore: contact_channel_store,
     })
 
     plugins = discover_and_instantiate_plugins(dep_map, settings)
@@ -283,7 +298,13 @@ async def build_container(settings: Settings) -> ZeContainer:
         persistence=OnboardingPersistence(memory_store=shared.memory_store),
     )
 
+    # Build ChannelRegistry after plugins (channels come from plugins) but before
+    # agent bootstrap so MessengerAgent can receive it via dep injection.
+    channel_registry = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])
+    log.info("channel_registry_built", channels=list(channel_registry.available()))
+
     agent_deps: dict[type, Any] = dict(dep_map)
+    agent_deps[ChannelRegistry] = channel_registry
     for plugin in plugins:
         agent_deps.update(plugin.agent_deps(agent_deps))
 
@@ -345,6 +366,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         _push_log_store=push_log_store,
         data_portability_service=data_portability_service,
         ingestion_pipeline=ingestion.pipeline,
+        channel_registry=channel_registry,
     )
 
     for plugin in plugins:
@@ -400,8 +422,6 @@ async def build_container(settings: Settings) -> ZeContainer:
         dream_job=dream_job,
         pool=pool,
     )
-
-    _ = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])
 
     await automation.workflow_scheduler.start()
     await container.proactive_scheduler.start()

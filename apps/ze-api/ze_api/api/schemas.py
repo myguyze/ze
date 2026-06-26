@@ -522,3 +522,30 @@ class DreamReviseRequest(BaseModel):
 class DreamRollbackResponse(BaseModel):
     rolled_back: int
     summaries_flagged: int
+
+
+# ── REST: channels ────────────────────────────────────────────────────────────
+
+class ChannelInfo(BaseModel):
+    channel_id: str
+    channel_type: str
+    handle: str
+    display_name: str | None
+    is_default_outbound: bool
+    poll_enabled: bool
+    supports_push: bool
+    last_polled_at: datetime | None
+
+
+class ChannelListResponse(BaseModel):
+    channels: list[ChannelInfo]
+
+
+class ChannelUpdateRequest(BaseModel):
+    poll_enabled: bool | None = None
+    is_default_outbound: bool | None = None
+    display_name: str | None = None
+
+
+class ChannelResponse(BaseModel):
+    channel: ChannelInfo

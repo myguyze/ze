@@ -14,6 +14,9 @@ from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
 from ze_sdk.memory import PostgresMemoryStore
+from ze_personal.channels.user_channel_store import UserChannelStore
+from ze_personal.channels.watermark_store import ChannelWatermarkStore
+from ze_personal.channels.thread_channel_map import ThreadChannelMap
 from ze_personal.contacts.channel_store import ContactChannelStore
 from ze_personal.contacts.consolidator import ContactsConsolidator
 from ze_personal.contacts.store import PersonStore
@@ -49,13 +52,20 @@ class PersonalPlugin(ZePlugin):
         goal_planner: GoalPlanner,
         goal_executor: GoalExecutor,
         suggestion_store: GoalSuggestionStore,
+        contact_channel_store: ContactChannelStore,
+        user_channel_store: UserChannelStore,
+        watermark_store: ChannelWatermarkStore,
+        thread_channel_map: ThreadChannelMap,
     ) -> None:
         self._settings = settings
         self._notifier = notifier
         self._pool = pool
 
         self.person_store = PersonStore(pool=pool, memory_store=memory_store)
-        self.contact_channel_store = ContactChannelStore(pool=pool)
+        self.contact_channel_store = contact_channel_store
+        self.user_channel_store = user_channel_store
+        self.watermark_store = watermark_store
+        self.thread_channel_map = thread_channel_map
 
         # Automation services — owned by ze-api container, injected here
         self.goal_store = goal_store
@@ -157,12 +167,18 @@ class PersonalPlugin(ZePlugin):
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_personal.contacts.store import PersonStore
         from ze_personal.contacts.channel_store import ContactChannelStore
+        from ze_personal.channels.user_channel_store import UserChannelStore
+        from ze_personal.channels.watermark_store import ChannelWatermarkStore
+        from ze_personal.channels.thread_channel_map import ThreadChannelMap
         from ze_automation.goals.postgres import PostgresGoalStore
         from ze_news.types import GoalTitleProvider
 
         return {
             PersonStore: self.person_store,
             ContactChannelStore: self.contact_channel_store,
+            UserChannelStore: self.user_channel_store,
+            ChannelWatermarkStore: self.watermark_store,
+            ThreadChannelMap: self.thread_channel_map,
             PostgresGoalStore: self.goal_store,
             GoalTitleProvider: self.goal_store,
         }
@@ -172,6 +188,9 @@ class PersonalPlugin(ZePlugin):
             "goal_store": self.goal_store,
             "goal_executor": self.goal_executor,
             "person_store": self.person_store,
+            "user_channel_store": self.user_channel_store,
+            "watermark_store": self.watermark_store,
+            "thread_channel_map": self.thread_channel_map,
         }
 
     def configurable_services(self) -> dict[str, Any]:

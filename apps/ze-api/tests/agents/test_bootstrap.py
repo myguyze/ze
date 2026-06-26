@@ -56,6 +56,9 @@ def test_bootstrap_registers_companion_and_research(settings):
     from ze_google.auth import GoogleCredentials
     from ze_agents.settings import Settings as CoreSettings
     from ze_proactive.notifier import ProactiveNotifier
+    from ze_communication.registry import ChannelRegistry
+    from ze_personal.channels.user_channel_store import UserChannelStore
+    from ze_personal.channels.thread_channel_map import ThreadChannelMap
 
     class _AllPathsPlugin:
         def agent_module_paths(self) -> list[str]:
@@ -83,6 +86,9 @@ def test_bootstrap_registers_companion_and_research(settings):
         ProspectingSettings: ProspectingSettings(),
         GoogleCredentials: MM(spec=GoogleCredentials),
         ProactiveNotifier: MM(spec=ProactiveNotifier),
+        ChannelRegistry: MM(spec=ChannelRegistry),
+        UserChannelStore: MM(spec=UserChannelStore),
+        ThreadChannelMap: MM(spec=ThreadChannelMap),
         object: client,
     }
     bootstrap_agents(deps=deps, plugins=[_AllPathsPlugin()])

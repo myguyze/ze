@@ -31,8 +31,17 @@ class GmailChannel(InboundChannel):
         return ChannelType.EMAIL
 
     @property
+    def channel_id(self) -> str:
+        # Stable after first poll or get_thread (both call _resolve_user_email).
+        # Falls back to "email" until resolved — the polling job resolves before
+        # writing the watermark row, so the DB always gets the stable key.
+        if self._user_email:
+            return f"gmail:{self._user_email}"
+        return self.channel_type.value
+
+    @property
     def supports_push(self) -> bool:
-        return False  # Phase 84 flips this to True and adds register_push()
+        return False  # Phase 86 flips this to True and adds register_push()
 
     async def send(self, message: Message) -> SentMessage:
         try:
@@ -162,6 +171,10 @@ def _parse_thread_message(msg: dict, user_email: str) -> ThreadMessage:
 
 def _parse_inbound_message(msg: dict) -> InboundMessage:
     headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
+    transport_headers = {
+        k: v for k, v in headers.items()
+        if k in ("List-Unsubscribe", "Precedence", "X-Mailer", "List-Id", "Sender")
+    }
     return InboundMessage(
         message_id=msg["id"],
         channel_type=ChannelType.EMAIL,
@@ -170,6 +183,7 @@ def _parse_inbound_message(msg: dict) -> InboundMessage:
         body=_extract_body(msg.get("payload", {})),
         thread_id=msg.get("threadId"),
         received_at=_parse_date(msg) or datetime.now(timezone.utc),
+        headers=transport_headers,
     )
 
 

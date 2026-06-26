@@ -12,7 +12,7 @@ def test_agents_registered_via_agent_decorator():
     assert "research" in agents
     assert "companion" in agents
     assert "calendar" in agents
-    assert "email" in agents
+    assert "messenger" in agents
     assert "workflow" in agents
     assert "goals" in agents
     research = agents["research"]
