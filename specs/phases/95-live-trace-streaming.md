@@ -1,20 +1,49 @@
-# Phase 95 — Live Trace Streaming
+# Phase 95 — Unified Streaming Architecture
 
 **Status:** Pending
-**Depends on:** Phase 90 (Ze's Mind Split-Pane — establishes `trace_update` WS frame and panel)
+**Depends on:** Phase 90 (Ze's Mind Split-Pane — `trace_update` WS frame and panel)
 **Packages touched:** `core/ze-core`, `apps/ze-api`, `apps/ze-web`
 
 ---
 
 ## What this is
 
-Replaces the post-hoc single `trace_update` frame with a stream of partial
-frames emitted as each graph node completes. The Ze's Mind panel fills in
-progressively — routing appears first, then memory chunks, then tool calls —
-rather than flipping from spinner to fully-populated in one step.
+Makes the entire response lifecycle visible as a live stream in the Ze's Mind
+panel. Today the lifecycle looks like:
 
-Phase 90 deliberately deferred this (the frame shape includes `partial: true`
-for exactly this reason). This phase implements it.
+```
+[user sends] → [spinner] → [full response + full trace appear at once]
+```
+
+After this phase it looks like:
+
+```
+[user sends]
+  → routing decision appears (agent badge, confidence)
+  → memory chunks fill in as context is fetched
+  → tool calls appear and complete one by one
+  → LLM tokens stream into the message bubble (already works today)
+  → trace entry finalises
+```
+
+**Token streaming for messages already exists.** `BaseAgent` calls
+`client.stream_complete_with_tools` which pushes `token` WS frames as the
+LLM generates. The gap is graph-level events — routing, context, tool calls —
+which are only available after `graph.ainvoke` completes. This phase fills
+that gap by switching to `graph.astream_events`.
+
+---
+
+## Current streaming state (what already works)
+
+| Stream | Mechanism | Status |
+|--------|-----------|--------|
+| LLM tokens → message bubble | `token_sink` → `token` WS frame | ✅ Done (Phase 45) |
+| Progress text (routing/typing label) | `reporter.report()` → `typing` WS frame | ✅ Done (Phase 54) |
+| Trace summary (post-graph) | `trace_update` WS frame after `ainvoke` | ✅ Done (Phase 90) |
+| Routing decision (live) | ❌ blocked by `ainvoke` | 🔲 This phase |
+| Memory fetch (live) | ❌ blocked by `ainvoke` | 🔲 This phase |
+| Tool calls (live, one by one) | ❌ blocked by `ainvoke` | 🔲 This phase |
 
 ---
 
@@ -22,50 +51,23 @@ for exactly this reason). This phase implements it.
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Graph execution mode | Switch `invoke_raw_turn` from `graph.ainvoke` to `graph.astream_events` | Only `astream_events` exposes node-level completion events in real time |
-| Event tap | Subscribe to `on_chain_end` events where `name` matches known nodes | Clean; no changes to node internals required |
-| Frame cadence | One partial `trace_update` per meaningful node completion (routing, context, each tool call) | Avoids frame flood while keeping panel visibly alive |
-| Final frame | `partial: false` frame after `record_trace` completes — same as Phase 90 today | Downstream consumers (REST trace endpoint) remain unchanged |
-| Token streaming | Token sink stays on `astream_events` `on_chat_model_stream` events — no behaviour change | Token streaming already works; don't break it |
+| Graph execution | Switch `graph.ainvoke` → `graph.astream_events` in `invoke_raw_turn` | Only `astream_events` exposes node-level events in real time |
+| Token delivery | Keep `token_sink` pattern; tap `on_chat_model_stream` in the event loop | No change to `BaseAgent` or `LLMClient` |
+| Partial trace frames | Add `partial: bool` to `WsTraceUpdateFrame`; emit one partial per node group | Reuses the existing frame type; no new WS message type needed |
+| Frame ordering | routing partial → context partial → tool partials → `partial: false` final | Matches the graph execution order; frontend can render as they arrive |
+| Final REST trace | `record_trace` node still runs; REST `GET /messages/{id}/trace` unchanged | Durable audit trail unaffected by streaming |
 
 ---
 
-## Frame shape (unchanged from Phase 90)
+## WebSocket frame additions
 
-The `WsTraceUpdateFrame` already supports partial updates:
-
-```typescript
-interface TraceUpdateFrame {
-  type: "trace_update";
-  message_id: string;
-  partial: boolean;          // true = merge into current entry; false = finalise
-  agent: string;             // may be "" on early partials
-  routing_method: string;
-  confidence: number;
-  score_gap: number;
-  is_compound: boolean;
-  subtasks: string[];
-  memory_chunks: Array<{ text: string; score: number; source: string }>;
-  tool_calls: Array<{ name: string; result_snippet: string; duration_ms: number; success: boolean }>;
-  total_duration_ms: number;
-}
-```
-
-**Merge semantics (frontend):** when `partial: true`, shallow-merge fields
-that are non-empty into the current pending entry. Lists (`memory_chunks`,
-`tool_calls`) are appended, not replaced. Scalar fields overwrite.
-
----
-
-## Backend changes
-
-### 1. Add `partial` field to `WsTraceUpdateFrame` (`ze_api/api/schemas.py`)
+### `WsTraceUpdateFrame` — add `partial` field
 
 ```python
 class WsTraceUpdateFrame(BaseModel):
     type: Literal["trace_update"]
     message_id: str
-    partial: bool = False      # ← new; False = final
+    partial: bool = False      # true = merge into pending entry; false = commit
     agent: str = ""
     routing_method: str = ""
     confidence: float = 0.0
@@ -77,88 +79,118 @@ class WsTraceUpdateFrame(BaseModel):
     total_duration_ms: int = 0
 ```
 
-### 2. Switch `invoke_raw_turn` to `astream_events` (`ze_core/container.py`)
-
-Replace `graph.ainvoke(...)` with `graph.astream_events(...)` and collect
-the final state from the `on_chain_end` event for the root graph.
-
-```python
-async def invoke_raw_turn(self, thread_id, raw_input, config_extra=None):
-    ...
-    final_state = None
-    async for event in graph.astream_events(input, config, version="v2"):
-        kind = event["event"]
-        name = event.get("name", "")
-
-        if kind == "on_chat_model_stream":
-            chunk = event["data"]["chunk"].content
-            if chunk and token_sink:
-                await token_sink(chunk)
-
-        elif kind == "on_chain_end" and name == "embed_route":
-            # routing is decided — emit partial frame
-            await _emit_routing_partial(conn, message_id, event["data"]["output"])
-
-        elif kind == "on_chain_end" and name == "fetch_context":
-            # memory retrieved — emit partial with chunks
-            await _emit_context_partial(conn, message_id, event["data"]["output"])
-
-        elif kind == "on_tool_end":
-            # one tool call completed
-            await _emit_tool_partial(conn, message_id, event["data"])
-
-        elif kind == "on_chain_end" and name == graph.name:
-            final_state = event["data"]["output"]
-
-    return _build_outcome(final_state, config)
-```
-
-### 3. Remove `trace_update` emission from `NativeAppInterface._send_message`
-
-The interface still saves the trace (for the REST endpoint) but no longer
-emits the WS frame — `invoke_raw_turn` emits it directly.
+**Merge semantics (frontend):** `partial: true` → shallow-merge scalars,
+*append* lists. `partial: false` → commit the merged entry to the trace thread.
 
 ---
 
-## Frontend changes (`apps/ze-web`)
+## Backend: `invoke_raw_turn` with `astream_events`
 
-### `useMindStore` — merge partial frames
+Replace `graph.ainvoke(input, config)` in `ze_core/container.py`:
 
-Add `mergePartialTrace(partial: Partial<WsTraceUpdateFrame>)` action:
+```python
+final_state = {}
+async for event in self.graph.astream_events(graph_input, config, version="v2"):
+    kind  = event["event"]
+    name  = event.get("name", "")
+    data  = event.get("data", {})
 
-```typescript
-mergePartialTrace: (partial) => set((s) => {
-  const current = s.pendingTrace ?? emptyTrace();
-  return {
-    pendingTrace: {
-      ...current,
-      ...partial,
-      memory_chunks: [...current.memory_chunks, ...(partial.memory_chunks ?? [])],
-      tool_calls: [...current.tool_calls, ...(partial.tool_calls ?? [])],
-    },
-  };
-}),
+    # ── LLM token stream (already works today, same path) ──────────────
+    if kind == "on_chat_model_stream":
+        chunk = data.get("chunk", {}).content or ""
+        if chunk and token_sink:
+            await token_sink(chunk)
+
+    # ── Routing decided ─────────────────────────────────────────────────
+    elif kind == "on_chain_end" and name == "embed_route":
+        env = (data.get("output") or {}).get("envelope")
+        if env and interface:
+            await interface.send_trace_partial(message_id, {
+                "agent": env.primary_agent,
+                "routing_method": env.routing_method,
+                "confidence": env.confidence,
+                "score_gap": env.score_gap,
+                "is_compound": env.is_compound,
+                "subtasks": [s.agent for s in env.subtasks] if env.is_compound else [],
+            })
+
+    # ── Memory / context fetched ─────────────────────────────────────────
+    elif kind == "on_chain_end" and name == "fetch_context":
+        memory_ctx = (data.get("output") or {}).get("memory_context")
+        if memory_ctx and interface:
+            await interface.send_trace_partial(message_id, {
+                "memory_chunks": _extract_memory_chunks(memory_ctx),
+            })
+
+    # ── One tool call completed ──────────────────────────────────────────
+    elif kind == "on_tool_end":
+        if interface:
+            await interface.send_trace_partial(message_id, {
+                "tool_calls": [_tool_event_to_trace(data)],
+            })
+
+    # ── Graph completed ──────────────────────────────────────────────────
+    elif kind == "on_chain_end" and name == self.graph.name:
+        final_state = data.get("output") or {}
 ```
 
-When `partial: false` arrives, move `pendingTrace` → `appendTrace(frame)`.
+`send_trace_partial` on `NativeAppInterface` emits:
+```python
+async def send_trace_partial(self, message_id: str, fields: dict) -> None:
+    await self._conn.send_frame({
+        "type": "trace_update",
+        "message_id": message_id,
+        "partial": True,
+        **fields,
+    })
+```
 
-### `useTraceSocket` — handle partial flag
+The final `trace_update` with `partial: False` is still emitted from
+`_send_message` (after `record_trace` has run and the trace is saved to the
+DB), exactly as today.
 
+---
+
+## Frontend: `useMindStore` — partial frame merging
+
+```typescript
+interface MindState {
+  ...
+  pendingTrace: Partial<WsTraceUpdateFrame> | null;  // in-flight partial
+  mergePartialTrace: (fields: Partial<WsTraceUpdateFrame>) => void;
+  commitPendingTrace: (final: WsTraceUpdateFrame) => void;
+}
+```
+
+`mergePartialTrace`:
+- scalars: overwrite
+- `memory_chunks` / `tool_calls`: append (never deduplicate — server controls emission)
+
+`commitPendingTrace`: moves `pendingTrace` → `appendTrace(final)`; clears `pendingTrace`.
+
+`useTraceSocket`:
 ```typescript
 useFrame("trace_update", (frame) => {
   if (frame.partial) {
     mergePartialTrace(frame);
   } else {
-    appendTrace(frame);
+    commitPendingTrace(frame);
   }
 });
 ```
 
-### Panel — live section headers
+### Panel: live section headers
 
-While a partial is pending, section headers show a pulsing dot next to their
-title (`memory_chunks.length === 0 && pending` → "Memory ●"). Once chunks
-arrive, the dot disappears and the list renders normally.
+While `pendingTrace` exists, each section header shows a pulsing indicator
+if its data is not yet populated:
+
+- Routing: pulsing if `pendingTrace.agent` is empty
+- Memory: pulsing if `pendingTrace.memory_chunks?.length === 0`
+- Tools: pulsing if `pendingTrace.tool_calls?.length === 0`
+
+The pending entry renders below the committed thread entries, above the
+"Ze is thinking…" footer, using the same `TraceEntry` layout but marked
+live with a subtle border highlight.
 
 ---
 
@@ -167,12 +199,14 @@ arrive, the dot disappears and the list renders normally.
 | Feature | Status |
 |---------|--------|
 | `partial` field on `WsTraceUpdateFrame` | 🔲 Pending |
+| `send_trace_partial` on `NativeAppInterface` | 🔲 Pending |
 | `invoke_raw_turn` switched to `astream_events` | 🔲 Pending |
-| Node-level partial frame emission (routing, context, tools) | 🔲 Pending |
-| `NativeAppInterface` trace emission removed | 🔲 Pending |
-| `mergePartialTrace` in `useMindStore` | 🔲 Pending |
-| `useTraceSocket` partial handling | 🔲 Pending |
-| Live section header pulse indicators | 🔲 Pending |
+| Routing partial emission (`embed_route` node) | 🔲 Pending |
+| Context partial emission (`fetch_context` node) | 🔲 Pending |
+| Tool-call partial emission (`on_tool_end`) | 🔲 Pending |
+| `mergePartialTrace` / `commitPendingTrace` in `useMindStore` | 🔲 Pending |
+| `useTraceSocket` partial vs. final routing | 🔲 Pending |
+| Live pending entry in panel with section pulse indicators | 🔲 Pending |
 
 ---
 
@@ -180,16 +214,19 @@ arrive, the dot disappears and the list renders normally.
 
 | Area | Tests |
 |------|-------|
-| `invoke_raw_turn` | Emits routing partial before context partial before tool partials |
-| `mergePartialTrace` | Lists append; scalars overwrite; no duplicate dedup |
-| `useTraceSocket` | Partial frames go to merge; final frame commits entry |
-| Panel headers | Pulse dot visible during partial; gone after final frame |
+| `invoke_raw_turn` | Emits routing partial → context partial → tool partials in order |
+| `mergePartialTrace` | Lists append, never replace; scalars overwrite |
+| `commitPendingTrace` | Moves pending entry to thread; clears pendingTrace |
+| `useTraceSocket` | Partial → merge; final → commit; error → clear pending |
+| Panel pulse indicators | Visible for empty sections; gone once data arrives |
+| Token streaming | Unchanged — tokens still stream word by word into message bubble |
 
 ---
 
 ## Out of scope
 
-- Mid-LLM-generation token-level reasoning (showing the synthesise prompt
-  mid-flight) — requires exposing raw prompt content.
-- Per-subtask partial traces for compound messages.
+- Showing raw LLM prompt or system message content.
+- Per-subtask streaming for compound messages.
+- Streaming the `synthesize` node mid-LLM-generation within the trace
+  (tokens already appear in the message bubble — no duplication needed).
 - Backpressure / rate-limiting of partial frames.

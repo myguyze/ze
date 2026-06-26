@@ -441,4 +441,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 92 | Agent Activity Heatmap — calendar heatmap of agent usage by day; `GET /api/v0/activity/heatmap` aggregates `messages.trace`; `/brain/activity` page using `@uiw/react-heat-map` | Pending |
 | 93 | Temporal Memory Timeline — `as_of` param on `GET /api/v0/memory/feed`; `GET /api/v0/memory/timeline-bounds`; date scrubber on Memory Feed page for time-travel memory view | Pending |
 | 94 | Memory Graph View — interactive entity/relationship graph; `GET /api/v0/memory/graph` + entity detail endpoint; `/brain/graph` page using React Flow + dagre layout; click-to-expand neighbourhoods | Pending |
-| 95 | Live Trace Streaming — switch `invoke_raw_turn` to `astream_events`; emit partial `trace_update` frames per node (routing → memory → tools); panel fills progressively instead of spinner-then-full | Pending |
+| 95 | Unified Streaming Architecture — switch `invoke_raw_turn` to `astream_events`; emit partial `trace_update` frames as graph nodes complete (routing → memory → tools → final); token streaming for messages already works; trace panel fills progressively | Pending |
