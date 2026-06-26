@@ -72,8 +72,8 @@ def test_duplicate_nav_path_raises():
 
 
 def test_core_reserved_nav_path_raises():
-    with pytest.raises(AgentConfigError, match="news"):
-        collect_ui_contributions([_plugin(_nav(path="news"))])
+    with pytest.raises(AgentConfigError, match="goals"):
+        collect_ui_contributions([_plugin(_nav(path="goals"))])
 
 
 def test_nav_without_path_raises():

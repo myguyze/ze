@@ -10,6 +10,7 @@ from ze_agents.client import LLMClient
 from ze_agents.nli import NLIClient
 from ze_logging import get_logger
 from ze_sdk import ZePlugin
+from ze_sdk.ui import UiContribution
 from ze_agents.settings import Settings as CoreSettings
 from ze_news.onboarding import NewsOnboardingProvider
 
@@ -134,6 +135,29 @@ class NewsPlugin(ZePlugin):
         if self._news_signal_source is None:
             return []
         return [self._news_signal_source]
+
+    def ui_contributions(self) -> list[UiContribution]:
+        if not self._enabled:
+            return []
+        return [
+            UiContribution(
+                id="ze_news.overview",
+                plugin="ze_news",
+                kind="nav",
+                label="News",
+                icon="newspaper",
+                path="news",
+                page_operation_id="getNewsPage",
+                show_in_mobile_nav=True,
+            )
+        ]
+
+    def rest_routes(self) -> list:
+        if not self._enabled:
+            return []
+        from ze_news.api.routes import router
+
+        return [router]
 
     def agent_module_paths(self) -> list[str]:
         if not self._enabled:

@@ -7,6 +7,8 @@ from ze_api.settings import get_settings
 
 
 class FakeContainer:
+    plugins: list = []
+
     def __getattr__(self, name: str):
         return object()
 

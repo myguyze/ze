@@ -27,6 +27,7 @@ export const router = createBrowserRouter([
           : { path: route.path, element: lazyPage(route.lazy) },
       ),
       { path: settingsRoute.path, element: lazyPage(settingsRoute.lazy) },
+      { path: ":pluginPath", element: lazyPage(() => import("@/pages/plugin-page").then((m) => ({ default: m.PluginPage }))) },
     ],
   },
 ]);

@@ -17,3 +17,8 @@ export interface UiManifest {
   nav: UiContribution[];
   settings_sections: UiContribution[];
 }
+
+export interface PluginPageResponse {
+  title: string;
+  tree: unknown;
+}

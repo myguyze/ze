@@ -5,7 +5,6 @@ import {
   Bell,
   Users,
   BarChart2,
-  Newspaper,
   Settings,
 } from "lucide-react";
 
@@ -24,7 +23,6 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "reminders", label: "Reminders", icon: Bell, showInMobileNav: true },
   { path: "contacts", label: "Contacts", icon: Users, showInMobileNav: true },
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
-  { path: "news", label: "News", icon: Newspaper, showInMobileNav: true },
 ];
 
 export const settingsNavRoute: NavRouteMeta = {

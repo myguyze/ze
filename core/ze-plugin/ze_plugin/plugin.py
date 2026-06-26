@@ -137,6 +137,10 @@ class ZePlugin(ABC):
         """Shell UI contributions (nav, settings sections). Default: none."""
         return []
 
+    def rest_routes(self) -> list:
+        """FastAPI routers owned by this plugin. Default: none."""
+        return []
+
     def channels(self) -> list[Any]:
         """Return communication channel instances this plugin provides."""
         return []

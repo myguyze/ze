@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from ze_api.api.dependencies import require_api_key
-from ze_api.api.schemas import ArticleItem, CredibilityFlagItem
+from ze_plugin.api_auth import require_api_key
+from ze_news.api.schemas import ArticleItem, CredibilityFlagItem, PluginPageResponse
+from ze_news.ui.page import build_news_page
 
-router = APIRouter(tags=["news"], dependencies=[Depends(require_api_key)])
+router = APIRouter(prefix="/api/v0", tags=["news"], dependencies=[Depends(require_api_key)])
 
 
 @router.get(
@@ -46,3 +47,22 @@ async def list_news(
         )
         for article in articles
     ]
+
+
+@router.get(
+    "/news/page",
+    response_model=PluginPageResponse,
+    operation_id="getNewsPage",
+    summary="News overview page",
+    description="Returns the server-driven UI tree for the news management screen.",
+)
+async def get_news_page(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=100, description="Maximum articles to return"),
+) -> PluginPageResponse:
+    store = request.app.state.container._plugin_stores.get("news_store")
+    if store is None:
+        return PluginPageResponse(title="News", tree=build_news_page([]))
+
+    articles = await store.get_recent(limit=limit)
+    return PluginPageResponse(title="News", tree=build_news_page(articles))

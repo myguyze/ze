@@ -9,12 +9,15 @@ description = "Ze news package — extensible news sources, persistent article s
 requires-python = ">=3.11"
 dependencies = [
     "ze-sdk",
+    "ze-components",
     "feedparser>=6.0",
     "httpx>=0.28",
+    "fastapi>=0.115",
 ]
 
 [tool.uv.sources]
 ze-sdk = { workspace = true }
+ze-components = { workspace = true }
 
 [dependency-groups]
 dev = [

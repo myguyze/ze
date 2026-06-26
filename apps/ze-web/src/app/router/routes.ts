@@ -15,8 +15,8 @@ const lazyByPath: Record<string, RouteMeta["lazy"]> = {
   reminders: () => import("@/pages/reminders").then((m) => ({ default: m.RemindersPage })),
   contacts: () => import("@/pages/contacts").then((m) => ({ default: m.ContactsPage })),
   costs: () => import("@/pages/costs").then((m) => ({ default: m.CostsPage })),
-  news: () => import("@/pages/news").then((m) => ({ default: m.NewsPage })),
   settings: () => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })),
+  plugin: () => import("@/pages/plugin-page").then((m) => ({ default: m.PluginPage })),
 };
 
 export const appRoutes: RouteMeta[] = navRoutes.map((meta) => ({

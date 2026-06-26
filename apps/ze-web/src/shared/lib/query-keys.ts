@@ -6,6 +6,7 @@ export const queryKeys = {
   news: ["news"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
+  pluginPage: (path: string) => ["plugin-page", path] as const,
 };
 
 const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
@@ -13,7 +14,6 @@ const REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {
   reminders: queryKeys.reminders,
   contacts: queryKeys.contacts,
   costs: queryKeys.costs,
-  news: queryKeys.news,
 };
 
 export function refreshKeysForScreen(screen: string): readonly string[] | undefined {
