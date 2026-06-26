@@ -112,6 +112,7 @@ explicitly deferred before implementation begins.
 | 83 | [ze-communication + ze-messenger](phases/83-ze-communication.md) | ✅ Done |
 | 85 | [Ze Messaging Hub](phases/85-messaging-hub.md) | 🔲 Pending |
 | 86 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
+| 87 | [Plugin UI Platform](phases/87-plugin-ui.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
@@ -139,3 +140,4 @@ explicitly deferred before implementation begins.
 | [Dream Memory](arch/dream-memory.md) | Offline wake/sleep/dream/morning consolidation loop; staging buffer + critic-gated promotion |
 | [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
 | [Communication Hub](arch/communication-hub.md) | Channel identity contract, thread ownership, memory contribution policy, signal filtering, extensibility |
+| [Plugin UI](arch/plugin-ui.md) | Three-tier plugin UI model (SDUI, manifest + generic shell, optional frontend modules) |
