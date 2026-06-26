@@ -9,6 +9,7 @@ import json
 from ze_automation.goals.types import (
     ExecutionTrace,
     Goal,
+    GoalDetail,
     GoalLearning,
     GoalStatus,
     GateStatus,
@@ -339,6 +340,32 @@ class PostgresGoalStore:
             )
         return [_learning_from_row(r) for r in rows]
 
+    # ── Goal detail ────────────────────────────────────────────────────────────
+
+    async def get_goal_detail(self, goal_id: UUID) -> GoalDetail | None:
+        async with self._pool.acquire() as conn:
+            goal_row = await conn.fetchrow("SELECT * FROM goals WHERE id = $1", goal_id)
+            if goal_row is None:
+                return None
+            milestone_rows = await conn.fetch(
+                "SELECT * FROM goal_milestones WHERE goal_id = $1 ORDER BY sequence ASC",
+                goal_id,
+            )
+            gate_rows = await conn.fetch(
+                "SELECT * FROM goal_gates WHERE goal_id = $1 ORDER BY after_sequence ASC",
+                goal_id,
+            )
+            learning_rows = await conn.fetch(
+                "SELECT * FROM goal_learnings WHERE goal_id = $1 ORDER BY created_at DESC",
+                goal_id,
+            )
+        return GoalDetail(
+            goal=_goal_from_row(goal_row),
+            milestones=[_milestone_from_row(r) for r in milestone_rows],
+            gates=[_gate_from_row(r) for r in gate_rows],
+            learnings=[_learning_from_row(r) for r in learning_rows],
+        )
+
     # ── Execution traces ───────────────────────────────────────────────────────
 
     async def save_traces(self, traces: list[ExecutionTrace]) -> None:
@@ -357,12 +384,34 @@ class PostgresGoalStore:
                         json.dumps(t.args), t.result, t.duration_ms, t.success, t.error,
                     )
 
-    async def list_traces(self, milestone_id: UUID) -> list[ExecutionTrace]:
+    async def list_traces(
+        self,
+        goal_id: UUID,
+        milestone_id: UUID | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ExecutionTrace]:
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT * FROM goal_execution_traces WHERE milestone_id = $1 ORDER BY seq ASC",
-                milestone_id,
-            )
+            if milestone_id is not None:
+                rows = await conn.fetch(
+                    """
+                    SELECT * FROM goal_execution_traces
+                    WHERE goal_id = $1 AND milestone_id = $2
+                    ORDER BY seq ASC
+                    LIMIT $3 OFFSET $4
+                    """,
+                    goal_id, milestone_id, limit, offset,
+                )
+            else:
+                rows = await conn.fetch(
+                    """
+                    SELECT * FROM goal_execution_traces
+                    WHERE goal_id = $1
+                    ORDER BY seq ASC
+                    LIMIT $2 OFFSET $3
+                    """,
+                    goal_id, limit, offset,
+                )
         return [
             ExecutionTrace(
                 id=r["id"],

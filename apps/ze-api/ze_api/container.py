@@ -37,6 +37,7 @@ from ze_core.conversation.sessions import PostgresSessionStore
 from ze_core.orchestration.graph import build_graph
 from ze_correlation.bootstrap import build_correlation_stack
 from ze_data.portability.service import DataPortabilityService
+from ze_seed.service import DevDataSeeder, collect_seed_domains
 from ze_ingestion.bootstrap import build_ingestion_stack, import_agent_modules as import_ingestion_agents
 from ze_memory.policies import build_policy_registry
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
@@ -96,6 +97,7 @@ class ZeContainer(CoreContainer):
     _checkpointer: Any
     _push_log_store: PushLogStore
     data_portability_service: DataPortabilityService
+    dev_data_seeder: DevDataSeeder
     ingestion_pipeline: Any
     dream_store: Any
     channel_registry: ChannelRegistry | None
@@ -358,6 +360,9 @@ async def build_container(settings: Settings) -> ZeContainer:
     data_portability_service = DataPortabilityService(pool=pool, domains=all_domains)
     log.info("data_portability_service_ready", domains=len(all_domains))
 
+    dev_data_seeder = DevDataSeeder(collect_seed_domains(plugins))
+    log.info("dev_data_seeder_ready", domains=len(dev_data_seeder._domains))
+
     from ze_memory.dream.store import PostgresDreamStore
 
     dream_store = PostgresDreamStore(pool=pool)
@@ -395,6 +400,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         _checkpointer=checkpointer,
         _push_log_store=push_log_store,
         data_portability_service=data_portability_service,
+        dev_data_seeder=dev_data_seeder,
         ingestion_pipeline=ingestion.pipeline,
         dream_store=dream_store,
         channel_registry=channel_registry,

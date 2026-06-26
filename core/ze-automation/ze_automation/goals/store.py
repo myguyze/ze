@@ -6,6 +6,7 @@ from uuid import UUID
 from ze_automation.goals.types import (
     ExecutionTrace,
     Goal,
+    GoalDetail,
     GoalLearning,
     GoalStatus,
     GateStatus,
@@ -93,11 +94,23 @@ class GoalStore(Protocol):
 
     async def list_learnings(self, goal_id: UUID) -> list[GoalLearning]: ...
 
+    # ── Goal detail ────────────────────────────────────────────────────────────
+
+    async def get_goal_detail(self, goal_id: UUID) -> GoalDetail | None:
+        """Returns goal + milestones + gates + learnings in one round-trip."""
+        ...
+
     # ── Execution traces ───────────────────────────────────────────────────────
 
     async def save_traces(self, traces: list[ExecutionTrace]) -> None: ...
 
-    async def list_traces(self, milestone_id: UUID) -> list[ExecutionTrace]: ...
+    async def list_traces(
+        self,
+        goal_id: UUID,
+        milestone_id: UUID | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ExecutionTrace]: ...
 
     # ── Failure counters ───────────────────────────────────────────────────────
 

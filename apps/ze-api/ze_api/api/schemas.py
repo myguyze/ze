@@ -214,6 +214,68 @@ class GoalActionResponse(BaseModel):
     status: str
 
 
+class MilestoneResponse(BaseModel):
+    id: UUIDType
+    title: str
+    description: str
+    sequence: int
+    status: str
+    output: str | None
+    reuse_hint: str | None
+    completed_at: datetime | None
+    created_at: datetime
+
+
+class GateResponse(BaseModel):
+    id: UUIDType
+    after_sequence: int
+    title: str
+    status: str
+    context_summary: str | None
+    plan_summary: str | None
+    user_feedback: str | None
+    fired_at: datetime | None
+    resolved_at: datetime | None
+
+
+class LearningResponse(BaseModel):
+    id: UUIDType
+    content: str
+    source: str
+    created_at: datetime
+
+
+class GoalDetailResponse(BaseModel):
+    id: UUIDType
+    title: str
+    objective: str
+    success_condition: str
+    status: str
+    type: str
+    time_horizon: str | None
+    learnings_summary: str | None
+    retrospective_text: str | None
+    created_at: datetime
+    updated_at: datetime
+    milestones: list[MilestoneResponse]
+    gates: list[GateResponse]
+    learnings: list[LearningResponse]
+
+
+class ExecutionTraceResponse(BaseModel):
+    id: UUIDType
+    milestone_id: UUIDType
+    goal_id: UUIDType
+    seq: int
+    tool_name: str
+    args: dict
+    result: str
+    duration_ms: int
+    success: bool
+    error: str | None
+    created_at: datetime
+
+
 class AgentCostBucket(BaseModel):
     usd: float
     tokens: int
@@ -644,3 +706,23 @@ class UiManifestResponse(BaseModel):
             nav=[to_schema(item) for item in manifest.nav],
             settings_sections=[to_schema(item) for item in manifest.settings_sections],
         )
+
+
+# ── REST: activity heatmap ────────────────────────────────────────────────────
+
+class AgentDayCount(BaseModel):
+    agent: str
+    count: int
+
+
+class HeatmapDay(BaseModel):
+    date: str
+    total: int
+    agents: list[AgentDayCount]
+
+
+class ActivityHeatmapResponse(BaseModel):
+    days: list[HeatmapDay]
+    agents: list[str]
+    start: str
+    end: str

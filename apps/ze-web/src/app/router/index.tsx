@@ -26,6 +26,12 @@ export const router = createBrowserRouter([
           ? { index: true as const, element: lazyPage(route.lazy) }
           : { path: route.path, element: lazyPage(route.lazy) },
       ),
+      {
+        path: "goals/:goalId",
+        element: lazyPage(() =>
+          import("@/pages/goal-detail").then((m) => ({ default: m.GoalDetailPage })),
+        ),
+      },
       { path: settingsRoute.path, element: lazyPage(settingsRoute.lazy) },
       { path: ":pluginPath", element: lazyPage(() => import("@/pages/plugin-page").then((m) => ({ default: m.PluginPage }))) },
     ],

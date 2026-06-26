@@ -143,6 +143,14 @@ class StuckGoal:
 
 
 @dataclass
+class GoalDetail:
+    goal: "Goal"
+    milestones: "list[Milestone]"
+    gates: "list[VerificationGate]"
+    learnings: "list[GoalLearning]"
+
+
+@dataclass
 class GoalConvergence:
     overlapping_goal_id: UUID
     overlapping_goal_title: str

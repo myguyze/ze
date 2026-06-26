@@ -11,3 +11,4 @@ export {
   settingsNavRoute,
   mobileNavRoutes,
 } from "./nav-routes";
+export { AGENT_COLORS, AGENT_COLOR_FALLBACK, agentColor } from "./agents";

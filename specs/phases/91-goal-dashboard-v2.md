@@ -1,6 +1,6 @@
 # Phase 91 — Goal Dashboard v2
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 19 (Goal Engine), Phase 23 (Goal Engine v2), Phase 45 (Native App Interface), Phase 72 (API Client Codegen)
 **Packages touched:** `apps/ze-api`, `apps/ze-web`
 
@@ -39,15 +39,15 @@ what it did, and what it learned — without reading raw logs.
 
 | Feature | Status |
 |---------|--------|
-| `GET /api/v0/goals/{goal_id}` detail endpoint | 🔲 Pending |
-| `GET /api/v0/goals/{goal_id}/traces` endpoint | 🔲 Pending |
-| Schema types (`GoalDetailResponse`, etc.) | 🔲 Pending |
-| Codegen update | 🔲 Pending |
-| `pages/goal-detail/` FSD slice | 🔲 Pending |
-| `MilestoneTimeline` component | 🔲 Pending |
-| `GateStatusCard` component | 🔲 Pending |
-| `ExecutionTraceLog` component | 🔲 Pending |
-| `GoalLearningsList` component | 🔲 Pending |
+| `GET /api/v0/goals/{goal_id}` detail endpoint | ✅ Done |
+| `GET /api/v0/goals/{goal_id}/traces` endpoint | ✅ Done |
+| Schema types (`GoalDetailResponse`, etc.) | ✅ Done |
+| Codegen update | ✅ Done |
+| `pages/goal-detail/` FSD slice | ✅ Done |
+| `MilestoneTimeline` component | ✅ Done |
+| `GateStatusCard` component | ✅ Done |
+| `ExecutionTraceLog` component | ✅ Done |
+| `GoalLearningsList` component | ✅ Done |
 
 ---
 

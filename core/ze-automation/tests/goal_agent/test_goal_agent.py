@@ -300,7 +300,7 @@ async def test_get_milestone_trace_returns_formatted_output():
     )
 
     store.list_milestones.assert_called_once_with(gid)
-    store.list_traces.assert_called_once_with(mid)
+    store.list_traces.assert_called_once_with(goal_id=gid, milestone_id=mid)
     assert result.response
 
 

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ze_api.api.openapi import OPENAPI_TAGS
-from ze_api.api.routes import capabilities, channels, costs, data, dream, eval, goals, health, ingest, memory, routing, sessions, ui, version, webhooks, workflows, ws_schema
+from ze_api.api.routes import activity, capabilities, channels, costs, data, dream, eval, goals, health, ingest, memory, routing, sessions, ui, version, webhooks, workflows, ws_schema
 from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container
@@ -33,6 +33,14 @@ async def lifespan(app: FastAPI):
     ze_migrate.assert_schema_ready(settings.database_url_sync)
 
     container = await build_container(settings)
+
+    if settings.auto_seed_dev_data:
+        from ze_seed.context import SeedContext
+
+        log.info("dev_seed_start")
+        ctx = SeedContext.from_container(container)
+        await container.dev_data_seeder.apply(ctx, force=True)
+        log.info("dev_seed_done")
 
     app.state.settings = settings
     app.state.container = container
@@ -91,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(eval.router)
 
     # Versioned REST API
+    app.include_router(activity.router, prefix="/api/v0")
     app.include_router(capabilities.router, prefix="/api/v0/capabilities")
     app.include_router(memory.router, prefix="/api/v0/memory")
     app.include_router(routing.router, prefix="/api/v0/routing")

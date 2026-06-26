@@ -104,7 +104,7 @@ async def test_list_traces_maps_rows():
     pool, _ = _make_pool(fetch=[row])
     store = PostgresGoalStore(pool)
 
-    traces = await store.list_traces(mid)
+    traces = await store.list_traces(goal_id=gid, milestone_id=mid)
 
     assert len(traces) == 1
     t = traces[0]
@@ -118,7 +118,7 @@ async def test_list_traces_maps_rows():
 async def test_list_traces_returns_empty_for_unknown_milestone():
     pool, _ = _make_pool(fetch=[])
     store = PostgresGoalStore(pool)
-    traces = await store.list_traces(uuid4())
+    traces = await store.list_traces(goal_id=uuid4())
     assert traces == []
 
 

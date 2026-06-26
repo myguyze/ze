@@ -240,7 +240,7 @@ async def get_milestone_trace(store: GoalStore, goal_id: str, milestone_sequence
     if target is None:
         return f"No milestone with sequence {milestone_sequence} found for goal {goal_id}."
 
-    traces = await store.list_traces(target.id)
+    traces = await store.list_traces(goal_id=uid, milestone_id=target.id)
     if not traces:
         return "No execution trace recorded for this milestone."
 

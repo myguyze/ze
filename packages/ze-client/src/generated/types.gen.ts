@@ -5,6 +5,28 @@ export type ClientOptions = {
 };
 
 /**
+ * ActivityHeatmapResponse
+ */
+export type ActivityHeatmapResponse = {
+    /**
+     * Days
+     */
+    days: Array<HeatmapDay>;
+    /**
+     * Agents
+     */
+    agents: Array<string>;
+    /**
+     * Start
+     */
+    start: string;
+    /**
+     * End
+     */
+    end: string;
+};
+
+/**
  * AgentCapabilityConfig
  *
  * Per-agent entry from capabilities.yaml (enabled + intent modes).
@@ -41,6 +63,20 @@ export type AgentCostBucket = {
      * Completion Tokens
      */
     completion_tokens: number;
+};
+
+/**
+ * AgentDayCount
+ */
+export type AgentDayCount = {
+    /**
+     * Agent
+     */
+    agent: string;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -629,6 +665,58 @@ export type EvalToolCall = {
 };
 
 /**
+ * ExecutionTraceResponse
+ */
+export type ExecutionTraceResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Milestone Id
+     */
+    milestone_id: string;
+    /**
+     * Goal Id
+     */
+    goal_id: string;
+    /**
+     * Seq
+     */
+    seq: number;
+    /**
+     * Tool Name
+     */
+    tool_name: string;
+    /**
+     * Args
+     */
+    args: {
+        [key: string]: unknown;
+    };
+    /**
+     * Result
+     */
+    result: string;
+    /**
+     * Duration Ms
+     */
+    duration_ms: number;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
  * ExpiringFactDigestItem
  */
 export type ExpiringFactDigestItem = {
@@ -705,6 +793,48 @@ export type FactReviewRequest = {
 };
 
 /**
+ * GateResponse
+ */
+export type GateResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * After Sequence
+     */
+    after_sequence: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Context Summary
+     */
+    context_summary: string | null;
+    /**
+     * Plan Summary
+     */
+    plan_summary: string | null;
+    /**
+     * User Feedback
+     */
+    user_feedback: string | null;
+    /**
+     * Fired At
+     */
+    fired_at: string | null;
+    /**
+     * Resolved At
+     */
+    resolved_at: string | null;
+};
+
+/**
  * GoalActionResponse
  */
 export type GoalActionResponse = {
@@ -716,6 +846,68 @@ export type GoalActionResponse = {
      * Status
      */
     status: string;
+};
+
+/**
+ * GoalDetailResponse
+ */
+export type GoalDetailResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Objective
+     */
+    objective: string;
+    /**
+     * Success Condition
+     */
+    success_condition: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Time Horizon
+     */
+    time_horizon: string | null;
+    /**
+     * Learnings Summary
+     */
+    learnings_summary: string | null;
+    /**
+     * Retrospective Text
+     */
+    retrospective_text: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Milestones
+     */
+    milestones: Array<MilestoneResponse>;
+    /**
+     * Gates
+     */
+    gates: Array<GateResponse>;
+    /**
+     * Learnings
+     */
+    learnings: Array<LearningResponse>;
 };
 
 /**
@@ -765,6 +957,24 @@ export type HealthResponse = {
 };
 
 /**
+ * HeatmapDay
+ */
+export type HeatmapDay = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Agents
+     */
+    agents: Array<AgentDayCount>;
+};
+
+/**
  * ImportResponse
  */
 export type ImportResponse = {
@@ -804,6 +1014,28 @@ export type IngestResponse = {
      * Tags
      */
     tags: Array<string>;
+};
+
+/**
+ * LearningResponse
+ */
+export type LearningResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Created At
+     */
+    created_at: string;
 };
 
 /**
@@ -1038,6 +1270,48 @@ export type MessageTraceResponse = {
      * Total Duration Ms
      */
     total_duration_ms: number;
+};
+
+/**
+ * MilestoneResponse
+ */
+export type MilestoneResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Sequence
+     */
+    sequence: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Output
+     */
+    output: string | null;
+    /**
+     * Reuse Hint
+     */
+    reuse_hint: string | null;
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
 };
 
 /**
@@ -1632,6 +1906,44 @@ export type EvalChatEvalChatPostResponses = {
 
 export type EvalChatEvalChatPostResponse = EvalChatEvalChatPostResponses[keyof EvalChatEvalChatPostResponses];
 
+export type GetActivityHeatmapData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Start
+         *
+         * Start date inclusive (ISO date). Defaults to 12 months ago.
+         */
+        start?: string | null;
+        /**
+         * End
+         *
+         * End date inclusive (ISO date). Defaults to today.
+         */
+        end?: string | null;
+    };
+    url: '/api/v0/activity/heatmap';
+};
+
+export type GetActivityHeatmapErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetActivityHeatmapError = GetActivityHeatmapErrors[keyof GetActivityHeatmapErrors];
+
+export type GetActivityHeatmapResponses = {
+    /**
+     * Successful Response
+     */
+    200: ActivityHeatmapResponse;
+};
+
+export type GetActivityHeatmapResponse = GetActivityHeatmapResponses[keyof GetActivityHeatmapResponses];
+
 export type ListCapabilitiesData = {
     body?: never;
     path?: never;
@@ -2070,6 +2382,87 @@ export type ListGoalsResponses = {
 };
 
 export type ListGoalsResponse = ListGoalsResponses[keyof ListGoalsResponses];
+
+export type GetGoalDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Goal Id
+         */
+        goal_id: string;
+    };
+    query?: never;
+    url: '/api/v0/goals/{goal_id}';
+};
+
+export type GetGoalDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetGoalDetailError = GetGoalDetailErrors[keyof GetGoalDetailErrors];
+
+export type GetGoalDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: GoalDetailResponse;
+};
+
+export type GetGoalDetailResponse = GetGoalDetailResponses[keyof GetGoalDetailResponses];
+
+export type ListGoalTracesData = {
+    body?: never;
+    path: {
+        /**
+         * Goal Id
+         */
+        goal_id: string;
+    };
+    query?: {
+        /**
+         * Milestone Id
+         *
+         * Filter to a single milestone
+         */
+        milestone_id?: string | null;
+        /**
+         * Limit
+         *
+         * Max rows
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Pagination offset
+         */
+        offset?: number;
+    };
+    url: '/api/v0/goals/{goal_id}/traces';
+};
+
+export type ListGoalTracesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListGoalTracesError = ListGoalTracesErrors[keyof ListGoalTracesErrors];
+
+export type ListGoalTracesResponses = {
+    /**
+     * Response Listgoaltraces
+     *
+     * Successful Response
+     */
+    200: Array<ExecutionTraceResponse>;
+};
+
+export type ListGoalTracesResponse = ListGoalTracesResponses[keyof ListGoalTracesResponses];
 
 export type StartGoalData = {
     body?: never;
