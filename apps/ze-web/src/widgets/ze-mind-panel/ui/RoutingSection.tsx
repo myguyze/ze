@@ -4,11 +4,12 @@ import { TraceSection } from "@/widgets/message-trace/ui/TraceSection";
 
 interface RoutingSectionProps {
   trace: WsTraceUpdateFrame;
+  live?: boolean;
 }
 
-export function RoutingSection({ trace }: RoutingSectionProps) {
+export function RoutingSection({ trace, live }: RoutingSectionProps) {
   return (
-    <TraceSection title="Routing">
+    <TraceSection title="Routing" loading={live && !trace.agent}>
       <RoutingBadge
         agent={trace.agent}
         routingMethod={trace.routing_method}

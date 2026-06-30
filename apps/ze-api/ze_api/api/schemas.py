@@ -469,6 +469,7 @@ class WsPongFrame(BaseModel):
 class WsTraceUpdateFrame(BaseModel):
     type: Literal["trace_update"]
     message_id: str
+    partial: bool = False
     agent: str
     routing_method: str
     confidence: float

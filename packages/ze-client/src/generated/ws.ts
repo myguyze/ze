@@ -51,6 +51,7 @@ export type Screen = string;
 export type Type8 = "pong";
 export type Type9 = "trace_update";
 export type MessageId = string;
+export type Partial = boolean;
 export type Agent = string;
 export type RoutingMethod = string;
 export type Confidence = number;
@@ -216,6 +217,7 @@ export interface WsPongFrame {
 export interface WsTraceUpdateFrame {
   type: Type9;
   message_id: MessageId;
+  partial?: Partial;
   agent: Agent;
   routing_method: RoutingMethod;
   confidence: Confidence;

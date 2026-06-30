@@ -47,6 +47,26 @@ class NativeAppInterface:
         if notification.actions:
             await self._send_action_request(notification)
 
+    async def send_trace_partial(self, message_id: str, fields: dict) -> None:
+        try:
+            await self._conn.send_frame({
+                "type": "trace_update",
+                "message_id": message_id,
+                "partial": True,
+                "agent": "",
+                "routing_method": "",
+                "confidence": 0.0,
+                "score_gap": 0.0,
+                "is_compound": False,
+                "subtasks": [],
+                "memory_chunks": [],
+                "tool_calls": [],
+                "total_duration_ms": 0,
+                **fields,
+            })
+        except Exception as exc:
+            log.warning("native_interface_trace_partial_failed", error=str(exc))
+
     async def _send_message(
         self,
         text: str,
@@ -54,9 +74,11 @@ class NativeAppInterface:
         components: list[dict] | None = None,
         ntfy_priority: int = 3,
         trace: Any | None = None,
+        message_id: str | None = None,
     ) -> None:
+        from uuid import UUID
         msg = Message(
-            id=uuid4(),
+            id=UUID(message_id) if message_id else uuid4(),
             role="assistant",
             text=text,
             components=components or [],
@@ -105,9 +127,10 @@ class NativeAppInterface:
         thread_id: str | None,
         components: list[dict] | None = None,
         trace: Any | None = None,
+        message_id: str | None = None,
     ) -> None:
         """Called by the WS handler after graph invocation to attach the thread_id."""
-        await self._send_message(text, thread_id=thread_id, components=components, trace=trace)
+        await self._send_message(text, thread_id=thread_id, components=components, trace=trace, message_id=message_id)
 
     async def send_confirmation(self, request: ConfirmationRequest) -> None:
         """Deliver a confirmation UI frame over WebSocket (and ntfy if backgrounded)."""

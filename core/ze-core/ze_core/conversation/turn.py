@@ -84,6 +84,7 @@ class TurnResult:
     dynamic_plan_high_risk: list | None = None
     error: str | None = None
     response: str | None = None
+    message_id: str = ""
 
 
 def _confirmation_meta(final_state: dict) -> tuple[str, str, str]:
@@ -107,12 +108,67 @@ async def invoke_raw_turn(
     config_extra: dict | None = None,
 ) -> TurnResult:
     """Run the conversation graph once from raw transport input and interpret the outcome."""
+    from uuid import uuid4
+    from ze_core.orchestration.nodes.trace import _extract_memory_chunks
+
     graph_input = make_graph_input(raw, thread_id)
     config = container._build_config(thread_id, **(config_extra or {}))
+    interface = container.interface
+    graph_name = getattr(container.graph, "name", "LangGraph")
+    pending_message_id = str(uuid4())
 
-    final_state = await container.graph.ainvoke(graph_input, config)
-    graph_state = await container.graph.aget_state(config)
-    interrupted = bool(graph_state.next)
+    final_state: dict = {}
+    graph_ended = False
+
+    async for event in container.graph.astream_events(graph_input, config, version="v2"):
+        kind = event["event"]
+        name = event.get("name", "")
+        data = event.get("data", {})
+
+        if kind == "on_chain_end" and name == "embed_route":
+            env = (data.get("output") or {}).get("envelope")
+            if env is not None and interface is not None:
+                await interface.send_trace_partial(pending_message_id, {
+                    "agent": env.primary_agent,
+                    "routing_method": env.routing_method,
+                    "confidence": env.confidence,
+                    "score_gap": env.score_gap,
+                    "is_compound": env.is_compound,
+                    "subtasks": [s.agent for s in env.subtasks] if env.is_compound else [],
+                })
+
+        elif kind == "on_chain_end" and name == "fetch_context":
+            memory_ctx = (data.get("output") or {}).get("memory_context")
+            if memory_ctx is not None and interface is not None:
+                chunks = _extract_memory_chunks(memory_ctx)
+                if chunks:
+                    await interface.send_trace_partial(pending_message_id, {
+                        "memory_chunks": [
+                            {"text": c.text, "score": c.score, "source": c.source}
+                            for c in chunks
+                        ],
+                    })
+
+        elif kind == "on_tool_end":
+            if interface is not None:
+                output = data.get("output")
+                content = getattr(output, "content", None) if output is not None else None
+                if content is None and output is not None:
+                    content = str(output)
+                snippet = str(content)[:200] if content else ""
+                await interface.send_trace_partial(pending_message_id, {
+                    "tool_calls": [{"name": name, "result_snippet": snippet, "duration_ms": 0, "success": True}],
+                })
+
+        elif kind == "on_chain_end" and name == graph_name:
+            final_state = data.get("output") or {}
+            graph_ended = True
+
+    graph_state_obj = await container.graph.aget_state(config)
+    interrupted = bool(graph_state_obj.next) if graph_state_obj else False
+    if not graph_ended and graph_state_obj:
+        final_state = graph_state_obj.values
+
     draft, agent, action = _confirmation_meta(final_state)
 
     return TurnResult(
@@ -126,6 +182,7 @@ async def invoke_raw_turn(
         dynamic_plan_high_risk=final_state.get("dynamic_plan_high_risk"),
         error=final_state.get("error"),
         response=None if interrupted else extract_response(final_state),
+        message_id=pending_message_id,
     )
 
 

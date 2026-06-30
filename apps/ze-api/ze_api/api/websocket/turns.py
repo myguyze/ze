@@ -133,6 +133,7 @@ async def handle_message(
             thread_id=extract_thread_id(outcome.config),
             components=components or None,
             trace=trace,
+            message_id=outcome.message_id or None,
         )
 
     return None

@@ -1,8 +1,21 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import type { WsTraceUpdateFrame } from "@ze/client";
 import { useMindStore, useTraceSocket } from "@/features/ze-mind-state";
 import { MindEmptyState } from "./EmptyState";
 import { TraceEntry } from "./TraceEntry";
+
+const EMPTY_TRACE: Omit<WsTraceUpdateFrame, "type" | "message_id"> = {
+  agent: "",
+  routing_method: "",
+  confidence: 0,
+  score_gap: 0,
+  is_compound: false,
+  subtasks: [],
+  memory_chunks: [],
+  tool_calls: [],
+  total_duration_ms: 0,
+};
 
 export function ZeMindPanel() {
   useTraceSocket();
@@ -11,6 +24,7 @@ export function ZeMindPanel() {
   const width = useMindStore((s) => s.width);
   const traces = useMindStore((s) => s.traces);
   const pending = useMindStore((s) => s.pending);
+  const pendingTrace = useMindStore((s) => s.pendingTrace);
   const setWidth = useMindStore((s) => s.setWidth);
 
   const dragging = useRef(false);
@@ -45,14 +59,17 @@ export function ZeMindPanel() {
     };
   }, [setWidth]);
 
-  // scroll to bottom when a new trace entry arrives
   useEffect(() => {
-    if (traces.length > 0) {
+    if (traces.length > 0 || pendingTrace) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [traces.length]);
+  }, [traces.length, pendingTrace]);
 
   if (!open) return null;
+
+  const liveTrace: WsTraceUpdateFrame | null = pendingTrace
+    ? { type: "trace_update", message_id: "", ...EMPTY_TRACE, ...pendingTrace }
+    : null;
 
   return (
     <div
@@ -73,7 +90,7 @@ export function ZeMindPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto relative">
-        {traces.length === 0 && !pending ? (
+        {traces.length === 0 && !pending && !liveTrace ? (
           <MindEmptyState />
         ) : (
           <div className="text-xs">
@@ -82,14 +99,22 @@ export function ZeMindPanel() {
                 key={trace.message_id}
                 trace={trace}
                 index={i}
-                defaultOpen={i === traces.length - 1}
+                defaultOpen={i === traces.length - 1 && !liveTrace}
               />
             ))}
+            {liveTrace && (
+              <TraceEntry
+                trace={liveTrace}
+                index={traces.length}
+                defaultOpen={true}
+                live={true}
+              />
+            )}
             <div ref={bottomRef} />
           </div>
         )}
 
-        {pending && (
+        {pending && !liveTrace && (
           <div className="sticky bottom-0 flex items-center gap-2 px-3 py-2 bg-black/60 border-t border-white/[0.06] text-xs text-smoke">
             <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />
             Ze is thinking…

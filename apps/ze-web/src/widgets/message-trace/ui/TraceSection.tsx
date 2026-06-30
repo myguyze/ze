@@ -4,11 +4,12 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 interface TraceSectionProps {
   title: string;
   count?: number;
+  loading?: boolean;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }
 
-export function TraceSection({ title, count, children, defaultOpen = true }: TraceSectionProps) {
+export function TraceSection({ title, count, loading, children, defaultOpen = true }: TraceSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -24,10 +25,13 @@ export function TraceSection({ title, count, children, defaultOpen = true }: Tra
         )}
         <span className="font-medium">
           {title}
-          {count !== undefined && (
+          {count !== undefined && !loading && (
             <span className="ml-1 text-smoke/60">({count})</span>
           )}
         </span>
+        {loading && (
+          <span className="w-1.5 h-1.5 rounded-full bg-plum-voltage animate-pulse ml-1 flex-shrink-0" />
+        )}
       </button>
       {open && <div className="px-3 pb-2">{children}</div>}
     </div>
