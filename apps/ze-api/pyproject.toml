@@ -54,6 +54,7 @@ dev = [
     "psycopg2-binary>=2.9",        # sync driver for alembic migrations
     "ruff>=0.8",
     "mcp>=1.0",
+    "httpx2>=0.28",                # starlette TestClient (replaces deprecated httpx fallback)
 ]
 
 [tool.uv.sources]
