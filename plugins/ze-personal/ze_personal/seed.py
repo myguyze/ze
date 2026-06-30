@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from ze_personal.contacts.types import Person
 from ze_seed.context import SeedContext
 from ze_seed.domain import SeedDomain
@@ -45,7 +43,7 @@ async def _apply_personal(ctx: SeedContext) -> int:
                 VALUES (1, 'default', $1::jsonb)
                 ON CONFLICT (id) DO UPDATE SET dials = EXCLUDED.dials
                 """,
-                json.dumps({"directness": 0.9, "formality": 0.2}),
+                {"directness": 0.9, "formality": 0.2},
             )
         count += 1
 

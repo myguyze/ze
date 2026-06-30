@@ -16,7 +16,7 @@ _SYSTEM_PROMPT = """\
 You are a routing assistant for a personal AI assistant.
 Analyze the user prompt and decide which agent(s) should handle it.
 
-Available agents:
+Available agents (name: description [valid intents]):
 {agent_descriptions}
 
 Respond ONLY with a JSON object — no prose, no markdown:
@@ -27,9 +27,10 @@ Respond ONLY with a JSON object — no prose, no markdown:
   "sequential": false
 }}
 
-Intent values: read, create, update, delete, execute, reason
+Rules:
 - ALWAYS return at least one subtask. An empty subtasks array is never valid.
-- When uncertain and no tool use is needed, default to the first available agent with intent "reason".
+- Use only intent values listed for that agent (shown in brackets above).
+- When uncertain and no tool use is needed, default to the agent with "reason" intent.
 - Use exactly one subtask for single-agent tasks.
 - Use multiple subtasks only when the request genuinely requires different agents.
 - Each subtask prompt must be self-contained for its agent.
@@ -90,7 +91,7 @@ async def decompose(
     known_agents = set(agent_registry)
 
     agent_descriptions = "\n".join(
-        f"- {name}: {cls.description.strip()}"
+        f"- {name} [{', '.join(getattr(cls, 'intents', {}).keys()) or 'read'}]: {cls.description.strip()}"
         for name, cls in agent_registry.items()
     )
     system = _SYSTEM_PROMPT.format(agent_descriptions=agent_descriptions)

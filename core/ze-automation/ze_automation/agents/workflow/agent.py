@@ -40,12 +40,14 @@ class WorkflowManagerAgent(BaseAgent):
     name = "workflow"
     display_name = "Workflows"
     description = """
-      Named automation workflows and recurring scheduled tasks.
-      Use for: "create a workflow that does X every day", "automate X on a schedule",
-      "list my workflows", "run the X workflow now", "trigger the X automation",
-      "enable/disable the Y workflow", "change when the X workflow runs", "delete the Z automation",
-      "set up a recurring task".
-      Not for one-off reminders (use reminders), long-term goals, or calendar events.
+      Stored named automation workflows and multi-step recurring tasks — not calendar events.
+      Use for: "run the X workflow", "execute the X automation now", "trigger the X workflow",
+      "run my stored workflow called X", "fire the X workflow immediately",
+      "create a workflow that does X every day", "automate X on a schedule",
+      "list my workflows", "list my automations", "show me my saved workflows",
+      "enable/disable the Y workflow", "change when the X workflow runs",
+      "delete the Z automation", "set up a recurring task".
+      Not for one-off reminders (use reminders), long-term goals, or Google Calendar events.
     """
     model = "anthropic/claude-sonnet-4-5"
     vision_capable = True

@@ -17,6 +17,8 @@ class FactSpec:
     agent: str
     confidence: float
     source_episode_id: UUID | None = None
+    subject_id: UUID | None = None
+    object_id: UUID | None = None
 
 
 @dataclass
@@ -46,6 +48,24 @@ class ReminderSpec:
 
 
 @dataclass
+class EntitySpec:
+    id: UUID
+    entity_type: str
+    canonical_name: str
+    aliases: list[str] = field(default_factory=list)
+    attrs: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class RelationshipSpec:
+    id: UUID
+    source_id: UUID
+    target_id: UUID
+    predicate: str
+    confidence: float = 1.0
+
+
+@dataclass
 class MessageSpec:
     id: UUID
     role: str
@@ -63,6 +83,8 @@ class PersonaNarrative:
     contacts: list[ContactSpec] = field(default_factory=list)
     reminders: list[ReminderSpec] = field(default_factory=list)
     messages: list[MessageSpec] = field(default_factory=list)
+    entities: list[EntitySpec] = field(default_factory=list)
+    relationships: list[RelationshipSpec] = field(default_factory=list)
 
 
 def _parse_trace(data: dict) -> MessageTrace:
@@ -107,6 +129,8 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
             agent=item.get("agent", "companion"),
             confidence=float(item.get("confidence", 1.0)),
             source_episode_id=UUID(item["source_episode_id"]) if item.get("source_episode_id") else None,
+            subject_id=UUID(item["subject_id"]) if item.get("subject_id") else None,
+            object_id=UUID(item["object_id"]) if item.get("object_id") else None,
         )
         for item in raw.get("facts", [])
     ]
@@ -151,6 +175,27 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
             )
         )
 
+    entities = [
+        EntitySpec(
+            id=UUID(item["id"]),
+            entity_type=item["entity_type"],
+            canonical_name=item["canonical_name"],
+            aliases=list(item.get("aliases", [])),
+            attrs=dict(item.get("attrs", {})),
+        )
+        for item in raw.get("entities", [])
+    ]
+    relationships = [
+        RelationshipSpec(
+            id=UUID(item["id"]),
+            source_id=UUID(item["source_id"]),
+            target_id=UUID(item["target_id"]),
+            predicate=item["predicate"],
+            confidence=float(item.get("confidence", 1.0)),
+        )
+        for item in raw.get("relationships", [])
+    ]
+
     return PersonaNarrative(
         name=persona.get("name", "Alex"),
         communication_style=persona.get("communication_style", "direct"),
@@ -160,4 +205,6 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
         contacts=contacts,
         reminders=reminders,
         messages=messages,
+        entities=entities,
+        relationships=relationships,
     )

@@ -5,9 +5,11 @@ from uuid import UUID
 from ze_seed.narrative.loader import load_persona
 from ze_seed.narrative.ids import (
     CONTACT_IDS,
+    ENTITY_IDS,
     FACT_IDS,
     GOAL_PORTUGUESE,
     MESSAGE_IDS,
+    RELATIONSHIP_IDS,
     SEED_SESSION_ID,
     SEED_THREAD_ID,
 )
@@ -22,6 +24,8 @@ def test_load_persona_has_expected_counts():
     assert len(narrative.contacts) == 3
     assert len(narrative.reminders) == 2
     assert len(narrative.messages) == 8
+    assert len(narrative.entities) == 7
+    assert len(narrative.relationships) == 8
 
 
 def test_load_persona_fact_ids_match_manifest():
@@ -43,6 +47,20 @@ def test_load_persona_source_episode_link():
     linked = [f for f in narrative.facts if f.source_episode_id is not None]
     assert len(linked) == 1
     assert linked[0].source_episode_id == UUID("00000007-0001-4000-8000-000000000001")
+
+
+def test_load_persona_graph_ids_match_manifest():
+    narrative = load_persona()
+    assert {entity.id for entity in narrative.entities} == set(ENTITY_IDS)
+    assert {rel.id for rel in narrative.relationships} == set(RELATIONSHIP_IDS)
+
+
+def test_load_persona_facts_link_to_entities():
+    narrative = load_persona()
+    linked = [f for f in narrative.facts if f.subject_id is not None]
+    assert len(linked) == 12
+    entity_ids = {entity.id for entity in narrative.entities}
+    assert all(fact.subject_id in entity_ids for fact in linked)
 
 
 def test_namespace_constants():

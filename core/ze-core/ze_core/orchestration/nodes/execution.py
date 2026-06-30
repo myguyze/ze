@@ -204,7 +204,24 @@ async def _execute_compound(
     abort_token: Any = None,
     component_hook: Any = None,
     embed_fn: Any = None,
+    token_queue: asyncio.Queue | None = None,
+    token_sink: Any = None,
 ) -> dict:
+    if len(subtasks) == 1:
+        return await _execute_single(
+            subtasks[0],
+            base_ctx,
+            gate_decision,
+            state,
+            token_queue=token_queue,
+            token_sink=token_sink,
+            reporter=reporter,
+            identity_builder=identity_builder,
+            abort_token=abort_token,
+            component_hook=component_hook,
+            embed_fn=embed_fn,
+        )
+
     def _make_ctx(subtask: Any) -> AgentContext:
         return AgentContext(
             session_id=base_ctx.session_id,

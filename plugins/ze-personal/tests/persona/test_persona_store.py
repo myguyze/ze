@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 import pytest
 
 from ze_agents.errors import UnknownDialError, UnknownProfileError
-from ze_personal.persona.postgres import PostgresPersonaStore
+from ze_personal.persona.postgres import PostgresPersonaStore, _dials_from_row
 
 
 _PROFILES = {
@@ -53,6 +53,13 @@ async def test_get_state_returns_persisted(store_with_row):
     state = await store.get_state()
     assert state.profile == "formal"
     assert state.dials == {"humor": 0.2}
+
+
+def test_dials_from_row_parses_json_string():
+    assert _dials_from_row('{"directness": 0.9, "formality": 0.2}') == {
+        "directness": 0.9,
+        "formality": 0.2,
+    }
 
 
 async def test_get_state_returns_default_when_no_row():

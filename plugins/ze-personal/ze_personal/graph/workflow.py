@@ -72,13 +72,19 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     step = steps[idx]
     execution_id = state.get("workflow_execution_id")
     result = state.get("agent_result")
+    subtask_results = state.get("subtask_results") or []
 
-    if result and result.tool_calls:
-        failed = [tc for tc in result.tool_calls if not tc.success and not getattr(tc, "is_draft", False)]
+    tool_calls = list(result.tool_calls) if result and result.tool_calls else []
+    for subtask_result in subtask_results:
+        if subtask_result.tool_calls:
+            tool_calls.extend(subtask_result.tool_calls)
+
+    if tool_calls:
+        failed = [tc for tc in tool_calls if not tc.success and not getattr(tc, "is_draft", False)]
         if failed:
             return _fail_step(store, execution_id, state, idx, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
 
-    output = result.response if result else ""
+    output = _resolve_step_output(state)
     if not output.strip():
         return _fail_step(store, execution_id, state, idx, step.task, "", "Step produced empty output")
 
@@ -205,6 +211,7 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     """Build and compile the workflow execution graph."""
     from langgraph.constants import END
 
+    from ze_core.orchestration.edges import after_embed_route
     from ze_core.orchestration.graph import graph_builder
     from ze_core.orchestration.state import build_state_type
 
@@ -219,7 +226,12 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     builder.set_entry_point("load_workflow_step")
 
     builder.add_edge("load_workflow_step", "embed_route")
-    builder.add_edge("embed_route",        "fetch_context")
+    builder.add_conditional_edges(
+        "embed_route",
+        after_embed_route,
+        {"decompose": "decompose", "fetch_context": "fetch_context"},
+    )
+    builder.add_edge("decompose", "fetch_context")
     builder.add_edge("fetch_context",      "capability_check")
     builder.add_conditional_edges(
         "capability_check",
@@ -249,6 +261,28 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+
+def _resolve_step_output(state: dict[str, Any]) -> str:
+    """Collect step text from whichever execution path populated state."""
+    final = state.get("final_response")
+    if final and str(final).strip():
+        return str(final).strip()
+
+    result = state.get("agent_result")
+    if result and result.response and result.response.strip():
+        return result.response.strip()
+
+    subtask_results = state.get("subtask_results") or []
+    parts = [
+        r.response.strip()
+        for r in subtask_results
+        if r.response and r.response.strip()
+    ]
+    if parts:
+        return "\n\n".join(parts)
+
+    return ""
+
 
 def _resolve_verify_model(config: RunnableConfig) -> str:
     cfg = config["configurable"].get("settings")

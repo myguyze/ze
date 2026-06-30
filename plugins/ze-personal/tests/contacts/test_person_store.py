@@ -2,7 +2,12 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from ze_personal.contacts.store import PersonStore, _person_from_row, _source_from_row
+from ze_personal.contacts.store import (
+    PersonStore,
+    _contact_info_from_row,
+    _person_from_row,
+    _source_from_row,
+)
 from ze_personal.contacts.types import Person, PersonRelationship, PersonSource
 
 
@@ -91,6 +96,10 @@ def test_person_from_row_handles_null_optionals():
     assert person.aliases == []
 
 
+def test_contact_info_from_row_parses_json_string():
+    assert _contact_info_from_row('{"email": "a@b.com"}') == {"email": "a@b.com"}
+
+
 # ── _source_from_row ──────────────────────────────────────────────────────────
 
 def test_source_from_row_maps_fields():
@@ -131,7 +140,7 @@ async def test_upsert_updates_existing_person():
     result = await store.upsert(person)
 
     call_sql = conn.fetchrow.call_args[0][0]
-    assert "UPDATE contacts" in call_sql
+    assert "ON CONFLICT (id) DO UPDATE" in call_sql
     assert result.id == existing_id
 
 

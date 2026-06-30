@@ -145,6 +145,20 @@ class TestExecuteTool:
         responses = {r.response for r in result["subtask_results"]}
         assert responses == {"r1", "r2"}
 
+    async def test_compound_single_subtask_uses_agent_result(self):
+        _register_and_wire("news", response="headlines")
+        subtasks = [SubTask(agent="news", intent="read", prompt="search trump health")]
+        env = _envelope("news", is_compound=True, subtasks=subtasks)
+        state = {
+            "envelope": env,
+            "agent_context": _ctx("news"),
+            "gate_decision": GateDecision.EXECUTE,
+            "image_data": None,
+        }
+        result = await execute_tool(state, {"configurable": {}})
+        assert result["agent_result"].response == "headlines"
+        assert result["subtask_results"] == []
+
     async def test_compound_sequential(self):
         _register_and_wire("alpha", response="r1")
         _register_and_wire("beta", response="r2")

@@ -9,62 +9,79 @@ facts:
     value: Senior software engineer at a fintech startup in Lisbon
     agent: companion
     confidence: 0.95
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000002"
     predicate: timezone
     value: Europe/Lisbon (UTC+0/+1)
     agent: companion
     confidence: 1.0
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000003"
     predicate: communication_preference
     value: Prefers async communication over meetings; likes concise updates
     agent: companion
     confidence: 0.9
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000004"
     predicate: learning_goal
     value: Learning European Portuguese to reach B1 conversational level
     agent: companion
     confidence: 0.95
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000007"
   - id: "00000006-0001-4000-8000-000000000005"
     predicate: language_study
     value: Uses Duolingo daily and has weekly tutoring sessions with Ana
     agent: companion
     confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000003"
   - id: "00000006-0001-4000-8000-000000000006"
     predicate: important_person
     value: Sofia is Alex's partner; they live together in Lisbon
     agent: companion
     confidence: 0.9
+    subject_id: "0000000b-0001-4000-8000-000000000004"
+    object_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000007"
     predicate: important_person
     value: Marco is Alex's engineering manager at work
     agent: companion
     confidence: 0.9
+    subject_id: "0000000b-0001-4000-8000-000000000002"
+    object_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000008"
     predicate: side_project
     value: Building a personal finance tracker side project called LedgerLite
     agent: research
     confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-000000000009"
     predicate: sleep_goal
     value: Wants to consistently sleep before midnight on weeknights
     agent: companion
     confidence: 0.75
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-00000000000a"
     predicate: calendar_preference
     value: Blocks focus time 9-11am on weekdays for deep work
     agent: calendar
     confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-00000000000b"
     predicate: dietary_note
     value: Vegetarian; avoids shellfish
     agent: companion
     confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-000000000001"
   - id: "00000006-0001-4000-8000-00000000000c"
     predicate: portuguese_progress
     value: Completed A2 level; working on past tense and subjunctive mood
     agent: companion
     confidence: 0.88
     source_episode_id: "00000007-0001-4000-8000-000000000001"
+    subject_id: "0000000b-0001-4000-8000-000000000007"
 
 episodes:
   - id: "00000007-0001-4000-8000-000000000001"
@@ -91,6 +108,92 @@ episodes:
     agent: calendar
     prompt: Set a reminder for dentist appointment prep
     response: Added a reminder to gather insurance card and list of questions before the dentist visit next Tuesday.
+
+entities:
+  - id: "0000000b-0001-4000-8000-000000000001"
+    entity_type: person
+    canonical_name: Alex
+    aliases: []
+    attrs:
+      role: user
+  - id: "0000000b-0001-4000-8000-000000000002"
+    entity_type: person
+    canonical_name: Marco Silva
+    aliases: [Marco]
+    attrs:
+      role: engineering manager
+  - id: "0000000b-0001-4000-8000-000000000003"
+    entity_type: person
+    canonical_name: Ana Costa
+    aliases: [Ana]
+    attrs:
+      role: Portuguese tutor
+  - id: "0000000b-0001-4000-8000-000000000004"
+    entity_type: person
+    canonical_name: Sofia Mendes
+    aliases: [Sofia]
+    attrs:
+      role: partner
+  - id: "0000000b-0001-4000-8000-000000000005"
+    entity_type: place
+    canonical_name: Lisbon
+    aliases: []
+    attrs:
+      country: Portugal
+  - id: "0000000b-0001-4000-8000-000000000006"
+    entity_type: topic
+    canonical_name: LedgerLite
+    aliases: []
+    attrs:
+      kind: side project
+  - id: "0000000b-0001-4000-8000-000000000007"
+    entity_type: topic
+    canonical_name: European Portuguese
+    aliases: [Portuguese]
+    attrs:
+      level: A2
+
+relationships:
+  - id: "0000000c-0001-4000-8000-000000000001"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: lives_in
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-000000000002"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000004"
+    predicate: partner_of
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000003"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-000000000001"
+    predicate: manages
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000004"
+    source_id: "0000000b-0001-4000-8000-000000000003"
+    target_id: "0000000b-0001-4000-8000-000000000001"
+    predicate: tutors
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000005"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000007"
+    predicate: learning
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-000000000006"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: building
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000007"
+    source_id: "0000000b-0001-4000-8000-000000000004"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: lives_in
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000008"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000002"
+    predicate: reports_to
+    confidence: 0.9
 
 contacts:
   - id: "00000009-0001-4000-8000-000000000001"

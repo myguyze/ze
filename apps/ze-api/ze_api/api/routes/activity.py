@@ -20,7 +20,7 @@ WHERE role = 'assistant'
   AND trace IS NOT NULL
   AND trace->>'agent' IS NOT NULL
   AND created_at >= $1
-  AND created_at < $2 + INTERVAL '1 day'
+  AND created_at < $2
 GROUP BY 1, 2
 ORDER BY 1 ASC, 3 DESC
 """
@@ -46,10 +46,10 @@ async def get_activity_heatmap(
     start_date = start or (end_date - timedelta(days=365))
 
     start_dt = datetime(start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc)
-    end_dt = datetime(end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc)
+    end_exclusive = datetime(end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc) + timedelta(days=1)
 
     async with container.pool.acquire() as conn:
-        rows = await conn.fetch(_SQL, start_dt, end_dt)
+        rows = await conn.fetch(_SQL, start_dt, end_exclusive)
 
     by_day: dict[str, list[AgentDayCount]] = defaultdict(list)
     all_agents: set[str] = set()

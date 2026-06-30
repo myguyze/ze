@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 
-def embedding_list(embedder: Any, text: str) -> list[float]:
+def embedding_vector(embedder: Any, text: str) -> str:
     vec = embedder.encode(text)
-    if hasattr(vec, "tolist"):
-        return vec.tolist()
-    return list(vec)
+    vals = vec.tolist() if hasattr(vec, "tolist") else list(vec)
+    return "[" + ",".join(str(v) for v in vals) + "]"
 
 
 async def delete_by_ids(conn: Any, table: str, ids: list) -> None:

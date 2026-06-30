@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from typing import Any
+
 from ze_core import defaults
 from ze_sdk import DBPool
 from ze_agents.errors import UnknownDialError, UnknownProfileError
@@ -7,6 +10,16 @@ from ze_logging import get_logger
 from ze_personal.persona.types import PersonaState
 
 log = get_logger(__name__)
+
+
+def _dials_from_row(raw: Any) -> dict[str, float]:
+    if not raw:
+        return {}
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    if isinstance(raw, dict):
+        return {k: float(v) for k, v in raw.items()}
+    return {}
 
 
 class PostgresPersonaStore:
@@ -49,7 +62,7 @@ class PostgresPersonaStore:
             return PersonaState(profile=self._default_profile)
         return PersonaState(
             profile=row["profile"],
-            dials=dict(row["dials"] or {}),
+            dials=_dials_from_row(row["dials"]),
             updated_at=row["updated_at"],
         )
 

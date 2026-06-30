@@ -18,6 +18,16 @@ def _tokens(text: str) -> int:
     return len(text) // 4
 
 
+def _contact_info_from_row(raw: Any) -> dict[str, str]:
+    if not raw:
+        return {}
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    if isinstance(raw, dict):
+        return {k: str(v) for k, v in raw.items()}
+    return {}
+
+
 def _person_from_row(row: asyncpg.Record) -> Person:
     return Person(
         id=row["id"],
@@ -26,7 +36,7 @@ def _person_from_row(row: asyncpg.Record) -> Person:
         classification=row["classification"],
         classification_confidence=row["classification_confidence"],
         relationship_to_user=row["relationship_to_user"] or "",
-        contact_info=dict(row["contact_info"] or {}),
+        contact_info=_contact_info_from_row(row["contact_info"]),
         notes=row["notes"] or "",
         confirmed=row["confirmed"],
         dismissed=row["dismissed"],
@@ -61,20 +71,24 @@ class PersonStore:
             if person.id is not None:
                 row = await conn.fetchrow(
                     """
-                    UPDATE contacts SET
-                        name                      = $2,
-                        aliases                   = $3,
-                        classification            = $4,
-                        classification_confidence = $5,
-                        relationship_to_user      = $6,
-                        contact_info              = $7::jsonb,
-                        notes                     = $8,
-                        confirmed                 = $9,
-                        dismissed                 = $10,
-                        confidence                = $11,
+                    INSERT INTO contacts (
+                        id, name, aliases, classification, classification_confidence,
+                        relationship_to_user, contact_info, notes,
+                        confirmed, dismissed, confidence
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11)
+                    ON CONFLICT (id) DO UPDATE SET
+                        name                      = EXCLUDED.name,
+                        aliases                   = EXCLUDED.aliases,
+                        classification            = EXCLUDED.classification,
+                        classification_confidence = EXCLUDED.classification_confidence,
+                        relationship_to_user      = EXCLUDED.relationship_to_user,
+                        contact_info              = EXCLUDED.contact_info,
+                        notes                     = EXCLUDED.notes,
+                        confirmed                 = EXCLUDED.confirmed,
+                        dismissed                 = EXCLUDED.dismissed,
+                        confidence                = EXCLUDED.confidence,
                         last_mentioned            = NOW(),
                         updated_at                = NOW()
-                    WHERE id = $1
                     RETURNING *
                     """,
                     person.id,
@@ -83,7 +97,7 @@ class PersonStore:
                     person.classification,
                     person.classification_confidence,
                     person.relationship_to_user or None,
-                    json.dumps(person.contact_info),
+                    person.contact_info,
                     person.notes or None,
                     person.confirmed,
                     person.dismissed,
@@ -104,7 +118,7 @@ class PersonStore:
                     person.classification,
                     person.classification_confidence,
                     person.relationship_to_user or None,
-                    json.dumps(person.contact_info),
+                    person.contact_info,
                     person.notes or None,
                     person.confirmed,
                     person.dismissed,

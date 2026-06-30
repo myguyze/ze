@@ -408,3 +408,18 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 79 | NLI cross-encoder — contradiction detection, retrieval re-rank cache, correlation grounding (`ze_core/nli.py`) | Done |
 | 80 | NLI Client + plugin access — `NLIClient` Protocol, DI, shared `@tool`s | Done |
 | 81 | Plugin NLI adoption — news dedup, finance merchant merging | Pending |
+
+## Learned User Preferences
+
+- Write a spec in `specs/phases/` (or `specs/arch/` for cross-cutting decisions) before significant new features.
+- When implementing from an attached Cursor plan: do not edit the plan file; use the pre-created todos and mark them in_progress/completed as you work.
+- Ze's user-facing interface is the React web app (`ze-web`), not Telegram — do not describe Telegram-style UI capabilities to users.
+- Only create git commits when explicitly asked.
+
+## Learned Workspace Facts
+
+- `core/ze-seed` (Phase 96) seeds dev data when `AUTO_SEED_DEV_DATA=true` (default on `make dev` / `make dev-full`); each run wipes the `seed-dev-*` namespace and re-applies narrative fixtures; plugins extend via `ZePlugin.seed_domains()`.
+- `ze-email` was renamed to `ze-messenger` (`plugins/ze-messenger/`); Gmail inbound channel lives in `integrations/ze-google`.
+- Plugin management UI registers via `ZePlugin.ui_contributions()`; `ze-web` loads nav/settings from `GET /api/v0/ui/manifest`; plugin REST routes mount via `rest_routes()`.
+- `apps/ze-web` follows Feature-Sliced Design: `pages → widgets → features → entities → shared`; query hooks live in `entities/<name>/api/`.
+- Chat inline UI uses `ze-components` `render_*` tools (table, metric, list, timeline, progress, confirm, form) rendered by `PrimitiveRenderer` below message bubbles.
