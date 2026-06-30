@@ -9,7 +9,7 @@ export const queryKeys = {
   costs: ["costs"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
-  memoryFeed: (type: string, agent?: string) => ["memory-feed", type, agent ?? ""] as const,
+  memoryFeed: (type: string, agent?: string, asOf?: string) => ["memory-feed", type, agent ?? "", asOf ?? ""] as const,
   messageTrace: (messageId: string) => ["message-trace", messageId] as const,
   activityHeatmap: (start?: string, end?: string) => ["activity-heatmap", start ?? "", end ?? ""] as const,
   pluginPage: (path: string) => ["plugin-page", path] as const,

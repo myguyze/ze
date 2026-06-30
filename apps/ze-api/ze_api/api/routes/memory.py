@@ -12,6 +12,7 @@ from ze_api.api.schemas import (
     MemoryFactQualityResponse,
     MemoryFeedItem,
     MemoryFeedResponse,
+    TimelineBoundsResponse,
     UserFactResponse,
     UserProfileResponse,
 )
@@ -28,7 +29,8 @@ router = APIRouter(tags=["memory"], dependencies=[Depends(require_api_key)])
     description=(
         "Reverse-chronological stream of facts and episodes. "
         "Cursor-paginated via the `before` timestamp. "
-        "Filter by `type` (fact/episode/all) and `agent`."
+        "Filter by `type` (fact/episode/all) and `agent`. "
+        "Pass `as_of` to get a point-in-time snapshot of Ze's memory."
     ),
 )
 async def get_memory_feed(
@@ -36,6 +38,7 @@ async def get_memory_feed(
     before: datetime | None = Query(default=None, description="Return items older than this timestamp"),
     type: Literal["fact", "episode", "all"] = Query(default="all", description="Filter by item type"),
     agent: str | None = Query(default=None, description="Filter by originating agent name"),
+    as_of: datetime | None = Query(default=None, description="Return only items that existed at this point in time"),
     container=Depends(get_container),
 ) -> MemoryFeedResponse:
     result = await memory_admin.get_memory_feed(
@@ -44,8 +47,24 @@ async def get_memory_feed(
         before=before,
         type_filter=type,
         agent_filter=agent,
+        as_of=as_of,
     )
     return MemoryFeedResponse.model_validate(result)
+
+
+@router.get(
+    "/timeline-bounds",
+    response_model=TimelineBoundsResponse,
+    operation_id="getMemoryTimelineBounds",
+    summary="Memory timeline bounds",
+    description=(
+        "Returns the earliest and latest memory timestamps. "
+        "Use to configure the date scrubber range on the memory feed page."
+    ),
+)
+async def get_memory_timeline_bounds(container=Depends(get_container)) -> TimelineBoundsResponse:
+    result = await memory_admin.get_memory_timeline_bounds(container.pool)
+    return TimelineBoundsResponse.model_validate(result)
 
 
 @router.get(

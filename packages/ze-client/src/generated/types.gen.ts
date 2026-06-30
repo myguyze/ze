@@ -1195,6 +1195,20 @@ export type MemoryFeedResponse = {
 };
 
 /**
+ * TimelineBoundsResponse
+ */
+export type TimelineBoundsResponse = {
+    /**
+     * Earliest
+     */
+    earliest: string | null;
+    /**
+     * Latest
+     */
+    latest: string;
+};
+
+/**
  * MessageSchema
  */
 export type MessageSchema = {
@@ -2022,6 +2036,12 @@ export type GetMemoryFeedData = {
          * Filter by originating agent name
          */
         agent?: string | null;
+        /**
+         * As Of
+         *
+         * Return only items that existed at this point in time
+         */
+        as_of?: string | null;
     };
     url: '/api/v0/memory/feed';
 };
@@ -2043,6 +2063,22 @@ export type GetMemoryFeedResponses = {
 };
 
 export type GetMemoryFeedResponse = GetMemoryFeedResponses[keyof GetMemoryFeedResponses];
+
+export type GetMemoryTimelineBoundsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/memory/timeline-bounds';
+};
+
+export type GetMemoryTimelineBoundsResponses = {
+    /**
+     * Successful Response
+     */
+    200: TimelineBoundsResponse;
+};
+
+export type GetMemoryTimelineBoundsResponse = GetMemoryTimelineBoundsResponses[keyof GetMemoryTimelineBoundsResponses];
 
 export type ListFactsData = {
     body?: never;

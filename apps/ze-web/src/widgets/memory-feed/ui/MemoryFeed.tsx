@@ -5,12 +5,13 @@ import { MemoryFeedItem } from "./MemoryFeedItem";
 
 interface MemoryFeedProps {
   filters: MemoryFeedFilters;
+  asOf?: string;
 }
 
-export function MemoryFeed({ filters }: MemoryFeedProps) {
+export function MemoryFeed({ filters, asOf }: MemoryFeedProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
-    useMemoryFeedQuery(filters);
+    useMemoryFeedQuery(filters, asOf);
 
   const firstPage = data?.pages[0];
   const allItems = data?.pages.flatMap((p) => p.items) ?? [];

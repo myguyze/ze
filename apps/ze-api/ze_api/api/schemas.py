@@ -640,6 +640,11 @@ class MemoryFeedResponse(BaseModel):
     total_episodes: int
 
 
+class TimelineBoundsResponse(BaseModel):
+    earliest: datetime | None
+    latest: datetime
+
+
 # ── REST: channels ────────────────────────────────────────────────────────────
 
 class ChannelInfo(BaseModel):

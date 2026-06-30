@@ -8,9 +8,9 @@ export interface MemoryFeedFilters {
   agent?: string;
 }
 
-export function useMemoryFeedQuery(filters: MemoryFeedFilters) {
+export function useMemoryFeedQuery(filters: MemoryFeedFilters, asOf?: string) {
   return useInfiniteQuery({
-    queryKey: queryKeys.memoryFeed(filters.type, filters.agent),
+    queryKey: queryKeys.memoryFeed(filters.type, filters.agent, asOf),
     queryFn: async ({ pageParam }) => {
       const { data } = await getMemoryFeed({
         query: {
@@ -18,6 +18,7 @@ export function useMemoryFeedQuery(filters: MemoryFeedFilters) {
           before: pageParam ?? undefined,
           type: filters.type,
           agent: filters.agent ?? undefined,
+          as_of: asOf ?? undefined,
         },
       });
       return data as MemoryFeedResponse;

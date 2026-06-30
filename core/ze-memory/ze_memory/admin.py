@@ -72,15 +72,33 @@ async def get_memory_feed(
     before: datetime | None = None,
     type_filter: str = "all",
     agent_filter: str | None = None,
+    as_of: datetime | None = None,
 ) -> dict:
+    now = datetime.now(timezone.utc)
     if before is None:
-        before = datetime.now(timezone.utc)
+        before = now
+    snapshot = as_of if as_of is not None else now
 
     async with pool.acquire() as conn:
-        totals = await conn.fetchrow(
-            "SELECT (SELECT COUNT(*) FROM memory_facts) AS total_facts,"
-            " (SELECT COUNT(*) FROM memory_episodes) AS total_episodes"
-        )
+        if as_of is not None:
+            totals = await conn.fetchrow(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM memory_facts
+                     WHERE created_at <= $1
+                       AND (expires_at IS NULL OR expires_at > $1)
+                       AND NOT (contradicted = true AND updated_at <= $1)
+                    ) AS total_facts,
+                    (SELECT COUNT(*) FROM memory_episodes WHERE created_at <= $1) AS total_episodes
+                """,
+                snapshot,
+            )
+        else:
+            totals = await conn.fetchrow(
+                "SELECT (SELECT COUNT(*) FROM memory_facts) AS total_facts,"
+                " (SELECT COUNT(*) FROM memory_episodes) AS total_episodes"
+            )
+
         rows = await conn.fetch(
             """
             SELECT id, 'fact' AS type,
@@ -89,8 +107,11 @@ async def get_memory_feed(
                    agent, created_at
             FROM memory_facts
             WHERE created_at < $1
+              AND created_at <= $5
               AND ($2::TEXT IS NULL OR agent = $2)
               AND ($3 = 'all' OR $3 = 'fact')
+              AND (expires_at IS NULL OR expires_at > $5)
+              AND NOT (contradicted = true AND updated_at <= $5)
 
             UNION ALL
 
@@ -101,13 +122,14 @@ async def get_memory_feed(
                    agent, created_at
             FROM memory_episodes
             WHERE created_at < $1
+              AND created_at <= $5
               AND ($2::TEXT IS NULL OR agent = $2)
               AND ($3 = 'all' OR $3 = 'episode')
 
             ORDER BY created_at DESC
             LIMIT $4
             """,
-            before, agent_filter, type_filter, limit,
+            before, agent_filter, type_filter, limit, snapshot,
         )
 
     items = [dict(r) for r in rows]
@@ -117,6 +139,24 @@ async def get_memory_feed(
         "next_before": next_before,
         "total_facts": totals["total_facts"],
         "total_episodes": totals["total_episodes"],
+    }
+
+
+async def get_memory_timeline_bounds(pool: Any) -> dict:
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT MIN(ts) AS earliest
+            FROM (
+                SELECT MIN(created_at) AS ts FROM memory_facts
+                UNION ALL
+                SELECT MIN(created_at) AS ts FROM memory_episodes
+            ) sub
+            """
+        )
+    return {
+        "earliest": row["earliest"],
+        "latest": datetime.now(timezone.utc),
     }
 
 

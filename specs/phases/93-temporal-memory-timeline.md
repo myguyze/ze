@@ -1,6 +1,6 @@
 # Phase 93 — Temporal Memory Timeline
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 88 (Memory Feed — establishes `/brain/memory` route and feed components)
 **Packages touched:** `apps/ze-api`, `apps/ze-web`
 
@@ -38,13 +38,13 @@ forgets everything).
 
 | Feature | Status |
 |---------|--------|
-| `as_of` param on `GET /api/v0/memory/feed` | 🔲 Pending |
-| `GET /api/v0/memory/timeline-bounds` endpoint | 🔲 Pending |
-| Schema updates | 🔲 Pending |
-| Codegen update | 🔲 Pending |
-| `TimelineScrubber` component | 🔲 Pending |
-| `as_of` integration with Phase 88 feed | 🔲 Pending |
-| "Now" snap button | 🔲 Pending |
+| `as_of` param on `GET /api/v0/memory/feed` | ✅ Done |
+| `GET /api/v0/memory/timeline-bounds` endpoint | ✅ Done |
+| Schema updates | ✅ Done |
+| Codegen update | ✅ Done |
+| `TimelineScrubber` component | ✅ Done |
+| `as_of` integration with Phase 88 feed | ✅ Done |
+| "Now" snap button | ✅ Done |
 
 ---
 
