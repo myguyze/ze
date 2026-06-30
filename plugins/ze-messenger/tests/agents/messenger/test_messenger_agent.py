@@ -1,16 +1,12 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_agents.settings import Settings
 from ze_agents.types import AgentContext, AgentResult
-from ze_communication.channel import InboundChannel
 from ze_communication.registry import ChannelRegistry
-from ze_communication.types import ChannelType, SentMessage
 from ze_messenger.agents.messenger.agent import MessengerAgent
 from ze_sdk.memory import MemoryContext
 
-from datetime import datetime, timezone
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

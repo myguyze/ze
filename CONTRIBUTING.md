@@ -34,13 +34,19 @@ make web           # React web app on :5173
 
 2. **Make your changes.** Keep each PR focused — one feature or fix per PR.
 
-3. **Run the test suite** before pushing:
+3. **Run checks** before pushing:
    ```bash
+   make check       # ruff + ze-web tsc build — mirrors CI lint gates
+   make lint-web    # optional: ESLint / FSD boundaries when editing ze-web
    make test        # ze-api (skips slow) — must pass
-   make lint        # ruff — must pass
    make test-web    # vitest — must pass if you changed ze-web
    make test-all    # optional, all packages including slow
    ```
+   Install git hooks once so commits and pushes are checked automatically:
+   ```bash
+   make hooks       # pre-commit: staged ruff/tsc; pre-push: make check
+   ```
+   Bypass in an emergency: `SKIP=1 git commit` or `SKIP=1 git push`.
    Per-package targets: `make test-<name>` from repo root. Full list: [docs/testing.md](docs/testing.md).
 
 4. **Open a PR** against `main`. The PR description should say *why* the change is needed,

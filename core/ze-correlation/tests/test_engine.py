@@ -6,10 +6,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
-import pytest
 
 from ze_correlation.engine import CorrelationEngine
 from ze_correlation.store import PostgresHypothesisStore

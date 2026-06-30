@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import json
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_automation.agents.goals.tools import _check_convergence
 from ze_automation.goals.types import Goal, GoalConvergence, GoalStatus

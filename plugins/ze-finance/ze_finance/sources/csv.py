@@ -15,8 +15,6 @@ from ze_finance.store import CsvMappingStore
 from ze_finance.types import (
     Account,
     AccountType,
-    Asset,
-    AssetClass,
     CsvMapping,
     Position,
     Transaction,

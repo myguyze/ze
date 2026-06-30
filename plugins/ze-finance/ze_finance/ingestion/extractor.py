@@ -13,10 +13,6 @@ from ze_finance.errors import FinanceParseError
 from ze_finance.sources.csv import CsvSchemaInferrer, CsvDataSource, parse_csv_content
 from ze_finance.store import TransactionStore
 from ze_finance.types import (
-    Account,
-    AccountType,
-    Asset,
-    AssetClass,
     Transaction,
     TransactionType,
 )

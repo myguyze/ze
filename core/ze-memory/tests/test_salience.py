@@ -13,12 +13,12 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
-from ze_memory.admission import AdmissionGate, WatchEntry
+from ze_memory.admission import AdmissionGate
 from ze_memory.relevance import RelevanceModel
 from ze_memory.surfacing import SurfacingConfig, SurfacingGate
 from ze_memory.types import EntityRef, ProfileFacet, RelevanceEntry, RelevanceSet, Signal

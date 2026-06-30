@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from ze_logging import get_logger
 from ze_finance.errors import ZeIntegrationError
@@ -17,6 +18,9 @@ from ze_finance.types import (
 
 log = get_logger(__name__)
 
+if TYPE_CHECKING:
+    from ze_trading212.client import Trading212Client
+
 _ASSET_CLASS_MAP: dict[str, AssetClass] = {
     "STOCK": AssetClass.EQUITY,
     "ETF": AssetClass.ETF,
@@ -30,7 +34,7 @@ class Trading212DataSource:
 
     source_id = "trading212"
 
-    def __init__(self, client: "Trading212Client") -> None:  # type: ignore[name-defined]
+    def __init__(self, client: Trading212Client) -> None:
         self._client = client
 
     async def fetch_account(self) -> Account:

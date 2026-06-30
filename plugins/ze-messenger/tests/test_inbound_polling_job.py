@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_communication.types import ChannelType, InboundMessage
 from ze_messenger.jobs.inbound_poll import InboundPollingJob

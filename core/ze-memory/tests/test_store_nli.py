@@ -4,7 +4,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.types import Fact

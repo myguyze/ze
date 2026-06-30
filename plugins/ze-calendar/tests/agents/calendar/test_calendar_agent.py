@@ -1,7 +1,5 @@
-import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_calendar.agents.calendar.agent import CalendarAgent
 from ze_agents.types import AgentContext, AgentResult

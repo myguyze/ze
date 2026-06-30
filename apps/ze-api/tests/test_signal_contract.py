@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -104,9 +104,6 @@ def test_calendar_signal_source_satisfies_protocol():
 async def test_gate_receives_signals_from_multiple_sources():
     """Admission gate check_and_ingest is called for signals from both sources,
     with no engine changes required."""
-    news_signal = _make_signal("news", ["Anthropic"])
-    cal_signal = _make_signal("calendar", ["Anthropic"])
-
     gate = MagicMock()
     gate.check_and_ingest = AsyncMock(return_value="admit")
 

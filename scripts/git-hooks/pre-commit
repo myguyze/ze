@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Fast checks on staged files — run `make check` before push for full CI parity.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ "${SKIP:-}" == "1" ]]; then
+  echo "pre-commit: skipped (SKIP=1)"
+  exit 0
+fi
+
+STAGED_PY="$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)"
+STAGED_WEB="$(git diff --cached --name-only --diff-filter=ACM | grep '^apps/ze-web/' || true)"
+
+if [[ -n "$STAGED_PY" ]]; then
+  count="$(printf '%s\n' "$STAGED_PY" | sed '/^$/d' | wc -l | tr -d ' ')"
+  echo "pre-commit: ruff ($count staged Python file(s))..."
+  # shellcheck disable=SC2086
+  uv run ruff check $STAGED_PY
+fi
+
+if [[ -n "$STAGED_WEB" ]]; then
+  echo "pre-commit: ze-web typecheck..."
+  (cd apps/ze-web && bunx tsc -b --noEmit)
+fi
+
+echo "pre-commit: ok"

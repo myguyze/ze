@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Full lint + web build — mirrors CI before changes leave your machine.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ "${SKIP:-}" == "1" ]]; then
+  echo "pre-push: skipped (SKIP=1)"
+  exit 0
+fi
+
+echo "pre-push: running make check..."
+make check
+echo "pre-push: ok"

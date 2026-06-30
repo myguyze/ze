@@ -6,11 +6,9 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_memory.graph.predicates import MENTIONS
 from ze_memory.graph.store import PostgresGraphStore
-from ze_memory.graph.types import Relationship
 from ze_memory.retriever import PostgresMemoryStore
 from ze_memory.types import EntityRef, Signal, SignalIngestResult
 

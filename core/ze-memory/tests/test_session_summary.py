@@ -1,8 +1,7 @@
 """Unit tests for SessionSummariser (Phase 65 — Eager Session Summaries)."""
 from __future__ import annotations
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from ze_memory.session_summary import SessionSummariser, _is_excluded_session
 

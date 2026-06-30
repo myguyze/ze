@@ -4,10 +4,9 @@ import json
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 
 from ze_automation.goals.planner import GoalPlanner
-from ze_automation.goals.types import Goal, GoalConvergence, GoalStatus
+from ze_automation.goals.types import Goal, GoalStatus
 
 
 def _goal(title="Launch SaaS", objective="Build and ship an MVP") -> Goal:

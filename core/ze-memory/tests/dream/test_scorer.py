@@ -5,7 +5,6 @@ import math
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_memory.dream.scorer import (
     _classify_source,

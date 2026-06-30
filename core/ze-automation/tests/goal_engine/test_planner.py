@@ -224,7 +224,7 @@ async def test_replan_remaining_injects_local_procedures_into_prompt(planner, cl
 
 
 async def test_replan_remaining_local_procedure_wins_over_global_on_name_collision(client):
-    from ze_sdk.memory import Procedure, RetrievalRequest
+    from ze_sdk.memory import Procedure
 
     global_proc = Procedure(id=None, name="Interview loop", trigger="global version", steps=["old"])
     local_proc = Procedure(id=None, name="Interview loop", trigger="local version", steps=["new"])

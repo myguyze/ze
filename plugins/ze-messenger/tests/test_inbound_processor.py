@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_communication.types import ChannelType, InboundMessage
-from ze_messenger.inbound.processor import InboundMessageProcessor, SenderClass, _is_automated
+from ze_messenger.inbound.processor import InboundMessageProcessor, _is_automated
 from ze_messenger.signals import MessagingSignalSource
 
 
@@ -142,8 +141,6 @@ async def test_replied_to_writes_signal():
 # ── _extract_facts ────────────────────────────────────────────────────────────
 
 async def test_extract_facts_calls_propose_facts():
-    from unittest.mock import patch
-    from ze_memory.types import Fact
 
     known = MagicMock()
     known.name = "Alice"

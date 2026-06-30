@@ -26,7 +26,7 @@ jobs:
         run: cd apps/ze-web && bun install --frozen-lockfile
 
       - name: Build
-        run: cd apps/ze-web && bun run build
+        run: make web-build
 
       - name: Test
         run: cd apps/ze-web && bun run test
@@ -47,7 +47,7 @@ jobs:
         run: uv sync
 
       - name: Ruff
-        run: uv run ruff check .
+        run: make lint
 
       - name: Pytest
         run: |

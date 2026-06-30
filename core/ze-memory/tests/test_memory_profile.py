@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_memory import admin as memory_admin
 

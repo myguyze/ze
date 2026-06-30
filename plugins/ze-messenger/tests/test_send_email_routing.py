@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -6,7 +5,6 @@ import pytest
 from ze_agents.errors import ChannelNotFoundError
 from ze_communication.channel import InboundChannel
 from ze_communication.registry import ChannelRegistry
-from ze_communication.types import ChannelType, Message, SentMessage
 from ze_messenger.agents.messenger.tools import _resolve_send_channel
 
 

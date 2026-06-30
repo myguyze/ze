@@ -5,7 +5,6 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-import pytest
 
 from ze_memory.dream.job import DreamJob
 

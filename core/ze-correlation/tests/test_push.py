@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
-import pytest
 
 from ze_correlation.job import CorrelationJob
 from ze_correlation.push import CorrelationPushConsumer
@@ -142,7 +141,6 @@ async def test_seed_selection_uses_lookback_window():
     await consumer.run_once()
     since_arg = mocks["memory_store"].list_recent_signal_ids.call_args[0][0]
     # since should be approximately 4 hours ago
-    from datetime import timedelta
     delta = datetime.now(UTC) - since_arg
     assert abs(delta.total_seconds() - 4 * 3600) < 5
 

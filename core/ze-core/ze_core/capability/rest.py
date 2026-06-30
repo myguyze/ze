@@ -25,7 +25,7 @@ async def update_capability(
     intent: str,
     mode_value: str,
 ) -> dict[str, dict]:
-    cls = get_registered_agents()[agent]
+    get_registered_agents()[agent]
     mode = Mode(mode_value)
     await gate.set_permanent(agent, intent, mode)
     effective = effective_capabilities(gate)

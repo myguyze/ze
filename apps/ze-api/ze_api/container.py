@@ -26,7 +26,6 @@ from ze_core.bootstrap import (
     build_engine_stack,
     build_router,
     engine_data_domains,
-    register_engine_jobs,
     register_harness_hooks,
 )
 from ze_core.container import Container as CoreContainer

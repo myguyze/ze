@@ -8,7 +8,7 @@ import structlog
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
-from ze_communication.types import ChannelType, InboundMessage
+from ze_communication.types import InboundMessage
 from ze_communication.webhook import WebhookPayload, WebhookVerifier
 
 log = structlog.get_logger(__name__)

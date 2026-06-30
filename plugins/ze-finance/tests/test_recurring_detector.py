@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from ze_finance.recurring.detector import RecurringDetector

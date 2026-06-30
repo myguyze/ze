@@ -317,7 +317,6 @@ class TestGraphRelationshipCreation:
         gs = _make_graph_store()
         store, _ = _make_store(pool, graph_store=gs)
 
-        import json
         eid = uuid4()
         conn.fetch = AsyncMock(return_value=[])
         conn.execute = AsyncMock()

@@ -85,6 +85,8 @@ help:
 	@echo "    test-all             Run all package tests (includes slow)"
 	@echo ""
 	@echo "  Code quality"
+	@echo "    check            Lint Python + ze-web build (CI lint gates)"
+	@echo "    hooks            Install git pre-commit / pre-push hooks"
 	@echo "    lint             Lint all packages with ruff"
 	@echo "    lint-web         Lint ze-web with ESLint (FSD boundaries)"
 	@echo "    format           Auto-format and fix all packages with ruff"
@@ -104,6 +106,7 @@ help:
 
 install:
 	uv sync
+	@echo "Tip: run 'make hooks' to install git pre-commit / pre-push quality gates"
 
 web-install:
 	cd $(ZE_WEB) && bun install
@@ -367,7 +370,14 @@ codegen:
 	bun run scripts/codegen.ts
 
 # ── Code quality ──────────────────────────────────────────────────────────────
-.PHONY: lint lint-web format clean
+.PHONY: check hooks lint lint-web format clean
+
+check: lint web-build
+	@echo "check: ok"
+
+hooks:
+	@chmod +x scripts/install-git-hooks.sh scripts/git-hooks/pre-commit scripts/git-hooks/pre-push
+	@./scripts/install-git-hooks.sh
 
 lint:
 	uv run ruff check .

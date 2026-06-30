@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_personal.channels.types import UserChannel
 from ze_personal.channels.user_channel_store import UserChannelStore

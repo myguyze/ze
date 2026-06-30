@@ -29,7 +29,6 @@ from ze_eval.judge import DEFAULT_JUDGE_MODEL, judge
 from ze_eval.metrics import fetch_session_metrics
 from ze_eval.scenario import load_scenarios
 from ze_eval.scoring import outcome_correct, routing_correct, tools_correct
-from ze_eval.types import ScenarioResult, SessionMetrics
 from ze_eval.verifier import run_verification
 
 _DEFAULT_RESULTS_DIR = Path(__file__).parent.parent.parent.parent / "eval" / "results"

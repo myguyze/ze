@@ -1,9 +1,7 @@
-import pathlib
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 
 from ze_calendar.agents.reminders.agent import RemindersAgent
 from ze_agents.types import AgentContext, AgentResult

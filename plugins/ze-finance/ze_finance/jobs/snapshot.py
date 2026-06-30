@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
 
 from ze_logging import get_logger
 from ze_finance.categoriser import CategoryInferrer
