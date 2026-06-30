@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import type { NavRouteMeta } from "@/shared/config";
 import { resolveNavIcon } from "@/shared/ui/icons";
 import type { UiContribution } from "../model/types";

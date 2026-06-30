@@ -41,6 +41,6 @@ export function resolveNavIcon(name: string): LucideIcon {
   }
 
   const pascal = toPascalCase(name);
-  const dynamic = (LucideIcons as Record<string, LucideIcon | undefined>)[pascal];
+  const dynamic = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[pascal];
   return dynamic ?? Circle;
 }
