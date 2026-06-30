@@ -5,11 +5,11 @@ description = "Shared Google OAuth2 credentials and Gmail channel for Ze package
 requires-python = ">=3.12"
 dependencies = [
     "ze-communication",
-    "google-api-python-client>=2.0",
-    "google-auth>=2.0",
-    "google-auth-oauthlib>=1.0",
-    "pydantic-settings>=2.0",
-    "structlog>=24.4",
+    "google-api-python-client==2.196.0",
+    "google-auth==2.53.0",
+    "google-auth-oauthlib==1.4.0",
+    "pydantic-settings==2.14.1",
+    "structlog==25.5.0",
 ]
 
 [tool.uv.sources]
@@ -24,9 +24,9 @@ packages = ["ze_google"]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "ruff>=0.8",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.15.14",
 ]
 
 [tool.pytest.ini_options]

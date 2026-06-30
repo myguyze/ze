@@ -11,8 +11,8 @@ dependencies = [
     "ze-agents",
     "ze-logging",
     "ze-data",
-    "pyyaml>=6.0",
-    "fastapi>=0.115",
+    "pyyaml==6.0.3",
+    "fastapi==0.136.3",
 ]
 
 [tool.uv.sources]
@@ -22,9 +22,9 @@ ze-data = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "ruff>=0.8",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.15.14",
 ]
 
 [tool.pytest.ini_options]

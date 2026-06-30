@@ -9,10 +9,10 @@ dependencies = [
     "ze-personal",
     "ze-components",
     "ze-seed",
-    "apscheduler>=3.10",
-    "asyncpg>=0.30",
-    "structlog>=24.4",
-    "fastapi>=0.115",
+    "apscheduler==3.11.2",
+    "asyncpg==0.31.0",
+    "structlog==25.5.0",
+    "fastapi==0.136.3",
 ]
 
 [tool.uv.sources]
@@ -25,12 +25,12 @@ ze-seed = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-mock>=3.14",
-    "httpx>=0.28",
-    "ruff>=0.8",
-    "pyyaml>=6.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "pytest-mock==3.15.1",
+    "httpx==0.28.1",
+    "ruff==0.15.14",
+    "pyyaml==6.0.3",
     "ze-automation",
     "ze-google",
 ]

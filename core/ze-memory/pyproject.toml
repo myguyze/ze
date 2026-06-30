@@ -9,26 +9,26 @@ requires-python = ">=3.11"
 dependencies = [
     "ze-agents",
     "ze-logging",
-    "asyncpg>=0.29",
-    "numpy>=2.0",
+    "asyncpg==0.31.0",
+    "numpy==2.4.6",
 ]
 
 [project.optional-dependencies]
 migrations = [
-    "alembic>=1.13",
-    "psycopg2-binary>=2.9",
-    "sqlalchemy>=2.0",
+    "alembic==1.18.4",
+    "psycopg2-binary==2.9.12",
+    "sqlalchemy==2.0.50",
 ]
 sqlite = [
-    "aiosqlite>=0.19",
+    "aiosqlite==0.22.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-mock>=3.14",
-    "ruff>=0.8",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "pytest-mock==3.15.1",
+    "ruff==0.15.14",
 ]
 
 [tool.pytest.ini_options]

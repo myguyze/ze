@@ -7,7 +7,7 @@ name = "ze-browser"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "httpx>=0.28",
+    "httpx==0.28.1",
     "ze-core",
 ]
 
@@ -16,8 +16,8 @@ ze-core = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
 ]
 
 [tool.pytest.ini_options]

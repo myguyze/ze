@@ -7,7 +7,7 @@ dependencies = [
     "ze-sdk",
     "ze-google",
     "ze-personal",
-    "structlog>=24.4",
+    "structlog==25.5.0",
 ]
 
 [tool.uv.sources]

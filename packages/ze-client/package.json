@@ -16,6 +16,6 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@hey-api/client-fetch": "^0.13.1"
+    "@hey-api/client-fetch": "0.13.1"
   }
 }

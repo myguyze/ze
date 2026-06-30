@@ -14,34 +14,34 @@ dependencies = [
     "ze-components",
     "ze-data",
     "ze-memory",
-    "openrouter>=0.9.1",
-    "numpy>=2.0",
-    "sentence-transformers>=3.0,<3.3",
-    "scipy>=1.11",
+    "openrouter==0.9.1",
+    "numpy==2.4.6",
+    "sentence-transformers==3.2.1",
+    "scipy==1.17.1",
 ]
 
 [project.optional-dependencies]
 # pip install 'ze-core[migrations]'  — required to run `python -m ze_core.migrate`
 # or to use ZC_AUTO_MIGRATE=true
 migrations = [
-    "alembic>=1.13",
-    "psycopg2-binary>=2.9",
-    "sqlalchemy>=2.0",
+    "alembic==1.18.4",
+    "psycopg2-binary==2.9.12",
+    "sqlalchemy==2.0.50",
 ]
 # pip install 'ze-core[sqlite]'  — SQLite storage backend (no Postgres required)
 sqlite = [
-    "aiosqlite>=0.19",
+    "aiosqlite==0.22.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-mock>=3.14",
-    "anyio[trio]>=4.7",
-    "aiosqlite>=0.19",
-    "ruff>=0.8",
-    "pyyaml>=6.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "pytest-mock==3.15.1",
+    "anyio[trio]==4.13.0",
+    "aiosqlite==0.22.1",
+    "ruff==0.15.14",
+    "pyyaml==6.0.3",
     "ze-personal",
     "ze-calendar",
     "ze-messenger",

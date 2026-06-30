@@ -13,17 +13,17 @@ dependencies = [
     "ze-proactive",
     "ze-memory",
     "ze-data",
-    "asyncpg>=0.30",
-    "apscheduler>=3.10",
+    "asyncpg==0.31.0",
+    "apscheduler==3.11.2",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-mock>=3.14",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "pytest-mock==3.15.1",
     "ze-sdk",
-    "ruff>=0.8",
+    "ruff==0.15.14",
 ]
 
 [tool.pytest.ini_options]

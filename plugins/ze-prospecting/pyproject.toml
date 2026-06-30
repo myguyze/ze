@@ -7,7 +7,7 @@ dependencies = [
     "ze-sdk",
     "ze-browser",
     "ze-personal",
-    "asyncpg>=0.30",
+    "asyncpg==0.31.0",
 ]
 
 [tool.uv.sources]

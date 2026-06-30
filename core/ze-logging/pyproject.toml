@@ -8,13 +8,13 @@ version = "0.1.0"
 description = "Ze structured logging — structlog configuration and context binding"
 requires-python = ">=3.11"
 dependencies = [
-    "structlog>=24.4",
+    "structlog==25.5.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "ruff>=0.8",
+    "pytest==9.0.3",
+    "ruff==0.15.14",
 ]
 
 [tool.pytest.ini_options]
