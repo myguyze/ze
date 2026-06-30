@@ -1,3 +1,7 @@
+> ⚠️ **Status: Stale** — Written pre-split (Phases 1–20). References `ze_core/...` paths that no longer exist. See the [package specs below](../README.md#ze-core-specs-core) for current documentation.
+
+---
+
 # Ze Core — Memory — Spec
 
 ## Purpose

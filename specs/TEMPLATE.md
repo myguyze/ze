@@ -1,141 +1,28 @@
-# <Module Name> — Spec
+# Spec Templates
 
-> **Package:** `ze_core` | `ze_personal` | `ze` | `ze_browser`
-> **Phase:** N
-> **Status:** Done | In Progress | Pending | Deprecated
+Three templates — pick the right one:
 
----
+| Spec type | Template | When to use |
+|-----------|----------|-------------|
+| Feature / phase | [TEMPLATE-phase.md](TEMPLATE-phase.md) | Anything in `phases/` — new capability, refactor, package extraction |
+| Architecture decision | [TEMPLATE-adr.md](TEMPLATE-adr.md) | Anything in `arch/` — a choice between options with lasting consequences |
+| Core module | [TEMPLATE-core.md](TEMPLATE-core.md) | Anything in `core/` — a new Ze infrastructure module |
 
-## Implementation Status
+## Which template?
 
-<!-- Fill in once implementation starts. Remove this section for pure design specs. -->
+- If you are shipping a feature → `TEMPLATE-phase.md`
+- If you are recording a design choice that affects multiple phases or packages → `TEMPLATE-adr.md`
+- If you are speccing a new `core/ze-*` module in isolation → `TEMPLATE-core.md`
 
-| Feature | Status |
-|---------|--------|
-| Core types | 🔲 Pending |
-| Storage layer | 🔲 Pending |
-| Tests | 🔲 Pending |
+When in doubt, start with `TEMPLATE-phase.md`. You can always extract the
+architectural decisions section into a standalone ADR later.
 
----
+## Rules
 
-## Purpose
-
-<!-- One paragraph: what problem does this module solve? Why does it exist? -->
-
----
-
-## Responsibilities
-
-<!-- Bulleted list: what this module owns and enforces. -->
-
-- ...
-
----
-
-## Out of Scope
-
-<!-- Bulleted list: what explicitly does NOT belong here. Prevents scope creep. -->
-
-- ...
-
----
-
-## Module Location
-
-```
-core/<package>/        # if shared infrastructure
-plugins/<package>/    # if a ZePlugin domain extension
-  <module>/
-    __init__.py
-    types.py
-    store.py
-    ...
-```
-
----
-
-## Interface Contract
-
-<!-- Public API: function signatures, class constructors, return types. -->
-
-### Input
-
-```python
-...
-```
-
-### Output
-
-```python
-...
-```
-
-### Errors / Edge Cases
-
-| Condition | Behaviour |
-|-----------|-----------|
-| ... | ... |
-
----
-
-## Data Structures
-
-<!-- Key dataclasses. Use ze convention: dataclasses in types.py, no Pydantic in domain. -->
-
-```python
-# {core,plugins}/<package>/<module>/types.py
-
-@dataclass
-class Foo:
-    id: str
-    ...
-```
-
----
-
-## Database Schema
-
-<!-- Alembic raw SQL. Include table name, columns, indexes, FKs. Omit if no DB interaction. -->
-
-```sql
-CREATE TABLE foo (
-    id          TEXT PRIMARY KEY,
-    ...
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
----
-
-## Configuration
-
-<!-- Config keys from config.yaml, .env vars, or class attributes. -->
-
-```yaml
-# config/config.yaml
-foo:
-  setting: value
-```
-
----
-
-## Dependencies
-
-| Dependency | Purpose |
-|------------|---------|
-| `ze_core.errors` | Typed error hierarchy |
-| ... | ... |
-
----
-
-## Implementation Notes
-
-<!-- Non-obvious decisions, invariants, or workarounds that would surprise a future reader. -->
-
----
-
-## Open Questions
-
-<!-- Track unresolved questions. Mark resolved with [x] and the decision taken. -->
-
-- [ ] ...
+1. **Required sections** (phase): Summary, Goals, Non-Goals, Alternatives Considered, Definition of Done.
+2. **Required sections** (ADR): Context and Problem Statement, Considered Options, Decision Outcome.
+3. **Status is authoritative in the spec header.** The README table is an index — update both,
+   but if they diverge, the spec header wins.
+4. Resolve all Open Questions (or explicitly defer them with a date) before setting status → Done.
+5. Move recurring patterns or cross-cutting decisions to `arch/` rather than duplicating them
+   in phase specs.

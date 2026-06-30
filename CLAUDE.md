@@ -294,7 +294,7 @@ Hot-reloaded on SIGHUP without restart.
 
 ## Adding a new agent
 
-1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`; see `specs/README.md` for the index).
+1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE-phase.md`; see `specs/README.md` for the index and template guide).
 2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_messenger/agents/`,
    `ze_prospecting/agents/`, or `ze_calendar/agents/` — decorate with `@agent` from
    `ze_sdk`, subclass `BaseAgent` from `ze_sdk`.

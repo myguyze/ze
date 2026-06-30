@@ -6,24 +6,41 @@ Design and implementation specs for the Ze personal AI assistant.
 
 ```
 specs/
-├── TEMPLATE.md       ← template for new specs
-├── phases/           ← feature and phase implementation specs (00–82)
-├── core/             ← ze-core infrastructure layer specs
-└── arch/             ← architecture decision records
+├── TEMPLATE.md        ← template directory (points to the three below)
+├── TEMPLATE-phase.md  ← feature / phase spec template
+├── TEMPLATE-adr.md    ← architecture decision record template
+├── TEMPLATE-core.md   ← ze-core infrastructure module spec template
+├── phases/            ← feature and phase implementation specs
+├── core/              ← ze-core infrastructure layer specs
+└── arch/              ← architecture decision records
 ```
 
 ## Writing a new spec
 
-Copy `TEMPLATE.md` into the appropriate subdirectory, fill in the sections, and
-remove any sections that don't apply. Required sections: **Purpose**,
-**Responsibilities**, **Out of Scope**. All Open Questions must be resolved or
-explicitly deferred before implementation begins.
+Pick the right template:
 
-- New **feature or phase** spec → `phases/<next-number>-<name>.md`
-- New **ze-core module** spec → `core/<next-number>-<name>.md`
-- New **architecture decision** → `arch/<name>.md`
+| What you are writing | Template | Destination |
+|----------------------|----------|-------------|
+| New feature or phase | `TEMPLATE-phase.md` | `phases/<next-number>-<name>.md` |
+| New ze-core module | `TEMPLATE-core.md` | `core/<next-number>-<name>.md` |
+| Cross-cutting design decision | `TEMPLATE-adr.md` | `arch/<name>.md` |
+
+Copy the template, fill in the sections, and remove any that don't apply.
+
+**Required sections by type:**
+- Phase: Summary, Goals, Non-Goals, Alternatives Considered, Definition of Done
+- ADR: Context and Problem Statement, Considered Options, Decision Outcome
+- Core: Purpose, Responsibilities, Out of Scope
+
+**Status is authoritative in the spec header.** The index tables below are
+navigation aids — update both, but when they diverge the spec header wins.
+
+All Open Questions must be resolved (or explicitly deferred with a target date)
+before setting status → Done.
 
 ## Phase specs (`phases/`)
+
+Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ Deprecated
 
 | # | Spec | Status |
 |---|------|--------|
@@ -85,7 +102,7 @@ explicitly deferred before implementation begins.
 | 56 | [Salience & Relevance Model](phases/56-salience-relevance-model.md) | ✅ Done |
 | 57 | [Correlation Engine](phases/57-correlation-engine.md) | ✅ Done |
 | 58 | [Inline Conversational Correlation](phases/58-inline-correlation.md) | ✅ Done |
-| 59 | [Proactive Correlation Push](phases/59-proactive-correlation-push.md) | 🔲 Deferred (post-v1) |
+| 59 | [Proactive Correlation Push](phases/59-proactive-correlation-push.md) | ⏸ Deferred (post-v1) |
 | 60 | [Cross-Plugin Signal Contract](phases/60-signal-source-contract.md) | ✅ Done |
 | 61 | [Convergence & Pressure Points](phases/61-convergence-pressure-points.md) | 🔲 Pending (design-only) |
 | 62 | [Data Portability](phases/62-data-portability.md) | ✅ Done |
@@ -110,8 +127,8 @@ explicitly deferred before implementation begins.
 | 81 | [Plugin NLI Adoption](phases/81-plugin-nli-adoption.md) | ✅ Done |
 | 82 | [ze-web FSD Restructure](phases/82-ze-web-fsd.md) | ✅ Done |
 | 83 | [ze-communication + ze-messenger](phases/83-ze-communication.md) | ✅ Done |
+| 84 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
 | 85 | [Ze Messaging Hub](phases/85-messaging-hub.md) | 🔲 Pending |
-| 86 | [Webhook Infrastructure](phases/84-webhooks.md) | 🔲 Pending |
 | 87 | [Plugin UI Platform](phases/87-plugin-ui.md) | ✅ Done |
 | 88 | [Memory Feed](phases/88-memory-feed.md) | 🔲 Pending |
 | 89 | [Message Trace](phases/89-message-trace.md) | 🔲 Pending |
@@ -120,31 +137,72 @@ explicitly deferred before implementation begins.
 | 92 | [Agent Activity Heatmap](phases/92-agent-activity-heatmap.md) | 🔲 Pending |
 | 93 | [Temporal Memory Timeline](phases/93-temporal-memory-timeline.md) | 🔲 Pending |
 | 94 | [Memory Graph View](phases/94-memory-graph-view.md) | 🔲 Pending |
+| 95 | [Unified Streaming Architecture](phases/95-live-trace-streaming.md) | 🔲 Pending |
+| 96 | [Dev Data Seeder](phases/96-dev-data-seeder.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
-| # | Spec | Module |
-|---|------|--------|
-| 01 | [Agent Decorator & BaseAgent](core/01-agent.md) | `ze_core/orchestration/` |
-| 02 | [AppInterface](core/02-app-interface.md) | `ze_core/interface/` |
-| 03 | [Capability Gate](core/03-capability-gate.md) | `ze_core/capability/` |
-| 04 | [Routing](core/04-routing.md) | `ze_core/routing/` |
-| 05 | [Orchestration Graph](core/05-orchestration.md) | `ze_core/orchestration/` |
-| 06 | [Memory](core/06-memory.md) | `ze_core/memory/` |
-| 07 | [Container](core/07-container.md) | `ze_core/container.py` |
-| 08 | [Contacts](core/08-contacts.md) | `ze_core/` (contacts primitive) |
-| 09 | [Conversation Persistence](core/09-conversation.md) | `ze_core/conversation/` |
+One spec per package in `core/`. The old numbered specs (01–09) are stale — they
+describe the pre-split monolithic `ze-core` and are kept only as historical reference.
+
+### Current package specs
+
+| Package | Spec | What it owns |
+|---------|------|-------------|
+| `ze-core` | [ze-core.md](core/ze-core.md) | Orchestration engine — routing, graph, capability, telemetry, container |
+| `ze-agents` | [ze-agents.md](core/ze-agents.md) | Developer API — `@agent`, `BaseAgent`, `@tool`, `LLMClient`, error hierarchy |
+| `ze-plugin` | [ze-plugin.md](core/ze-plugin.md) | Plugin extension framework — `ZePlugin` ABC, entry points, lifecycle hooks |
+| `ze-sdk` | [ze-sdk.md](core/ze-sdk.md) | Plugin entry point — flat re-export of everything plugin authors need |
+| `ze-proactive` | [ze-proactive.md](core/ze-proactive.md) | Job scheduling — `ProactiveJob`, `ProactiveScheduler`, push log |
+| `ze-memory` | [ze-memory.md](core/ze-memory.md) | Memory stack — facts, episodes, graph, consolidation, dream |
+| `ze-automation` | [ze-automation.md](core/ze-automation.md) | Automation — goals, workflows, accountability, GoalAgent, WorkflowAgent |
+| `ze-communication` | [ze-communication.md](core/ze-communication.md) | Channel contract — `Channel` ABC, `InboundChannel`, `ChannelRegistry` |
+| Smaller packages | [ze-smaller-packages.md](core/ze-smaller-packages.md) | ze-logging, ze-notifications, ze-browser, ze-data, ze-components, ze-correlation, ze-eval, ze-onboarding, ze-ingestion, ze-seed |
+
+### Legacy specs (stale — pre-split, for historical reference only)
+
+| # | Spec | What it described |
+|---|------|------------------|
+| 01 | [Agent Decorator & BaseAgent](core/01-agent.md) | `@agent` + `BaseAgent` inside old `ze_core` |
+| 02 | [AppInterface](core/02-app-interface.md) | `AppInterface` ABC inside old `ze_core` |
+| 03 | [Capability Gate](core/03-capability-gate.md) | `CapabilityGate` inside old `ze_core` |
+| 04 | [Routing](core/04-routing.md) | `EmbeddingRouter` inside old `ze_core` |
+| 05 | [Orchestration Graph](core/05-orchestration.md) | LangGraph graph inside old `ze_core` |
+| 06 | [Memory](core/06-memory.md) | Memory before `ze-memory` extraction |
+| 07 | [Container](core/07-container.md) | DI container inside old `ze_core` |
+| 08 | [Contacts](core/08-contacts.md) | Contacts primitive before `ze-personal` |
+| 09 | [Conversation Persistence](core/09-conversation.md) | Session/message store |
 
 ## Architecture decisions (`arch/`)
 
-| Spec | Decision |
-|------|----------|
+### Foundational choices
+
+These are the load-bearing decisions that shape the entire codebase. Every contributor
+should read them before changing anything structural.
+
+| ADR | Decision |
+|-----|----------|
+| [Single-User Model](arch/single-user-model.md) | No `user_id` anywhere; auth is a single API key; Ze serves one person |
+| [OpenRouter Gateway](arch/openrouter-gateway.md) | All LLM calls through OpenRouter only — single billing, config-driven model swaps |
+| [LangGraph Orchestration](arch/langgraph-orchestration.md) | LangGraph + AsyncPostgresSaver — durable graph execution with confirmation-flow pause/resume |
+| [Local Embeddings](arch/local-embeddings.md) | `paraphrase-multilingual-MiniLM-L12-v2` in-process — zero cost, multilingual, hot-path safe |
+| [Dataclasses over Pydantic](arch/dataclasses-over-pydantic.md) | `@dataclass` in all domain code; Pydantic only in `ze_api/api/schemas.py` |
+| [Alembic Raw SQL](arch/alembic-raw-sql.md) | Hand-written SQL migrations; per-package chains; no ORM |
+| [asyncpg + psycopg2 split](arch/asyncpg-psycopg2-split.md) | asyncpg for runtime, psycopg2 for Alembic CLI — asyncpg has no sync mode |
+| [ntfy Push Notifications](arch/ntfy-push-notifications.md) | Self-hostable REST-based push; no vendor approval; deep-link support |
+
+### Structural decisions
+
+Made when a significant restructuring forced the question.
+
+| ADR | Decision |
+|-----|----------|
 | [Package Reorg](arch/package-reorg.md) | Monorepo split: ze-core / ze-personal / ze / ze-browser |
 | [Plugin Agents](arch/plugin-agents.md) | ZePlugin ABC, domain agent migration to ze-personal |
+| [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
 | [Memory Package Extraction](arch/memory-package-split.md) | Hard-cut memory into `ze_memory` with module-specific retrieval, explicit task state, and no shim |
 | [Memory Graph Augmentation](arch/memory-graph-augmentation.md) | Add bounded, provenance-first relationships and traversal inside `ze_memory` |
-| [Correlation Engine](arch/correlation-engine.md) | Bounded relevance-gated correlation over a shared signal/graph substrate; not a world model |
 | [Dream Memory](arch/dream-memory.md) | Offline wake/sleep/dream/morning consolidation loop; staging buffer + critic-gated promotion |
-| [Monorepo Layout](arch/monorepo-layout.md) | Dissolve `packages/`; promote `core/`, `plugins/`, `apps/` to repo root |
+| [Correlation Engine](arch/correlation-engine.md) | Bounded relevance-gated correlation over a shared signal/graph substrate; not a world model |
 | [Communication Hub](arch/communication-hub.md) | Channel identity contract, thread ownership, memory contribution policy, signal filtering, extensibility |
 | [Plugin UI](arch/plugin-ui.md) | Three-tier plugin UI model (SDUI, manifest + generic shell, optional frontend modules) |
