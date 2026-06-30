@@ -127,7 +127,8 @@ async def test_run_diagnostic_query_sets_diagnostic_deps():
         await agent.run(make_ctx("why do you keep suggesting bananas?"))
 
     assert captured["deps"]["_diagnostic_query"] is True
-    assert "diagnostics or preference management" in captured["system"]
+    system = " ".join(captured["system"].split())
+    assert "diagnostics or preference management" in system
 
 
 async def test_get_headlines_skips_for_diagnostic_query():
