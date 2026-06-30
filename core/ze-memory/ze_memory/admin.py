@@ -1,7 +1,36 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
+
+
+def _aliases_from_row(value: Any) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+    return []
+
+
+def _attrs_from_row(value: Any) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except (ValueError, TypeError):
+            return {}
+    return {}
 
 
 async def list_facts(pool: Any) -> list[dict]:
@@ -241,8 +270,8 @@ async def get_memory_graph(
                 "id": r["id"],
                 "entity_type": r["entity_type"],
                 "canonical_name": r["canonical_name"],
-                "aliases": r["aliases"] or [],
-                "attrs": r["attrs"] or {},
+                "aliases": _aliases_from_row(r["aliases"]),
+                "attrs": _attrs_from_row(r["attrs"]),
                 "degree": r["degree"],
             }
             for r in rows
@@ -297,8 +326,8 @@ async def get_entity_detail(pool: Any, entity_id: Any) -> dict | None:
             "id": entity_row["id"],
             "entity_type": entity_row["entity_type"],
             "canonical_name": entity_row["canonical_name"],
-            "aliases": entity_row["aliases"] or [],
-            "attrs": entity_row["attrs"] or {},
+            "aliases": _aliases_from_row(entity_row["aliases"]),
+            "attrs": _attrs_from_row(entity_row["attrs"]),
             "degree": entity_row["degree"],
         }
 
@@ -360,8 +389,8 @@ async def get_entity_detail(pool: Any, entity_id: Any) -> dict | None:
                 "id": r["id"],
                 "entity_type": r["entity_type"],
                 "canonical_name": r["canonical_name"],
-                "aliases": r["aliases"] or [],
-                "attrs": r["attrs"] or {},
+                "aliases": _aliases_from_row(r["aliases"]),
+                "attrs": _attrs_from_row(r["attrs"]),
                 "degree": r["degree"],
             }
             for r in neighbour_rows

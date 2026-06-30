@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from ze_seed.context import SeedContext
 from ze_seed.domain import SeedDomain
 from ze_seed.domains._helpers import delete_by_ids, embedding_vector
@@ -42,8 +40,8 @@ async def _apply_memory(ctx: SeedContext) -> int:
                 entity.id,
                 entity.entity_type,
                 entity.canonical_name,
-                json.dumps(entity.aliases),
-                json.dumps(entity.attrs),
+                entity.aliases,
+                entity.attrs,
                 emb,
             )
             count += 1
