@@ -1,4 +1,4 @@
-import type { ToolCallTraceResponse } from "@ze/client";
+import type { ToolCallTraceResponse } from "@myguyze/ze-client";
 import { CheckCircle, XCircle } from "lucide-react";
 
 interface ToolCallListProps {

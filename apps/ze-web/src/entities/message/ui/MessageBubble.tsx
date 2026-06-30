@@ -1,4 +1,4 @@
-import type { MessageSchema as Message } from "@ze/client";
+import type { MessageSchema as Message } from "@myguyze/ze-client";
 import { Info } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";

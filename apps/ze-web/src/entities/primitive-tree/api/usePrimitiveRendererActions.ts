@@ -1,4 +1,4 @@
-import type { PrimitiveRendererActions } from "@ze/ui/react";
+import type { PrimitiveRendererActions } from "@myguyze/ze-ui/react";
 import { useMemo } from "react";
 import { useSendNotice } from "@/features/send-context-notice";
 import { useOnboardingSession } from "@/entities/onboarding-session";

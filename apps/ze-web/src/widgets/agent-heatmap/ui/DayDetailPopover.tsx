@@ -1,4 +1,4 @@
-import type { HeatmapDay } from "@ze/client";
+import type { HeatmapDay } from "@myguyze/ze-client";
 import { AGENT_COLORS, AGENT_COLOR_FALLBACK } from "@/shared/config";
 
 interface Props {

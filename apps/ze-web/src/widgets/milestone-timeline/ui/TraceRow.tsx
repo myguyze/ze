@@ -1,4 +1,4 @@
-import type { ExecutionTraceResponse } from "@ze/client";
+import type { ExecutionTraceResponse } from "@myguyze/ze-client";
 import { CheckCircle, XCircle } from "lucide-react";
 
 interface TraceRowProps {

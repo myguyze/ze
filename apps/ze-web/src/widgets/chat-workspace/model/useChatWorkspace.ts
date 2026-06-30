@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { MessageSchema as Message, WsScreenContext as ScreenContext } from "@ze/client";
+import type { MessageSchema as Message, WsScreenContext as ScreenContext } from "@myguyze/ze-client";
 import { useEffect, useRef, useState } from "react";
 import { useMessages } from "@/features/load-chat-history";
 import { useConfirmation } from "@/features/respond-to-confirmation";

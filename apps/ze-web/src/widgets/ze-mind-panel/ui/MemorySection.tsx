@@ -1,4 +1,4 @@
-import type { WsTraceUpdateFrame } from "@ze/client";
+import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
 import { MemoryChunkList } from "@/widgets/message-trace/ui/MemoryChunkList";
 import { TraceSection } from "@/widgets/message-trace/ui/TraceSection";
 

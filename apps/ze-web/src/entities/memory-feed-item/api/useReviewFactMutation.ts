@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { reviewFacts } from "@ze/client";
+import { reviewFacts } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 import type { MemoryFeedFilters } from "./useMemoryFeedQuery";
 

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCostSummary } from "@ze/client";
-import type { WebCostSummaryResponse } from "@ze/client";
+import { getCostSummary } from "@myguyze/ze-client";
+import type { WebCostSummaryResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useCostsQuery() {

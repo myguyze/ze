@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import HeatMap, { type HeatMapValue } from "@uiw/react-heat-map";
-import type { ActivityHeatmapResponse, HeatmapDay } from "@ze/client";
+import type { ActivityHeatmapResponse, HeatmapDay } from "@myguyze/ze-client";
 import { agentColor } from "@/shared/config";
 import { DayDetailPopover } from "./DayDetailPopover";
 

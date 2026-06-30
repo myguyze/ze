@@ -1,4 +1,4 @@
-import type { MilestoneResponse } from "@ze/client";
+import type { MilestoneResponse } from "@myguyze/ze-client";
 import { MilestoneRow } from "./MilestoneRow";
 
 interface MilestoneTimelineProps {

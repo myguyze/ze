@@ -1,4 +1,4 @@
-import { downloadExport, ApiError } from "@ze/client";
+import { downloadExport, ApiError } from "@myguyze/ze-client";
 import { useState } from "react";
 import { getConfig } from "@/shared/config";
 

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMemoryGraph } from "@ze/client";
-import type { MemoryGraphResponse } from "@ze/client";
+import { getMemoryGraph } from "@myguyze/ze-client";
+import type { MemoryGraphResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export interface MemoryGraphFilters {

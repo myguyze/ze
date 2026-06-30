@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getGoalDetail } from "@ze/client";
-import type { GoalDetailResponse } from "@ze/client";
+import { getGoalDetail } from "@myguyze/ze-client";
+import type { GoalDetailResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useGoalDetailQuery(goalId: string) {

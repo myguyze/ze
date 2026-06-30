@@ -1,4 +1,4 @@
-import type { WorkflowResponse } from "@ze/client";
+import type { WorkflowResponse } from "@myguyze/ze-client";
 import { Button } from "@/shared/ui";
 import { useTriggerWorkflowMutation } from "../api/useTriggerWorkflowMutation";
 import { formatSchedule, formatTimestamp } from "../lib/format";

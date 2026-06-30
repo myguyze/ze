@@ -1,13 +1,19 @@
 {
-  "name": "@ze/client",
+  "name": "@myguyze/ze-client",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myguyze/ze.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "@hey-api/client-fetch": "^0.13.1"

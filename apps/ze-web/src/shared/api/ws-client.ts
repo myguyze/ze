@@ -1,4 +1,4 @@
-import type { WsInboundFrame as InboundFrame, WsOutboundFrame as OutboundFrame } from "@ze/client";
+import type { WsInboundFrame as InboundFrame, WsOutboundFrame as OutboundFrame } from "@myguyze/ze-client";
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { getConfig } from "@/shared/config";

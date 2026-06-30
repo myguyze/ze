@@ -1,4 +1,4 @@
-import type { WsTraceUpdateFrame } from "@ze/client";
+import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

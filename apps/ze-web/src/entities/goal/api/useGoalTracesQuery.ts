@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { listGoalTraces } from "@ze/client";
-import type { ExecutionTraceResponse } from "@ze/client";
+import { listGoalTraces } from "@myguyze/ze-client";
+import type { ExecutionTraceResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useGoalTracesQuery(goalId: string, milestoneId?: string) {

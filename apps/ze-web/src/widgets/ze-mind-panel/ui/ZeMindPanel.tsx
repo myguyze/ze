@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import type { WsTraceUpdateFrame } from "@ze/client";
+import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
 import { useMindStore, useTraceSocket } from "@/features/ze-mind-state";
 import { MindEmptyState } from "./EmptyState";
 import { TraceEntry } from "./TraceEntry";

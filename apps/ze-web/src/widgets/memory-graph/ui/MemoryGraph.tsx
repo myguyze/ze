@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import { layout as dagreLayout, graphlib } from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
-import type { EntityDetailResponse, GraphEdge, GraphEntityNode, MemoryGraphResponse } from "@ze/client";
+import type { EntityDetailResponse, GraphEdge, GraphEntityNode, MemoryGraphResponse } from "@myguyze/ze-client";
 import { EntityNode } from "./EntityNode";
 import { EntityDetailPanel } from "./EntityDetailPanel";
 import { GraphSearchBar } from "./GraphSearchBar";

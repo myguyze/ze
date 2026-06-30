@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMessageTrace } from "@ze/client";
-import type { MessageTraceResponse } from "@ze/client";
+import { getMessageTrace } from "@myguyze/ze-client";
+import type { MessageTraceResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useMessageTraceQuery(messageId: string, enabled: boolean) {

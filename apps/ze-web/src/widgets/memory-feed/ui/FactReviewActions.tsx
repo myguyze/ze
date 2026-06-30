@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MemoryFeedItem } from "@ze/client";
+import type { MemoryFeedItem } from "@myguyze/ze-client";
 import { useReviewFactMutation } from "@/entities/memory-feed-item";
 import type { MemoryFeedFilters } from "@/entities/memory-feed-item";
 

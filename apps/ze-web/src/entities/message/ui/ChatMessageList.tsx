@@ -1,4 +1,4 @@
-import type { MessageSchema as Message } from "@ze/client";
+import type { MessageSchema as Message } from "@myguyze/ze-client";
 import { useEffect, useRef } from "react";
 import { ChatErrorBoundary } from "@/shared/ui";
 import { MessageBubble } from "./MessageBubble";

@@ -1,5 +1,5 @@
-import { importArchive, ApiError } from "@ze/client";
-import type { ImportResponse } from "@ze/client";
+import { importArchive, ApiError } from "@myguyze/ze-client";
+import type { ImportResponse } from "@myguyze/ze-client";
 import { useRef, useState, type ChangeEvent } from "react";
 import { getConfig } from "@/shared/config";
 

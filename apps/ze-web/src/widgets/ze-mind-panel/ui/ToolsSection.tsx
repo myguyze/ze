@@ -1,4 +1,4 @@
-import type { WsTraceUpdateFrame } from "@ze/client";
+import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
 import { ToolCallList } from "@/widgets/message-trace/ui/ToolCallList";
 import { TraceSection } from "@/widgets/message-trace/ui/TraceSection";
 

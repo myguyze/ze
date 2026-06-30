@@ -1,4 +1,4 @@
-import { healthCheck } from "@ze/client";
+import { healthCheck } from "@myguyze/ze-client";
 import { useState } from "react";
 
 export function useConnectionTest(serverUrl: string, apiKey: string) {

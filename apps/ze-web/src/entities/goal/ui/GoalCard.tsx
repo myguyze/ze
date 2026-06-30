@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import type { GoalListItem } from "@ze/client";
+import type { GoalListItem } from "@myguyze/ze-client";
 import { Button } from "@/shared/ui";
 import { useStartGoalMutation } from "../api/useStartGoalMutation";
 

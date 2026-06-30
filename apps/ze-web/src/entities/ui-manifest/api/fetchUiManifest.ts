@@ -1,4 +1,4 @@
-import { getUiManifest } from "@ze/client";
+import { getUiManifest } from "@myguyze/ze-client";
 
 export async function fetchUiManifest() {
   const { data, error } = await getUiManifest();

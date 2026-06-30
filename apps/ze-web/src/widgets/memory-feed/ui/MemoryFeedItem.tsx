@@ -1,4 +1,4 @@
-import type { MemoryFeedItem as FeedItem } from "@ze/client";
+import type { MemoryFeedItem as FeedItem } from "@myguyze/ze-client";
 import type { MemoryFeedFilters } from "@/entities/memory-feed-item";
 import { relativeTime } from "../lib/format";
 import { FactReviewActions } from "./FactReviewActions";

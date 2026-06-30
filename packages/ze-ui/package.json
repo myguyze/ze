@@ -1,7 +1,6 @@
 {
-  "name": "@ze/ui",
+  "name": "@myguyze/ze-ui",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "exports": {
     ".": {
@@ -12,6 +11,13 @@
       "types": "./src/react/index.ts",
       "default": "./src/react/index.ts"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myguyze/ze.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "ajv": "^8.17.1",

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { startGoal } from "@ze/client";
+import { startGoal } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useStartGoalMutation() {

@@ -1,5 +1,5 @@
-import { invokeSdkOperation } from "@ze/client";
-import type { PrimitiveRendererActions } from "@ze/ui/react";
+import { invokeSdkOperation } from "@myguyze/ze-client";
+import type { PrimitiveRendererActions } from "@myguyze/ze-ui/react";
 import { useMemo } from "react";
 import { useSendNotice } from "@/features/send-context-notice";
 import { useOnboardingSession } from "@/entities/onboarding-session";

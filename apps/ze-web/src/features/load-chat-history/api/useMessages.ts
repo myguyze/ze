@@ -1,5 +1,5 @@
-import { listMessages } from "@ze/client";
-import type { MessageSchema as Message } from "@ze/client";
+import { listMessages } from "@myguyze/ze-client";
+import type { MessageSchema as Message } from "@myguyze/ze-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { send } from "@/shared/api";
 

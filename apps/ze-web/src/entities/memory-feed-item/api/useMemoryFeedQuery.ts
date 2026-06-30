@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getMemoryFeed } from "@ze/client";
-import type { MemoryFeedResponse } from "@ze/client";
+import { getMemoryFeed } from "@myguyze/ze-client";
+import type { MemoryFeedResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export interface MemoryFeedFilters {

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { listSessions } from "@ze/client";
-import type { SessionSchema } from "@ze/client";
+import { listSessions } from "@myguyze/ze-client";
+import type { SessionSchema } from "@myguyze/ze-client";
 import { History } from "lucide-react";
 import { useSession } from "@/entities/session";
 import { queryKeys } from "@/shared/lib";

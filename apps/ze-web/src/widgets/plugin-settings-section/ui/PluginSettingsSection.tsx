@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { parsePrimitiveTree, type PrimitiveTree } from "@ze/ui";
-import { PrimitiveTreeRenderer } from "@ze/ui/react";
+import { parsePrimitiveTree, type PrimitiveTree } from "@myguyze/ze-ui";
+import { PrimitiveTreeRenderer } from "@myguyze/ze-ui/react";
 import type { UiContribution } from "@/entities/ui-manifest";
 import { usePluginSettingsQuery } from "@/entities/ui-manifest";
 import { resolveNavIcon } from "@/shared/ui/icons";

@@ -1,4 +1,4 @@
-import type { MemoryChunkTraceResponse } from "@ze/client";
+import type { MemoryChunkTraceResponse } from "@myguyze/ze-client";
 
 const SOURCE_COLORS: Record<string, string> = {
   fact: "text-emerald-400",

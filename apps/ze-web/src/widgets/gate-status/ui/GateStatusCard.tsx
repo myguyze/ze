@@ -1,4 +1,4 @@
-import type { GateResponse } from "@ze/client";
+import type { GateResponse } from "@myguyze/ze-client";
 import { ShieldCheck, Clock, CheckCheck, XCircle } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { useStartGoalMutation } from "@/entities/goal";

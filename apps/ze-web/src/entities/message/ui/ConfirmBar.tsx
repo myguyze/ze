@@ -1,4 +1,4 @@
-import type { WsConfirmAction } from "@ze/client";
+import type { WsConfirmAction } from "@myguyze/ze-client";
 import { cn } from "@/shared/lib/cn";
 
 interface ConfirmBarProps {

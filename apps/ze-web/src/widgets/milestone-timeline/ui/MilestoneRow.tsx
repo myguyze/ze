@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MilestoneResponse } from "@ze/client";
+import type { MilestoneResponse } from "@myguyze/ze-client";
 import { CheckCircle2, Circle, Clock, SkipForward, ChevronDown, ChevronUp } from "lucide-react";
 import { ExecutionTraceLog } from "./ExecutionTraceLog";
 

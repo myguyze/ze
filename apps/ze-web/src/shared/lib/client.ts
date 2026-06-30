@@ -1,4 +1,4 @@
-import { configure, ApiError } from "@ze/client";
+import { configure, ApiError } from "@myguyze/ze-client";
 import { getConfig } from "@/shared/config";
 
 export { ApiError };

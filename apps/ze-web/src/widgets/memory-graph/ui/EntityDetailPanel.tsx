@@ -1,5 +1,5 @@
 import { X, User, MapPin, Building2, Hash, HelpCircle, ChevronDown } from "lucide-react";
-import type { EntityDetailResponse, GraphEntityNode } from "@ze/client";
+import type { EntityDetailResponse, GraphEntityNode } from "@myguyze/ze-client";
 
 const ENTITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   person: User,

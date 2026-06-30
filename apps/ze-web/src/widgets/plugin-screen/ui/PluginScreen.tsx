@@ -1,5 +1,5 @@
-import { parsePrimitiveTree, type PrimitiveTree } from "@ze/ui";
-import { PrimitiveTreeRenderer } from "@ze/ui/react";
+import { parsePrimitiveTree, type PrimitiveTree } from "@myguyze/ze-ui";
+import { PrimitiveTreeRenderer } from "@myguyze/ze-ui/react";
 import { FloatingButton } from "@/features/open-context-overlay";
 import type { UiContribution } from "@/entities/ui-manifest";
 import { usePluginPageQuery } from "@/entities/ui-manifest";

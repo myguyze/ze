@@ -1,4 +1,4 @@
-import type { WsTraceUpdateFrame } from "@ze/client";
+import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { MemorySection } from "./MemorySection";

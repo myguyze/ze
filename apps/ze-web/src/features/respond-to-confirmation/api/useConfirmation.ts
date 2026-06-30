@@ -1,4 +1,4 @@
-import type { WsConfirmAction } from "@ze/client";
+import type { WsConfirmAction } from "@myguyze/ze-client";
 import { useState } from "react";
 import { useSendNotice } from "@/features/send-context-notice";
 import { useFrame, useWsStore, send } from "@/shared/api";

@@ -1,4 +1,4 @@
-import type { LearningResponse } from "@ze/client";
+import type { LearningResponse } from "@myguyze/ze-client";
 
 interface GoalLearningsListProps {
   learnings: LearningResponse[];

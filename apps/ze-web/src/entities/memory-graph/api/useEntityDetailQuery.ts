@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getEntityDetail } from "@ze/client";
-import type { EntityDetailResponse } from "@ze/client";
+import { getEntityDetail } from "@myguyze/ze-client";
+import type { EntityDetailResponse } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useEntityDetailQuery(entityId: string | null) {

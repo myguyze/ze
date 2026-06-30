@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { triggerWorkflow } from "@ze/client";
+import { triggerWorkflow } from "@myguyze/ze-client";
 import { queryKeys } from "@/shared/lib";
 
 export function useTriggerWorkflowMutation() {

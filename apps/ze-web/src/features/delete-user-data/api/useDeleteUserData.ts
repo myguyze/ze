@@ -1,4 +1,4 @@
-import { createDeleteIntent, deleteData } from "@ze/client";
+import { createDeleteIntent, deleteData } from "@myguyze/ze-client";
 import { useState } from "react";
 import { clearConfig } from "@/shared/config";
 

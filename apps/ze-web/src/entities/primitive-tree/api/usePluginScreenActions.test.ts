@@ -7,8 +7,8 @@ const { invokeSdkOperation, showNotice, send } = vi.hoisted(() => ({
   send: vi.fn(),
 }));
 
-vi.mock("@ze/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@ze/client")>();
+vi.mock("@myguyze/ze-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myguyze/ze-client")>();
   return {
     ...actual,
     invokeSdkOperation,
