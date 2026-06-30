@@ -731,3 +731,35 @@ class ActivityHeatmapResponse(BaseModel):
     agents: list[str]
     start: str
     end: str
+
+
+# ── REST: memory graph ────────────────────────────────────────────────────────
+
+class GraphEntityNode(BaseModel):
+    id: UUIDType
+    entity_type: str
+    canonical_name: str
+    aliases: list[str]
+    attrs: dict
+    degree: int
+
+
+class GraphEdge(BaseModel):
+    id: UUIDType
+    source_id: UUIDType
+    target_id: UUIDType
+    predicate: str
+    confidence: float
+
+
+class MemoryGraphResponse(BaseModel):
+    nodes: list[GraphEntityNode]
+    edges: list[GraphEdge]
+
+
+class EntityDetailResponse(BaseModel):
+    entity: GraphEntityNode
+    facts: list[FactDigestItem]
+    episodes: list[EpisodeDigestItem]
+    neighbours: list[GraphEntityNode]
+    neighbour_edges: list[GraphEdge]

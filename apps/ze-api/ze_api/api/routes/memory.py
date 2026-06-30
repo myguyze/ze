@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -7,11 +8,13 @@ from ze_api.api.dependencies import get_container, get_memory_consolidator, requ
 from ze_api.api.openapi import OPENAPI_RESPONSES_422
 from ze_api.api.schemas import (
     ConsolidationReportResponse,
+    EntityDetailResponse,
     FactReviewRequest,
     MemoryDigestResponse,
     MemoryFactQualityResponse,
     MemoryFeedItem,
     MemoryFeedResponse,
+    MemoryGraphResponse,
     TimelineBoundsResponse,
     UserFactResponse,
     UserProfileResponse,
@@ -201,3 +204,48 @@ async def get_profile(container=Depends(get_container)) -> UserProfileResponse:
     if row is None:
         raise HTTPException(status_code=404, detail="No profile synthesised yet")
     return UserProfileResponse.model_validate(row)
+
+
+@router.get(
+    "/graph",
+    response_model=MemoryGraphResponse,
+    operation_id="getMemoryGraph",
+    summary="Memory entity graph",
+    description=(
+        "Returns top-N entities by relationship count, plus all entity-to-entity "
+        "edges between them. Pass `seed_id` to expand from a specific entity."
+    ),
+)
+async def get_memory_graph(
+    limit: int = Query(default=50, ge=1, le=200, description="Max entities to return"),
+    entity_type: str | None = Query(default=None, description="Filter by entity type"),
+    seed_id: UUID | None = Query(default=None, description="Expand 1-hop from this entity"),
+    container=Depends(get_container),
+) -> MemoryGraphResponse:
+    result = await memory_admin.get_memory_graph(
+        container.pool,
+        limit=limit,
+        entity_type=entity_type,
+        seed_id=seed_id,
+    )
+    return MemoryGraphResponse.model_validate(result)
+
+
+@router.get(
+    "/graph/entity/{entity_id}",
+    response_model=EntityDetailResponse,
+    operation_id="getEntityDetail",
+    summary="Entity detail",
+    description=(
+        "Facts, episodes, and 1-hop neighbours for a selected entity. "
+        "Use `neighbours` and `neighbour_edges` to expand the graph."
+    ),
+)
+async def get_entity_detail(
+    entity_id: UUID,
+    container=Depends(get_container),
+) -> EntityDetailResponse:
+    result = await memory_admin.get_entity_detail(container.pool, entity_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return EntityDetailResponse.model_validate(result)

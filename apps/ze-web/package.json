@@ -13,11 +13,14 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
+    "@dagrejs/graphlib": "^4.0.1",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-query": "^5.64.2",
     "@uiw/react-heat-map": "^2.3.4",
+    "@xyflow/react": "^12.11.1",
     "@ze/client": "workspace:*",
     "@ze/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",

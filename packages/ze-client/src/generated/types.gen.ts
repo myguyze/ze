@@ -514,6 +514,29 @@ export type DreamRollbackResponse = {
 };
 
 /**
+ * EntityDetailResponse
+ */
+export type EntityDetailResponse = {
+    entity: GraphEntityNode;
+    /**
+     * Facts
+     */
+    facts: Array<FactDigestItem>;
+    /**
+     * Episodes
+     */
+    episodes: Array<EpisodeDigestItem>;
+    /**
+     * Neighbours
+     */
+    neighbours: Array<GraphEntityNode>;
+    /**
+     * Neighbour Edges
+     */
+    neighbour_edges: Array<GraphEdge>;
+};
+
+/**
  * EpisodeDigestItem
  */
 export type EpisodeDigestItem = {
@@ -937,6 +960,64 @@ export type GoalListItem = {
 };
 
 /**
+ * GraphEdge
+ */
+export type GraphEdge = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Target Id
+     */
+    target_id: string;
+    /**
+     * Predicate
+     */
+    predicate: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+};
+
+/**
+ * GraphEntityNode
+ */
+export type GraphEntityNode = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Entity Type
+     */
+    entity_type: string;
+    /**
+     * Canonical Name
+     */
+    canonical_name: string;
+    /**
+     * Aliases
+     */
+    aliases: Array<string>;
+    /**
+     * Attrs
+     */
+    attrs: {
+        [key: string]: unknown;
+    };
+    /**
+     * Degree
+     */
+    degree: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -1195,17 +1276,17 @@ export type MemoryFeedResponse = {
 };
 
 /**
- * TimelineBoundsResponse
+ * MemoryGraphResponse
  */
-export type TimelineBoundsResponse = {
+export type MemoryGraphResponse = {
     /**
-     * Earliest
+     * Nodes
      */
-    earliest: string | null;
+    nodes: Array<GraphEntityNode>;
     /**
-     * Latest
+     * Edges
      */
-    latest: string;
+    edges: Array<GraphEdge>;
 };
 
 /**
@@ -1468,6 +1549,20 @@ export type StepResultResponse = {
      * Duration Ms
      */
     duration_ms: number;
+};
+
+/**
+ * TimelineBoundsResponse
+ */
+export type TimelineBoundsResponse = {
+    /**
+     * Earliest
+     */
+    earliest: string | null;
+    /**
+     * Latest
+     */
+    latest: string;
 };
 
 /**
@@ -2188,6 +2283,80 @@ export type GetProfileResponses = {
 };
 
 export type GetProfileResponse = GetProfileResponses[keyof GetProfileResponses];
+
+export type GetMemoryGraphData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * Max entities to return
+         */
+        limit?: number;
+        /**
+         * Entity Type
+         *
+         * Filter by entity type
+         */
+        entity_type?: string | null;
+        /**
+         * Seed Id
+         *
+         * Expand 1-hop from this entity
+         */
+        seed_id?: string | null;
+    };
+    url: '/api/v0/memory/graph';
+};
+
+export type GetMemoryGraphErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMemoryGraphError = GetMemoryGraphErrors[keyof GetMemoryGraphErrors];
+
+export type GetMemoryGraphResponses = {
+    /**
+     * Successful Response
+     */
+    200: MemoryGraphResponse;
+};
+
+export type GetMemoryGraphResponse = GetMemoryGraphResponses[keyof GetMemoryGraphResponses];
+
+export type GetEntityDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Entity Id
+         */
+        entity_id: string;
+    };
+    query?: never;
+    url: '/api/v0/memory/graph/entity/{entity_id}';
+};
+
+export type GetEntityDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetEntityDetailError = GetEntityDetailErrors[keyof GetEntityDetailErrors];
+
+export type GetEntityDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: EntityDetailResponse;
+};
+
+export type GetEntityDetailResponse = GetEntityDetailResponses[keyof GetEntityDetailResponses];
 
 export type GetRoutingLogData = {
     body?: never;

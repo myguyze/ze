@@ -16,6 +16,7 @@ const lazyByPath: Record<string, RouteMeta["lazy"]> = {
   costs: () => import("@/pages/costs").then((m) => ({ default: m.CostsPage })),
   "brain-memory": () => import("@/pages/brain-memory").then((m) => ({ default: m.BrainMemoryPage })),
   "brain-activity": () => import("@/pages/brain-activity").then((m) => ({ default: m.BrainActivityPage })),
+  "brain-graph": () => import("@/pages/brain-graph").then((m) => ({ default: m.BrainGraphPage })),
   settings: () => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })),
   plugin: () => import("@/pages/plugin-page").then((m) => ({ default: m.PluginPage })),
 };

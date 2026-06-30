@@ -6,6 +6,7 @@ import {
   BarChart2,
   Brain,
   Activity,
+  Network,
   Settings,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
   { path: "brain-memory", label: "Memory", icon: Brain, showInMobileNav: false },
   { path: "brain-activity", label: "Activity", icon: Activity, showInMobileNav: false },
+  { path: "brain-graph", label: "Graph", icon: Network, showInMobileNav: false },
 ];
 
 export const settingsNavRoute: NavRouteMeta = {

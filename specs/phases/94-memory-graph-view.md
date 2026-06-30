@@ -1,6 +1,6 @@
 # Phase 94 — Memory Graph View
 
-**Status:** Pending
+**Status:** Done
 **Depends on:** Phase 88 (Memory Feed — establishes `/brain/memory` route), Phase 57 (Correlation engine — graph store)
 **Packages touched:** `core/ze-memory`, `apps/ze-api`, `apps/ze-web`
 
@@ -39,14 +39,14 @@ visualisation layer on top of existing data.
 
 | Feature | Status |
 |---------|--------|
-| `GET /api/v0/memory/graph` endpoint | 🔲 Pending |
-| `GET /api/v0/memory/graph/entity/{entity_id}` detail endpoint | 🔲 Pending |
-| Schema types | 🔲 Pending |
-| Codegen update | 🔲 Pending |
-| `pages/brain-graph/` FSD slice | 🔲 Pending |
-| `MemoryGraph` component (React Flow) | 🔲 Pending |
-| `EntityDetailPanel` sidebar | 🔲 Pending |
-| Node search | 🔲 Pending |
+| `GET /api/v0/memory/graph` endpoint | ✅ Done |
+| `GET /api/v0/memory/graph/entity/{entity_id}` detail endpoint | ✅ Done |
+| Schema types | ✅ Done |
+| Codegen update | ✅ Done |
+| `pages/brain-graph/` FSD slice | ✅ Done |
+| `MemoryGraph` component (React Flow) | ✅ Done |
+| `EntityDetailPanel` sidebar | ✅ Done |
+| Node search | ✅ Done |
 
 ---
 
