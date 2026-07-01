@@ -70,6 +70,12 @@ class _FakeEmbedder:
             return _FakeArray([self._agent_vecs[n] for n in names])
         return self._prompt_vec
 
+    def encode_passage(self, input_: str | list[str], **kwargs):
+        return self.encode(input_, **kwargs)
+
+    def encode_query(self, input_: str, **kwargs):
+        return self._prompt_vec
+
 
 def _make_routing_store() -> AsyncMock:
     store = AsyncMock(spec=PostgresRoutingStore)

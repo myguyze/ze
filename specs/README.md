@@ -139,6 +139,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 94 | [Memory Graph View](phases/94-memory-graph-view.md) | 🔲 Pending |
 | 95 | [Unified Streaming Architecture](phases/95-live-trace-streaming.md) | 🔲 Pending |
 | 96 | [Dev Data Seeder](phases/96-dev-data-seeder.md) | 🔲 Pending |
+| 97 | [Embedding Model Upgrade (MiniLM → E5)](phases/97-embedding-model-upgrade.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 

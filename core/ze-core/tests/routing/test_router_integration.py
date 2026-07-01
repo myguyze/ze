@@ -29,6 +29,8 @@ def make_embedder(agent_vecs: dict[str, np.ndarray], prompt_vec: np.ndarray) -> 
         return prompt_vec
 
     mock.encode.side_effect = encode
+    mock.encode_passage.side_effect = encode
+    mock.encode_query.side_effect = lambda text, **kw: prompt_vec
     return mock
 
 
@@ -187,6 +189,8 @@ async def test_route_signals_decompose_when_gap_too_small(two_agent_settings):
 
     embedder = MagicMock()
     embedder.encode.side_effect = encode
+    embedder.encode_passage.side_effect = encode
+    embedder.encode_query.side_effect = lambda text, **kw: shared_base
 
     client = make_client()
     router = make_router(two_agent_settings, embedder=embedder, client=client)

@@ -72,6 +72,7 @@ async def decompose(state: AgentState, config: RunnableConfig) -> dict:
     from ze_core.routing import fallback
     from ze_core.routing.router import EmbeddingRouter
 
+    set_agent_context("router")
     client = config["configurable"]["openrouter_client"]
     router: EmbeddingRouter | None = config["configurable"].get("router")
 

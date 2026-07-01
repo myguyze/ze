@@ -57,7 +57,7 @@ class EmbeddingRouter:
             raise RoutingError("No enabled agents found")
         self._agent_names = sorted(enabled.keys())
         descriptions = [enabled[n].description.strip() for n in self._agent_names]
-        self._agent_matrix = self._embedder.encode(descriptions, normalize_embeddings=True)
+        self._agent_matrix = self._embedder.encode_passage(descriptions, normalize_embeddings=True)
 
     def _resolve_model(self, agent_name: str, complexity: str) -> str:
         enabled = get_enabled_agents()
@@ -93,7 +93,7 @@ class EmbeddingRouter:
         )
 
     async def _score_and_route(self, prompt: str) -> RoutingEnvelope:
-        prompt_vec = self._embedder.encode(prompt, normalize_embeddings=True)
+        prompt_vec = self._embedder.encode_query(prompt, normalize_embeddings=True)
         scores: list[float] = (self._agent_matrix @ prompt_vec).tolist()
         raw_scores = dict(zip(self._agent_names, scores))
 

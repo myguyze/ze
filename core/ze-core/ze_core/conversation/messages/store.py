@@ -113,7 +113,7 @@ class PostgresMessageStore:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "UPDATE messages SET trace = $1::jsonb WHERE id = $2",
-                json.dumps(asdict(trace)),
+                asdict(trace),
                 message_id,
             )
 

@@ -286,7 +286,8 @@ class Container:
         # 3. Load embedder (sentence_transformers)
         from ze_core.embeddings import get_embedder
 
-        embedder = get_embedder()
+        _embedding_model = settings.config.get("models", {}).get("embedding")
+        embedder = get_embedder(_embedding_model) if _embedding_model else get_embedder()
         from ze_core.nli import LocalNLIClient
 
         nli_client = LocalNLIClient()
