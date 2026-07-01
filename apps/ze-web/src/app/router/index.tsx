@@ -32,6 +32,12 @@ export const router = createBrowserRouter([
           import("@/pages/goal-detail").then((m) => ({ default: m.GoalDetailPage })),
         ),
       },
+      {
+        path: "workflows/:workflowId",
+        element: lazyPage(() =>
+          import("@/pages/workflow-detail").then((m) => ({ default: m.WorkflowDetailPage })),
+        ),
+      },
       { path: settingsRoute.path, element: lazyPage(settingsRoute.lazy) },
       { path: ":pluginPath", element: lazyPage(() => import("@/pages/plugin-page").then((m) => ({ default: m.PluginPage }))) },
     ],

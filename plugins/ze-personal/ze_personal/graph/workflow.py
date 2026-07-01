@@ -82,11 +82,11 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     if tool_calls:
         failed = [tc for tc in tool_calls if not tc.success and not getattr(tc, "is_draft", False)]
         if failed:
-            return _fail_step(store, execution_id, state, idx, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
+            return await _fail_step(store, execution_id, state, idx, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
 
     output = _resolve_step_output(state)
     if not output.strip():
-        return _fail_step(store, execution_id, state, idx, step.task, "", "Step produced empty output")
+        return await _fail_step(store, execution_id, state, idx, step.task, "", "Step produced empty output")
 
     if step.verify:
         try:
@@ -104,7 +104,7 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
             verdict = json.loads(raw)
             if not verdict.get("pass", True):
                 reason = verdict.get("reason", "Verification failed")
-                return _fail_step(store, execution_id, state, idx, step.task, output, reason)
+                return await _fail_step(store, execution_id, state, idx, step.task, output, reason)
         except Exception as exc:
             log.warning("workflow_verify_error", step_index=idx, error=str(exc))
 
@@ -116,7 +116,7 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
         error=None,
         duration_ms=0,
     )
-    asyncio.create_task(store.record_step(execution_id, step_result))
+    await store.record_step(execution_id, step_result)
 
     prior = list(state.get("workflow_step_results") or [])
     next_idx = idx + 1
@@ -155,7 +155,7 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
         response = "Workflow completed with no output."
 
     if execution_id:
-        asyncio.create_task(store.finish_execution(execution_id, "completed"))
+        await store.finish_execution(execution_id, "completed", summary=response)
 
     asyncio.create_task(_sync_workflow_task_state(config, state, state.get("workflow_steps") or [], len(step_results), "completed"))
     asyncio.create_task(_extract_and_store_workflow_procedure(config, state, step_results))
@@ -178,7 +178,7 @@ async def workflow_failed(state: dict[str, Any], config: RunnableConfig) -> dict
         error_msg = state.get("error") or "Workflow failed"
 
     if execution_id:
-        asyncio.create_task(store.finish_execution(execution_id, "failed", error=error_msg))
+        await store.finish_execution(execution_id, "failed", error=error_msg)
 
     asyncio.create_task(_sync_workflow_task_state(config, state, state.get("workflow_steps") or [], -1, "blocked", blocked_by=[error_msg]))
     log.warning("workflow_failed", execution_id=str(execution_id), error=error_msg)
@@ -360,7 +360,7 @@ async def _sync_workflow_task_state(
         log.warning("workflow_task_state_sync_failed", workflow_id=str(workflow_id), error=str(exc))
 
 
-def _fail_step(
+async def _fail_step(
     store: WorkflowStore,
     execution_id: Any,
     state: dict[str, Any],
@@ -377,7 +377,8 @@ def _fail_step(
         error=error,
         duration_ms=0,
     )
-    asyncio.create_task(store.record_step(execution_id, step_result))
+    if execution_id:
+        await store.record_step(execution_id, step_result)
     prior = list(state.get("workflow_step_results") or [])
     log.warning("workflow_step_failed", step_index=idx, error=error)
     return {

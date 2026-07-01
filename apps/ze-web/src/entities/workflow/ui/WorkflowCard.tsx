@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { WorkflowResponse } from "@myguyze/ze-client";
 import { Button } from "@/shared/ui";
 import { useTriggerWorkflowMutation } from "../api/useTriggerWorkflowMutation";
@@ -5,9 +6,13 @@ import { formatSchedule, formatTimestamp } from "../lib/format";
 
 export function WorkflowCard({ workflow }: { workflow: WorkflowResponse }) {
   const trigger = useTriggerWorkflowMutation();
+  const navigate = useNavigate();
 
   return (
-    <div className="p-4 rounded-pill border border-white/10 hover:border-white/20 transition-colors">
+    <div
+      className="p-4 rounded-pill border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+      onClick={() => navigate(`/workflows/${workflow.id}`)}
+    >
       <p className="text-sm font-medium text-white">{workflow.name}</p>
       {workflow.description && (
         <p className="mt-1 text-sm text-smoke">{workflow.description}</p>
@@ -30,7 +35,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowResponse }) {
             size="sm"
             variant="outline"
             disabled={trigger.isPending}
-            onClick={() => trigger.mutate(workflow.id)}
+            onClick={(e) => { e.stopPropagation(); trigger.mutate(workflow.id); }}
           >
             {trigger.isPending ? "Running…" : "Run now"}
           </Button>

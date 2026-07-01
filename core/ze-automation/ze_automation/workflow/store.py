@@ -45,6 +45,7 @@ class WorkflowStore(Protocol):
         execution_id: UUID,
         status: str,
         error: str | None = None,
+        summary: str | None = None,
     ) -> None: ...
 
     async def list_executions(self, workflow_id: UUID, limit: int = 20) -> list[WorkflowExecution]: ...

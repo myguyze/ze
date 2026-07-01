@@ -362,9 +362,16 @@ class WorkflowExecutionResponse(BaseModel):
     status: str
     step_results: list[StepResultResponse]
     error: str | None
+    summary: str | None
     started_at: str | None
     completed_at: str | None
     created_at: str
+
+
+class TriggerWorkflowResponse(BaseModel):
+    status: str
+    workflow_id: UUIDType
+    execution_id: UUIDType
 
 
 # ── REST: eval ────────────────────────────────────────────────────────────────

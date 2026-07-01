@@ -42,6 +42,7 @@ class WorkflowExecution:
     status: str
     step_results: list[StepResult] = field(default_factory=list)
     error: str | None = None
+    summary: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)

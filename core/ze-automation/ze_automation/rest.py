@@ -62,6 +62,7 @@ async def list_workflow_executions(store: WorkflowStore, workflow_id: UUID) -> l
                 for r in ex.step_results
             ],
             "error": ex.error,
+            "summary": ex.summary,
             "started_at": ex.started_at.isoformat() if ex.started_at else None,
             "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
             "created_at": ex.created_at.isoformat(),

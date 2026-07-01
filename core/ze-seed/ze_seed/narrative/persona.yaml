@@ -10,18 +10,21 @@ facts:
     agent: companion
     confidence: 0.95
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 90
   - id: "00000006-0001-4000-8000-000000000002"
     predicate: timezone
     value: Europe/Lisbon (UTC+0/+1)
     agent: companion
     confidence: 1.0
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 90
   - id: "00000006-0001-4000-8000-000000000003"
     predicate: communication_preference
     value: Prefers async communication over meetings; likes concise updates
     agent: companion
     confidence: 0.9
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 60
   - id: "00000006-0001-4000-8000-000000000004"
     predicate: learning_goal
     value: Learning European Portuguese to reach B1 conversational level
@@ -29,6 +32,7 @@ facts:
     confidence: 0.95
     subject_id: "0000000b-0001-4000-8000-000000000001"
     object_id: "0000000b-0001-4000-8000-000000000007"
+    days_ago: 45
   - id: "00000006-0001-4000-8000-000000000005"
     predicate: language_study
     value: Uses Duolingo daily and has weekly tutoring sessions with Ana
@@ -36,6 +40,7 @@ facts:
     confidence: 0.85
     subject_id: "0000000b-0001-4000-8000-000000000001"
     object_id: "0000000b-0001-4000-8000-000000000003"
+    days_ago: 30
   - id: "00000006-0001-4000-8000-000000000006"
     predicate: important_person
     value: Sofia is Alex's partner; they live together in Lisbon
@@ -43,6 +48,7 @@ facts:
     confidence: 0.9
     subject_id: "0000000b-0001-4000-8000-000000000004"
     object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 75
   - id: "00000006-0001-4000-8000-000000000007"
     predicate: important_person
     value: Marco is Alex's engineering manager at work
@@ -50,6 +56,7 @@ facts:
     confidence: 0.9
     subject_id: "0000000b-0001-4000-8000-000000000002"
     object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 80
   - id: "00000006-0001-4000-8000-000000000008"
     predicate: side_project
     value: Building a personal finance tracker side project called LedgerLite
@@ -57,24 +64,29 @@ facts:
     confidence: 0.8
     subject_id: "0000000b-0001-4000-8000-000000000006"
     object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 40
   - id: "00000006-0001-4000-8000-000000000009"
     predicate: sleep_goal
     value: Wants to consistently sleep before midnight on weeknights
     agent: companion
     confidence: 0.75
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 14
   - id: "00000006-0001-4000-8000-00000000000a"
     predicate: calendar_preference
     value: Blocks focus time 9-11am on weekdays for deep work
     agent: calendar
     confidence: 0.85
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 50
   - id: "00000006-0001-4000-8000-00000000000b"
     predicate: dietary_note
     value: Vegetarian; avoids shellfish
     agent: companion
     confidence: 0.7
     subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 20
+    reviewed: false
   - id: "00000006-0001-4000-8000-00000000000c"
     predicate: portuguese_progress
     value: Completed A2 level; working on past tense and subjunctive mood
@@ -82,32 +94,244 @@ facts:
     confidence: 0.88
     source_episode_id: "00000007-0001-4000-8000-000000000001"
     subject_id: "0000000b-0001-4000-8000-000000000007"
+    days_ago: 7
+  - id: "00000006-0001-4000-8000-00000000000d"
+    predicate: exercise_habit
+    value: Goes to the gym three times a week, usually mornings
+    agent: companion
+    confidence: 0.65
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 3
+    reviewed: false
+  - id: "00000006-0001-4000-8000-00000000000e"
+    predicate: coffee_preference
+    value: Drinks oat milk flat whites; avoids sugar after noon
+    agent: companion
+    confidence: 0.6
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 120
+    contradicted: true
+  - id: "00000006-0001-4000-8000-00000000000f"
+    predicate: coffee_preference
+    value: Drinks black espresso; no milk
+    agent: companion
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 5
+  - id: "00000006-0001-4000-8000-000000000010"
+    predicate: work_pattern
+    value: Most productive in morning focus blocks; avoids meetings before 11am
+    agent: companion
+    confidence: 0.72
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    provenance: synthesized
+    days_ago: 10
+  - id: "00000006-0001-4000-8000-000000000011"
+    predicate: team_size
+    value: Engineering team has 12 people across backend and mobile
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 25
+    reviewed: false
+  - id: "00000006-0001-4000-8000-000000000012"
+    predicate: employer
+    value: Works at PayFlow, a Lisbon fintech startup building payment infrastructure
+    agent: companion
+    confidence: 0.95
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-00000000000b"
+    days_ago: 90
+  - id: "00000006-0001-4000-8000-000000000013"
+    predicate: neighborhood
+    value: Alex and Sofia live in this trendy Lisbon neighborhood near the gardens
+    agent: companion
+    confidence: 0.88
+    subject_id: "0000000b-0001-4000-8000-00000000000d"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 60
+  - id: "00000006-0001-4000-8000-000000000014"
+    predicate: colleague
+    value: Inês Ferreira is the product designer; collaborates on roadmap and UX
+    agent: companion
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000009"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 40
+  - id: "00000006-0001-4000-8000-000000000015"
+    predicate: colleague
+    value: Rui Santos leads the backend team; Alex pairs with him on API design
+    agent: companion
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-00000000000a"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 40
+  - id: "00000006-0001-4000-8000-000000000016"
+    predicate: gym_buddy
+    value: Pedro Almeida is a gym buddy; they train together three mornings a week
+    agent: companion
+    confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-000000000008"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 10
+    reviewed: false
+  - id: "00000006-0001-4000-8000-000000000017"
+    predicate: work_deliverable
+    value: Q2 roadmap one-pager due to Marco by Friday
+    agent: companion
+    confidence: 0.92
+    subject_id: "0000000b-0001-4000-8000-000000000011"
+    object_id: "0000000b-0001-4000-8000-000000000002"
+    source_episode_id: "00000007-0001-4000-8000-000000000004"
+    days_ago: 5
+  - id: "00000006-0001-4000-8000-000000000018"
+    predicate: study_tool
+    value: Maintains a 47-day Duolingo streak for daily Portuguese practice
+    agent: companion
+    confidence: 0.9
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000010"
+    days_ago: 7
+  - id: "00000006-0001-4000-8000-000000000019"
+    predicate: certification_target
+    value: Targeting B1 certification exam in approximately 8 weeks
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000012"
+    object_id: "0000000b-0001-4000-8000-000000000007"
+    days_ago: 14
+  - id: "00000006-0001-4000-8000-00000000001a"
+    predicate: launch_channel
+    value: LedgerLite launched on Product Hunt with 87 upvotes
+    agent: research
+    confidence: 0.88
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-00000000000c"
+    days_ago: 28
+  - id: "00000006-0001-4000-8000-00000000001b"
+    predicate: community
+    value: Active in Indie Hackers community; posts weekly build-in-public updates
+    agent: research
+    confidence: 0.75
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-000000000014"
+    days_ago: 21
+  - id: "00000006-0001-4000-8000-00000000001c"
+    predicate: top_feature
+    value: CSV import is the most requested LedgerLite feature; supports European date formats
+    agent: research
+    confidence: 0.82
+    subject_id: "0000000b-0001-4000-8000-000000000015"
+    object_id: "0000000b-0001-4000-8000-000000000006"
+    days_ago: 12
+  - id: "00000006-0001-4000-8000-00000000001d"
+    predicate: study_resource
+    value: Practice Portuguese podcast recommended for B1 subjunctive practice
+    agent: research
+    confidence: 0.78
+    subject_id: "0000000b-0001-4000-8000-000000000016"
+    object_id: "0000000b-0001-4000-8000-000000000007"
+    source_episode_id: "00000007-0001-4000-8000-000000000003"
+    days_ago: 14
+  - id: "00000006-0001-4000-8000-00000000001e"
+    predicate: tutor_origin
+    value: Ana Costa is originally from Porto; teaches European Portuguese
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000003"
+    object_id: "0000000b-0001-4000-8000-00000000000e"
+    days_ago: 50
+  - id: "00000006-0001-4000-8000-00000000001f"
+    predicate: health_goal
+    value: Working toward a consistent sleep routine — target asleep before midnight
+    agent: companion
+    confidence: 0.72
+    subject_id: "0000000b-0001-4000-8000-000000000013"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 14
+  - id: "00000006-0001-4000-8000-000000000020"
+    predicate: company_stage
+    value: PayFlow raised Series A in 2024; ~45 employees
+    agent: companion
+    confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-00000000000b"
+    days_ago: 80
+  - id: "00000006-0001-4000-8000-000000000021"
+    predicate: gym_info
+    value: Alex and Pedro train here three mornings a week; near Príncipe Real
+    agent: companion
+    confidence: 0.65
+    subject_id: "0000000b-0001-4000-8000-00000000000f"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 8
+    reviewed: false
+  - id: "00000006-0001-4000-8000-000000000022"
+    predicate: partner_work
+    value: Sofia works as a freelance illustrator from their shared apartment
+    agent: companion
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000004"
+    days_ago: 55
+  - id: "00000006-0001-4000-8000-000000000023"
+    predicate: launch_result
+    value: Product Hunt launch drove 60% of LedgerLite beta signups
+    agent: research
+    confidence: 0.9
+    subject_id: "0000000b-0001-4000-8000-00000000000c"
+    object_id: "0000000b-0001-4000-8000-000000000006"
+    days_ago: 27
+  - id: "00000006-0001-4000-8000-000000000024"
+    predicate: language_level
+    value: Currently at A2+ level; subjunctive mood is the main gap before B1
+    agent: companion
+    confidence: 0.87
+    subject_id: "0000000b-0001-4000-8000-000000000007"
+    days_ago: 7
+  - id: "00000006-0001-4000-8000-000000000025"
+    predicate: manager_style
+    value: Marco prefers async written updates over slide decks
+    agent: companion
+    confidence: 0.88
+    subject_id: "0000000b-0001-4000-8000-000000000002"
+    days_ago: 30
 
 episodes:
   - id: "00000007-0001-4000-8000-000000000001"
     agent: companion
     prompt: How is my Portuguese coming along?
     response: You finished A2 last month. Your tutor Ana says your past tense is solid but subjunctive needs work. Duolingo streak is 47 days.
+    summary: Portuguese progress check — A2 done, working on subjunctive
+    days_ago: 7
   - id: "00000007-0001-4000-8000-000000000002"
     agent: calendar
     prompt: What's on my calendar tomorrow?
     response: You have standup at 10am, focus block 9-11am, and a tutoring session with Ana at 6pm.
+    summary: Tomorrow's schedule — standup, focus time, tutoring
+    days_ago: 1
   - id: "00000007-0001-4000-8000-000000000003"
     agent: research
     prompt: Find good B1 Portuguese practice resources
     response: Recommended Practice Portuguese podcast, LingQ intermediate stories, and italki conversation partners for European Portuguese.
+    summary: B1 Portuguese resource recommendations
+    days_ago: 14
   - id: "00000007-0001-4000-8000-000000000004"
     agent: companion
     prompt: Remind me about Marco's feedback
     response: Marco asked for the Q2 roadmap draft by Friday. He prefers a one-pager with milestones, not a slide deck.
+    summary: Marco wants Q2 roadmap one-pager by Friday
+    days_ago: 5
   - id: "00000007-0001-4000-8000-000000000005"
     agent: companion
     prompt: Help me plan my side project launch
     response: LedgerLite MVP is feature-complete. Suggested launch steps — landing page, Product Hunt post, and sharing in indie hacker communities.
+    summary: LedgerLite launch plan — landing page and Product Hunt
+    days_ago: 30
   - id: "00000007-0001-4000-8000-000000000006"
     agent: calendar
     prompt: Set a reminder for dentist appointment prep
     response: Added a reminder to gather insurance card and list of questions before the dentist visit next Tuesday.
+    summary: Dentist prep reminder created
+    days_ago: 3
 
 entities:
   - id: "0000000b-0001-4000-8000-000000000001"
@@ -151,9 +375,102 @@ entities:
     canonical_name: European Portuguese
     aliases: [Portuguese]
     attrs:
-      level: A2
+      level: A2+
+  - id: "0000000b-0001-4000-8000-000000000008"
+    entity_type: person
+    canonical_name: Pedro Almeida
+    aliases: [Pedro]
+    attrs:
+      role: gym buddy
+  - id: "0000000b-0001-4000-8000-000000000009"
+    entity_type: person
+    canonical_name: Inês Ferreira
+    aliases: [Inês]
+    attrs:
+      role: product designer
+  - id: "0000000b-0001-4000-8000-00000000000a"
+    entity_type: person
+    canonical_name: Rui Santos
+    aliases: [Rui]
+    attrs:
+      role: backend lead
+  - id: "0000000b-0001-4000-8000-00000000000b"
+    entity_type: org
+    canonical_name: PayFlow
+    aliases: []
+    attrs:
+      industry: fintech
+      stage: series_a
+  - id: "0000000b-0001-4000-8000-00000000000c"
+    entity_type: org
+    canonical_name: Product Hunt
+    aliases: [PH]
+    attrs:
+      kind: launch platform
+  - id: "0000000b-0001-4000-8000-00000000000d"
+    entity_type: place
+    canonical_name: Príncipe Real
+    aliases: []
+    attrs:
+      type: neighborhood
+      city: Lisbon
+  - id: "0000000b-0001-4000-8000-00000000000e"
+    entity_type: place
+    canonical_name: Porto
+    aliases: []
+    attrs:
+      country: Portugal
+  - id: "0000000b-0001-4000-8000-00000000000f"
+    entity_type: place
+    canonical_name: LxFit Gym
+    aliases: [LxFit]
+    attrs:
+      type: gym
+  - id: "0000000b-0001-4000-8000-000000000010"
+    entity_type: topic
+    canonical_name: Duolingo
+    aliases: []
+    attrs:
+      kind: language app
+  - id: "0000000b-0001-4000-8000-000000000011"
+    entity_type: topic
+    canonical_name: Q2 Roadmap
+    aliases: []
+    attrs:
+      kind: work deliverable
+  - id: "0000000b-0001-4000-8000-000000000012"
+    entity_type: topic
+    canonical_name: B1 Certification
+    aliases: [B1 exam]
+    attrs:
+      kind: language certification
+  - id: "0000000b-0001-4000-8000-000000000013"
+    entity_type: topic
+    canonical_name: Sleep Routine
+    aliases: []
+    attrs:
+      kind: health goal
+  - id: "0000000b-0001-4000-8000-000000000014"
+    entity_type: topic
+    canonical_name: Indie Hackers
+    aliases: [IH]
+    attrs:
+      kind: community
+  - id: "0000000b-0001-4000-8000-000000000015"
+    entity_type: topic
+    canonical_name: CSV Import
+    aliases: []
+    attrs:
+      kind: product feature
+  - id: "0000000b-0001-4000-8000-000000000016"
+    entity_type: topic
+    canonical_name: Practice Portuguese
+    aliases: []
+    attrs:
+      kind: podcast
 
 relationships:
+  # ── Alex hub (personal) ──
   - id: "0000000c-0001-4000-8000-000000000001"
     source_id: "0000000b-0001-4000-8000-000000000001"
     target_id: "0000000b-0001-4000-8000-000000000005"
@@ -165,34 +482,209 @@ relationships:
     predicate: partner_of
     confidence: 0.9
   - id: "0000000c-0001-4000-8000-000000000003"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000000d"
+    predicate: lives_in
+    confidence: 0.88
+  - id: "0000000c-0001-4000-8000-000000000004"
+    source_id: "0000000b-0001-4000-8000-000000000004"
+    target_id: "0000000b-0001-4000-8000-00000000000d"
+    predicate: lives_in
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000005"
+    source_id: "0000000b-0001-4000-8000-00000000000d"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: located_in
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-000000000006"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000008"
+    predicate: friends_with
+    confidence: 0.7
+  - id: "0000000c-0001-4000-8000-000000000007"
+    source_id: "0000000b-0001-4000-8000-000000000008"
+    target_id: "0000000b-0001-4000-8000-00000000000f"
+    predicate: trains_at
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-000000000008"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000000f"
+    predicate: trains_at
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000009"
+    source_id: "0000000b-0001-4000-8000-00000000000f"
+    target_id: "0000000b-0001-4000-8000-00000000000d"
+    predicate: located_in
+    confidence: 0.85
+  # ── Work cluster ──
+  - id: "0000000c-0001-4000-8000-00000000000a"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-00000000000b"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-00000000000c"
+    source_id: "0000000b-0001-4000-8000-000000000009"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-00000000000d"
+    source_id: "0000000b-0001-4000-8000-00000000000a"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-00000000000e"
+    source_id: "0000000b-0001-4000-8000-00000000000b"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: headquartered_in
+    confidence: 0.92
+  - id: "0000000c-0001-4000-8000-00000000000f"
     source_id: "0000000b-0001-4000-8000-000000000002"
     target_id: "0000000b-0001-4000-8000-000000000001"
     predicate: manages
     confidence: 0.9
-  - id: "0000000c-0001-4000-8000-000000000004"
+  - id: "0000000c-0001-4000-8000-000000000010"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000002"
+    predicate: reports_to
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000011"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-000000000009"
+    predicate: manages
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000012"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-00000000000a"
+    predicate: manages
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000013"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000009"
+    predicate: collaborates_with
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000014"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000000a"
+    predicate: collaborates_with
+    confidence: 0.82
+  - id: "0000000c-0001-4000-8000-000000000015"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000011"
+    predicate: owns
+    confidence: 0.92
+  - id: "0000000c-0001-4000-8000-000000000016"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-000000000011"
+    predicate: requested
+    confidence: 0.9
+  # ── Language learning cluster ──
+  - id: "0000000c-0001-4000-8000-000000000017"
     source_id: "0000000b-0001-4000-8000-000000000003"
     target_id: "0000000b-0001-4000-8000-000000000001"
     predicate: tutors
     confidence: 0.85
-  - id: "0000000c-0001-4000-8000-000000000005"
+  - id: "0000000c-0001-4000-8000-000000000018"
+    source_id: "0000000b-0001-4000-8000-000000000003"
+    target_id: "0000000b-0001-4000-8000-00000000000e"
+    predicate: from
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000019"
     source_id: "0000000b-0001-4000-8000-000000000001"
     target_id: "0000000b-0001-4000-8000-000000000007"
     predicate: learning
     confidence: 0.95
-  - id: "0000000c-0001-4000-8000-000000000006"
+  - id: "0000000c-0001-4000-8000-00000000001a"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000010"
+    predicate: uses
+    confidence: 0.88
+  - id: "0000000c-0001-4000-8000-00000000001b"
+    source_id: "0000000b-0001-4000-8000-000000000010"
+    target_id: "0000000b-0001-4000-8000-000000000007"
+    predicate: supports
+    confidence: 0.7
+  - id: "0000000c-0001-4000-8000-00000000001c"
+    source_id: "0000000b-0001-4000-8000-000000000007"
+    target_id: "0000000b-0001-4000-8000-000000000012"
+    predicate: leads_to
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-00000000001d"
+    source_id: "0000000b-0001-4000-8000-000000000016"
+    target_id: "0000000b-0001-4000-8000-000000000007"
+    predicate: covers
+    confidence: 0.78
+  # ── Side project cluster ──
+  - id: "0000000c-0001-4000-8000-00000000001e"
     source_id: "0000000b-0001-4000-8000-000000000001"
     target_id: "0000000b-0001-4000-8000-000000000006"
     predicate: building
     confidence: 0.8
-  - id: "0000000c-0001-4000-8000-000000000007"
+  - id: "0000000c-0001-4000-8000-00000000001f"
+    source_id: "0000000b-0001-4000-8000-000000000006"
+    target_id: "0000000b-0001-4000-8000-00000000000c"
+    predicate: launched_on
+    confidence: 0.88
+  - id: "0000000c-0001-4000-8000-000000000020"
+    source_id: "0000000b-0001-4000-8000-000000000006"
+    target_id: "0000000b-0001-4000-8000-000000000014"
+    predicate: discussed_in
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-000000000021"
+    source_id: "0000000b-0001-4000-8000-000000000006"
+    target_id: "0000000b-0001-4000-8000-000000000015"
+    predicate: has_feature
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000022"
+    source_id: "0000000b-0001-4000-8000-000000000009"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: designed_for
+    confidence: 0.45
+  # ── Health cluster ──
+  - id: "0000000c-0001-4000-8000-000000000023"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000013"
+    predicate: pursuing
+    confidence: 0.72
+  - id: "0000000c-0001-4000-8000-000000000024"
+    source_id: "0000000b-0001-4000-8000-000000000008"
+    target_id: "0000000b-0001-4000-8000-000000000013"
+    predicate: encourages
+    confidence: 0.4
+  # ── Cross-cluster links ──
+  - id: "0000000c-0001-4000-8000-000000000025"
     source_id: "0000000b-0001-4000-8000-000000000004"
     target_id: "0000000b-0001-4000-8000-000000000005"
     predicate: lives_in
     confidence: 0.9
-  - id: "0000000c-0001-4000-8000-000000000008"
-    source_id: "0000000b-0001-4000-8000-000000000001"
-    target_id: "0000000b-0001-4000-8000-000000000002"
-    predicate: reports_to
+  - id: "0000000c-0001-4000-8000-000000000026"
+    source_id: "0000000b-0001-4000-8000-00000000000a"
+    target_id: "0000000b-0001-4000-8000-000000000015"
+    predicate: implemented
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000027"
+    source_id: "0000000b-0001-4000-8000-000000000009"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: designed
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000028"
+    source_id: "0000000b-0001-4000-8000-00000000000c"
+    target_id: "0000000b-0001-4000-8000-000000000014"
+    predicate: cross_posted_to
+    confidence: 0.6
+  - id: "0000000c-0001-4000-8000-000000000029"
+    source_id: "0000000b-0001-4000-8000-00000000000e"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: located_in
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-00000000002a"
+    source_id: "0000000b-0001-4000-8000-000000000011"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: belongs_to
     confidence: 0.9
 
 contacts:
@@ -220,6 +712,14 @@ contacts:
       phone: "+351912345678"
     notes: Lives together in Lisbon
     confirmed: true
+  - id: "00000009-0001-4000-8000-000000000004"
+    name: Pedro Almeida
+    classification: personal
+    relationship_to_user: Gym buddy
+    contact_info:
+      phone: "+351923456789"
+    notes: Met at the gym; mentioned a running group on Saturdays
+    confirmed: false
 
 reminders:
   - id: "0000000a-0001-4000-8000-000000000001"
@@ -233,9 +733,11 @@ messages:
   - id: "00000008-0001-4000-8000-000000000001"
     role: user
     text: What's the status on my Portuguese goal?
+    days_ago: 14
   - id: "00000008-0001-4000-8000-000000000002"
     role: assistant
     text: Your active goal "Reach B1 Portuguese" is progressing well. You've completed 2 of 4 milestones. Milestone 3 (weekly conversation practice) is in progress. There's a verification gate awaiting your approval after milestone 2.
+    days_ago: 14
     trace:
       agent: goals
       routing_method: embedding
@@ -256,9 +758,11 @@ messages:
   - id: "00000008-0001-4000-8000-000000000003"
     role: user
     text: What do I have tomorrow?
+    days_ago: 7
   - id: "00000008-0001-4000-8000-000000000004"
     role: assistant
     text: Tomorrow you have focus time 9-11am, standup at 10am, and Portuguese tutoring with Ana at 6pm. You also have a reminder to prep standup notes for Marco.
+    days_ago: 7
     trace:
       agent: calendar
       routing_method: embedding
@@ -279,9 +783,11 @@ messages:
   - id: "00000008-0001-4000-8000-000000000005"
     role: user
     text: Who is Ana?
+    days_ago: 3
   - id: "00000008-0001-4000-8000-000000000006"
     role: assistant
     text: Ana Costa is your Portuguese tutor. You have weekly sessions focused on European Portuguese. She's helped you reach A2 and you're now working toward B1.
+    days_ago: 3
     trace:
       agent: companion
       routing_method: embedding
@@ -298,9 +804,11 @@ messages:
   - id: "00000008-0001-4000-8000-000000000007"
     role: user
     text: Thanks, that's helpful
+    days_ago: 0
   - id: "00000008-0001-4000-8000-000000000008"
     role: assistant
     text: You're welcome! Let me know if you want help with your Q2 roadmap draft for Marco or anything else on your goals.
+    days_ago: 0
     trace:
       agent: companion
       routing_method: embedding

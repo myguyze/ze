@@ -6,6 +6,8 @@ export const queryKeys = {
   goalTraces: (goalId: string, milestoneId?: string) =>
     ["goal-traces", goalId, milestoneId ?? ""] as const,
   workflows: ["workflows"] as const,
+  workflowDetail: (workflowId: string) => ["workflow-detail", workflowId] as const,
+  workflowExecutions: (workflowId: string) => ["workflow-executions", workflowId] as const,
   costs: ["costs"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,

@@ -7,6 +7,13 @@ from ze_seed.context import SeedContext
 from ze_seed.domain import SeedDomain
 from ze_seed.domains._helpers import delete_by_ids
 from ze_seed.narrative.ids import (
+    EXECUTION_IDS,
+    EXEC_LL_1,
+    EXEC_MB_1,
+    EXEC_MB_2,
+    EXEC_PT_FAIL,
+    EXEC_PT_OK_1,
+    EXEC_PT_OK_2,
     GATE_IDS,
     GATE_PT_1,
     GATE_SP_1,
@@ -27,11 +34,20 @@ from ze_seed.narrative.ids import (
     TRACE_IDS,
     TRACE_PT_1,
     TRACE_PT_2,
+    TRACE_PT_3,
+    TRACE_SP_1,
+    TRACE_SP_2,
+    WF_LEDGERLITE_DIGEST,
+    WF_MORNING_BRIEFING,
+    WF_PORTUGUESE_CHECKIN,
+    WORKFLOW_IDS,
 )
 
 
 async def _clear_automation(ctx: SeedContext) -> None:
     async with ctx.pool.acquire() as conn:
+        await delete_by_ids(conn, "workflow_executions", EXECUTION_IDS)
+        await delete_by_ids(conn, "workflows", WORKFLOW_IDS)
         await delete_by_ids(conn, "goal_execution_traces", TRACE_IDS)
         await delete_by_ids(conn, "goal_learnings", LEARNING_IDS)
         await delete_by_ids(conn, "goal_gates", GATE_IDS)
@@ -197,7 +213,319 @@ async def _apply_automation(ctx: SeedContext) -> int:
             json.dumps({"query": "Portuguese past tense exercises B1"}),
             "Found Practice Portuguese podcast episodes on pretérito perfeito",
         )
-        count += 2
+        await conn.execute(
+            """
+            INSERT INTO goal_execution_traces
+                (id, milestone_id, goal_id, seq, tool_name, args, result, duration_ms, success)
+            VALUES ($1, $2, $3, 1, 'companion', $4, $5, 2100, true)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            TRACE_PT_3,
+            MS_PT_3,
+            GOAL_PORTUGUESE,
+            json.dumps({"task": "Schedule conversation practice sessions"}),
+            "Booked two 30-min sessions with Ana for this week",
+        )
+        await conn.execute(
+            """
+            INSERT INTO goal_execution_traces
+                (id, milestone_id, goal_id, seq, tool_name, args, result, duration_ms, success)
+            VALUES ($1, $2, $3, 1, 'research', $4, $5, 3400, true)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            TRACE_SP_1,
+            MS_SP_1,
+            GOAL_SIDE_PROJECT,
+            json.dumps({"task": "Implement CSV import and categorization"}),
+            "CSV import handles European date formats; auto-categorization at 82% accuracy",
+        )
+        await conn.execute(
+            """
+            INSERT INTO goal_execution_traces
+                (id, milestone_id, goal_id, seq, tool_name, args, result, duration_ms, success)
+            VALUES ($1, $2, $3, 1, 'openrouter:web_search', $4, $5, 1800, true)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            TRACE_SP_2,
+            MS_SP_2,
+            GOAL_SIDE_PROJECT,
+            json.dumps({"query": "Product Hunt launch checklist indie SaaS"}),
+            "Drafted launch post and scheduled for Tuesday 8am PT",
+        )
+        count += 5
+
+        pt_steps = json.dumps([
+            {"task": "Check Duolingo streak and weekly XP", "agent_hint": "companion", "intent": "execute"},
+            {"task": "Summarize tutor feedback from last session", "agent_hint": "companion", "intent": "execute"},
+            {"task": "Suggest one B1 practice resource", "agent_hint": "research", "intent": "execute"},
+        ])
+        mb_steps = json.dumps([
+            {"task": "List today's calendar events", "agent_hint": "calendar", "intent": "execute"},
+            {"task": "Surface pending reminders", "agent_hint": "calendar", "intent": "execute"},
+            {"task": "Draft a one-paragraph day overview", "agent_hint": "companion", "intent": "execute"},
+        ])
+        ll_steps = json.dumps([
+            {"task": "Collect beta user feedback from the past week", "agent_hint": "research", "intent": "execute"},
+            {"task": "Summarize signups and active users", "agent_hint": "research", "intent": "execute"},
+            {"task": "Draft a build-in-public update post", "agent_hint": "companion", "intent": "execute"},
+        ])
+
+        await conn.execute(
+            """
+            INSERT INTO workflows
+                (id, name, description, steps, schedule, enabled,
+                 last_run_at, next_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5, true, $6, $7, $8, $8)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            WF_PORTUGUESE_CHECKIN,
+            "Weekly Portuguese check-in",
+            "Review study progress, tutor notes, and suggest practice resources every Monday morning",
+            pt_steps,
+            "0 9 * * 1",
+            now - timedelta(days=3),
+            now + timedelta(days=4),
+            now - timedelta(days=60),
+        )
+        await conn.execute(
+            """
+            INSERT INTO workflows
+                (id, name, description, steps, schedule, enabled,
+                 last_run_at, next_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5, true, $6, $7, $8, $8)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            WF_MORNING_BRIEFING,
+            "Weekday morning briefing",
+            "Summarize today's calendar, reminders, and priorities before work starts",
+            mb_steps,
+            "0 7 * * 1-5",
+            now - timedelta(hours=10),
+            now + timedelta(hours=14),
+            now - timedelta(days=45),
+        )
+        await conn.execute(
+            """
+            INSERT INTO workflows
+                (id, name, description, steps, schedule, enabled,
+                 last_run_at, next_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5, false, $6, NULL, $7, $7)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            WF_LEDGERLITE_DIGEST,
+            "LedgerLite weekly digest",
+            "Compile beta metrics and draft a build-in-public update every Friday evening",
+            ll_steps,
+            "0 18 * * 5",
+            now - timedelta(days=7),
+            now - timedelta(days=30),
+        )
+        count += 3
+
+        pt_ok_1_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Check Duolingo streak and weekly XP",
+                "output": "47-day streak; 340 XP this week (+12% vs last week)",
+                "success": True,
+                "error": None,
+                "duration_ms": 420,
+            },
+            {
+                "step_index": 1,
+                "task": "Summarize tutor feedback from last session",
+                "output": "Ana noted strong past tense usage; subjunctive in 'se' clauses still hesitant",
+                "success": True,
+                "error": None,
+                "duration_ms": 890,
+            },
+            {
+                "step_index": 2,
+                "task": "Suggest one B1 practice resource",
+                "output": "Practice Portuguese podcast episode 42 covers subjunctive triggers",
+                "success": True,
+                "error": None,
+                "duration_ms": 1100,
+            },
+        ])
+        pt_ok_2_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Check Duolingo streak and weekly XP",
+                "output": "40-day streak; 290 XP this week",
+                "success": True,
+                "error": None,
+                "duration_ms": 380,
+            },
+            {
+                "step_index": 1,
+                "task": "Summarize tutor feedback from last session",
+                "output": "Good progress on pretérito imperfeito; needs more conversation practice",
+                "success": True,
+                "error": None,
+                "duration_ms": 750,
+            },
+            {
+                "step_index": 2,
+                "task": "Suggest one B1 practice resource",
+                "output": "LingQ intermediate story 'O Café da Manhã' recommended",
+                "success": True,
+                "error": None,
+                "duration_ms": 920,
+            },
+        ])
+        pt_fail_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Check Duolingo streak and weekly XP",
+                "output": "Streak maintained at 35 days",
+                "success": True,
+                "error": None,
+                "duration_ms": 400,
+            },
+            {
+                "step_index": 1,
+                "task": "Summarize tutor feedback from last session",
+                "output": "",
+                "success": False,
+                "error": "Could not retrieve tutoring notes — session was rescheduled",
+                "duration_ms": 120,
+            },
+        ])
+        mb_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "List today's calendar events",
+                "output": "Focus block 9-11am, standup 10am, tutoring 6pm",
+                "success": True,
+                "error": None,
+                "duration_ms": 310,
+            },
+            {
+                "step_index": 1,
+                "task": "Surface pending reminders",
+                "output": "Prep standup notes for Marco; dentist prep in 5 days",
+                "success": True,
+                "error": None,
+                "duration_ms": 180,
+            },
+            {
+                "step_index": 2,
+                "task": "Draft a one-paragraph day overview",
+                "output": "Busy day with focus time morning, standup mid-morning, Portuguese tutoring evening.",
+                "success": True,
+                "error": None,
+                "duration_ms": 640,
+            },
+        ])
+        ll_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Collect beta user feedback from the past week",
+                "output": "3 feature requests for CSV date formats; 1 bug report on category colors",
+                "success": True,
+                "error": None,
+                "duration_ms": 1500,
+            },
+            {
+                "step_index": 1,
+                "task": "Summarize signups and active users",
+                "output": "12 total signups, 7 active this week (+2 from last week)",
+                "success": True,
+                "error": None,
+                "duration_ms": 800,
+            },
+            {
+                "step_index": 2,
+                "task": "Draft a build-in-public update post",
+                "output": "Draft post ready — highlights CSV import fix and weekly active user growth",
+                "success": True,
+                "error": None,
+                "duration_ms": 2200,
+            },
+        ])
+
+        executions = [
+            (
+                EXEC_PT_OK_1,
+                WF_PORTUGUESE_CHECKIN,
+                "completed",
+                pt_ok_1_results,
+                None,
+                "Duolingo streak at 47 days. Tutor feedback positive on past tense; subjunctive practice recommended.",
+                now - timedelta(days=10),
+                now - timedelta(days=10) + timedelta(minutes=3),
+            ),
+            (
+                EXEC_PT_OK_2,
+                WF_PORTUGUESE_CHECKIN,
+                "completed",
+                pt_ok_2_results,
+                None,
+                "Steady progress — conversation practice identified as the main gap before B1 mock exam.",
+                now - timedelta(days=17),
+                now - timedelta(days=17) + timedelta(minutes=2),
+            ),
+            (
+                EXEC_PT_FAIL,
+                WF_PORTUGUESE_CHECKIN,
+                "failed",
+                pt_fail_results,
+                "Tutoring session was rescheduled — could not summarize feedback",
+                None,
+                now - timedelta(days=24),
+                now - timedelta(days=24) + timedelta(minutes=1),
+            ),
+            (
+                EXEC_MB_1,
+                WF_MORNING_BRIEFING,
+                "completed",
+                mb_results,
+                None,
+                "Today: focus block, standup, tutoring. Two reminders pending.",
+                now - timedelta(days=1),
+                now - timedelta(days=1) + timedelta(minutes=2),
+            ),
+            (
+                EXEC_MB_2,
+                WF_MORNING_BRIEFING,
+                "completed",
+                mb_results,
+                None,
+                "Standard weekday — focus time protected, standup and tutoring on calendar.",
+                now - timedelta(days=2),
+                now - timedelta(days=2) + timedelta(minutes=2),
+            ),
+            (
+                EXEC_LL_1,
+                WF_LEDGERLITE_DIGEST,
+                "completed",
+                ll_results,
+                None,
+                "12 signups, 7 active users. CSV date format fix is top request.",
+                now - timedelta(days=7),
+                now - timedelta(days=7) + timedelta(minutes=5),
+            ),
+        ]
+        for exec_id, wf_id, status, step_results, error, summary, started, completed in executions:
+            await conn.execute(
+                """
+                INSERT INTO workflow_executions
+                    (id, workflow_id, status, step_results, error, summary,
+                     started_at, completed_at, created_at)
+                VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $7)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                exec_id,
+                wf_id,
+                status,
+                step_results,
+                error,
+                summary,
+                started,
+                completed,
+            )
+            count += 1
 
     return count
 

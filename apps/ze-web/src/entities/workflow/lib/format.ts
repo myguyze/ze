@@ -1,5 +1,10 @@
+import { formatCronExpression } from "@/shared/lib/format-cron";
+
 export function formatSchedule(schedule: string | null): string {
-  return schedule ?? "Manual";
+  if (!schedule) {
+    return "Manual";
+  }
+  return formatCronExpression(schedule);
 }
 
 export function formatTimestamp(iso: string): string {

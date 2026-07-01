@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from uuid import UUID
@@ -75,8 +76,15 @@ class WorkflowScheduler:
             self._scheduler.remove_job(job_id)
             log.info("workflow_unscheduled", id=job_id)
 
-    async def trigger_now(self, workflow_id: UUID) -> None:
-        await self._run_workflow(workflow_id)
+    async def trigger_now(self, workflow_id: UUID) -> UUID:
+        """Start a workflow run immediately and return the new execution ID without blocking."""
+        workflow = await self._store.get(workflow_id)
+        if workflow is None:
+            raise ValueError(f"Workflow {workflow_id} not found")
+        execution_id = await self._store.start_execution(workflow_id)
+        log.info("workflow_trigger_now", workflow=workflow.name, execution_id=str(execution_id))
+        asyncio.create_task(self._run_execution(workflow, execution_id))
+        return execution_id
 
     def schedule_job(self, fn, cron: str, job_id: str) -> None:
         self._scheduler.add_job(
@@ -117,10 +125,11 @@ class WorkflowScheduler:
         workflow = await self._store.get(workflow_id)
         if workflow is None or not workflow.enabled:
             return
-
         execution_id = await self._store.start_execution(workflow_id)
         log.info("workflow_execution_start", workflow=workflow.name, execution_id=str(execution_id))
+        await self._run_execution(workflow, execution_id)
 
+    async def _run_execution(self, workflow: Workflow, execution_id: UUID) -> None:
         try:
             await self._executor(workflow, execution_id)
         except Exception as exc:
@@ -133,5 +142,5 @@ class WorkflowScheduler:
         now = datetime.now(tz=timezone.utc)
         trigger = CronTrigger.from_crontab(workflow.schedule) if workflow.schedule else None
         next_run = trigger.get_next_fire_time(None, now) if trigger else None
-        await self._store.update_run_timestamps(workflow_id, now, next_run)
+        await self._store.update_run_timestamps(workflow.id, now, next_run)
         log.info("workflow_execution_done", workflow=workflow.name, execution_id=str(execution_id))

@@ -207,15 +207,16 @@ class PostgresWorkflowStore:
         execution_id: UUID,
         status: str,
         error: str | None = None,
+        summary: str | None = None,
     ) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 """
                 UPDATE workflow_executions
-                SET status = $1, error = $2, completed_at = NOW()
-                WHERE id = $3
+                SET status = $1, error = $2, summary = $3, completed_at = NOW()
+                WHERE id = $4
                 """,
-                status, error, execution_id,
+                status, error, summary, execution_id,
             )
 
     async def list_executions(self, workflow_id: UUID, limit: int = 20) -> list[WorkflowExecution]:
@@ -236,6 +237,7 @@ class PostgresWorkflowStore:
                 status=r["status"],
                 step_results=[_step_result_from_dict(d) for d in _coerce_jsonb_list(r["step_results"])],
                 error=r["error"],
+                summary=r["summary"],
                 started_at=r["started_at"],
                 completed_at=r["completed_at"],
                 created_at=r["created_at"],

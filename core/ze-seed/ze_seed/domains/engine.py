@@ -7,7 +7,7 @@ from ze_core.conversation.messages.types import Message
 from ze_seed.context import SeedContext
 from ze_seed.domain import SeedDomain
 from ze_seed.domains._helpers import delete_by_ids
-from ze_seed.narrative.ids import MESSAGE_IDS, ONBOARDING_SESSION_ID, SEED_SESSION_ID, SEED_THREAD_ID
+from ze_seed.narrative.ids import MESSAGE_IDS, ONBOARDING_SESSION_ID, SEED_SESSION_ID
 
 
 async def _clear_engine(ctx: SeedContext) -> None:
@@ -30,12 +30,13 @@ async def _apply_engine(ctx: SeedContext) -> int:
         return 0
     count = 0
     now = datetime.now(timezone.utc)
-    base_time = now - timedelta(hours=2)
 
     await ctx.session_store.create(SEED_SESSION_ID, title="Dev seed chat")
 
     for i, msg_spec in enumerate(ctx.narrative.messages):
-        created_at = base_time + timedelta(minutes=i * 3)
+        day_offset = timedelta(days=msg_spec.days_ago)
+        minute_offset = timedelta(minutes=i * 3)
+        created_at = now - day_offset + minute_offset
         message = Message(
             id=msg_spec.id,
             role=msg_spec.role,  # type: ignore[arg-type]
@@ -43,7 +44,7 @@ async def _apply_engine(ctx: SeedContext) -> int:
             components=[],
             read=True,
             created_at=created_at,
-            thread_id=SEED_THREAD_ID,
+            thread_id=SEED_SESSION_ID,
         )
         await ctx.message_store.save(message)
         if msg_spec.trace is not None:

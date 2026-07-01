@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ze_api.api.dependencies import get_workflow_store, require_api_key
 from ze_api.api.schemas import (
     StepResultResponse,
+    TriggerWorkflowResponse,
     WorkflowDetailResponse,
     WorkflowExecutionResponse,
     WorkflowResponse,
@@ -71,19 +72,23 @@ async def list_workflow_executions(
 
 @router.post(
     "/{workflow_id}/trigger",
-    response_model=dict,
+    response_model=TriggerWorkflowResponse,
     operation_id="triggerWorkflow",
     summary="Trigger workflow",
-    description="Run a stored workflow immediately outside its schedule.",
+    description="Start a workflow run immediately and return the execution ID.",
 )
 async def trigger_workflow(
     workflow_id: UUID,
     request: Request,
     store: WorkflowStore = Depends(get_workflow_store),
-) -> dict:
+) -> TriggerWorkflowResponse:
     wf = await workflow_rest.get_workflow(store, workflow_id)
     if wf is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
     scheduler = request.app.state.container.workflow_scheduler
-    await scheduler.trigger_now(workflow_id)
-    return {"status": "triggered", "workflow_id": str(workflow_id)}
+    execution_id = await scheduler.trigger_now(workflow_id)
+    return TriggerWorkflowResponse(
+        status="triggered",
+        workflow_id=workflow_id,
+        execution_id=execution_id,
+    )

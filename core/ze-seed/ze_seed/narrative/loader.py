@@ -19,6 +19,10 @@ class FactSpec:
     source_episode_id: UUID | None = None
     subject_id: UUID | None = None
     object_id: UUID | None = None
+    reviewed: bool = True
+    contradicted: bool = False
+    provenance: str = "raw"
+    days_ago: int = 0
 
 
 @dataclass
@@ -27,6 +31,8 @@ class EpisodeSpec:
     agent: str
     prompt: str
     response: str
+    summary: str | None = None
+    days_ago: int = 0
 
 
 @dataclass
@@ -71,6 +77,7 @@ class MessageSpec:
     role: str
     text: str
     trace: MessageTrace | None = None
+    days_ago: int = 0
 
 
 @dataclass
@@ -131,6 +138,10 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
             source_episode_id=UUID(item["source_episode_id"]) if item.get("source_episode_id") else None,
             subject_id=UUID(item["subject_id"]) if item.get("subject_id") else None,
             object_id=UUID(item["object_id"]) if item.get("object_id") else None,
+            reviewed=bool(item.get("reviewed", True)),
+            contradicted=bool(item.get("contradicted", False)),
+            provenance=item.get("provenance", "raw"),
+            days_ago=int(item.get("days_ago", 0)),
         )
         for item in raw.get("facts", [])
     ]
@@ -140,6 +151,8 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
             agent=item["agent"],
             prompt=item["prompt"],
             response=item["response"],
+            summary=item.get("summary"),
+            days_ago=int(item.get("days_ago", 0)),
         )
         for item in raw.get("episodes", [])
     ]
@@ -172,6 +185,7 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
                 role=item["role"],
                 text=item["text"],
                 trace=trace,
+                days_ago=int(item.get("days_ago", 0)),
             )
         )
 

@@ -244,7 +244,7 @@ export const listWorkflowExecutions = <ThrowOnError extends boolean = false>(opt
 /**
  * Trigger workflow
  *
- * Run a stored workflow immediately outside its schedule.
+ * Start a workflow run immediately and return the execution ID.
  */
 export const triggerWorkflow = <ThrowOnError extends boolean = false>(options: Options<TriggerWorkflowData, ThrowOnError>): RequestResult<TriggerWorkflowResponses, TriggerWorkflowErrors, ThrowOnError> => (options.client ?? client).post<TriggerWorkflowResponses, TriggerWorkflowErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

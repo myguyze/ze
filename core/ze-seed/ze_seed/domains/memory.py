@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from ze_seed.context import SeedContext
 from ze_seed.domain import SeedDomain
 from ze_seed.domains._helpers import delete_by_ids, embedding_vector
@@ -27,6 +29,7 @@ async def _apply_memory(ctx: SeedContext) -> int:
     if ctx.narrative is None:
         return 0
     count = 0
+    now = datetime.now(timezone.utc)
     async with ctx.pool.acquire() as conn:
         for entity in ctx.narrative.entities:
             emb = embedding_vector(ctx.embedder, entity.canonical_name)
@@ -66,11 +69,12 @@ async def _apply_memory(ctx: SeedContext) -> int:
 
         for ep in ctx.narrative.episodes:
             emb = embedding_vector(ctx.embedder, ep.response)
+            created_at = now - timedelta(days=ep.days_ago)
             await conn.execute(
                 """
                 INSERT INTO memory_episodes
-                    (id, session_id, agent, prompt, response, embedding)
-                VALUES ($1, $2, $3, $4, $5, $6::vector)
+                    (id, session_id, agent, prompt, response, summary, embedding, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7::vector, $8)
                 ON CONFLICT (id) DO NOTHING
                 """,
                 ep.id,
@@ -78,20 +82,23 @@ async def _apply_memory(ctx: SeedContext) -> int:
                 ep.agent,
                 ep.prompt,
                 ep.response,
+                ep.summary,
                 emb,
+                created_at,
             )
             count += 1
 
         for fact in ctx.narrative.facts:
             emb = embedding_vector(ctx.embedder, fact.value)
+            created_at = now - timedelta(days=fact.days_ago)
             await conn.execute(
                 """
                 INSERT INTO memory_facts
                     (id, subject_id, object_id, predicate, value, confidence,
                      reviewed, contradicted, source_episode_id, source_refs,
-                     embedding, agent)
-                VALUES ($1, $2, $3, $4, $5, $6, true, false, $7,
-                        '[]'::jsonb, $8::vector, $9)
+                     embedding, agent, provenance, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+                        '[]'::jsonb, $10::vector, $11, $12, $13)
                 ON CONFLICT (id) DO NOTHING
                 """,
                 fact.id,
@@ -100,9 +107,13 @@ async def _apply_memory(ctx: SeedContext) -> int:
                 fact.predicate,
                 fact.value,
                 fact.confidence,
+                fact.reviewed,
+                fact.contradicted,
                 fact.source_episode_id,
                 emb,
                 fact.agent,
+                fact.provenance,
+                created_at,
             )
             count += 1
 

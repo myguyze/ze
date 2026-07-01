@@ -1588,6 +1588,24 @@ export type ToolCallTraceResponse = {
 };
 
 /**
+ * TriggerWorkflowResponse
+ */
+export type TriggerWorkflowResponse = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Workflow Id
+     */
+    workflow_id: string;
+    /**
+     * Execution Id
+     */
+    execution_id: string;
+};
+
+/**
  * UiContributionSchema
  */
 export type UiContributionSchema = {
@@ -1864,6 +1882,10 @@ export type WorkflowExecutionResponse = {
      * Error
      */
     error: string | null;
+    /**
+     * Summary
+     */
+    summary: string | null;
     /**
      * Started At
      */
@@ -2501,16 +2523,12 @@ export type TriggerWorkflowError = TriggerWorkflowErrors[keyof TriggerWorkflowEr
 
 export type TriggerWorkflowResponses = {
     /**
-     * Response Triggerworkflow
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: TriggerWorkflowResponse;
 };
 
-export type TriggerWorkflowResponse = TriggerWorkflowResponses[keyof TriggerWorkflowResponses];
+export type TriggerWorkflowResponse2 = TriggerWorkflowResponses[keyof TriggerWorkflowResponses];
 
 export type GetCostSummaryData = {
     body?: never;
