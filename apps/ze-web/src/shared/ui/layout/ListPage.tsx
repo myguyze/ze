@@ -40,7 +40,7 @@ export function ListPage({
   skeletonHeight,
   children,
   headerExtra,
-  className = "px-4 py-8 space-y-6",
+  className = "px-6 md:px-10 py-8 space-y-8",
 }: ListPageProps) {
   return (
     <div className={className}>

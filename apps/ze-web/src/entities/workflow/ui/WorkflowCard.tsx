@@ -10,7 +10,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowResponse }) {
 
   return (
     <div
-      className="p-4 rounded-pill border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+      className="p-5 rounded-pill bg-white/[0.02] border border-white/10 hover:bg-white/[0.035] hover:border-white/20 transition-colors cursor-pointer"
       onClick={() => navigate(`/workflows/${workflow.id}`)}
     >
       <p className="text-sm font-medium text-white">{workflow.name}</p>

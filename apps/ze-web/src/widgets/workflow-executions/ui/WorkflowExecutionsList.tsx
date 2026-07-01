@@ -33,7 +33,7 @@ function ExecutionRow({ execution, selected, onClick }: ExecutionRowProps) {
 
   return (
     <button
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
         selected
           ? "bg-white/[0.07] border border-white/20"
           : "border border-white/10 hover:bg-white/[0.04] hover:border-white/15"
@@ -85,7 +85,7 @@ export function WorkflowExecutionsList({ executions, selectedId, onSelect }: Pro
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {executions.map((ex) => (
         <ExecutionRow
           key={ex.id}

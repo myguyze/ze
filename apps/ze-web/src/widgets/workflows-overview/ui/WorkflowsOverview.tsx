@@ -19,7 +19,7 @@ export function WorkflowsOverview() {
         errorMessage="Could not load workflows."
         onRetry={() => void refetch()}
       >
-        <div className="space-y-3">
+        <div className="space-y-4">
           {workflows?.map((workflow) => (
             <WorkflowCard key={workflow.id} workflow={workflow} />
           ))}

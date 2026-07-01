@@ -4,4 +4,4 @@ export { useWorkflowExecutionsQuery } from "./api/useWorkflowExecutionsQuery";
 export { useLiveExecutionQuery } from "./api/useLiveExecutionQuery";
 export { useTriggerWorkflowMutation } from "./api/useTriggerWorkflowMutation";
 export { WorkflowCard } from "./ui/WorkflowCard";
-export { formatSchedule, formatTimestamp } from "./lib/format";
+export { formatSchedule, formatTimestamp, averageSuccessfulRunDuration } from "./lib/format";
