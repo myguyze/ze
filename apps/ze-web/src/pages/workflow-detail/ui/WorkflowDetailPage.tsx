@@ -177,6 +177,7 @@ export function WorkflowDetailPage() {
             <ListSkeleton count={3} />
           ) : (
             <WorkflowExecutionsList
+              workflowName={detail.name}
               executions={executions ?? []}
               selectedId={displayedId}
               onSelect={handleSelectExecution}

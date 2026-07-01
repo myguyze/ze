@@ -510,6 +510,8 @@ WsInboundFrame = Annotated[
 class WsScreenContext(BaseModel):
     screen: str
     goal_id: str | None = None
+    workflow_id: str | None = None
+    execution_id: str | None = None
 
 
 class WsSendMessageFrame(BaseModel):

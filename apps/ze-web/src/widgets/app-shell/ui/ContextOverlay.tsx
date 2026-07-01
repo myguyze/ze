@@ -6,7 +6,7 @@ import { useOverlayStore } from "@/features/open-context-overlay";
 import { ChatInput, ChatMessageList } from "@/entities/message";
 
 export function ContextOverlay() {
-  const { open, close, screen, entityId } = useOverlayStore();
+  const { open, close, screen, entityId, prefillMessage, clearPrefill } = useOverlayStore();
   const [input, setInput] = useState("");
   const { messages, showTyping, typingText, streamingText, isThinking, sendMessage } =
     useChatWorkspace({
@@ -14,6 +14,20 @@ export function ContextOverlay() {
       active: open,
       context: { screen, ...(entityId && { goal_id: entityId }) },
     });
+
+  // Initialize input from prefill when overlay opens
+  useEffect(() => {
+    if (open && prefillMessage) {
+      setInput(prefillMessage);
+      clearPrefill();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Clear input when overlay closes
+  useEffect(() => {
+    if (!open) setInput("");
+  }, [open]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
