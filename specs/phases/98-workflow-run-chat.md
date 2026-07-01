@@ -13,7 +13,7 @@ When a workflow run fails or produces unexpected output, the user has to switch 
 
 ## Solution
 
-A **"Chat about this"** trigger on each execution row in the workflow detail run history. One click opens the ephemeral context overlay pre-primed with a context brief about that specific run. Ze immediately knows:
+A **"Chat about this"** trigger on each execution row in the workflow detail run history. One click opens the context overlay pre-primed with a context brief about that specific run. Ze immediately knows:
 
 - Which workflow and run the user is asking about
 - Its status, duration, step count, and error (if any)
@@ -173,6 +173,10 @@ The frontend UX is complete and usable after 98a — Ze understands from the pre
 
 ## Out of scope
 
-- Saving workflow-run chat history (stays ephemeral; use the main chat for persistent conversations)
 - "Chat about this workflow" (without a specific run) — can be done via existing FloatingButton with `screen="workflow"`
 - Context injection for goal runs (same pattern, different entity; future phase)
+
+> **Note:** workflow-run chat history is now saved automatically. The overlay uses its own
+> persistent thread ID (`ze_overlay_thread_id`) and conversations appear in the Chat session
+> history. The "Open in chat" button (`↗`) in the overlay header lets the user move the
+> conversation to the full chat view at any point.

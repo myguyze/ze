@@ -15,11 +15,13 @@ interface UseChatWorkspaceOptions {
   ephemeral?: boolean;
   active?: boolean;
   context?: ScreenContext;
+  threadId?: string;
 }
 
 export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
-  const { ephemeral = false, active = true, context } = options;
-  const threadId = useSession((s) => s.threadId);
+  const { ephemeral = false, active = true, context, threadId: threadIdOverride } = options;
+  const sessionThreadId = useSession((s) => s.threadId);
+  const threadId = threadIdOverride ?? sessionThreadId;
   const queryClient = useQueryClient();
   const { messages: persistedMessages, upsert, edit, loadHistory, reload } = useMessages(threadId);
 
@@ -134,7 +136,7 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     }
 
     const optimisticId = crypto.randomUUID();
-    const sent = send({ type: "message", text: trimmed, thread_id: threadId });
+    const sent = send({ type: "message", text: trimmed, thread_id: threadId, context });
     if (!sent) {
       useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
       return false;

@@ -414,13 +414,29 @@ so navigation links don't 404.
 
 ## Contextual Overlay
 
-A FAB on every non-chat screen opens a mini-chat panel anchored to the current screen
-context. `Cmd+K` / `Ctrl+K` triggers the same overlay from any screen.
+On non-chat screens a floating widget lets the user talk to Ze without leaving the current
+screen. `Cmd+K` / `Ctrl+K` opens it from any screen.
 
-### Purpose
+**Mobile** renders a bottom sheet that slides up from the bottom edge.  
+**Desktop** renders a small floating panel (368 × 520 px) anchored to the bottom-right
+corner. The panel is draggable by its header and collapses to a round FAB when closed.
+The FAB is hidden on the `/` chat page since the full chat is already visible there.
 
-The overlay lets the user interact with Ze without leaving the current screen. Ze knows
-which screen is active, acts on it, and the screen updates live beneath the overlay.
+### Desktop layout
+
+```
+                              ┌──────────────────────────────────────┐
+                              │ ⣿ Ze · goals          [↗]  [⌄]      │  ← drag handle, open-in-chat, collapse
+                              ├──────────────────────────────────────┤
+                              │                                      │
+                              │  Ze: Added "Set up analytics". Done? │
+                              │                                      │
+                              ├──────────────────────────────────────┤
+                              │  Ask Ze about goals…           [➤]  │
+                              └──────────────────────────────────────┘
+```
+
+### Mobile layout
 
 ```
 ┌─────────────────────────────────────┐
@@ -430,28 +446,25 @@ which screen is active, acts on it, and the screen updates live beneath the over
 │  │ ● Build landing    active    │   │
 │  │ ○ Launch           pending   │   │
 │  └──────────────────────────────┘   │
-├─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← overlay slides up
+├─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← sheet slides up (max 65 vh)
+│  ────                               │  ← drag pill
+│  Ze · goals                [↗] [×] │  ← open-in-chat, close
 │  Ze: Added "Set up analytics". Done?│
 │  [ Add another milestone...   ] [➤] │
-│                          × dismiss  │
 └─────────────────────────────────────┘
 ```
 
 ### Behaviour
 
-- **Open:** FAB tap or `Cmd+K` → overlay slides up (40% viewport height, CSS transition).
-- **Context:** `OutboundFrame.context` is set to the current route and any focused
-  entity ID (e.g. `{ screen: "goals", goal_id: "abc-123" }`).
-- **Live update:** when a `refresh` frame arrives for the current screen, TanStack Query's
-  `invalidateQueries()` triggers a background refetch. The underlying screen updates while
-  the overlay stays open.
-- **History:** overlay conversations are full messages stored in the backend — they appear
-  in the Chat tab. The overlay is an alternate input surface, not a separate context.
-- **Dismiss:** click outside, press `Esc`, swipe down on mobile, or auto-dismiss after
-  10 s of inactivity following a response.
+- **Open:** FAB tap, `Cmd+K`, or programmatic `openFor(screen)` / `openForExecution(params)`.
+- **Context:** every sent message carries `context: { screen, goal_id?, workflow_id?, execution_id? }` so Ze knows which page and entity the user is viewing.
+- **Sessions:** the overlay uses its own persistent thread ID (separate from the main chat), stored in `localStorage` under `ze_overlay_thread_id`. Conversations are saved to the backend and appear in the Chat session history.
+- **Open in chat:** the `↗` button in the header selects the overlay thread in the session store, navigates to `/`, and closes the widget — the full conversation opens in the main chat view.
+- **Collapse (desktop):** the `⌄` button collapses the panel back to the FAB. The session is preserved.
+- **Dismiss (mobile):** tap the backdrop, press `Esc`, or tap `×`.
+- **Live update:** `refresh` frames from the backend trigger `invalidateQueries()` on the relevant screen's data while the overlay stays open.
 - **Follow-up:** overlay stays open after Ze responds until explicitly dismissed.
-- **Thinking state:** input disabled + typing indicator while Ze processes. FAB shows a
-  pulsing ring while a response is in flight.
+- **Thinking state:** input disabled + typing indicator while Ze processes.
 
 ### Screen context values
 
