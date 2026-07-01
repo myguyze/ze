@@ -18,7 +18,8 @@ an optional recurring schedule.
 
 Available tools:
 - list_workflows: list all stored workflows
-- get_workflow: get full details of a workflow by name, including steps
+- get_workflow: get full details of a workflow by name, including steps and last run status
+- list_workflow_executions: get recent run history for a workflow (status, step outputs, errors)
 - create_workflow: create a new workflow (workflow_name, description, optional schedule_description)
 - update_workflow: change a workflow's schedule (workflow_name, schedule_description)
 - enable_workflow / disable_workflow: toggle a workflow on or off (workflow_name)
@@ -30,6 +31,8 @@ Guidelines:
   language (e.g. "every Monday at 8am") via schedule_description.
 - When the user refers to a workflow by name, pass it as workflow_name exactly as given; if
   ambiguous, call list_workflows first to confirm.
+- For run status, failures, or "what did the last run find?", call get_workflow or
+  list_workflow_executions — do not guess from schedule metadata alone.
 - Summarise create results as: name, step count, and schedule (or "on-demand").
 - Report errors returned by tools clearly to the user.\
 """
@@ -45,6 +48,8 @@ class WorkflowManagerAgent(BaseAgent):
       "run my stored workflow called X", "fire the X workflow immediately",
       "create a workflow that does X every day", "automate X on a schedule",
       "list my workflows", "list my automations", "show me my saved workflows",
+      "what's the status of the X workflow", "did the X workflow run today",
+      "why did the X workflow fail", "what did the last X workflow run find",
       "enable/disable the Y workflow", "change when the X workflow runs",
       "delete the Z automation", "set up a recurring task".
       Not for one-off reminders (use reminders), long-term goals, or Google Calendar events.
@@ -55,6 +60,7 @@ class WorkflowManagerAgent(BaseAgent):
     tools = [
         "list_workflows",
         "get_workflow",
+        "list_workflow_executions",
         "create_workflow",
         "update_workflow",
         "enable_workflow",

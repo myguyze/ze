@@ -1,6 +1,5 @@
 import type { WorkflowExecutionResponse } from "@myguyze/ze-client";
-import { CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 
 function formatDuration(startedAt: string | null, completedAt: string | null): string {
   if (!startedAt || !completedAt) return "";
@@ -20,91 +19,80 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function ExecutionRow({ execution }: { execution: WorkflowExecutionResponse }) {
-  const [expanded, setExpanded] = useState(false);
+interface ExecutionRowProps {
+  execution: WorkflowExecutionResponse;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function ExecutionRow({ execution, selected, onClick }: ExecutionRowProps) {
+  const isRunning = execution.status === "running";
   const succeeded = execution.status === "completed";
   const duration = formatDuration(execution.started_at, execution.completed_at);
+  const stepCount = execution.step_results.length;
 
   return (
-    <div className="border border-white/10 rounded-pill overflow-hidden">
-      <button
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        {succeeded ? (
-          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+    <button
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+        selected
+          ? "bg-white/[0.07] border border-white/20"
+          : "border border-white/10 hover:bg-white/[0.04] hover:border-white/15"
+      }`}
+      onClick={onClick}
+    >
+      <div className="flex-shrink-0">
+        {isRunning ? (
+          <Loader2 className="w-4 h-4 text-plum-voltage animate-spin" />
+        ) : succeeded ? (
+          <CheckCircle2 className="w-4 h-4 text-green-400" />
         ) : (
-          <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <XCircle className="w-4 h-4 text-red-400" />
         )}
-        <div className="flex-1 min-w-0">
-          <span className="text-sm text-white capitalize">{execution.status}</span>
-          {execution.started_at && (
-            <span className="ml-2 text-xs text-smoke">{formatTimestamp(execution.started_at)}</span>
-          )}
-        </div>
-        {duration && (
-          <span className="flex items-center gap-1 text-xs text-smoke flex-shrink-0">
-            <Clock className="w-3 h-3" />
-            {duration}
-          </span>
-        )}
-        {(execution.step_results.length > 0 || !!execution.summary) && (
-          expanded
-            ? <ChevronDown className="w-3.5 h-3.5 text-smoke flex-shrink-0" />
-            : <ChevronRight className="w-3.5 h-3.5 text-smoke flex-shrink-0" />
-        )}
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="border-t border-white/10 px-4 py-3 space-y-3">
-          {execution.summary && (
-            <div className="pb-3 border-b border-white/10">
-              <p className="text-xs text-smoke/70 uppercase tracking-wide mb-1">Summary</p>
-              <p className="text-xs text-white/80 whitespace-pre-wrap">{execution.summary}</p>
-            </div>
-          )}
-          {execution.step_results.map((result) => (
-            <div key={result.step_index} className="flex gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {result.success
-                  ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                  : <XCircle className="w-3.5 h-3.5 text-red-400" />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/70">{result.task}</p>
-                {result.output && (
-                  <p className="mt-0.5 text-xs text-smoke whitespace-pre-wrap">{result.output}</p>
-                )}
-                {result.error && (
-                  <p className="mt-0.5 text-xs text-red-400">{result.error}</p>
-                )}
-                <p className="mt-0.5 text-xs text-smoke/60">{result.duration_ms}ms</p>
-              </div>
-            </div>
-          ))}
-          {execution.error && !execution.summary && (
-            <p className="text-xs text-red-400 pt-1 border-t border-white/10">{execution.error}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-white/80 capitalize">{isRunning ? "Running…" : execution.status}</span>
+          {duration && (
+            <span className="flex items-center gap-0.5 text-xs text-smoke flex-shrink-0">
+              <Clock className="w-3 h-3" />
+              {duration}
+            </span>
           )}
         </div>
-      )}
-    </div>
+        <div className="flex items-center justify-between mt-0.5">
+          {execution.started_at && (
+            <span className="text-xs text-smoke/70">{formatTimestamp(execution.started_at)}</span>
+          )}
+          {!isRunning && (
+            <span className="text-xs text-smoke/50">{stepCount} step{stepCount !== 1 ? "s" : ""}</span>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }
 
 interface Props {
   executions: WorkflowExecutionResponse[];
+  selectedId?: string | null;
+  onSelect: (execution: WorkflowExecutionResponse) => void;
 }
 
-export function WorkflowExecutionsList({ executions }: Props) {
+export function WorkflowExecutionsList({ executions, selectedId, onSelect }: Props) {
   if (!executions.length) {
     return <p className="text-sm text-smoke">No runs yet.</p>;
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {executions.map((ex) => (
-        <ExecutionRow key={ex.id} execution={ex} />
+        <ExecutionRow
+          key={ex.id}
+          execution={ex}
+          selected={ex.id === selectedId}
+          onClick={() => onSelect(ex)}
+        />
       ))}
     </div>
   );

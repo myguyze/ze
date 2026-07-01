@@ -6,8 +6,30 @@ from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.planner import WorkflowPlanner
 from ze_automation.workflow.store import WorkflowStore
-from ze_automation.workflow.types import Workflow
+from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution
 from ze_automation.workflow.scheduler import WorkflowScheduler
+
+
+def _serialize_step_result(result: StepResult) -> dict:
+    return {
+        "step_index": result.step_index,
+        "task": result.task,
+        "output": result.output,
+        "success": result.success,
+        "error": result.error,
+        "duration_ms": result.duration_ms,
+    }
+
+
+def _serialize_execution(execution: WorkflowExecution) -> dict:
+    return {
+        "status": execution.status,
+        "step_results": [_serialize_step_result(r) for r in execution.step_results],
+        "error": execution.error,
+        "summary": execution.summary,
+        "started_at": execution.started_at.isoformat() if execution.started_at else None,
+        "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+    }
 
 
 @tool(access=ToolAccess.READ, description="List all stored workflows with their status and schedule.")
@@ -31,15 +53,38 @@ async def get_workflow(store: WorkflowStore, workflow_name: str) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
         return {"error": f"No workflow named '{workflow_name}' found."}
+    recent = await store.list_executions(wf.id, limit=1)
     return {
         "name": wf.name,
         "description": wf.description,
         "enabled": wf.enabled,
         "schedule": wf.schedule,
+        "last_run_at": wf.last_run_at.isoformat() if wf.last_run_at else None,
+        "next_run_at": wf.next_run_at.isoformat() if wf.next_run_at else None,
         "steps": [
             {"task": s.task, "agent_hint": s.agent_hint, "intent": s.intent}
             for s in wf.steps
         ],
+        "last_execution": _serialize_execution(recent[0]) if recent else None,
+    }
+
+
+@tool(
+    access=ToolAccess.READ,
+    description="List recent execution runs for a workflow, including status, step results, and errors.",
+)
+async def list_workflow_executions(
+    store: WorkflowStore,
+    workflow_name: str,
+    limit: int = 5,
+) -> dict:
+    wf = await store.get_by_name(workflow_name)
+    if wf is None:
+        return {"error": f"No workflow named '{workflow_name}' found."}
+    executions = await store.list_executions(wf.id, limit=limit)
+    return {
+        "workflow_name": wf.name,
+        "executions": [_serialize_execution(ex) for ex in executions],
     }
 
 

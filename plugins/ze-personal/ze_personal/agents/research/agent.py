@@ -35,7 +35,7 @@ class ResearchAgent(BaseAgent):
     model = "anthropic/claude-sonnet-4-5"
     model_simple = "anthropic/claude-haiku-4-5"
     vision_capable = True
-    timeout = 30
+    timeout = 90
     tools = ["openrouter:web_search", "delegate_to_agent"]
     intents = {
         "read": Intent(Mode.AUTONOMOUS, "Search the web and retrieve information."),

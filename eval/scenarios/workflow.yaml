@@ -80,6 +80,7 @@
   prompt: "Why did my email digest workflow fail yesterday?"
   description: Workflow failure inquiry — tests execution log retrieval
   expected_agent: workflow
+  expected_tools: [list_workflow_executions]
   tags: [routing, workflow]
   criteria:
     - Should route to the workflow agent

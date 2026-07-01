@@ -58,6 +58,8 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
         "agent_context": None,
         "gate_decision": None,
         "agent_result": None,
+        "subtask_results": [],
+        "final_response": None,
     }
 
 
@@ -238,7 +240,11 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
         after_capability_check_workflow,
         {"execute_tool": "execute_tool", "workflow_failed": "workflow_failed"},
     )
-    builder.add_edge("execute_tool",  "write_memory")
+    # Do NOT add execute_tool → write_memory here. The base graph already has
+    # execute_tool → correlate (conditional). Adding a normal edge alongside it
+    # creates a fan-out: both correlate AND write_memory fire after execute_tool,
+    # causing verify_step to run twice per step — the early invocation sees the
+    # next step index but no output, marking it as failed.
     builder.add_edge("write_memory",  "verify_step")
     builder.add_conditional_edges(
         "verify_step",
