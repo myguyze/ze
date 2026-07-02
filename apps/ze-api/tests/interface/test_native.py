@@ -7,15 +7,23 @@ from ze_agents.interface.types import Notification, OutboundMessage
 from ze_api.interface.native import NativeAppInterface
 
 
+def _make_conn(*, connected: bool = False) -> MagicMock:
+    conn = MagicMock()
+    conn.push = AsyncMock()
+    conn.send_frame = AsyncMock()
+    conn.connected = connected
+    return conn
+
+
 def _make_interface(
     store=None,
     conn=None,
     notifier=None,
+    *,
+    connected: bool = False,
 ):
     store = store or AsyncMock()
-    conn = conn or AsyncMock()
-    conn.push = AsyncMock()
-    conn.send_frame = AsyncMock()
+    conn = conn or _make_conn(connected=connected)
     notifier = notifier or AsyncMock()
     return NativeAppInterface(
         message_store=store,
@@ -24,8 +32,8 @@ def _make_interface(
     ), store, conn, notifier
 
 
-async def test_send_message_saves_and_pushes_and_notifies():
-    iface, store, conn, notifier = _make_interface()
+async def test_send_message_saves_and_pushes():
+    iface, store, conn, notifier = _make_interface(connected=False)
 
     await iface.send(OutboundMessage(content="Hello world", format="text"))
 
@@ -36,16 +44,31 @@ async def test_send_message_saves_and_pushes_and_notifies():
     assert saved_msg.read is False
 
     conn.push.assert_called_once()
+
+
+async def test_ntfy_fires_when_disconnected():
+    iface, store, conn, notifier = _make_interface(connected=False)
+
+    await iface.send(OutboundMessage(content="Hello world", format="text"))
+
     notifier.push.assert_called_once()
     ntfy_notif = notifier.push.call_args[0][0]
     assert ntfy_notif.title == "Ze"
     assert ntfy_notif.body == "Hello world"
 
 
+async def test_ntfy_suppressed_when_connected():
+    iface, store, conn, notifier = _make_interface(connected=True)
+
+    await iface.send(OutboundMessage(content="Hello world"))
+
+    conn.push.assert_called_once()
+    notifier.push.assert_not_called()
+
+
 async def test_send_message_continues_if_ws_disconnected():
-    conn = MagicMock()
+    conn = _make_conn(connected=False)
     conn.push = AsyncMock(side_effect=Exception("disconnected"))
-    conn.send_frame = AsyncMock()
     iface, store, _, notifier = _make_interface(conn=conn)
 
     # Should not raise
@@ -58,7 +81,7 @@ async def test_send_message_continues_if_ws_disconnected():
 async def test_send_message_continues_if_ntfy_raises():
     notifier = AsyncMock()
     notifier.push = AsyncMock(side_effect=Exception("ntfy down"))
-    iface, store, conn, _ = _make_interface(notifier=notifier)
+    iface, store, conn, _ = _make_interface(notifier=notifier, connected=False)
 
     # Should not raise
     await iface.send(OutboundMessage(content="Hi"))
@@ -68,7 +91,7 @@ async def test_send_message_continues_if_ntfy_raises():
 
 
 async def test_push_notification_uses_correct_priority():
-    iface, store, conn, notifier = _make_interface()
+    iface, store, conn, notifier = _make_interface(connected=False)
 
     await iface.push(Notification(content="Alert!", urgency="high"))
 
@@ -77,7 +100,7 @@ async def test_push_notification_uses_correct_priority():
 
 
 async def test_send_truncates_ntfy_body_to_200_chars():
-    iface, store, conn, notifier = _make_interface()
+    iface, store, conn, notifier = _make_interface(connected=False)
     long_text = "x" * 500
 
     await iface.send(OutboundMessage(content=long_text))
@@ -87,7 +110,7 @@ async def test_send_truncates_ntfy_body_to_200_chars():
 
 
 async def test_no_ntfy_when_notifier_is_none():
-    iface, store, conn, _ = _make_interface(notifier=None)
+    iface, store, conn, _ = _make_interface(notifier=None, connected=False)
 
     # Should not raise
     await iface.send(OutboundMessage(content="Hi"))
@@ -99,7 +122,7 @@ async def test_no_ntfy_when_notifier_is_none():
 async def test_push_with_actions_sends_confirm_request():
     from ze_agents.interface.types import Action, Notification
 
-    iface, store, conn, notifier = _make_interface()
+    iface, store, conn, notifier = _make_interface(connected=False)
     await iface.push(Notification(
         content="<b>Goal</b> — proposed plan",
         format="html",

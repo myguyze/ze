@@ -46,12 +46,33 @@ class PendingConfirmationStore:
         except Exception as exc:
             log.warning("confirmation_save_failed", error=str(exc))
 
-    async def get_any_pending(self) -> dict | None:
-        """Return any non-expired pending confirmation, or None."""
+    async def get_all_pending(self) -> list[dict]:
+        """Return all non-expired pending confirmations across all threads."""
+        try:
+            async with self._pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "SELECT * FROM pending_confirmations WHERE expires_at > NOW()"
+                )
+            return [
+                {
+                    "thread_id": row["thread_id"],
+                    "request_id": row["request_id"],
+                    "prompt": row["prompt"],
+                    "actions": row["actions"],
+                }
+                for row in rows
+            ]
+        except Exception as exc:
+            log.warning("confirmation_get_all_failed", error=str(exc))
+            return []
+
+    async def get_pending_for_thread(self, thread_id: str) -> dict | None:
+        """Return a non-expired pending confirmation for the given thread, or None."""
         try:
             async with self._pool.acquire() as conn:
                 row = await conn.fetchrow(
-                    "SELECT * FROM pending_confirmations WHERE expires_at > NOW() LIMIT 1"
+                    "SELECT * FROM pending_confirmations WHERE thread_id = $1 AND expires_at > NOW()",
+                    thread_id,
                 )
             if row is None:
                 return None

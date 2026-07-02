@@ -7,21 +7,32 @@ export interface PendingConfirm {
   id: string;
   prompt: string;
   actions: WsConfirmAction[];
+  threadId: string;
 }
 
 const NOT_CONNECTED_NOTICE = "Not connected. Retry when Ze reconnects.";
 
-export function useConfirmation(active: boolean, ephemeral: boolean) {
+export function useConfirmation(active: boolean, ephemeral: boolean, threadId: string) {
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
-  const setThinking = useWsStore((s) => s.setThinking);
+  const setThreadThinking = useWsStore((s) => s.setThreadThinking);
+  const setThreadAttention = useWsStore((s) => s.setThreadAttention);
 
   useFrame("confirm_request", (frame) => {
-    if (!active || ephemeral) return;
-    setThinking(false);
-    setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions });
+    if (ephemeral) return;
+    const frameThread = frame.thread_id ?? threadId;
+    if (frameThread !== threadId) {
+      // Confirmation needed on another thread — set attention there
+      setThreadAttention(frameThread, true);
+      return;
+    }
+    if (!active) return;
+    setThreadThinking(threadId, false);
+    setPendingConfirm({ id: frame.id, prompt: frame.prompt, actions: frame.actions, threadId });
   });
 
-  useFrame("confirm_cancel", () => {
+  useFrame("confirm_cancel", (frame) => {
+    const frameThread = frame.thread_id ?? threadId;
+    if (frameThread !== threadId) return;
     if (!active || ephemeral) return;
     setPendingConfirm(null);
   });
@@ -33,8 +44,8 @@ export function useConfirmation(active: boolean, ephemeral: boolean) {
 
     const isCheckpoint = value === "approve" || value === "deny";
     const sent = isCheckpoint
-      ? send({ type: "confirm", id: confirm.id, choice: value })
-      : send({ type: "action", payload: value });
+      ? send({ type: "confirm", id: confirm.id, choice: value, thread_id: confirm.threadId })
+      : send({ type: "action", payload: value, thread_id: confirm.threadId });
 
     if (!sent) {
       setPendingConfirm(confirm);
@@ -43,7 +54,7 @@ export function useConfirmation(active: boolean, ephemeral: boolean) {
     }
 
     if (isCheckpoint && value === "approve") {
-      setThinking(true);
+      setThreadThinking(threadId, true);
     }
   }
 

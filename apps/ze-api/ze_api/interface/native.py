@@ -47,23 +47,28 @@ class NativeAppInterface:
         if notification.actions:
             await self._send_action_request(notification)
 
-    async def send_trace_partial(self, message_id: str, fields: dict) -> None:
+    async def send_trace_partial(
+        self, message_id: str, fields: dict, thread_id: str | None = None
+    ) -> None:
         try:
-            await self._conn.send_frame({
-                "type": "trace_update",
-                "message_id": message_id,
-                "partial": True,
-                "agent": "",
-                "routing_method": "",
-                "confidence": 0.0,
-                "score_gap": 0.0,
-                "is_compound": False,
-                "subtasks": [],
-                "memory_chunks": [],
-                "tool_calls": [],
-                "total_duration_ms": 0,
-                **fields,
-            })
+            await self._conn.send_frame(
+                {
+                    "type": "trace_update",
+                    "message_id": message_id,
+                    "partial": True,
+                    "agent": "",
+                    "routing_method": "",
+                    "confidence": 0.0,
+                    "score_gap": 0.0,
+                    "is_compound": False,
+                    "subtasks": [],
+                    "memory_chunks": [],
+                    "tool_calls": [],
+                    "total_duration_ms": 0,
+                    **fields,
+                },
+                thread_id,
+            )
         except Exception as exc:
             log.warning("native_interface_trace_partial_failed", error=str(exc))
 
@@ -98,17 +103,26 @@ class NativeAppInterface:
                 log.warning("native_interface_save_trace_failed", error=str(exc))
             try:
                 from dataclasses import asdict
-                await self._conn.send_frame({
-                    "type": "trace_update",
-                    "message_id": str(msg.id),
-                    **asdict(trace),
-                })
+                await self._conn.send_frame(
+                    {
+                        "type": "trace_update",
+                        "message_id": str(msg.id),
+                        **asdict(trace),
+                    },
+                    thread_id,
+                )
             except Exception as exc:
                 log.warning("native_interface_trace_update_failed", error=str(exc))
 
-        await self._conn.push(msg)
+        try:
+            await self._conn.push(msg, thread_id)
+        except Exception as exc:
+            log.warning("native_interface_push_failed", error=str(exc))
 
-        if self._notifier is not None:
+        # Only push via ntfy when the WebSocket is not connected — the client is
+        # receiving frames in real-time when connected, so a push notification
+        # would be redundant noise.
+        if self._notifier is not None and not self._conn.connected:
             from ze_notifications.types import Notification as PushNotification
             try:
                 await self._notifier.push(
@@ -142,7 +156,7 @@ class NativeAppInterface:
             "actions": actions,
         })
 
-        if self._notifier is not None:
+        if self._notifier is not None and not self._conn.connected:
             from ze_notifications.types import Notification as PushNotification
 
             body = (

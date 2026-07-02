@@ -55,7 +55,7 @@ async def handle_component_submit(
             await conn_mgr.send_frame({"type": "error", "detail": "Could not submit component."})
             return pending_config
 
-    thread_id = data.get("thread_id") or conn_mgr.thread_id
+    thread_id = data.get("thread_id") or ""
     if not thread_id:
         await conn_mgr.send_frame({"type": "error", "detail": "thread_id required"})
         return pending_config

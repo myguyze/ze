@@ -40,7 +40,7 @@ async def handle_message(
         await conn_mgr.send_frame({"type": "error", "detail": "thread_id required"})
         return pending_config
 
-    pending_gate_id = conn_mgr.take_pending_gate_redirect()
+    pending_gate_id = conn_mgr.take_pending_gate_redirect(thread_id)
     if pending_gate_id is not None:
         return await _handle_gate_redirect_message(
             text,
@@ -73,7 +73,7 @@ async def handle_message(
         except Exception as exc:
             log.warning("ws_session_upsert_failed", error=str(exc))
 
-    await conn_mgr.send_frame({"type": "typing"})
+    await conn_mgr.send_frame({"type": "typing"}, thread_id)
 
     config_extra: dict = {}
     if context:
@@ -81,7 +81,7 @@ async def handle_message(
 
     if getattr(container, "translations", None) is not None:
         async def _progress_sink(text: str) -> None:
-            await conn_mgr.send_frame({"type": "typing", "text": text})
+            await conn_mgr.send_frame({"type": "typing", "text": text}, thread_id)
 
         config_extra["reporter"] = ProgressReporter(
             translations=container.translations,
@@ -89,7 +89,7 @@ async def handle_message(
         )
 
     async def _token_sink(chunk: str) -> None:
-        await conn_mgr.send_frame({"type": "token", "text": chunk})
+        await conn_mgr.send_frame({"type": "token", "text": chunk}, thread_id)
 
     config_extra["token_sink"] = _token_sink
 
@@ -102,7 +102,7 @@ async def handle_message(
             )
     except Exception as exc:
         log.exception("ws_invoke_error", error=str(exc))
-        await conn_mgr.send_frame({"type": "error", "detail": "Something went wrong."})
+        await conn_mgr.send_frame({"type": "error", "detail": "Something went wrong."}, thread_id)
         return None
 
     if outcome.interrupted:
@@ -171,20 +171,20 @@ async def _handle_gate_redirect_message(
 
     executor = container._plugin_stores.get("goal_executor")
     if executor is None:
-        await conn_mgr.send_frame({"type": "error", "detail": "Goal engine unavailable"})
+        await conn_mgr.send_frame({"type": "error", "detail": "Goal engine unavailable"}, thread_id)
         return None
 
-    await conn_mgr.send_frame({"type": "typing"})
+    await conn_mgr.send_frame({"type": "typing"}, thread_id)
     try:
         await executor.handle_gate_redirected(gate_id, text)
     except Exception as exc:
         log.exception("ws_gate_redirect_failed", error=str(exc))
-        await conn_mgr.send_frame({"type": "error", "detail": "Redirect failed."})
+        await conn_mgr.send_frame({"type": "error", "detail": "Redirect failed."}, thread_id)
         return None
 
     await container.interface.send_with_thread(
         "Got it — Ze is replanning from that checkpoint.",
         thread_id=thread_id,
     )
-    await conn_mgr.send_frame({"type": "refresh", "screen": "goals"})
+    await conn_mgr.send_frame({"type": "refresh", "screen": "goals"}, thread_id)
     return None

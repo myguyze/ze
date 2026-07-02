@@ -23,6 +23,7 @@ async def handle_confirm(
     conn_mgr: ConnectionManager,
     pending_config: dict | None,
     *,
+    thread_id: str,
     confirmation_store: Any | None = None,
     session_store: Any | None = None,
 ) -> dict | None:
@@ -30,27 +31,26 @@ async def handle_confirm(
     request_id = data.get("id", "")
 
     if pending_config is None:
-        await conn_mgr.send_frame({"type": "error", "detail": "No pending confirmation."})
+        await conn_mgr.send_frame({"type": "error", "detail": "No pending confirmation."}, thread_id)
         return None
 
-    thread_id = extract_thread_id(pending_config) or ""
     if confirmation_store is not None and thread_id:
         await confirmation_store.clear(thread_id)
 
     if choice == "approve":
-        if not conn_mgr.try_set_busy():
-            await conn_mgr.send_frame({"type": "error", "detail": "busy"})
+        if not conn_mgr.try_set_busy(thread_id):
+            await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
             return pending_config
         try:
-            await conn_mgr.send_frame({"type": "typing"})
+            await conn_mgr.send_frame({"type": "typing"}, thread_id)
             with bound_turn_context(thread_id):
                 outcome = await container.resume_turn(pending_config)
         except Exception as exc:
             log.exception("ws_resume_error", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Resume failed."})
+            await conn_mgr.send_frame({"type": "error", "detail": "Resume failed."}, thread_id)
             return None
         finally:
-            conn_mgr.clear_busy()
+            conn_mgr.clear_busy(thread_id)
 
         if outcome.response:
             if session_store is not None and thread_id:
@@ -74,7 +74,7 @@ async def handle_confirm(
         await container.abort_pending_checkpoint(pending_config)
     except Exception as exc:
         log.warning("ws_deny_abort_failed", error=str(exc))
-    await conn_mgr.send_frame({"type": "confirm_cancel", "id": request_id})
+    await conn_mgr.send_frame({"type": "confirm_cancel", "id": request_id}, thread_id)
     return None
 
 
@@ -112,10 +112,13 @@ async def confirmation_timeout(
         "I waited for your approval but the window elapsed — "
         "let me know if you'd like me to try again."
     )
-    await conn_mgr.send_frame({
-        "type": "message",
-        "message": ephemeral_assistant_message(timeout_msg),
-    })
+    await conn_mgr.send_frame(
+        {
+            "type": "message",
+            "message": ephemeral_assistant_message(timeout_msg),
+        },
+        thread_id,
+    )
     if notifier is not None:
         try:
             await notifier.push(timeout_msg, urgency="low")
@@ -156,7 +159,7 @@ async def send_confirmation_request(
             expires_at=expires_at,
         )
 
-    await conn_mgr.send_frame(frame)
+    await conn_mgr.send_frame(frame, effective_thread_id or None)
 
     notifier = getattr(container, "notifier", None)
     if notifier is not None:

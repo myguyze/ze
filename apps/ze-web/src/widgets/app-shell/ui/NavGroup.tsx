@@ -15,6 +15,8 @@ interface NavGroupProps {
   /** Route paths (without leading slash) that auto-open this group when active */
   childPaths?: string[];
   defaultOpen?: boolean;
+  /** Aggregate child status shown as an indicator when the group is collapsed */
+  status?: "thinking" | "attention" | null;
 }
 
 export function NavGroup({
@@ -25,6 +27,7 @@ export function NavGroup({
   hrefIndex,
   childPaths = [],
   defaultOpen = false,
+  status,
 }: NavGroupProps) {
   const { pathname } = useLocation();
 
@@ -62,7 +65,15 @@ export function NavGroup({
               )
             }
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <span className="relative flex-shrink-0">
+              <Icon className="w-4 h-4" />
+              {!open && status === "thinking" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full border border-plum-voltage/60 border-t-plum-voltage animate-spin lg:hidden" />
+              )}
+              {!open && status === "attention" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-plum-voltage animate-pulse lg:hidden" />
+              )}
+            </span>
             <span className="hidden lg:block flex-1 truncate">{label}</span>
           </NavLink>
         ) : (
@@ -76,7 +87,15 @@ export function NavGroup({
                 : "text-smoke hover:text-white hover:bg-white/5",
             )}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <span className="relative flex-shrink-0">
+              <Icon className="w-4 h-4" />
+              {!open && status === "thinking" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full border border-plum-voltage/60 border-t-plum-voltage animate-spin lg:hidden" />
+              )}
+              {!open && status === "attention" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-plum-voltage animate-pulse lg:hidden" />
+              )}
+            </span>
             <span className="hidden lg:block flex-1 truncate text-left">{label}</span>
           </button>
         )}

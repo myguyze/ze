@@ -27,12 +27,14 @@ export type SessionId = string;
 export type Completed = boolean;
 export type Type1 = "edit";
 export type Id1 = string;
+export type ThreadId1 = string | null;
 export type Text1 = string | null;
 export type Components1 = {
   [k: string]: unknown;
 }[];
 export type Type2 = "confirm_request";
 export type Id2 = string;
+export type ThreadId2 = string | null;
 export type Prompt = string;
 export type Label = string;
 export type Value = string;
@@ -40,16 +42,22 @@ export type Style = ("primary" | "secondary" | "danger") | null;
 export type Actions = WsConfirmAction[];
 export type Type3 = "confirm_cancel";
 export type Id3 = string;
+export type ThreadId3 = string | null;
 export type Type4 = "typing";
+export type ThreadId4 = string | null;
 export type Text2 = string | null;
 export type Type5 = "token";
+export type ThreadId5 = string | null;
 export type Text3 = string;
 export type Type6 = "error";
+export type ThreadId6 = string | null;
 export type Detail = string;
 export type Type7 = "refresh";
+export type ThreadId7 = string | null;
 export type Screen = string;
 export type Type8 = "pong";
 export type Type9 = "trace_update";
+export type ThreadId8 = string | null;
 export type MessageId = string;
 export type Partial = boolean;
 export type Agent = string;
@@ -82,22 +90,26 @@ export type WsOutboundFrame =
   | WsPingFrame;
 export type Type10 = "message";
 export type Text5 = string;
-export type ThreadId1 = string | null;
+export type ThreadId9 = string | null;
 export type Screen1 = string;
 export type GoalId = string | null;
+export type WorkflowId = string | null;
+export type ExecutionId = string | null;
 export type Type11 = "ack";
 export type Ids = string[];
 export type Type12 = "confirm";
 export type Id4 = string;
+export type ThreadId10 = string;
 export type Choice = "approve" | "deny";
 export type Type13 = "action";
 export type Payload = string;
+export type ThreadId11 = string | null;
 export type Type14 = "command";
 export type Name1 = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
 export type Type15 = "component_submit";
 export type StepId = string;
 export type SessionId1 = string | null;
-export type ThreadId2 = string | null;
+export type ThreadId12 = string | null;
 export type Type16 = "ping";
 
 export interface WsProtocol {
@@ -141,6 +153,7 @@ export interface OnboardingMeta {
 export interface WsEditFrame {
   type: Type1;
   id: Id1;
+  thread_id?: ThreadId1;
   text?: Text1;
   components?: Components1;
 }
@@ -151,6 +164,7 @@ export interface WsEditFrame {
 export interface WsConfirmRequestFrame {
   type: Type2;
   id: Id2;
+  thread_id?: ThreadId2;
   prompt: Prompt;
   actions: Actions;
 }
@@ -170,6 +184,7 @@ export interface WsConfirmAction {
 export interface WsConfirmCancelFrame {
   type: Type3;
   id: Id3;
+  thread_id?: ThreadId3;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
@@ -177,6 +192,7 @@ export interface WsConfirmCancelFrame {
  */
 export interface WsTypingFrame {
   type: Type4;
+  thread_id?: ThreadId4;
   text?: Text2;
 }
 /**
@@ -185,6 +201,7 @@ export interface WsTypingFrame {
  */
 export interface WsTokenFrame {
   type: Type5;
+  thread_id?: ThreadId5;
   text: Text3;
 }
 /**
@@ -193,6 +210,7 @@ export interface WsTokenFrame {
  */
 export interface WsErrorFrame {
   type: Type6;
+  thread_id?: ThreadId6;
   detail: Detail;
 }
 /**
@@ -201,6 +219,7 @@ export interface WsErrorFrame {
  */
 export interface WsRefreshFrame {
   type: Type7;
+  thread_id?: ThreadId7;
   screen: Screen;
 }
 /**
@@ -216,6 +235,7 @@ export interface WsPongFrame {
  */
 export interface WsTraceUpdateFrame {
   type: Type9;
+  thread_id?: ThreadId8;
   message_id: MessageId;
   partial?: Partial;
   agent: Agent;
@@ -254,7 +274,7 @@ export interface ToolCallTraceResponse {
 export interface WsSendMessageFrame {
   type: Type10;
   text: Text5;
-  thread_id?: ThreadId1;
+  thread_id?: ThreadId9;
   context?: WsScreenContext | null;
 }
 /**
@@ -264,6 +284,8 @@ export interface WsSendMessageFrame {
 export interface WsScreenContext {
   screen: Screen1;
   goal_id?: GoalId;
+  workflow_id?: WorkflowId;
+  execution_id?: ExecutionId;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
@@ -280,6 +302,7 @@ export interface WsAckFrame {
 export interface WsConfirmFrame {
   type: Type12;
   id: Id4;
+  thread_id: ThreadId10;
   choice: Choice;
 }
 /**
@@ -289,6 +312,7 @@ export interface WsConfirmFrame {
 export interface WsActionFrame {
   type: Type13;
   payload: Payload;
+  thread_id?: ThreadId11;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
@@ -307,7 +331,7 @@ export interface WsComponentSubmitFrame {
   step_id: StepId;
   values: Values;
   session_id?: SessionId1;
-  thread_id?: ThreadId2;
+  thread_id?: ThreadId12;
 }
 export interface Values {
   [k: string]: unknown;

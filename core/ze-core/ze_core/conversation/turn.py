@@ -135,7 +135,7 @@ async def invoke_raw_turn(
                     "score_gap": env.score_gap,
                     "is_compound": env.is_compound,
                     "subtasks": [s.agent for s in env.subtasks] if env.is_compound else [],
-                })
+                }, thread_id)
 
         elif kind == "on_chain_end" and name == "fetch_context":
             memory_ctx = (data.get("output") or {}).get("memory_context")
@@ -147,7 +147,7 @@ async def invoke_raw_turn(
                             {"text": c.text, "score": c.score, "source": c.source}
                             for c in chunks
                         ],
-                    })
+                    }, thread_id)
 
         elif kind == "on_tool_end":
             if interface is not None:
@@ -158,7 +158,7 @@ async def invoke_raw_turn(
                 snippet = str(content)[:200] if content else ""
                 await interface.send_trace_partial(pending_message_id, {
                     "tool_calls": [{"name": name, "result_snippet": snippet, "duration_ms": 0, "success": True}],
-                })
+                }, thread_id)
 
         elif kind == "on_chain_end" and name == graph_name:
             final_state = data.get("output") or {}

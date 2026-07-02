@@ -8,8 +8,8 @@ export function useTraceSocket() {
   const setPending = useMindStore((s) => s.setPending);
   const mergePartialTrace = useMindStore((s) => s.mergePartialTrace);
   const commitPendingTrace = useMindStore((s) => s.commitPendingTrace);
-  const isThinking = useWsStore((s) => s.isThinking);
   const threadId = useSession((s) => s.threadId);
+  const isThinking = useWsStore((s) => s.thinkingThreads[threadId] ?? false);
 
   useFrame("trace_update", (frame) => {
     if (frame.partial) {

@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
-import { useWsStore } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 
 interface ChatInputProps {
@@ -13,8 +12,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ value, onChange, onSend, disabled, placeholder }: ChatInputProps) {
-  const isThinking = useWsStore((s) => s.isThinking);
-  const isDisabled = disabled ?? isThinking;
+  const isDisabled = disabled ?? false;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function handleKey(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -42,7 +40,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder }: Ch
         }}
         onKeyDown={handleKey}
         disabled={isDisabled}
-        placeholder={placeholder ?? (isThinking ? "Ze is thinking…" : "Message Ze")}
+        placeholder={placeholder ?? (isDisabled ? "Ze is thinking…" : "Message Ze")}
         rows={1}
         className={cn(
           "flex-1 resize-none bg-transparent text-sm text-white placeholder:text-smoke focus:outline-none disabled:opacity-50",

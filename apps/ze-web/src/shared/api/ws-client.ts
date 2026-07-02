@@ -5,16 +5,22 @@ import { getConfig } from "@/shared/config";
 
 interface WsStore {
   isConnected: boolean;
-  isThinking: boolean;
+  thinkingThreads: Record<string, boolean>;
+  attentionThreads: Record<string, boolean>;
   setConnected: (v: boolean) => void;
-  setThinking: (v: boolean) => void;
+  setThreadThinking: (threadId: string, v: boolean) => void;
+  setThreadAttention: (threadId: string, v: boolean) => void;
 }
 
 export const useWsStore = create<WsStore>((set) => ({
   isConnected: false,
-  isThinking: false,
+  thinkingThreads: {},
+  attentionThreads: {},
   setConnected: (v) => set({ isConnected: v }),
-  setThinking: (v) => set({ isThinking: v }),
+  setThreadThinking: (threadId, v) =>
+    set((s) => ({ thinkingThreads: { ...s.thinkingThreads, [threadId]: v } })),
+  setThreadAttention: (threadId, v) =>
+    set((s) => ({ attentionThreads: { ...s.attentionThreads, [threadId]: v } })),
 }));
 
 type FrameType = InboundFrame["type"];
@@ -28,18 +34,12 @@ let ws: WebSocket | null = null;
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 let retryDelay = 1000;
 let pingInterval: ReturnType<typeof setInterval> | null = null;
-let getThreadId: () => string = () => "";
-
-export function registerThreadIdGetter(fn: () => string) {
-  getThreadId = fn;
-}
 
 function buildUrl() {
   const cfg = getConfig();
   if (!cfg) return null;
   const base = cfg.serverUrl.replace(/^http/, "ws");
-  const threadId = getThreadId();
-  return `${base}/ws?token=${encodeURIComponent(cfg.apiKey)}&thread_id=${encodeURIComponent(threadId)}`;
+  return `${base}/ws?token=${encodeURIComponent(cfg.apiKey)}`;
 }
 
 function scheduleReconnect() {

@@ -19,7 +19,6 @@ log = get_logger(__name__)
 async def websocket_endpoint(
     ws: WebSocket,
     token: str | None = None,
-    thread_id: str | None = None,
 ) -> None:
     settings = ws.app.state.settings
     api_key: str = settings.ze_api_key
@@ -39,7 +38,7 @@ async def websocket_endpoint(
     confirmation_store = container.confirmation_store
     session_store = container.session_store
 
-    await conn_mgr.connect(ws, msg_store, confirmation_store, thread_id=thread_id)
+    await conn_mgr.connect(ws, msg_store, confirmation_store)
     log.info("ws_connected")
 
     onboarding_cfg = settings.config.get("onboarding", {})
@@ -54,7 +53,9 @@ async def websocket_endpoint(
         except Exception as exc:
             log.warning("ws_onboarding_autostart_failed", error=str(exc))
 
-    pending_config: dict | None = None
+    # Per-thread LangGraph configs for in-flight confirmations.
+    # Keyed by thread_id; each value is the graph config needed to resume.
+    pending_configs: dict[str, dict] = {}
 
     try:
         while True:
@@ -80,51 +81,90 @@ async def websocket_endpoint(
                 await msg_store.mark_read(ids)
 
             elif frame_type == "command":
-                pending_config = await handle_command(
-                    ws, data, container, conn_mgr, pending_config
+                # Commands are not per-thread (they operate on global session state).
+                # Pass the first pending config for compatibility with cancel command.
+                first_pending = next(iter(pending_configs.values()), None)
+                new_pending = await handle_command(
+                    ws, data, container, conn_mgr, first_pending
                 )
+                if new_pending is None and first_pending is not None:
+                    pending_configs.clear()
 
             elif frame_type == "component_submit":
-                if not conn_mgr.try_set_busy():
-                    await ws.send_json({"type": "error", "detail": "busy"})
+                thread_id = data.get("thread_id") or ""
+                if not thread_id:
+                    await ws.send_json({"type": "error", "detail": "thread_id required"})
+                    continue
+                if not conn_mgr.try_set_busy(thread_id):
+                    await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
                     continue
                 try:
-                    pending_config = await handle_component_submit(
+                    result = await handle_component_submit(
                         ws,
                         data,
                         container,
                         conn_mgr,
                         msg_store,
-                        pending_config,
+                        pending_configs.get(thread_id),
                         confirmation_store=confirmation_store,
                         session_store=session_store,
                     )
+                    if result is not None:
+                        pending_configs[thread_id] = result
+                    else:
+                        pending_configs.pop(thread_id, None)
                 finally:
-                    conn_mgr.clear_busy()
+                    conn_mgr.clear_busy(thread_id)
 
             elif frame_type == "confirm":
-                pending_config = await handle_confirm(
-                    ws, data, container, conn_mgr, pending_config,
+                thread_id = data.get("thread_id") or ""
+                if not thread_id:
+                    await ws.send_json({"type": "error", "detail": "thread_id required in confirm"})
+                    continue
+                result = await handle_confirm(
+                    ws,
+                    data,
+                    container,
+                    conn_mgr,
+                    pending_configs.get(thread_id),
+                    thread_id=thread_id,
                     confirmation_store=confirmation_store,
                     session_store=session_store,
                 )
+                if result is not None:
+                    pending_configs[thread_id] = result
+                else:
+                    pending_configs.pop(thread_id, None)
 
             elif frame_type == "action":
                 await handle_action(ws, data, container, conn_mgr)
 
             elif frame_type == "message":
-                if not conn_mgr.try_set_busy():
-                    await ws.send_json({"type": "error", "detail": "busy"})
+                thread_id = data.get("thread_id") or ""
+                if not thread_id:
+                    await ws.send_json({"type": "error", "detail": "thread_id required"})
+                    continue
+                if not conn_mgr.try_set_busy(thread_id):
+                    await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
                     continue
 
                 try:
-                    pending_config = await handle_message(
-                        ws, data, container, msg_store, conn_mgr, pending_config,
+                    result = await handle_message(
+                        ws,
+                        data,
+                        container,
+                        msg_store,
+                        conn_mgr,
+                        pending_configs.get(thread_id),
                         confirmation_store=confirmation_store,
                         session_store=session_store,
                     )
+                    if result is not None:
+                        pending_configs[thread_id] = result
+                    else:
+                        pending_configs.pop(thread_id, None)
                 finally:
-                    conn_mgr.clear_busy()
+                    conn_mgr.clear_busy(thread_id)
 
     except Exception as exc:
         log.exception("ws_handler_error", error=str(exc))

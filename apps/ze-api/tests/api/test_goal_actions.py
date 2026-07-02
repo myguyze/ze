@@ -27,6 +27,9 @@ def _make_container(*, store=None, executor=None, interface=None):
     return container
 
 
+THREAD = "thread-abc"
+
+
 @pytest.mark.asyncio
 async def test_goal_plan_yes_approves_and_refreshes():
     goal_id = uuid4()
@@ -47,7 +50,7 @@ async def test_goal_plan_yes_approves_and_refreshes():
 
     await handle_action(
         ws,
-        {"payload": f"goal_plan:yes:{goal_id}"},
+        {"payload": f"goal_plan:yes:{goal_id}", "thread_id": THREAD},
         _make_container(store=store, executor=executor),
         conn_mgr,
     )
@@ -80,7 +83,7 @@ async def test_goal_approve_fires_gate_handler():
 
     await handle_action(
         ws,
-        {"payload": f"goal:approve:{gate_id}"},
+        {"payload": f"goal:approve:{gate_id}", "thread_id": THREAD},
         _make_container(store=store, executor=executor),
         conn_mgr,
     )
@@ -109,12 +112,12 @@ async def test_goal_redirect_sets_pending_gate():
 
     await handle_action(
         ws,
-        {"payload": f"goal:redirect:{gate_id}"},
+        {"payload": f"goal:redirect:{gate_id}", "thread_id": THREAD},
         _make_container(store=store),
         conn_mgr,
     )
 
-    assert conn_mgr.take_pending_gate_redirect() == gate_id
+    assert conn_mgr.take_pending_gate_redirect(THREAD) == gate_id
 
 
 @pytest.mark.asyncio
@@ -136,7 +139,7 @@ async def test_goal_stuck_pause_updates_status():
 
     await handle_action(
         ws,
-        {"payload": f"goal_stuck:pause:{goal_id.hex}"},
+        {"payload": f"goal_stuck:pause:{goal_id.hex}", "thread_id": THREAD},
         _make_container(store=store),
         conn_mgr,
     )

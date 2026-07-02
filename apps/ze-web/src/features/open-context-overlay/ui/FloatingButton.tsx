@@ -7,7 +7,7 @@ import { cn } from "@/shared/lib";
 
 export function FloatingButton({ screen, entityId }: { screen: string; entityId?: string }) {
   const { openFor, setScreen } = useOverlayStore();
-  const isThinking = useWsStore((s) => s.isThinking);
+  const isThinking = useWsStore((s) => Object.values(s.thinkingThreads).some(Boolean));
 
   // Register this page's context so the desktop FAB opens with the right screen label.
   useEffect(() => {

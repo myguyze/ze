@@ -4,5 +4,4 @@ export {
   send,
   reconnect,
   startWs,
-  registerThreadIdGetter,
 } from "./ws-client";

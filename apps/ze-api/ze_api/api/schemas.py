@@ -433,6 +433,7 @@ class WsMessageFrame(BaseModel):
 class WsEditFrame(BaseModel):
     type: Literal["edit"]
     id: str
+    thread_id: str | None = None
     text: str | None = None
     components: list[dict[str, Any]] = []
 
@@ -440,6 +441,7 @@ class WsEditFrame(BaseModel):
 class WsConfirmRequestFrame(BaseModel):
     type: Literal["confirm_request"]
     id: str
+    thread_id: str | None = None
     prompt: str
     actions: list[WsConfirmAction]
 
@@ -447,25 +449,30 @@ class WsConfirmRequestFrame(BaseModel):
 class WsConfirmCancelFrame(BaseModel):
     type: Literal["confirm_cancel"]
     id: str
+    thread_id: str | None = None
 
 
 class WsTypingFrame(BaseModel):
     type: Literal["typing"]
+    thread_id: str | None = None
     text: str | None = None
 
 
 class WsTokenFrame(BaseModel):
     type: Literal["token"]
+    thread_id: str | None = None
     text: str
 
 
 class WsErrorFrame(BaseModel):
     type: Literal["error"]
+    thread_id: str | None = None
     detail: str
 
 
 class WsRefreshFrame(BaseModel):
     type: Literal["refresh"]
+    thread_id: str | None = None
     screen: str
 
 
@@ -475,6 +482,7 @@ class WsPongFrame(BaseModel):
 
 class WsTraceUpdateFrame(BaseModel):
     type: Literal["trace_update"]
+    thread_id: str | None = None
     message_id: str
     partial: bool = False
     agent: str
@@ -529,12 +537,14 @@ class WsAckFrame(BaseModel):
 class WsConfirmFrame(BaseModel):
     type: Literal["confirm"]
     id: str
+    thread_id: str
     choice: Literal["approve", "deny"]
 
 
 class WsActionFrame(BaseModel):
     type: Literal["action"]
     payload: str
+    thread_id: str | None = None
 
 
 class WsCommandFrame(BaseModel):

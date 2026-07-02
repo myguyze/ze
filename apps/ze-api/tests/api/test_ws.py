@@ -104,14 +104,32 @@ async def test_connection_manager_disconnect_clears_connection():
     assert not mgr.connected
 
 
-async def test_connection_manager_busy_flag():
+async def test_connection_manager_busy_flag_per_thread():
     mgr = ConnectionManager()
 
-    assert mgr.try_set_busy() is True
-    assert mgr.try_set_busy() is False
+    assert mgr.try_set_busy("thread-1") is True
+    assert mgr.try_set_busy("thread-1") is False
 
-    mgr.clear_busy()
-    assert mgr.try_set_busy() is True
+    # Different thread is independent
+    assert mgr.try_set_busy("thread-2") is True
+
+    mgr.clear_busy("thread-1")
+    assert mgr.try_set_busy("thread-1") is True
+
+
+async def test_connection_manager_busy_resets_on_reconnect():
+    mgr = ConnectionManager()
+    ws = _make_ws()
+    store = AsyncMock()
+    store.list_unread = AsyncMock(return_value=[])
+
+    mgr.try_set_busy("thread-1")
+    assert mgr.try_set_busy("thread-1") is False
+
+    await mgr.connect(ws, store)
+
+    # Busy flag should be reset
+    assert mgr.try_set_busy("thread-1") is True
 
 
 async def test_message_to_dict_serializes_correctly():
@@ -156,7 +174,7 @@ async def test_connection_manager_push_clears_ws_on_send_error():
 
 # ── Confirmation persistence and replay ───────────────────────────────────────
 
-async def test_connect_replays_pending_confirmation():
+async def test_connect_replays_all_pending_confirmations():
     mgr = ConnectionManager()
     ws = _make_ws()
 
@@ -164,20 +182,30 @@ async def test_connect_replays_pending_confirmation():
     store.list_unread = AsyncMock(return_value=[])
 
     confirmation_store = AsyncMock()
-    confirmation_store.get_any_pending = AsyncMock(return_value={
-        "thread_id": "t1",
-        "request_id": "req-123",
-        "prompt": "Delete 50 emails?",
-        "actions": [{"label": "Approve", "payload": "yes"}],
-    })
+    confirmation_store.get_all_pending = AsyncMock(return_value=[
+        {
+            "thread_id": "t1",
+            "request_id": "req-123",
+            "prompt": "Delete 50 emails?",
+            "actions": [{"label": "Approve", "payload": "yes"}],
+        },
+        {
+            "thread_id": "t2",
+            "request_id": "req-456",
+            "prompt": "Send newsletter?",
+            "actions": [{"label": "Approve", "payload": "yes"}],
+        },
+    ])
 
     await mgr.connect(ws, store, confirmation_store)
 
     frames = [call[0][0] for call in ws.send_json.call_args_list]
     confirm_frames = [f for f in frames if f.get("type") == "confirm_request"]
-    assert len(confirm_frames) == 1
+    assert len(confirm_frames) == 2
     assert confirm_frames[0]["id"] == "req-123"
-    assert confirm_frames[0]["prompt"] == "Delete 50 emails?"
+    assert confirm_frames[0]["thread_id"] == "t1"
+    assert confirm_frames[1]["id"] == "req-456"
+    assert confirm_frames[1]["thread_id"] == "t2"
 
 
 async def test_connect_no_replay_when_no_pending_confirmation():
@@ -188,7 +216,7 @@ async def test_connect_no_replay_when_no_pending_confirmation():
     store.list_unread = AsyncMock(return_value=[])
 
     confirmation_store = AsyncMock()
-    confirmation_store.get_any_pending = AsyncMock(return_value=None)
+    confirmation_store.get_all_pending = AsyncMock(return_value=[])
 
     await mgr.connect(ws, store, confirmation_store)
 
@@ -205,7 +233,7 @@ async def test_connect_handles_confirmation_store_error_gracefully():
     store.list_unread = AsyncMock(return_value=[])
 
     confirmation_store = AsyncMock()
-    confirmation_store.get_any_pending = AsyncMock(side_effect=RuntimeError("db down"))
+    confirmation_store.get_all_pending = AsyncMock(side_effect=RuntimeError("db down"))
 
     # Should not raise
     await mgr.connect(ws, store, confirmation_store)
@@ -224,15 +252,19 @@ async def test_connect_works_without_confirmation_store():
     assert mgr.connected
 
 
-async def test_connection_manager_stores_thread_id():
+async def test_send_frame_injects_thread_id():
     mgr = ConnectionManager()
     ws = _make_ws()
     store = AsyncMock()
     store.list_unread = AsyncMock(return_value=[])
-    await mgr.connect(ws, store, thread_id="session-abc")
-    assert mgr.thread_id == "session-abc"
-    await mgr.disconnect()
-    assert mgr.thread_id is None
+    await mgr.connect(ws, store)
+    ws.send_json.reset_mock()
+
+    await mgr.send_frame({"type": "typing"}, "thread-abc")
+
+    frame = ws.send_json.call_args[0][0]
+    assert frame["thread_id"] == "thread-abc"
+    assert frame["type"] == "typing"
 
 
 async def test_send_onboarding_view_includes_session_metadata():
@@ -298,7 +330,6 @@ async def test_component_submit_falls_back_to_graph_on_unknown_session():
     mgr = ConnectionManager()
     ws = _make_ws()
     msg_store = AsyncMock()
-    await mgr.connect(ws, msg_store, thread_id="thread-1")
 
     container = AsyncMock()
     container.onboarding_coordinator.submit = AsyncMock(
@@ -312,6 +343,7 @@ async def test_component_submit_falls_back_to_graph_on_unknown_session():
                 "session_id": str(uuid4()),
                 "step_id": "agent.form",
                 "values": {"field": "value"},
+                "thread_id": "thread-1",
             },
             container,
             mgr,

@@ -32,13 +32,15 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevActiveRef = useRef(active);
 
-  const isThinking = useWsStore((s) => s.isThinking);
-  const setThinking = useWsStore((s) => s.setThinking);
+  const isThinking = useWsStore((s) => s.thinkingThreads[threadId] ?? false);
+  const setThreadThinking = useWsStore((s) => s.setThreadThinking);
+  const setThreadAttention = useWsStore((s) => s.setThreadAttention);
   const isConnected = useWsStore((s) => s.isConnected);
 
   const { pendingConfirm, respond: respondToConfirm, clear: clearConfirm } = useConfirmation(
     active,
     ephemeral,
+    threadId,
   );
 
   const messages = ephemeral ? ephemeralMessages : persistedMessages;
@@ -63,6 +65,12 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   }, [ephemeral, isConnected, active, threadId, loadHistory]);
 
   useFrame("typing", (frame) => {
+    const frameThread = frame.thread_id ?? null;
+    if (frameThread && frameThread !== threadId) {
+      // Another thread is thinking — mark it busy in global store
+      setThreadThinking(frameThread, true);
+      return;
+    }
     if (!active) return;
     setShowTyping(true);
     setTypingText(frame.text ?? null);
@@ -74,14 +82,25 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   });
 
   function stopThinking() {
-    setThinking(false);
+    setThreadThinking(threadId, false);
     clearTyping();
     setStreamingText(null);
   }
 
   useFrame("message", (frame) => {
+    const frameThread = frame.message.thread_id ?? null;
+
+    if (frameThread && frameThread !== threadId) {
+      // Message arrived for a different thread — clear its thinking and signal attention
+      setThreadThinking(frameThread, false);
+      if (frame.message.role === "assistant") {
+        setThreadAttention(frameThread, true);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+      }
+      return;
+    }
+
     if (!active) return;
-    if (frame.message.thread_id && frame.message.thread_id !== threadId) return;
 
     if (frame.onboarding) {
       useOnboardingSession.getState().setSession(
@@ -112,11 +131,18 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   });
 
   useFrame("token", (frame) => {
+    const frameThread = frame.thread_id ?? null;
+    if (frameThread && frameThread !== threadId) return;
     if (!active) return;
     setStreamingText((prev) => (prev ?? "") + (frame.text ?? ""));
   });
 
-  useFrame("error", () => {
+  useFrame("error", (frame) => {
+    const frameThread = frame.thread_id ?? null;
+    if (frameThread && frameThread !== threadId) {
+      setThreadThinking(frameThread, false);
+      return;
+    }
     if (!active) return;
     stopThinking();
   });
@@ -131,11 +157,10 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
         useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
         return false;
       }
-      setThinking(true);
+      setThreadThinking(threadId, true);
       return true;
     }
 
-    const optimisticId = crypto.randomUUID();
     const sent = send({ type: "message", text: trimmed, thread_id: threadId, context });
     if (!sent) {
       useSendNotice.getState().showNotice(NOT_CONNECTED_NOTICE);
@@ -143,7 +168,7 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     }
 
     upsert({
-      id: optimisticId,
+      id: crypto.randomUUID(),
       role: "user",
       text: trimmed,
       components: [],
@@ -152,12 +177,12 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
       thread_id: threadId,
     });
 
-    setThinking(true);
+    setThreadThinking(threadId, true);
     return true;
   }
 
   function resetInteraction() {
-    setThinking(false);
+    setThreadThinking(threadId, false);
     clearConfirm();
     clearTyping();
   }

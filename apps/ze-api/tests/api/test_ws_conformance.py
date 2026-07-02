@@ -267,6 +267,7 @@ class TestConfirmationApproveFlow:
         result = await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
             container, mgr, pending_config,
+            thread_id="t1",
         )
 
         container.resume_turn.assert_awaited_once_with(pending_config)
@@ -285,6 +286,7 @@ class TestConfirmationApproveFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
             container, mgr, pending_config,
+            thread_id="t1",
         )
 
         frames = _frames_sent(ws)
@@ -303,6 +305,7 @@ class TestConfirmationApproveFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
             container, mgr, _make_pending_config(),
+            thread_id="t1",
             confirmation_store=confirmation_store,
         )
 
@@ -321,6 +324,7 @@ class TestConfirmationApproveFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
             container, mgr, _make_pending_config(),
+            thread_id="t1",
         )
 
         frames = _frames_sent(ws)
@@ -343,6 +347,7 @@ class TestConfirmationDenyFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
             container, mgr, pending_config,
+            thread_id="t1",
         )
 
         container.abort_pending_checkpoint.assert_awaited_once_with(pending_config)
@@ -359,6 +364,7 @@ class TestConfirmationDenyFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-99", "choice": "deny"},
             container, mgr, _make_pending_config(),
+            thread_id="t1",
         )
 
         frames = _frames_sent(ws)
@@ -377,6 +383,7 @@ class TestConfirmationDenyFlow:
         result = await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
             container, mgr, _make_pending_config(),
+            thread_id="t1",
         )
 
         assert result is None
@@ -393,6 +400,7 @@ class TestConfirmationDenyFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
             container, mgr, None,  # no pending config
+            thread_id="t1",
         )
 
         frames = _frames_sent(ws)
@@ -412,6 +420,7 @@ class TestConfirmationDenyFlow:
         await handle_confirm(
             ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
             container, mgr, _make_pending_config(),
+            thread_id="t1",
         )
 
 
@@ -513,21 +522,12 @@ class TestConfirmationTimeoutFlow:
         assert any(f.get("type") == "message" for f in frames)
 
 
-# ── Scoped unread replay ──────────────────────────────────────────────────────
+# ── Unread replay — multi-conversation ───────────────────────────────────────
 
 class TestScopedUnreadReplay:
-    """list_unread is called with thread_id so replay is scoped to current thread."""
+    """On connect, list_unread(None) replays ALL threads so the client can restore all conversations."""
 
-    async def test_connect_passes_thread_id_to_list_unread(self):
-        mgr = ConnectionManager()
-        ws = _make_ws()
-        store = _make_msg_store([])
-
-        await mgr.connect(ws, store, thread_id="ze-abc123")
-
-        store.list_unread.assert_awaited_once_with("ze-abc123")
-
-    async def test_connect_passes_none_thread_id_when_not_supplied(self):
+    async def test_connect_calls_list_unread_with_no_filter(self):
         mgr = ConnectionManager()
         ws = _make_ws()
         store = _make_msg_store([])
@@ -536,16 +536,18 @@ class TestScopedUnreadReplay:
 
         store.list_unread.assert_awaited_once_with(None)
 
-    async def test_unread_replay_only_shows_messages_for_current_thread(self):
+    async def test_unread_replay_shows_messages_from_all_threads(self):
         mgr = ConnectionManager()
         ws = _make_ws()
 
-        msg_for_thread = _make_message(thread_id="ze-abc", text="For this thread")
-        store = _make_msg_store([msg_for_thread])
+        msg_a = _make_message(thread_id="ze-abc", text="Thread A")
+        msg_b = _make_message(thread_id="ze-def", text="Thread B")
+        store = _make_msg_store([msg_a, msg_b])
 
-        await mgr.connect(ws, store, thread_id="ze-abc")
+        await mgr.connect(ws, store)
 
         frames = _frames_sent(ws)
         msg_frames = [f for f in frames if f.get("type") == "message"]
-        assert len(msg_frames) == 1
-        assert msg_frames[0]["message"]["text"] == "For this thread"
+        assert len(msg_frames) == 2
+        texts = {f["message"]["text"] for f in msg_frames}
+        assert texts == {"Thread A", "Thread B"}
