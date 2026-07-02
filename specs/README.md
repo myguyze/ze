@@ -140,6 +140,8 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 95 | [Unified Streaming Architecture](phases/95-live-trace-streaming.md) | 🔲 Pending |
 | 96 | [Dev Data Seeder](phases/96-dev-data-seeder.md) | 🔲 Pending |
 | 97 | [Embedding Model Upgrade (MiniLM → E5)](phases/97-embedding-model-upgrade.md) | 🔲 Pending |
+| 98 | [Workflow Run Chat](phases/98-workflow-run-chat.md) | 🔲 Pending |
+| 99 | [Multi-Conversation Support](phases/99-multi-conversation.md) | 🔲 Pending |
 
 ## Ze Core specs (`core/`)
 
