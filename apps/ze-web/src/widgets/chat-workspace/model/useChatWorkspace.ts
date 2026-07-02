@@ -178,6 +178,9 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     });
 
     setThreadThinking(threadId, true);
+    // Invalidate immediately so new sessions appear in the navbar without waiting
+    // for the assistant reply (the backend stores the user message synchronously).
+    void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
     return true;
   }
 
