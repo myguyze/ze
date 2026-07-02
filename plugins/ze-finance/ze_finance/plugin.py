@@ -175,36 +175,62 @@ class FinancePlugin(ZePlugin):
             await db.execute("DELETE FROM finance_recurring_staleness")
             await db.execute("DELETE FROM finance_recurring")
 
+        async def _count_tbl(db: Any, tbl: str) -> int:
+            row = await db.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
+            return row["n"]
+
+        async def _size_tbl(db: Any, tbl: str) -> int:
+            row = await db.fetchrow(
+                "SELECT pg_total_relation_size($1::regclass) AS n", tbl
+            )
+            return row["n"]
+
+        async def _size_recurring(db: Any) -> int:
+            total = 0
+            for tbl in ("finance_recurring", "finance_recurring_staleness"):
+                total += await _size_tbl(db, tbl)
+            return total
+
         return [
             DataDomain(
                 name="finance.transactions",
                 export=_export_transactions,
                 delete=_delete_transactions,
                 delete_order=10,
+                count=lambda db: _count_tbl(db, "finance_transactions"),
+                size_bytes=lambda db: _size_tbl(db, "finance_transactions"),
             ),
             DataDomain(
                 name="finance.positions",
                 export=_export_positions,
                 delete=_delete_positions,
                 delete_order=10,
+                count=lambda db: _count_tbl(db, "finance_positions"),
+                size_bytes=lambda db: _size_tbl(db, "finance_positions"),
             ),
             DataDomain(
                 name="finance.csv_mappings",
                 export=_export_csv_mappings,
                 delete=_delete_csv_mappings,
                 delete_order=10,
+                count=lambda db: _count_tbl(db, "finance_csv_mappings"),
+                size_bytes=lambda db: _size_tbl(db, "finance_csv_mappings"),
             ),
             DataDomain(
                 name="finance.recurring",
                 export=_export_recurring,
                 delete=_delete_recurring,
                 delete_order=10,
+                count=lambda db: _count_tbl(db, "finance_recurring"),
+                size_bytes=_size_recurring,
             ),
             DataDomain(
                 name="finance.accounts",
                 export=_export_accounts,
                 delete=_delete_accounts,
                 delete_order=20,
+                count=lambda db: _count_tbl(db, "finance_accounts"),
+                size_bytes=lambda db: _size_tbl(db, "finance_accounts"),
             ),
         ]
 

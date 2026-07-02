@@ -56,6 +56,18 @@ class ProspectingPlugin(ZePlugin):
             async with pool.acquire() as conn:
                 await conn.execute(f"DELETE FROM {tbl}")
 
+        async def _count(tbl: str, pool) -> int:
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
+                return row["n"]
+
+        async def _size(tbl: str, pool) -> int:
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT pg_total_relation_size($1::regclass) AS n", tbl
+                )
+                return row["n"]
+
         def _domain(name: str, tbl: str, order: int) -> DataDomain:
             return DataDomain(
                 name,
@@ -63,6 +75,8 @@ class ProspectingPlugin(ZePlugin):
                 lambda p, t=tbl: _delete(t, p),
                 delete_order=order,
                 importer=lambda conn, rows, t=tbl: bulk_insert(conn, t, rows),
+                count=lambda p, t=tbl: _count(t, p),
+                size_bytes=lambda p, t=tbl: _size(t, p),
             )
 
         return [

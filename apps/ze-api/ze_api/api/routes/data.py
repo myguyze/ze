@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import Response
 
 from ze_api.api.dependencies import require_api_key
-from ze_api.api.schemas import DeleteIntentResponse, DeleteRequest, ImportResponse
+from ze_api.api.schemas import DataDomainItem, DataDomainsResponse, DeleteIntentResponse, DeleteRequest, ImportResponse
 from ze_logging import get_logger
 from ze_data.portability.service import DataPortabilityService, InstanceNotEmptyError, SchemaMismatchError
 
@@ -17,6 +18,41 @@ router = APIRouter(tags=["data"], dependencies=[Depends(require_api_key)])
 
 def _service(request: Request) -> DataPortabilityService:
     return request.app.state.container.data_portability_service
+
+
+@router.get(
+    "/data/domains",
+    response_model=DataDomainsResponse,
+    operation_id="listDataDomains",
+    summary="List registered data domains",
+    description=(
+        "Returns all data domains registered with Ze, with live record counts "
+        "and importability flags. Count is null for domains that do not expose "
+        "a count query (e.g. opaque checkpoint blobs)."
+    ),
+)
+async def list_data_domains(request: Request) -> DataDomainsResponse:
+    svc = _service(request)
+    summaries, schema_revisions = await asyncio.gather(
+        svc.list_domain_summaries(),
+        svc.get_schema_revisions(),
+    )
+    total_records = sum(s.count for s in summaries if s.count is not None)
+    total_size_bytes = sum(s.size_bytes for s in summaries)
+    return DataDomainsResponse(
+        domains=[
+            DataDomainItem(
+                name=s.name,
+                importable=s.importable,
+                count=s.count,
+                size_bytes=s.size_bytes,
+            )
+            for s in summaries
+        ],
+        schema_revisions=schema_revisions,
+        total_records=total_records,
+        total_size_bytes=total_size_bytes,
+    )
 
 
 @router.get(

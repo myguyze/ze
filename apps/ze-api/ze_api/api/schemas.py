@@ -284,11 +284,32 @@ class AgentCostBucket(BaseModel):
     completion_tokens: int
 
 
+class DailyCostBucket(BaseModel):
+    date: str
+    usd: float
+    calls: int
+
+
+class CostAnomalyItem(BaseModel):
+    agent: str
+    run_cost_usd: float
+    baseline_cost_usd: float
+    multiplier: float
+    session_id: str | None
+    detected_at: str
+
+
+class CostAnomaliesResponse(BaseModel):
+    anomalies: list[CostAnomalyItem]
+    period_days: int
+
+
 class WebCostSummaryResponse(BaseModel):
     total_usd: float
     total_tokens: int
     total_calls: int
     by_agent: dict[str, AgentCostBucket]
+    by_day: list[DailyCostBucket]
     period: str
 
 
@@ -309,6 +330,20 @@ class ArticleItem(BaseModel):
 
 
 # ── REST: data portability ────────────────────────────────────────────────────
+
+class DataDomainItem(BaseModel):
+    name: str
+    importable: bool
+    count: int | None
+    size_bytes: int
+
+
+class DataDomainsResponse(BaseModel):
+    domains: list[DataDomainItem]
+    schema_revisions: list[str]
+    total_records: int
+    total_size_bytes: int
+
 
 class DeleteIntentResponse(BaseModel):
     confirmation_token: str

@@ -131,8 +131,32 @@ class PersonalPlugin(ZePlugin):
                 return await bulk_insert(conn, tbl, rows)
             return _fn
 
+        def _count(tbl: str):
+            async def _fn(pool) -> int:
+                async with pool.acquire() as conn:
+                    row = await conn.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
+                    return row["n"]
+            return _fn
+
+        def _size(tbl: str):
+            async def _fn(pool) -> int:
+                async with pool.acquire() as conn:
+                    row = await conn.fetchrow(
+                        "SELECT pg_total_relation_size($1::regclass) AS n", tbl
+                    )
+                    return row["n"]
+            return _fn
+
         def _domain(name: str, tbl: str, order: int) -> DataDomain:
-            return DataDomain(name, _export(tbl), _delete(tbl), delete_order=order, importer=_import(tbl))
+            return DataDomain(
+                name,
+                _export(tbl),
+                _delete(tbl),
+                delete_order=order,
+                importer=_import(tbl),
+                count=_count(tbl),
+                size_bytes=_size(tbl),
+            )
 
         return [
             # Memory (leaf, no FK dependencies) — order 10

@@ -190,6 +190,27 @@ def engine_data_domains(pool: asyncpg.Pool) -> list[DataDomain]:
 
         return _import
 
+    def _mk_count(tbl: str):
+        async def _count(p) -> int:
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
+                return row["n"]
+
+        return _count
+
+    def _mk_size(*tables: str):
+        async def _size(p) -> int:
+            async with pool.acquire() as conn:
+                total = 0
+                for tbl in tables:
+                    row = await conn.fetchrow(
+                        "SELECT pg_total_relation_size($1::regclass) AS n", tbl
+                    )
+                    total += row["n"]
+                return total
+
+        return _size
+
     async def _export_checkpoints(p) -> list[dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch("SELECT * FROM checkpoints")
@@ -207,6 +228,8 @@ def engine_data_domains(pool: asyncpg.Pool) -> list[DataDomain]:
             _mk_delete(tbl),
             delete_order=10,
             importer=_mk_import(tbl),
+            count=_mk_count(tbl),
+            size_bytes=_mk_size(tbl),
         )
 
     return [
@@ -223,8 +246,16 @@ def engine_data_domains(pool: asyncpg.Pool) -> list[DataDomain]:
             _mk_delete("onboarding_steps", "onboarding_sessions", "onboarding_seeds"),
             delete_order=10,
             importer=_mk_import("onboarding_sessions"),
+            count=_mk_count("onboarding_sessions"),
+            size_bytes=_mk_size("onboarding_steps", "onboarding_sessions", "onboarding_seeds"),
         ),
-        DataDomain("graph.checkpoints", _export_checkpoints, _delete_checkpoints, delete_order=50),
+        DataDomain(
+            "graph.checkpoints",
+            _export_checkpoints,
+            _delete_checkpoints,
+            delete_order=50,
+            size_bytes=_mk_size("checkpoint_writes", "checkpoint_blobs", "checkpoints"),
+        ),
     ]
 
 

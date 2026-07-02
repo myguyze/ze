@@ -95,8 +95,34 @@ def automation_data_domains(pool: asyncpg.Pool) -> list[DataDomain]:
 
         return _fn
 
+    def _count(tbl: str):
+        async def _fn(p) -> int:
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
+                return row["n"]
+
+        return _fn
+
+    def _size(tbl: str):
+        async def _fn(p) -> int:
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT pg_total_relation_size($1::regclass) AS n", tbl
+                )
+                return row["n"]
+
+        return _fn
+
     def _domain(name: str, tbl: str) -> DataDomain:
-        return DataDomain(name, _export(tbl), _delete(tbl), delete_order=10, importer=_import(tbl))
+        return DataDomain(
+            name,
+            _export(tbl),
+            _delete(tbl),
+            delete_order=10,
+            importer=_import(tbl),
+            count=_count(tbl),
+            size_bytes=_size(tbl),
+        )
 
     return [
         _domain("automation.goals", "goals"),

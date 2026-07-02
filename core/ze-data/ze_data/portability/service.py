@@ -10,7 +10,7 @@ from typing import Any
 from ze_data.domain import DataDomain
 from ze_data.errors import SchemaMismatchError, InstanceNotEmptyError
 from ze_data.portability.assembler import ExportAssembler, ImportAssembler
-from ze_data.portability.types import ImportResult
+from ze_data.portability.types import DomainSummary, ImportResult
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +33,45 @@ class DataPortabilityService:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch("SELECT version_num FROM alembic_version")
             return sorted(r["version_num"] for r in rows)
+
+    # ── Domain summaries ──────────────────────────────────────────────────────
+
+    async def list_domain_summaries(self) -> list[DomainSummary]:
+        async def _get_count(domain: DataDomain) -> int | None:
+            if domain.count is None:
+                return None
+            try:
+                return await domain.count(self._pool)
+            except Exception as exc:
+                log.error("count_domain_failed domain=%s error=%s", domain.name, exc)
+                return None
+
+        async def _get_size(domain: DataDomain) -> int:
+            if domain.size_bytes is None:
+                return 0
+            try:
+                return await domain.size_bytes(self._pool)
+            except Exception as exc:
+                log.error("size_domain_failed domain=%s error=%s", domain.name, exc)
+                return 0
+
+        counts, sizes = await asyncio.gather(
+            asyncio.gather(*[_get_count(d) for d in self._domains]),
+            asyncio.gather(*[_get_size(d) for d in self._domains]),
+        )
+        return [
+            DomainSummary(
+                name=domain.name,
+                importable=domain.importer is not None,
+                count=count,
+                size_bytes=size,
+            )
+            for domain, count, size in zip(self._domains, counts, sizes)
+        ]
+
+    async def get_total_size_bytes(self) -> int:
+        summaries = await self.list_domain_summaries()
+        return sum(s.size_bytes for s in summaries)
 
     # ── Export ────────────────────────────────────────────────────────────────
 

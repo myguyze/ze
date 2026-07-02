@@ -15,3 +15,11 @@ class ExportManifest:
 class ImportResult:
     domains_imported: list[str]
     rows_imported: dict[str, int]
+
+
+@dataclass
+class DomainSummary:
+    name: str
+    importable: bool
+    count: int | None
+    size_bytes: int

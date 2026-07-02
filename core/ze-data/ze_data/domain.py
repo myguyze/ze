@@ -17,3 +17,7 @@ class DataDomain:
     # None means this domain is not importable (e.g. opaque LangGraph checkpoint blobs).
     # Receives an asyncpg Connection (not pool) so importers run inside one transaction.
     importer: Callable[[Any, list[dict]], Awaitable[int]] | None = None
+    # Optional fast row count. None = count not available (shown as null in API).
+    count: Callable[[Any], Awaitable[int]] | None = None
+    # Optional pg_total_relation_size sum in bytes. None = size not available.
+    size_bytes: Callable[[Any], Awaitable[int]] | None = None
