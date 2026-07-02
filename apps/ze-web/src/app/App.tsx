@@ -6,6 +6,7 @@ import { router } from "@/app/router";
 import { OnboardingWizard } from "@/widgets/onboarding-wizard";
 import { startWs } from "@/shared/api";
 import { hasConfig } from "@/shared/config";
+import { ZeErrorBoundary } from "@/shared/ui";
 
 bootstrapWs();
 
@@ -22,11 +23,13 @@ export function App() {
 
   return (
     <Providers>
-      {!configured ? (
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
-      ) : (
-        <RouterProvider router={router} />
-      )}
+      <ZeErrorBoundary>
+        {!configured ? (
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
+        ) : (
+          <RouterProvider router={router} />
+        )}
+      </ZeErrorBoundary>
     </Providers>
   );
 }

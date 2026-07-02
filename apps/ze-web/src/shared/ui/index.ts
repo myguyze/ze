@@ -16,5 +16,7 @@ export { EmptyState } from "./layout/EmptyState";
 export { ErrorState } from "./layout/ErrorState";
 export { ListSkeleton } from "./layout/ListSkeleton";
 export { ChatErrorBoundary } from "./layout/ChatErrorBoundary";
+export { ZeErrorBoundary } from "./layout/ZeErrorBoundary";
+export { ZeErrorFallback } from "./layout/ZeErrorFallback";
 export { ListPage } from "./layout/ListPage";
 export { TopBar } from "./layout/TopBar";

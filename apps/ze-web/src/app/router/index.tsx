@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
+import { RouteErrorPage } from "./RouteErrorPage";
 import { appRoutes, settingsRoute } from "./routes";
 
 function lazyPage(loader: () => Promise<{ default: ComponentType }>) {
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppShell />,
+    errorElement: <RouteErrorPage />,
     children: [
       ...appRoutes.map((route) =>
         route.index
