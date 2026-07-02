@@ -294,6 +294,50 @@ export type ContactListItem = {
 };
 
 /**
+ * CostAnomaliesResponse
+ */
+export type CostAnomaliesResponse = {
+    /**
+     * Anomalies
+     */
+    anomalies: Array<CostAnomalyItem>;
+    /**
+     * Period Days
+     */
+    period_days: number;
+};
+
+/**
+ * CostAnomalyItem
+ */
+export type CostAnomalyItem = {
+    /**
+     * Agent
+     */
+    agent: string;
+    /**
+     * Run Cost Usd
+     */
+    run_cost_usd: number;
+    /**
+     * Baseline Cost Usd
+     */
+    baseline_cost_usd: number;
+    /**
+     * Multiplier
+     */
+    multiplier: number;
+    /**
+     * Session Id
+     */
+    session_id: string | null;
+    /**
+     * Detected At
+     */
+    detected_at: string;
+};
+
+/**
  * CreateSessionRequest
  */
 export type CreateSessionRequest = {
@@ -323,6 +367,68 @@ export type CredibilityFlagItem = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * DailyCostBucket
+ */
+export type DailyCostBucket = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Usd
+     */
+    usd: number;
+    /**
+     * Calls
+     */
+    calls: number;
+};
+
+/**
+ * DataDomainItem
+ */
+export type DataDomainItem = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Importable
+     */
+    importable: boolean;
+    /**
+     * Count
+     */
+    count: number | null;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
+ * DataDomainsResponse
+ */
+export type DataDomainsResponse = {
+    /**
+     * Domains
+     */
+    domains: Array<DataDomainItem>;
+    /**
+     * Schema Revisions
+     */
+    schema_revisions: Array<string>;
+    /**
+     * Total Records
+     */
+    total_records: number;
+    /**
+     * Total Size Bytes
+     */
+    total_size_bytes: number;
 };
 
 /**
@@ -1811,6 +1917,10 @@ export type WebCostSummaryResponse = {
         [key: string]: AgentCostBucket;
     };
     /**
+     * By Day
+     */
+    by_day: Array<DailyCostBucket>;
+    /**
      * Period
      */
     period: string;
@@ -2546,6 +2656,38 @@ export type GetCostSummaryResponses = {
 
 export type GetCostSummaryResponse = GetCostSummaryResponses[keyof GetCostSummaryResponses];
 
+export type GetCostAnomaliesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         *
+         * Lookback window in days
+         */
+        days?: number;
+    };
+    url: '/api/v0/costs/anomalies';
+};
+
+export type GetCostAnomaliesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetCostAnomaliesError = GetCostAnomaliesErrors[keyof GetCostAnomaliesErrors];
+
+export type GetCostAnomaliesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CostAnomaliesResponse;
+};
+
+export type GetCostAnomaliesResponse = GetCostAnomaliesResponses[keyof GetCostAnomaliesResponses];
+
 export type GetCostDetailData = {
     body?: never;
     path?: never;
@@ -2833,6 +2975,22 @@ export type GetMessageTraceResponses = {
 };
 
 export type GetMessageTraceResponse = GetMessageTraceResponses[keyof GetMessageTraceResponses];
+
+export type ListDataDomainsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/data/domains';
+};
+
+export type ListDataDomainsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataDomainsResponse;
+};
+
+export type ListDataDomainsResponse = ListDataDomainsResponses[keyof ListDataDomainsResponses];
 
 export type ExportDataData = {
     body?: never;
