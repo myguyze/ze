@@ -6,7 +6,6 @@ import {
   BarChart2,
   Library,
   Brain,
-  Activity,
   Network,
   Database,
   Server,
@@ -30,7 +29,6 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "workflows", label: "Workflows", icon: Workflow, showInMobileNav: true },
   { path: "costs", label: "Usage", icon: BarChart2, showInMobileNav: true },
   { path: "brain-memory", label: "Memory", icon: Brain, showInMobileNav: false },
-  { path: "brain-activity", label: "Activity", icon: Activity, showInMobileNav: false },
   { path: "brain-graph", label: "Graph", icon: Network, showInMobileNav: false },
   { path: "data", label: "Data", icon: Database, showInMobileNav: false },
 ];
@@ -47,7 +45,7 @@ export const knowledgeNavRoutes: NavRouteMeta[] = navRoutes.filter(
 
 /** System sub-routes — rendered inside the collapsible System group. */
 export const systemNavRoutes: NavRouteMeta[] = navRoutes.filter(
-  (r) => r.path === "costs" || r.path === "brain-activity" || r.path === "data",
+  (r) => r.path === "costs" || r.path === "data",
 );
 
 export { Library as KnowledgeIcon, Server as SystemIcon, Briefcase as WorkIcon };

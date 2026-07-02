@@ -28,7 +28,7 @@ field). No new data capture is needed; this phase is pure aggregation + visualiz
 | Color encoding | Per-agent color (matching existing agent badge colors) + intensity by count | Dual encoding: hue = agent type, intensity = volume |
 | Multi-agent days | Stack top-3 agents by count; show total on hover | Most days are dominated by one agent; stacking covers the compound case |
 | Library | `@uiw/react-heat-map` (MIT, zero extra deps) | Lightweight, customizable, already used in similar OSS dashboards |
-| Placement | Dedicated `/brain/activity` route + nav entry | Avoids cluttering the goals or memory pages |
+| Placement | Section on `/costs` (Usage screen) | Keeps spend and activity patterns in one System view |
 
 ---
 
@@ -39,7 +39,7 @@ field). No new data capture is needed; this phase is pure aggregation + visualiz
 | `GET /api/v0/activity/heatmap` endpoint | ✅ Done |
 | Schema types | ✅ Done |
 | Codegen update | ✅ Done |
-| `pages/brain-activity/` FSD slice | ✅ Done |
+| `widgets/activity-heatmap-panel/` FSD slice | ✅ Done |
 | `AgentHeatmap` component | ✅ Done |
 | `ActivityDayDetail` tooltip/popover | ✅ Done |
 
@@ -102,14 +102,20 @@ class ActivityHeatmapResponse(BaseModel):
 
 ### Route
 
-`/brain/activity`
+`/costs` (Usage screen) — heatmap rendered below the spend summary and agent breakdown.
 
 ### FSD layout
 
 ```
-pages/brain-activity/
+pages/costs/
   ui/
-    BrainActivityPage.tsx     # date range picker + heatmap + legend
+    CostsPage.tsx             # delegates to CostsOverview
+widgets/costs-overview/
+  ui/
+    CostsOverview.tsx         # spend summary + agent breakdown + ActivityHeatmapPanel
+widgets/activity-heatmap-panel/
+  ui/
+    ActivityHeatmapPanel.tsx  # date range picker + heatmap + legend
 widgets/agent-heatmap/
   ui/
     AgentHeatmap.tsx          # wraps @uiw/react-heat-map with Ze data
@@ -196,4 +202,4 @@ Unknown agents fall back to `#6b7280` (gray).
 | `GET /api/v0/activity/heatmap` | Correct aggregation with multi-agent days; empty range; date boundary |
 | `AgentHeatmap` | Renders cells with correct color for dominant agent |
 | `DayDetailPopover` | Shows all agents for a multi-agent day |
-| Date range picker | Re-fetches on preset/custom change |
+| Date range picker | Re-fetches on preset/custom change (`ActivityHeatmapPanel`) |

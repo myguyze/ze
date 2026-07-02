@@ -30,7 +30,7 @@ function presetDates(preset: Preset): { start: string; end: string } | null {
   return { start: start.toISOString().slice(0, 10), end };
 }
 
-export function BrainActivityPage() {
+export function ActivityHeatmapPanel() {
   const [preset, setPreset] = useState<Preset>("12M");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -45,8 +45,18 @@ export function BrainActivityPage() {
   );
 
   return (
-    <div className="px-4 py-8 space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
+    <section className="space-y-4 border-t border-white/[0.06] pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-smoke">
+            Agent activity
+          </p>
+          <p className="mt-1 text-xs text-smoke/70">
+            Daily message volume by agent
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
             {PRESETS.map((p) => (
               <button
@@ -92,6 +102,7 @@ export function BrainActivityPage() {
             </div>
           )}
         </div>
+      </div>
 
       {preset === "custom" && (!customStart || !customEnd) && (
         <p className="text-sm text-smoke">Select a start and end date to view activity.</p>
@@ -121,6 +132,6 @@ export function BrainActivityPage() {
           <HeatmapLegend agents={data.agents} />
         </div>
       )}
-    </div>
+    </section>
   );
 }

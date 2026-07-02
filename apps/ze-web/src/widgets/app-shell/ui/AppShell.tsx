@@ -95,7 +95,7 @@ export function AppShell() {
             ))}
           </NavGroup>
 
-          {/* System group: Usage, Activity */}
+          {/* System group: Usage, Data */}
           <NavGroup
             icon={SystemIcon}
             label="System"

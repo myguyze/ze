@@ -1,4 +1,5 @@
 import { FloatingButton } from "@/features/open-context-overlay";
+import { ActivityHeatmapPanel } from "@/widgets/activity-heatmap-panel";
 import {
   formatAgentName,
   formatTokens,
@@ -248,10 +249,10 @@ export function CostsOverview() {
   if (!data) return null;
 
   return (
-    <div className="px-6 py-8 h-full flex flex-col gap-8">
+    <div className="px-6 py-8 space-y-8">
       <PageHeader label="System" title="Usage" />
 
-      <div className="flex-1 grid grid-cols-[5fr_7fr] gap-8 min-h-0">
+      <div className="grid grid-cols-1 xl:grid-cols-[5fr_7fr] gap-8">
         {/* Left: hero + chart + stats */}
         <div className="flex flex-col gap-6">
           {/* Hero spend */}
@@ -308,7 +309,7 @@ export function CostsOverview() {
         </div>
 
         {/* Right: agent breakdown */}
-        <div className="flex flex-col gap-6 overflow-y-auto min-h-0">
+        <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-5">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-smoke">
               By agent
@@ -328,6 +329,8 @@ export function CostsOverview() {
           </div>
         </div>
       </div>
+
+      <ActivityHeatmapPanel />
 
       <FloatingButton screen="costs" />
     </div>
