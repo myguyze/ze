@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import type { WorkflowStepResponse, WorkflowExecutionResponse } from "@myguyze/ze-client";
-import { CheckCircle2, XCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ChevronDown } from "lucide-react";
+import { cn, motion } from "@/shared/lib";
 
 type StepState = "completed-ok" | "completed-fail" | "running" | "failed-inferred" | "pending";
 
@@ -82,41 +83,55 @@ function StepRow({ step, index, state, result, executionError, isLast, expanded,
             {step.task}
           </p>
           {hasOutput && (
-            expanded
-              ? <ChevronDown className="w-3.5 h-3.5 text-smoke/60 flex-shrink-0 mt-0.5 group-hover:text-white/50 transition-colors" />
-              : <ChevronRight className="w-3.5 h-3.5 text-smoke/40 flex-shrink-0 mt-0.5 group-hover:text-white/50 transition-colors" />
+            <ChevronDown className={cn(
+              "w-3.5 h-3.5 flex-shrink-0 mt-0.5 group-hover:text-white/50",
+              motion.colors,
+              motion.rotate,
+              expanded ? "text-smoke/60 rotate-0" : "text-smoke/40 -rotate-90",
+            )} />
           )}
         </button>
 
-        {hasOutput && expanded && (
-          <div className="mt-2 rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 space-y-1.5">
-            {result?.output && (
-              <div className="text-xs text-smoke/90 leading-relaxed prose-workflow">
-                <ReactMarkdown
-                  components={{
-                    h1: ({ children }) => <p className="font-semibold text-white/80 mt-2 mb-0.5">{children}</p>,
-                    h2: ({ children }) => <p className="font-semibold text-white/80 mt-2 mb-0.5">{children}</p>,
-                    h3: ({ children }) => <p className="font-medium text-white/70 mt-1.5 mb-0.5">{children}</p>,
-                    p: ({ children }) => <p className="mb-1.5">{children}</p>,
-                    strong: ({ children }) => <strong className="text-white/80 font-medium">{children}</strong>,
-                    ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 space-y-0.5">{children}</ul>,
-                    ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 space-y-0.5">{children}</ol>,
-                    li: ({ children }) => <li>{children}</li>,
-                    code: ({ children }) => <code className="bg-white/10 rounded px-1 font-mono">{children}</code>,
-                    blockquote: ({ children }) => <blockquote className="border-l-2 border-white/20 pl-2 italic opacity-70">{children}</blockquote>,
-                    hr: () => <hr className="border-white/10 my-2" />,
-                  }}
-                >
-                  {result.output}
-                </ReactMarkdown>
+        {/* Animated accordion — always rendered, height driven by grid-template-rows */}
+        {hasOutput && (
+          <div
+            className={cn(
+              "grid",
+              motion.accordion,
+              expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+            )}
+          >
+            <div className="overflow-hidden">
+              <div className="mt-2 rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 space-y-1.5">
+                {result?.output && (
+                  <div className="text-xs text-smoke/90 leading-relaxed prose-workflow">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ children }) => <p className="font-semibold text-white/80 mt-2 mb-0.5">{children}</p>,
+                        h2: ({ children }) => <p className="font-semibold text-white/80 mt-2 mb-0.5">{children}</p>,
+                        h3: ({ children }) => <p className="font-medium text-white/70 mt-1.5 mb-0.5">{children}</p>,
+                        p: ({ children }) => <p className="mb-1.5">{children}</p>,
+                        strong: ({ children }) => <strong className="text-white/80 font-medium">{children}</strong>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 space-y-0.5">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 space-y-0.5">{children}</ol>,
+                        li: ({ children }) => <li>{children}</li>,
+                        code: ({ children }) => <code className="bg-white/10 rounded px-1 font-mono">{children}</code>,
+                        blockquote: ({ children }) => <blockquote className="border-l-2 border-white/20 pl-2 italic opacity-70">{children}</blockquote>,
+                        hr: () => <hr className="border-white/10 my-2" />,
+                      }}
+                    >
+                      {result.output}
+                    </ReactMarkdown>
+                  </div>
+                )}
+                {result?.error && (
+                  <p className="text-xs text-red-400">{result.error}</p>
+                )}
+                {state === "failed-inferred" && executionError && !result?.error && (
+                  <p className="text-xs text-red-400/70">{executionError}</p>
+                )}
               </div>
-            )}
-            {result?.error && (
-              <p className="text-xs text-red-400">{result.error}</p>
-            )}
-            {state === "failed-inferred" && executionError && !result?.error && (
-              <p className="text-xs text-red-400/70">{executionError}</p>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -127,14 +142,20 @@ function StepRow({ step, index, state, result, executionError, isLast, expanded,
 interface Props {
   steps: WorkflowStepResponse[];
   execution?: WorkflowExecutionResponse | null;
+  isLive?: boolean;
 }
 
-export function WorkflowStepsList({ steps, execution }: Props) {
+export function WorkflowStepsList({ steps, execution, isLive = false }: Props) {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
 
-  // Auto-expand each step as it completes
+  // Reset to collapsed whenever switching to a different execution
   useEffect(() => {
-    if (!execution) return;
+    setExpandedSteps(new Set());
+  }, [execution?.id]);
+
+  // Auto-expand each step as it completes — only during live runs
+  useEffect(() => {
+    if (!execution || !isLive) return;
     const nextExpanded = new Set(expandedSteps);
     let changed = false;
     for (const result of execution.step_results) {
@@ -145,7 +166,7 @@ export function WorkflowStepsList({ steps, execution }: Props) {
     }
     if (changed) setExpandedSteps(nextExpanded);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [execution?.step_results.length]);
+  }, [execution?.step_results.length, isLive]);
 
   if (!steps.length) {
     return <p className="text-sm text-smoke">No steps defined.</p>;

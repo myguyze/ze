@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
+import { useOverlayStore } from "@/features/open-context-overlay";
+import { useSetBreadcrumbTitle } from "@/shared/lib";
 import ReactMarkdown from "react-markdown";
 import type { WorkflowExecutionResponse } from "@myguyze/ze-client";
 import {
@@ -26,6 +28,8 @@ export function WorkflowDetailPage() {
   const { data: liveExecution } = useLiveExecutionQuery(workflowId ?? "", liveExecutionId);
 
   const trigger = useTriggerWorkflowMutation();
+
+  useSetBreadcrumbTitle(detail?.name);
 
   const isRunning = trigger.isPending || liveExecution?.status === "running";
 
@@ -129,18 +133,23 @@ export function WorkflowDetailPage() {
         <SectionPanel className="lg:col-span-2">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest">Steps</h2>
-            <StepsStatus
-              liveExecution={liveExecution}
-              displayExecution={displayExecution}
-              isRunning={isRunning}
-              onClear={() => {
-                setLiveExecutionId(null);
-                setSelectedExecution(null);
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <StepsStatus
+                liveExecution={liveExecution}
+                displayExecution={displayExecution}
+                isRunning={isRunning}
+                onClear={() => {
+                  setLiveExecutionId(null);
+                  setSelectedExecution(null);
+                }}
+              />
+              {displayExecution && !isRunning && (
+                <ChatAboutRunButton execution={displayExecution} workflowName={detail.name} />
+              )}
+            </div>
           </div>
 
-          <WorkflowStepsList steps={detail.steps} execution={displayExecution} />
+          <WorkflowStepsList steps={detail.steps} execution={displayExecution} isLive={isRunning} />
 
           {displayExecution?.summary && displayExecution.status !== "running" && (
             <div className="mt-5 pt-5 border-t border-white/[0.06]">
@@ -177,7 +186,6 @@ export function WorkflowDetailPage() {
             <ListSkeleton count={3} />
           ) : (
             <WorkflowExecutionsList
-              workflowName={detail.name}
               executions={executions ?? []}
               selectedId={displayedId}
               onSelect={handleSelectExecution}
@@ -186,6 +194,48 @@ export function WorkflowDetailPage() {
         </SectionPanel>
       </div>
     </PageShell>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function formatDuration(startedAt: string | null, completedAt: string | null): string {
+  if (!startedAt || !completedAt) return "";
+  const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatTimestamp(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+interface ChatAboutRunButtonProps {
+  execution: WorkflowExecutionResponse;
+  workflowName: string;
+}
+
+function ChatAboutRunButton({ execution, workflowName }: ChatAboutRunButtonProps) {
+  const openForExecution = useOverlayStore((s) => s.openForExecution);
+  const date = execution.started_at ? formatTimestamp(execution.started_at) : "unknown date";
+  const duration = formatDuration(execution.started_at, execution.completed_at);
+  const stepCount = execution.step_results.length;
+  const status = execution.status === "completed" ? "completed" : "failed";
+  const durationPart = duration ? ` in ${duration}` : "";
+  const errorPart = execution.error ? `. Error: ${execution.error}` : "";
+  const prefillMessage = `Tell me about the "${workflowName}" workflow run from ${date}. It ${status}${durationPart} with ${stepCount} step${stepCount !== 1 ? "s" : ""}${errorPart}.`;
+
+  return (
+    <button
+      className="flex items-center gap-1.5 text-xs text-smoke hover:text-white transition-colors"
+      title="Chat about this run"
+      onClick={() => openForExecution({ screen: "workflow run", entityId: execution.id, prefillMessage })}
+    >
+      <MessageCircle className="w-3.5 h-3.5" />
+      Ask Ze
+    </button>
   );
 }
 
