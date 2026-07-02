@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { navRoutes, settingsNavRoute } from "@/shared/config";
 import { useBreadcrumb } from "@/shared/lib/breadcrumb";
+import { useTopBarActions } from "@/shared/lib/top-bar-actions";
 
 const allRoutes = [...navRoutes, settingsNavRoute];
 
@@ -28,6 +29,7 @@ export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { detailTitle } = useBreadcrumb();
+  const { quickActions } = useTopBarActions();
 
   const detail = parseDetailRoute(pathname);
   const currentRoute = detail ? null : getCurrentRoute(pathname);
@@ -63,8 +65,18 @@ export function TopBar() {
         )}
       </div>
 
-      {/* Right: actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      {/* Right: quick actions + notifications */}
+      <div className="flex items-center shrink-0">
+        {quickActions && (
+          <>
+            <div className="flex items-center gap-1">{quickActions}</div>
+            <div
+              className="w-px h-5 bg-white/10 mx-2"
+              role="separator"
+              aria-orientation="vertical"
+            />
+          </>
+        )}
         <button
           className="flex items-center justify-center w-9 h-9 rounded-pill text-smoke hover:text-white hover:bg-white/5 transition-colors"
           aria-label="Notifications"

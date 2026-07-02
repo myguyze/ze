@@ -4,11 +4,16 @@ import {
   Target,
   Workflow,
   BarChart2,
+  Library,
   Brain,
   Activity,
   Network,
+  Database,
+  Server,
+  Briefcase,
   Settings,
 } from "lucide-react";
+import { redirectHintPath } from "@/shared/lib/redirect-hint";
 
 export interface NavRouteMeta {
   path: string;
@@ -27,17 +32,25 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "brain-memory", label: "Memory", icon: Brain, showInMobileNav: false },
   { path: "brain-activity", label: "Activity", icon: Activity, showInMobileNav: false },
   { path: "brain-graph", label: "Graph", icon: Network, showInMobileNav: false },
+  { path: "data", label: "Data", icon: Database, showInMobileNav: false },
 ];
 
-/** Routes rendered as top-level sidebar items (excludes Chat and Brain sub-routes). */
-export const standardNavRoutes: NavRouteMeta[] = navRoutes.filter(
-  (r) => r.showInMobileNav && !r.index,
+/** Work sub-routes — rendered inside the collapsible Work group. */
+export const workNavRoutes: NavRouteMeta[] = navRoutes.filter(
+  (r) => r.path === "goals" || r.path === "workflows",
 );
 
-/** Brain sub-routes — rendered inside the collapsible Brain group. */
-export const brainNavRoutes: NavRouteMeta[] = navRoutes.filter((r) =>
-  r.path.startsWith("brain-"),
+/** Knowledge sub-routes — rendered inside the collapsible Knowledge group. */
+export const knowledgeNavRoutes: NavRouteMeta[] = navRoutes.filter(
+  (r) => r.path === "brain-memory" || r.path === "brain-graph",
 );
+
+/** System sub-routes — rendered inside the collapsible System group. */
+export const systemNavRoutes: NavRouteMeta[] = navRoutes.filter(
+  (r) => r.path === "costs" || r.path === "brain-activity" || r.path === "data",
+);
+
+export { Library as KnowledgeIcon, Server as SystemIcon, Briefcase as WorkIcon };
 
 export const settingsNavRoute: NavRouteMeta = {
   path: "settings",
@@ -45,6 +58,13 @@ export const settingsNavRoute: NavRouteMeta = {
   icon: Settings,
   showInMobileNav: true,
 };
+
+/** Hash target for export/import/delete in SettingsWorkspace. */
+export const settingsDataSectionId = "your-data";
+
+export function settingsDataPath(): string {
+  return redirectHintPath(`/${settingsNavRoute.path}`, settingsDataSectionId);
+}
 
 export const mobileNavRoutes = [
   ...navRoutes.filter((r) => r.showInMobileNav),

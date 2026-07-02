@@ -20,3 +20,5 @@ export { ZeErrorBoundary } from "./layout/ZeErrorBoundary";
 export { ZeErrorFallback } from "./layout/ZeErrorFallback";
 export { ListPage } from "./layout/ListPage";
 export { TopBar } from "./layout/TopBar";
+export { TopBarQuickActionLink } from "./layout/TopBarQuickAction";
+export { RedirectHintTarget } from "./layout/RedirectHintTarget";

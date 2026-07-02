@@ -8,9 +8,15 @@ export {
 export {
   type NavRouteMeta,
   navRoutes,
-  standardNavRoutes,
-  brainNavRoutes,
+  workNavRoutes,
+  knowledgeNavRoutes,
+  systemNavRoutes,
+  WorkIcon,
+  KnowledgeIcon,
+  SystemIcon,
   settingsNavRoute,
   mobileNavRoutes,
+  settingsDataSectionId,
+  settingsDataPath,
 } from "./nav-routes";
 export { AGENT_COLORS, AGENT_COLOR_FALLBACK, agentColor } from "./agents";

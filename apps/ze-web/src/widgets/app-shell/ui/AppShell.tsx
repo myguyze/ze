@@ -1,13 +1,13 @@
-import { Brain, Settings } from "lucide-react";
+import { Settings, Puzzle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import { mergeMobileNavRoutes, pluginNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
 import { RefreshHandler } from "@/features/invalidate-on-ws-refresh";
 import { useOverlay } from "@/features/open-context-overlay";
 import { NoticeBanner } from "@/features/send-context-notice";
-import { brainNavRoutes, navRoutes, settingsNavRoute, standardNavRoutes } from "@/shared/config";
+import { WorkIcon, KnowledgeIcon, SystemIcon, workNavRoutes, knowledgeNavRoutes, systemNavRoutes, navRoutes, settingsNavRoute } from "@/shared/config";
 import { cn } from "@/shared/lib/cn";
-import { BreadcrumbProvider } from "@/shared/lib/breadcrumb";
+import { BreadcrumbProvider, TopBarActionsProvider } from "@/shared/lib";
 import { TopBar } from "@/shared/ui";
 import { ChatNavGroup } from "./ChatNavGroup";
 import { ContextOverlay } from "./ContextOverlay";
@@ -67,21 +67,13 @@ export function AppShell() {
           {/* Chat + recent sessions */}
           <ChatNavGroup />
 
-          {/* Standard routes: Goals, Workflows, Costs */}
-          {standardNavRoutes.map(({ path, icon: Icon, label }) => (
-            <NavLink key={path} to={path} className={navLinkClass}>
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden lg:block">{label}</span>
-            </NavLink>
-          ))}
-
-          {/* Brain group: Memory, Activity, Graph */}
+          {/* Work group: Goals, Workflows */}
           <NavGroup
-            icon={Brain}
-            label="Brain"
-            childPaths={brainNavRoutes.map((r) => r.path)}
+            icon={WorkIcon}
+            label="Work"
+            childPaths={workNavRoutes.map((r) => r.path)}
           >
-            {brainNavRoutes.map(({ path, icon: Icon, label }) => (
+            {workNavRoutes.map(({ path, icon: Icon, label }) => (
               <NavLink key={path} to={path} className={childNavLinkClass}>
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>{label}</span>
@@ -89,13 +81,49 @@ export function AppShell() {
             ))}
           </NavGroup>
 
-          {/* Plugin-contributed routes */}
-          {pluginRoutes.map(({ path, icon: Icon, label }) => (
-            <NavLink key={path} to={path} className={navLinkClass}>
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden lg:block">{label}</span>
-            </NavLink>
-          ))}
+          {/* Knowledge group: Memory, Graph */}
+          <NavGroup
+            icon={KnowledgeIcon}
+            label="Knowledge"
+            childPaths={knowledgeNavRoutes.map((r) => r.path)}
+          >
+            {knowledgeNavRoutes.map(({ path, icon: Icon, label }) => (
+              <NavLink key={path} to={path} className={childNavLinkClass}>
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </NavGroup>
+
+          {/* System group: Usage, Activity */}
+          <NavGroup
+            icon={SystemIcon}
+            label="System"
+            childPaths={systemNavRoutes.map((r) => r.path)}
+          >
+            {systemNavRoutes.map(({ path, icon: Icon, label }) => (
+              <NavLink key={path} to={path} className={childNavLinkClass}>
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </NavGroup>
+
+          {/* Plugins group */}
+          {pluginRoutes.length > 0 && (
+            <NavGroup
+              icon={Puzzle}
+              label="Plugins"
+              childPaths={pluginRoutes.map((r) => r.path)}
+            >
+              {pluginRoutes.map(({ path, icon: Icon, label }) => (
+                <NavLink key={path} to={path} className={childNavLinkClass}>
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{label}</span>
+                </NavLink>
+              ))}
+            </NavGroup>
+          )}
         </div>
 
         <div className="p-2 border-t border-white/10">
@@ -108,11 +136,13 @@ export function AppShell() {
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <BreadcrumbProvider>
-          <TopBar />
-          <NoticeBanner />
-          <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
-            <Outlet />
-          </div>
+          <TopBarActionsProvider>
+            <TopBar />
+            <NoticeBanner />
+            <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
+              <Outlet />
+            </div>
+          </TopBarActionsProvider>
         </BreadcrumbProvider>
       </main>
 
