@@ -9,6 +9,7 @@ export const queryKeys = {
   workflowDetail: (workflowId: string) => ["workflow-detail", workflowId] as const,
   workflowExecutions: (workflowId: string) => ["workflow-executions", workflowId] as const,
   costs: ["costs"] as const,
+  costAnomalies: ["cost-anomalies"] as const,
   sessions: ["sessions"] as const,
   uiManifest: ["ui-manifest"] as const,
   memoryFeed: (type: string, agent?: string, asOf?: string) => ["memory-feed", type, agent ?? "", asOf ?? ""] as const,
@@ -18,6 +19,7 @@ export const queryKeys = {
   entityDetail: (entityId: string) => ["entity-detail", entityId] as const,
   pluginPage: (path: string) => ["plugin-page", path] as const,
   pluginSettings: (id: string) => ["plugin-settings", id] as const,
+  dataDomains: () => ["data-domains"] as const,
 };
 
 const CORE_REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {

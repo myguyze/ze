@@ -6,9 +6,9 @@ import { useImportUserData } from "@/features/import-user-data";
 import { useConnectionTest } from "@/features/test-api-connection";
 import { useUiManifestQuery } from "@/entities/ui-manifest";
 import { reconnect } from "@/shared/api";
-import { getConfig, saveConfig, clearConfig } from "@/shared/config";
+import { getConfig, saveConfig, clearConfig, settingsDataSectionId } from "@/shared/config";
 import { resetClient } from "@/shared/lib";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, RedirectHintTarget } from "@/shared/ui";
 import { PluginSettingsSection } from "@/widgets/plugin-settings-section";
 
 export function SettingsWorkspace() {
@@ -125,7 +125,10 @@ export function SettingsWorkspace() {
         </Button>
       </div>
 
-      <div className="space-y-3 pt-4 border-t border-white/10">
+      <RedirectHintTarget
+        hintId={settingsDataSectionId}
+        className="space-y-3 pt-4 border-t border-white/10"
+      >
         <p className="text-xs font-semibold tracking-widest uppercase text-smoke">Your data</p>
         <p className="text-sm text-smoke leading-relaxed">
           Export a full archive of your personal data, or permanently delete everything Ze knows
@@ -157,7 +160,7 @@ export function SettingsWorkspace() {
         <Button variant="danger" onClick={openDeleteModal} className="w-full">
           Delete all data
         </Button>
-      </div>
+      </RedirectHintTarget>
 
       <div className="pt-4 border-t border-white/10">
         <Button variant="danger" onClick={() => setShowResetModal(true)} className="w-full">
