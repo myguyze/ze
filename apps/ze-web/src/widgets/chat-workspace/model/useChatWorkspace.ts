@@ -67,10 +67,16 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   useFrame("typing", (frame) => {
     const frameThread = frame.thread_id ?? null;
     if (frameThread && frameThread !== threadId) {
-      // Another thread is thinking — mark it busy in global store
+      // Another thread is thinking — mark it busy in global store.
+      // The backend stores the user message before sending typing, so the
+      // session exists in the DB now — invalidate the sessions list.
       setThreadThinking(frameThread, true);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
       return;
     }
+    // Typing for our own thread.
+    // Session is guaranteed to exist in the DB at this point.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
     if (!active) return;
     setShowTyping(true);
     setTypingText(frame.text ?? null);
@@ -91,14 +97,23 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     const frameThread = frame.message.thread_id ?? null;
 
     if (frameThread && frameThread !== threadId) {
-      // Message arrived for a different thread — clear its thinking and signal attention
+      // Message arrived for a different thread — clear its thinking and signal attention.
       setThreadThinking(frameThread, false);
       if (frame.message.role === "assistant") {
-        setThreadAttention(frameThread, true);
+        // Only set attention if the session isn't the one the user is currently viewing.
+        // Read from the session store directly (outside React) to get the canonical
+        // active thread, not the overlay's threadId.
+        const activeThread = useSession.getState().threadId;
+        if (frameThread !== activeThread) {
+          setThreadAttention(frameThread, true);
+        }
         void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
       }
       return;
     }
+
+    // Message for our own thread — ensure any stale attention is cleared.
+    setThreadAttention(threadId, false);
 
     if (!active) return;
 
@@ -178,9 +193,6 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     });
 
     setThreadThinking(threadId, true);
-    // Invalidate immediately so new sessions appear in the navbar without waiting
-    // for the assistant reply (the backend stores the user message synchronously).
-    void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
     return true;
   }
 

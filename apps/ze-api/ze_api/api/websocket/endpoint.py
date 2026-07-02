@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -148,26 +149,54 @@ async def websocket_endpoint(
                     await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
                     continue
 
-                try:
-                    result = await handle_message(
-                        ws,
-                        data,
-                        container,
-                        msg_store,
-                        conn_mgr,
-                        pending_configs.get(thread_id),
+                # Spawn a background task so the WS loop can immediately accept
+                # messages for other threads while this LLM call is in progress.
+                asyncio.create_task(
+                    _run_message_task(
+                        ws, data, container, msg_store, conn_mgr, pending_configs,
+                        thread_id,
                         confirmation_store=confirmation_store,
                         session_store=session_store,
                     )
-                    if result is not None:
-                        pending_configs[thread_id] = result
-                    else:
-                        pending_configs.pop(thread_id, None)
-                finally:
-                    conn_mgr.clear_busy(thread_id)
+                )
 
     except Exception as exc:
         log.exception("ws_handler_error", error=str(exc))
     finally:
         await conn_mgr.disconnect()
         log.info("ws_disconnected")
+
+
+async def _run_message_task(
+    ws: WebSocket,
+    data: dict,
+    container: object,
+    msg_store: object,
+    conn_mgr: ConnectionManager,
+    pending_configs: dict[str, dict],
+    thread_id: str,
+    *,
+    confirmation_store: object | None,
+    session_store: object | None,
+) -> None:
+    """Background task wrapper: runs handle_message and clears the busy flag."""
+    try:
+        result = await handle_message(
+            ws,
+            data,
+            container,
+            msg_store,
+            conn_mgr,
+            pending_configs.get(thread_id),
+            confirmation_store=confirmation_store,
+            session_store=session_store,
+        )
+        if result is not None:
+            pending_configs[thread_id] = result
+        else:
+            pending_configs.pop(thread_id, None)
+    except Exception as exc:
+        log.exception("ws_message_task_error", thread_id=thread_id, error=str(exc))
+        await conn_mgr.send_frame({"type": "error", "detail": "Something went wrong."}, thread_id)
+    finally:
+        conn_mgr.clear_busy(thread_id)

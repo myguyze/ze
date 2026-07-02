@@ -59,7 +59,9 @@ function connect() {
 
   ws.onopen = () => {
     retryDelay = 1000;
-    useWsStore.getState().setConnected(true);
+    // Clear stale per-thread thinking state — any in-flight requests from
+    // the previous connection are gone, so the backend is no longer busy.
+    useWsStore.setState({ thinkingThreads: {}, isConnected: true });
     pingInterval = setInterval(() => send({ type: "ping" }), 30_000);
   };
 
