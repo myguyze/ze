@@ -33,6 +33,18 @@ async def web_cost_summary(pool: Any, *, days: int = _WEB_SUMMARY_DAYS) -> dict:
             """,
             days,
         )
+        daily_rows = await conn.fetch(
+            """
+            SELECT DATE(created_at)::text  AS day,
+                   COUNT(*)::int           AS calls,
+                   SUM(cost_usd)           AS cost_usd
+            FROM llm_cost_log
+            WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
+            GROUP BY DATE(created_at)
+            ORDER BY DATE(created_at)
+            """,
+            days,
+        )
 
     by_agent = {
         row["agent"]: {
@@ -44,11 +56,20 @@ async def web_cost_summary(pool: Any, *, days: int = _WEB_SUMMARY_DAYS) -> dict:
         }
         for row in rows
     }
+    by_day = [
+        {
+            "date": row["day"],
+            "usd": float(row["cost_usd"] or 0),
+            "calls": row["calls"] or 0,
+        }
+        for row in daily_rows
+    ]
     return {
         "total_usd": float(totals["total_cost_usd"] or 0),
         "total_tokens": int(totals["total_tokens"] or 0),
         "total_calls": int(totals["total_calls"] or 0),
         "by_agent": by_agent,
+        "by_day": by_day,
         "period": f"Last {days} days",
     }
 
