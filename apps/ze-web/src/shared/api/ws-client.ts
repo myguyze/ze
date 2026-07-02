@@ -6,19 +6,24 @@ import { getConfig } from "@/shared/config";
 interface WsStore {
   isConnected: boolean;
   thinkingThreads: Record<string, boolean>;
+  typingTextThreads: Record<string, string | null>;
   attentionThreads: Record<string, boolean>;
   setConnected: (v: boolean) => void;
   setThreadThinking: (threadId: string, v: boolean) => void;
+  setThreadTypingText: (threadId: string, text: string | null) => void;
   setThreadAttention: (threadId: string, v: boolean) => void;
 }
 
 export const useWsStore = create<WsStore>((set) => ({
   isConnected: false,
   thinkingThreads: {},
+  typingTextThreads: {},
   attentionThreads: {},
   setConnected: (v) => set({ isConnected: v }),
   setThreadThinking: (threadId, v) =>
     set((s) => ({ thinkingThreads: { ...s.thinkingThreads, [threadId]: v } })),
+  setThreadTypingText: (threadId, text) =>
+    set((s) => ({ typingTextThreads: { ...s.typingTextThreads, [threadId]: text } })),
   setThreadAttention: (threadId, v) =>
     set((s) => ({ attentionThreads: { ...s.attentionThreads, [threadId]: v } })),
 }));
@@ -59,9 +64,9 @@ function connect() {
 
   ws.onopen = () => {
     retryDelay = 1000;
-    // Clear stale per-thread thinking state — any in-flight requests from
-    // the previous connection are gone, so the backend is no longer busy.
-    useWsStore.setState({ thinkingThreads: {}, isConnected: true });
+    // Clear stale per-thread state — any in-flight requests from the previous
+    // connection are gone, so the backend is no longer busy.
+    useWsStore.setState({ thinkingThreads: {}, typingTextThreads: {}, isConnected: true });
     pingInterval = setInterval(() => send({ type: "ping" }), 30_000);
   };
 

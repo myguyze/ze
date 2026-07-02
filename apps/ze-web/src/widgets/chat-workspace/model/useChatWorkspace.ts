@@ -27,15 +27,22 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
 
   const [ephemeralMessages, setEphemeralMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState<string | null>(null);
-  const [showTyping, setShowTyping] = useState(false);
-  const [typingText, setTypingText] = useState<string | null>(null);
-  const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevActiveRef = useRef(active);
 
+  // Typing indicator is derived from per-thread Zustand state so it survives
+  // session switches — when you switch back to a processing session the
+  // indicator is still visible.
   const isThinking = useWsStore((s) => s.thinkingThreads[threadId] ?? false);
+  const typingText = useWsStore((s) => s.typingTextThreads[threadId] ?? null);
   const setThreadThinking = useWsStore((s) => s.setThreadThinking);
+  const setThreadTypingText = useWsStore((s) => s.setThreadTypingText);
   const setThreadAttention = useWsStore((s) => s.setThreadAttention);
   const isConnected = useWsStore((s) => s.isConnected);
+
+  // showTyping mirrors isThinking so the chat bubble is visible whenever
+  // the backend is processing, regardless of which session was active
+  // when the typing frame originally arrived.
+  const showTyping = isThinking;
 
   const { pendingConfirm, respond: respondToConfirm, clear: clearConfirm } = useConfirmation(
     active,
@@ -44,12 +51,6 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   );
 
   const messages = ephemeral ? ephemeralMessages : persistedMessages;
-
-  function clearTyping() {
-    setShowTyping(false);
-    setTypingText(null);
-    clearTimeout(typingTimer.current);
-  }
 
   useEffect(() => {
     if (ephemeral && active && !prevActiveRef.current) {
@@ -67,29 +68,22 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   useFrame("typing", (frame) => {
     const frameThread = frame.thread_id ?? null;
     if (frameThread && frameThread !== threadId) {
-      // Another thread is thinking — mark it busy in global store.
+      // Another thread is thinking — update its global state.
       // The backend stores the user message before sending typing, so the
       // session exists in the DB now — invalidate the sessions list.
       setThreadThinking(frameThread, true);
+      setThreadTypingText(frameThread, frame.text ?? null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
       return;
     }
     // Typing for our own thread.
-    // Session is guaranteed to exist in the DB at this point.
+    setThreadTypingText(threadId, frame.text ?? null);
     void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
-    if (!active) return;
-    setShowTyping(true);
-    setTypingText(frame.text ?? null);
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => {
-      setShowTyping(false);
-      setTypingText(null);
-    }, 3_000);
   });
 
   function stopThinking() {
     setThreadThinking(threadId, false);
-    clearTyping();
+    setThreadTypingText(threadId, null);
     setStreamingText(null);
   }
 
@@ -99,10 +93,9 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     if (frameThread && frameThread !== threadId) {
       // Message arrived for a different thread — clear its thinking and signal attention.
       setThreadThinking(frameThread, false);
+      setThreadTypingText(frameThread, null);
       if (frame.message.role === "assistant") {
-        // Only set attention if the session isn't the one the user is currently viewing.
-        // Read from the session store directly (outside React) to get the canonical
-        // active thread, not the overlay's threadId.
+        // Only set attention if this session isn't the one currently open.
         const activeThread = useSession.getState().threadId;
         if (frameThread !== activeThread) {
           setThreadAttention(frameThread, true);
@@ -112,7 +105,7 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
       return;
     }
 
-    // Message for our own thread — ensure any stale attention is cleared.
+    // Message for our own thread — clear any stale attention.
     setThreadAttention(threadId, false);
 
     if (!active) return;
@@ -156,6 +149,7 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
     const frameThread = frame.thread_id ?? null;
     if (frameThread && frameThread !== threadId) {
       setThreadThinking(frameThread, false);
+      setThreadTypingText(frameThread, null);
       return;
     }
     if (!active) return;
@@ -198,8 +192,8 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
 
   function resetInteraction() {
     setThreadThinking(threadId, false);
+    setThreadTypingText(threadId, null);
     clearConfirm();
-    clearTyping();
   }
 
   return {
