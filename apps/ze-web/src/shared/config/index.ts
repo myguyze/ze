@@ -8,6 +8,8 @@ export {
 export {
   type NavRouteMeta,
   navRoutes,
+  standardNavRoutes,
+  brainNavRoutes,
   settingsNavRoute,
   mobileNavRoutes,
 } from "./nav-routes";

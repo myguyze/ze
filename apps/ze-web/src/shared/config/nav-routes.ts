@@ -29,6 +29,16 @@ export const navRoutes: NavRouteMeta[] = [
   { path: "brain-graph", label: "Graph", icon: Network, showInMobileNav: false },
 ];
 
+/** Routes rendered as top-level sidebar items (excludes Chat and Brain sub-routes). */
+export const standardNavRoutes: NavRouteMeta[] = navRoutes.filter(
+  (r) => r.showInMobileNav && !r.index,
+);
+
+/** Brain sub-routes — rendered inside the collapsible Brain group. */
+export const brainNavRoutes: NavRouteMeta[] = navRoutes.filter((r) =>
+  r.path.startsWith("brain-"),
+);
+
 export const settingsNavRoute: NavRouteMeta = {
   path: "settings",
   label: "Settings",

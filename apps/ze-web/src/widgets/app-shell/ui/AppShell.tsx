@@ -1,19 +1,27 @@
-import { Settings } from "lucide-react";
+import { Brain, Settings } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { mergeMobileNavRoutes, mergeNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
+import { mergeMobileNavRoutes, pluginNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
 import { RefreshHandler } from "@/features/invalidate-on-ws-refresh";
 import { useOverlay } from "@/features/open-context-overlay";
 import { NoticeBanner } from "@/features/send-context-notice";
-import { navRoutes, settingsNavRoute } from "@/shared/config";
+import { brainNavRoutes, navRoutes, settingsNavRoute, standardNavRoutes } from "@/shared/config";
 import { cn } from "@/shared/lib/cn";
 import { BreadcrumbProvider } from "@/shared/lib/breadcrumb";
 import { TopBar } from "@/shared/ui";
+import { ChatNavGroup } from "./ChatNavGroup";
 import { ContextOverlay } from "./ContextOverlay";
+import { NavGroup } from "./NavGroup";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
     "flex items-center gap-3 px-3 py-2 rounded-pill text-sm transition-colors",
+    isActive ? "bg-plum-voltage/15 text-white" : "text-smoke hover:text-white hover:bg-white/5",
+  );
+
+const childNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    "flex items-center gap-2.5 px-3 py-1.5 rounded-pill text-xs w-full transition-colors",
     isActive ? "bg-plum-voltage/15 text-white" : "text-smoke hover:text-white hover:bg-white/5",
   );
 
@@ -25,12 +33,14 @@ const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AppShell() {
   const { data: uiManifest } = useUiManifestQuery();
-  const desktopNavRoutes = useMemo(
-    () => mergeNavRoutes(navRoutes, uiManifest?.nav),
-    [uiManifest?.nav],
-  );
+
   const mobileNavRoutes = useMemo(
     () => mergeMobileNavRoutes(navRoutes, settingsNavRoute, uiManifest?.nav),
+    [uiManifest?.nav],
+  );
+
+  const pluginRoutes = useMemo(
+    () => pluginNavRoutes(uiManifest?.nav ?? []),
     [uiManifest?.nav],
   );
 
@@ -53,9 +63,35 @@ export function AppShell() {
           <span className="hidden lg:block text-sm font-semibold text-white">Ze</span>
         </div>
 
-        <div className="flex-1 py-4 space-y-1 px-2">
-          {desktopNavRoutes.map(({ path, icon: Icon, label, index }) => (
-            <NavLink key={path} to={path} end={index} className={navLinkClass}>
+        <div className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
+          {/* Chat + recent sessions */}
+          <ChatNavGroup />
+
+          {/* Standard routes: Goals, Workflows, Costs */}
+          {standardNavRoutes.map(({ path, icon: Icon, label }) => (
+            <NavLink key={path} to={path} className={navLinkClass}>
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden lg:block">{label}</span>
+            </NavLink>
+          ))}
+
+          {/* Brain group: Memory, Activity, Graph */}
+          <NavGroup
+            icon={Brain}
+            label="Brain"
+            childPaths={brainNavRoutes.map((r) => r.path)}
+          >
+            {brainNavRoutes.map(({ path, icon: Icon, label }) => (
+              <NavLink key={path} to={path} className={childNavLinkClass}>
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </NavGroup>
+
+          {/* Plugin-contributed routes */}
+          {pluginRoutes.map(({ path, icon: Icon, label }) => (
+            <NavLink key={path} to={path} className={navLinkClass}>
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="hidden lg:block">{label}</span>
             </NavLink>
