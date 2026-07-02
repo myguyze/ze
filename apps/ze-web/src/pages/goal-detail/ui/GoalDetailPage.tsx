@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Target } from "lucide-react";
 import { useGoalDetailQuery } from "@/entities/goal";
+import { useSetBreadcrumbTitle } from "@/shared/lib";
 import { MilestoneTimeline } from "@/widgets/milestone-timeline";
 import { GateStatusCard } from "@/widgets/gate-status";
 import { GoalLearningsList } from "@/widgets/goal-learnings";
@@ -10,6 +11,8 @@ export function GoalDetailPage() {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
   const { data: detail, isLoading, isError, refetch } = useGoalDetailQuery(goalId ?? "");
+
+  useSetBreadcrumbTitle(detail?.title);
 
   if (isLoading) {
     return (

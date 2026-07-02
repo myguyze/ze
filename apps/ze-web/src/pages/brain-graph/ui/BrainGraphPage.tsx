@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Network } from "lucide-react";
 import { useMemoryGraphQuery } from "@/entities/memory-graph";
 import { MemoryGraph } from "@/widgets/memory-graph";
-import { PageHeader, EmptyState, ErrorState } from "@/shared/ui";
+import { EmptyState, ErrorState } from "@/shared/ui";
 
 export function BrainGraphPage() {
   const [entityType, setEntityType] = useState("all");
@@ -14,8 +14,6 @@ export function BrainGraphPage() {
 
   return (
     <div className="flex flex-col h-full px-4 py-6 gap-4">
-      <PageHeader label="Brain" title="Memory Graph" />
-
       {isPending && (
         <div className="flex-1 flex items-center justify-center text-sm text-smoke">
           Loading graph…

@@ -3,7 +3,6 @@ import type { MemoryFeedFilters } from "@/entities/memory-feed-item";
 import { useMemoryTimelineBoundsQuery } from "@/entities/memory-feed-item";
 import { MemoryFeed } from "@/widgets/memory-feed";
 import { TimelineScrubber } from "@/widgets/timeline-scrubber";
-import { PageHeader } from "@/shared/ui";
 
 const TYPE_OPTIONS: { label: string; value: MemoryFeedFilters["type"] }[] = [
   { label: "All", value: "all" },
@@ -22,9 +21,7 @@ export function BrainMemoryPage() {
 
   return (
     <div className="px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <PageHeader label="Brain" title="Memory" />
-        <div className={`flex items-center gap-1 rounded-lg border border-white/10 p-1 transition-opacity ${isPast ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`flex items-center gap-1 rounded-lg border border-white/10 p-1 transition-opacity ${isPast ? "opacity-40 pointer-events-none" : ""}`}>
           {TYPE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -39,7 +36,6 @@ export function BrainMemoryPage() {
             </button>
           ))}
         </div>
-      </div>
 
       {bounds?.earliest && (
         <TimelineScrubber

@@ -1,6 +1,13 @@
 export { Button } from "./primitives/button";
 export { Input } from "./primitives/input";
 export { Sheet, SheetContent, SheetTrigger } from "./primitives/sheet";
+export { SearchBar } from "./primitives/SearchBar";
+export { FilterChips } from "./primitives/FilterChips";
+export type { FilterOption } from "./primitives/FilterChips";
+export { ViewToggle } from "./primitives/ViewToggle";
+export type { ViewMode } from "./primitives/ViewToggle";
+export { SortSelect } from "./primitives/SortSelect";
+export type { SortOption } from "./primitives/SortSelect";
 
 export { PageHeader } from "./layout/PageHeader";
 export { PageShell } from "./layout/PageShell";
@@ -10,3 +17,4 @@ export { ErrorState } from "./layout/ErrorState";
 export { ListSkeleton } from "./layout/ListSkeleton";
 export { ChatErrorBoundary } from "./layout/ChatErrorBoundary";
 export { ListPage } from "./layout/ListPage";
+export { TopBar } from "./layout/TopBar";

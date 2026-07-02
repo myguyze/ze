@@ -7,8 +7,6 @@ describe("ListPage", () => {
   it("renders children when data is loaded", () => {
     render(
       <ListPage
-        label="Goals"
-        title="Active goals"
         isLoading={false}
         isError={false}
         isEmpty={false}
@@ -21,15 +19,12 @@ describe("ListPage", () => {
       </ListPage>,
     );
 
-    expect(screen.getByText("Active goals")).toBeInTheDocument();
     expect(screen.getByText("Goal list content")).toBeInTheDocument();
   });
 
   it("renders empty state when isEmpty", () => {
     render(
       <ListPage
-        label="Goals"
-        title="Active goals"
         isLoading={false}
         isError={false}
         isEmpty={true}

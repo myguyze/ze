@@ -9,8 +9,6 @@ export function GoalsOverview() {
   return (
     <>
       <ListPage
-        label="Goals"
-        title="Goals"
         isLoading={isLoading}
         isError={isError}
         isEmpty={!goals?.length}

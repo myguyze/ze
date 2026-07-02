@@ -3,11 +3,8 @@ import type { ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./ListSkeleton";
-import { PageHeader } from "./PageHeader";
 
 interface ListPageProps {
-  label: string;
-  title: string;
   isLoading: boolean;
   isError: boolean;
   isEmpty: boolean;
@@ -20,13 +17,11 @@ interface ListPageProps {
   skeletonCount?: number;
   skeletonHeight?: string;
   children: ReactNode;
-  headerExtra?: ReactNode;
+  toolbar?: ReactNode;
   className?: string;
 }
 
 export function ListPage({
-  label,
-  title,
   isLoading,
   isError,
   isEmpty,
@@ -39,15 +34,12 @@ export function ListPage({
   skeletonCount,
   skeletonHeight,
   children,
-  headerExtra,
+  toolbar,
   className = "px-6 md:px-10 py-8 space-y-8",
 }: ListPageProps) {
   return (
     <div className={className}>
-      <div className="flex items-center justify-between gap-4">
-        <PageHeader label={label} title={title} />
-        {headerExtra}
-      </div>
+      {toolbar && <div>{toolbar}</div>}
 
       {isLoading && <ListSkeleton count={skeletonCount} height={skeletonHeight} />}
 

@@ -7,6 +7,8 @@ import { useOverlay } from "@/features/open-context-overlay";
 import { NoticeBanner } from "@/features/send-context-notice";
 import { navRoutes, settingsNavRoute } from "@/shared/config";
 import { cn } from "@/shared/lib/cn";
+import { BreadcrumbProvider } from "@/shared/lib/breadcrumb";
+import { TopBar } from "@/shared/ui";
 import { ContextOverlay } from "./ContextOverlay";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -69,10 +71,13 @@ export function AppShell() {
       </nav>
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <NoticeBanner />
-        <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
-          <Outlet />
-        </div>
+        <BreadcrumbProvider>
+          <TopBar />
+          <NoticeBanner />
+          <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
+            <Outlet />
+          </div>
+        </BreadcrumbProvider>
       </main>
 
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-white/10 bg-black/90 backdrop-blur-sm">

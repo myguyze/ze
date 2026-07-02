@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Activity } from "lucide-react";
 import { useActivityHeatmapQuery } from "@/entities/activity";
 import { AgentHeatmap, HeatmapLegend } from "@/widgets/agent-heatmap";
-import { PageHeader, EmptyState, ErrorState } from "@/shared/ui";
+import { EmptyState, ErrorState } from "@/shared/ui";
 
 type Preset = "3M" | "6M" | "12M" | "YTD" | "custom";
 
@@ -46,9 +46,7 @@ export function BrainActivityPage() {
 
   return (
     <div className="px-4 py-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <PageHeader label="Brain" title="Activity" />
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
             {PRESETS.map((p) => (
               <button
@@ -94,7 +92,6 @@ export function BrainActivityPage() {
             </div>
           )}
         </div>
-      </div>
 
       {preset === "custom" && (!customStart || !customEnd) && (
         <p className="text-sm text-smoke">Select a start and end date to view activity.</p>
