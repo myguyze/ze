@@ -123,6 +123,7 @@ class ZeContainer(CoreContainer):
             "interface": self.interface,
             "component_hook": self.component_hook,
             "correlation_engine": self.correlation_engine,
+            "workflow_store": self.workflow_store,
             **plugin_services,
         }
         configurable.update(configurable_extra)

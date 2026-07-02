@@ -145,6 +145,8 @@ class BaseAgent(ABC):
         else:
             prefix = ""
         rendered = agent_instructions.format(**extra) if extra else agent_instructions
+        if ctx.screen_context_note:
+            rendered = f"{ctx.screen_context_note}\n\n{rendered}"
         return f"{datetime_line}{prefix}{rendered}"
 
     # ── Tool execution ────────────────────────────────────────────────────────

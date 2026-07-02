@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import time
+from datetime import timezone as _tz
 from typing import Any
+from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 
@@ -95,8 +97,45 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         timezone=tz,
     )
 
+    screen_ctx = config["configurable"].get("screen_context") or {}
+    workflow_id = screen_ctx.get("workflow_id")
+    execution_id = screen_ctx.get("execution_id")
+    if workflow_id:
+        wf_store = config["configurable"].get("workflow_store")
+        if wf_store is not None:
+            try:
+                wf = await wf_store.get(UUID(str(workflow_id)))
+                if wf:
+                    executions = await wf_store.list_executions(wf.id, limit=20)
+                    ex = (
+                        next((e for e in executions if str(e.id) == str(execution_id)), None)
+                        if execution_id else None
+                    )
+                    agent_context.screen_context_note = _build_screen_context_note(wf, ex)
+            except Exception:
+                pass  # best-effort; never block the turn
+
     return {
         "memory_context": memory_context,
         "agent_context": agent_context,
         "last_active_at": now,
     }
+
+
+def _build_screen_context_note(wf: Any, ex: Any) -> str:
+    lines = [f"[Screen context: user is viewing workflow '{wf.name}']"]
+    if ex:
+        duration_s: str | None = None
+        if ex.started_at and ex.completed_at:
+            started = ex.started_at.replace(tzinfo=_tz.utc) if ex.started_at.tzinfo is None else ex.started_at
+            completed = ex.completed_at.replace(tzinfo=_tz.utc) if ex.completed_at.tzinfo is None else ex.completed_at
+            secs = int((completed - started).total_seconds())
+            duration_s = f"{secs}s"
+        step_count = len(ex.step_results) if ex.step_results else 0
+        parts = [f"status={ex.status}", f"steps={step_count}"]
+        if duration_s:
+            parts.append(f"duration={duration_s}")
+        lines.append(f"Run: {', '.join(parts)}")
+        if ex.error:
+            lines.append(f"Error: {ex.error}")
+    return "\n".join(lines)

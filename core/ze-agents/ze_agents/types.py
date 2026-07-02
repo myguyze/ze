@@ -99,6 +99,9 @@ class AgentContext:
     # token_sink is runtime-only; when set, agentic_loop streams tokens to it.
     # Signature: async (chunk: str) -> None. Never checkpoint.
     token_sink: Any | None = field(default=None, repr=False)
+    # screen_context_note is runtime-only; injected by fetch_context when the client
+    # sends a WsScreenContext (e.g. viewing a specific workflow execution). Never checkpoint.
+    screen_context_note: str | None = field(default=None, repr=False)
     # extensions must hold only msgpack-serializable primitives so stored contexts
     # can be checkpointed. Use identity_builder for callable injection instead.
     extensions: dict[str, str | int | float | bool | None] = field(default_factory=dict)
