@@ -131,6 +131,7 @@ async def websocket_endpoint(
                     thread_id=thread_id,
                     confirmation_store=confirmation_store,
                     session_store=session_store,
+                    msg_store=msg_store,
                 )
                 if result is not None:
                     pending_configs[thread_id] = result

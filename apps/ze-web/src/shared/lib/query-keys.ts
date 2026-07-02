@@ -11,6 +11,7 @@ export const queryKeys = {
   costs: ["costs"] as const,
   costAnomalies: ["cost-anomalies"] as const,
   sessions: ["sessions"] as const,
+  sessionSearch: (query: string) => ["sessions", "search", query] as const,
   uiManifest: ["ui-manifest"] as const,
   memoryFeed: (type: string, agent?: string, asOf?: string) => ["memory-feed", type, agent ?? "", asOf ?? ""] as const,
   messageTrace: (messageId: string) => ["message-trace", messageId] as const,

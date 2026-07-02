@@ -3,6 +3,7 @@
 models:
   embedding:        intfloat/multilingual-e5-base
   router:         anthropic/claude-haiku-4-5
+  session_title:  anthropic/claude-haiku-4-5
 
 routing:
   # E5 scores compress into 0.73–0.86 range; 0.10 gap was calibrated for MiniLM.

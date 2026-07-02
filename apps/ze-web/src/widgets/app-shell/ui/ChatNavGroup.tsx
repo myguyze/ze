@@ -1,13 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { listSessions } from "@myguyze/ze-client";
 import type { SessionSchema } from "@myguyze/ze-client";
 import { MessageCircle, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatRelative, useSession } from "@/entities/session";
+import { formatRelative, useSession, useSessionsQuery } from "@/entities/session";
 import { useWsStore } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 import { motion } from "@/shared/lib/motion";
-import { queryKeys } from "@/shared/lib";
 import { NavGroup } from "./NavGroup";
 
 const MAX_SESSIONS = 8;
@@ -59,15 +57,9 @@ export function ChatNavGroup() {
   const attentionThreads = useWsStore((s) => s.attentionThreads);
   const setThreadAttention = useWsStore((s) => s.setThreadAttention);
 
-  const { data: sessions, isLoading } = useQuery<SessionSchema[]>({
-    queryKey: queryKeys.sessions,
-    queryFn: async () => {
-      const { data } = await listSessions();
-      return data ?? [];
-    },
-  });
+  const { data: browsePages, isLoading } = useSessionsQuery(8);
 
-  const recent = sessions?.slice(0, MAX_SESSIONS) ?? [];
+  const recent = browsePages?.pages[0]?.items.slice(0, MAX_SESSIONS) ?? [];
 
   const anyThinking = Object.values(thinkingThreads).some(Boolean);
   const anyAttention = !anyThinking && Object.values(attentionThreads).some(Boolean);
@@ -79,7 +71,6 @@ export function ChatNavGroup() {
   }
 
   function handleSelectSession(id: string) {
-    // Clear attention when user navigates to the session
     setThreadAttention(id, false);
     selectSession(id);
     navigate("/");

@@ -1,6 +1,6 @@
 # Phase 101 — Session Search & Titles
 
-> **Status:** Pending
+> **Status:** Done
 > **Depends on:** Phase 90 — History side panel (`ChatSidePanel` / `SessionList`); Phase 45 — `messages` table + WebSocket turns; Phase 52 — session-grouped episode consolidation (`memory_session_summaries`)
 > **Enables:** Jump-to-message in chat (future), nav sidebar search, smarter session list at scale
 > **Packages touched:** `core/ze-core`, `core/ze-memory`, `apps/ze-api`, `apps/ze-web`
@@ -389,15 +389,15 @@ Wired in `ZeApiSettings` / container like other model slots.
 
 ## Definition of Done
 
-- [ ] `title_source` column + FTS indexes migrated (`zc023`, `zm014`)
-- [ ] `SessionTitleGenerator` + async hook in `turns.py` / `confirmation.py`
-- [ ] `SessionStore.search()` with unit tests
-- [ ] `GET /api/v0/sessions` cursor pagination + `SessionListResponse` (codegen breaking change)
-- [ ] `GET /api/v0/sessions/search` + `SessionSearchResult` schema
-- [ ] `make codegen` + `useSessionSearchQuery` + `useSessionsQuery` (infinite)
-- [ ] History panel search input wired; browse mode infinite scroll; `SessionRow` shows snippets
-- [ ] `title_source` exposed on `SessionSchema`
-- [ ] Spec status → Done; `specs/README.md` row updated
+- [x] `title_source` column + FTS indexes migrated (`zc023`, `zm014`)
+- [x] `SessionTitleGenerator` + async hook in `turns.py` / `confirmation.py`
+- [x] `SessionStore.search()` with unit tests
+- [x] `GET /api/v0/sessions` cursor pagination + `SessionListResponse` (codegen breaking change)
+- [x] `GET /api/v0/sessions/search` + `SessionSearchResult` schema
+- [x] `make codegen` + `useSessionSearchQuery` + `useSessionsQuery` (infinite)
+- [x] History panel search input wired; browse mode infinite scroll; `SessionRow` shows snippets
+- [x] `title_source` exposed on `SessionSchema`
+- [x] Spec status → Done; `specs/README.md` row updated
 
 ---
 

@@ -11,6 +11,7 @@ from ze_agents.tasks import fire_and_forget
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.context import bound_turn_context
 from ze_api.api.websocket.serializers import ephemeral_assistant_message, extract_thread_id
+from ze_api.api.websocket.session_titles import schedule_session_title_from_thread
 from ze_logging import get_logger
 
 log = get_logger(__name__)
@@ -26,6 +27,7 @@ async def handle_confirm(
     thread_id: str,
     confirmation_store: Any | None = None,
     session_store: Any | None = None,
+    msg_store: Any | None = None,
 ) -> dict | None:
     choice = data.get("choice", "")
     request_id = data.get("id", "")
@@ -59,6 +61,15 @@ async def handle_confirm(
                     await session_store.upsert(thread_id, preview=preview)
                 except Exception as exc:
                     log.warning("ws_session_preview_update_failed", error=str(exc))
+
+                if msg_store is not None:
+                    await schedule_session_title_from_thread(
+                        container,
+                        session_store,
+                        msg_store,
+                        thread_id,
+                        outcome.response,
+                    )
 
             components = outcome.final_state.get("components", [])
             trace = outcome.final_state.get("message_trace")

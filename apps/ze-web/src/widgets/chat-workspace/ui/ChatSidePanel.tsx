@@ -1,9 +1,7 @@
-import { listSessions } from "@myguyze/ze-client";
-import { useQuery } from "@tanstack/react-query";
 import { TraceContent } from "@/widgets/trace-panel";
+import { useSessionsQuery } from "@/entities/session";
 import { useChatSidePanelStore } from "@/features/chat-side-panel";
 import { useTraceStore } from "@/features/trace-state";
-import { queryKeys } from "@/shared/lib";
 import { SidePanel } from "@/shared/ui";
 import { SessionList } from "./SessionList";
 
@@ -32,20 +30,17 @@ function TracePanelHeader() {
 }
 
 function HistoryPanelHeader() {
-  const { data: sessions, isLoading } = useQuery({
-    queryKey: queryKeys.sessions,
-    queryFn: async () => {
-      const { data } = await listSessions();
-      return data ?? [];
-    },
-  });
+  const { data: browsePages, isLoading } = useSessionsQuery(1);
+  const firstPage = browsePages?.pages[0];
+  const hasMore = Boolean(firstPage?.next_before);
 
   let detail = "Past conversations";
-  if (!isLoading && sessions) {
-    detail =
-      sessions.length === 0
-        ? "No past sessions yet"
-        : `${sessions.length} conversation${sessions.length !== 1 ? "s" : ""}`;
+  if (!isLoading && firstPage) {
+    if (firstPage.items.length === 0) {
+      detail = "No past sessions yet";
+    } else if (hasMore) {
+      detail = "Scroll for older conversations";
+    }
   }
 
   return (

@@ -12,8 +12,9 @@ from ze_api.api.websocket.confirmation import send_confirmation_request
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.context import bound_turn_context
 from ze_api.api.websocket.serializers import extract_thread_id
-from ze_logging import get_logger
+from ze_api.api.websocket.session_titles import schedule_session_title
 from ze_core.conversation.messages import Message
+from ze_logging import get_logger
 
 log = get_logger(__name__)
 
@@ -69,7 +70,7 @@ async def handle_message(
     if session_store is not None and thread_id:
         title = text[:60].strip() if text else None
         try:
-            await session_store.upsert(thread_id, title=title)
+            await session_store.upsert(thread_id, title=title, title_source="user")
         except Exception as exc:
             log.warning("ws_session_upsert_failed", error=str(exc))
 
@@ -125,6 +126,14 @@ async def handle_message(
                 await session_store.upsert(effective_thread_id, preview=preview)
             except Exception as exc:
                 log.warning("ws_session_preview_update_failed", error=str(exc))
+
+            schedule_session_title(
+                container,
+                session_store,
+                effective_thread_id,
+                user_text=text,
+                assistant_text=outcome.response,
+            )
 
         components = outcome.final_state.get("components", [])
         trace = outcome.final_state.get("message_trace")

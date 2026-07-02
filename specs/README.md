@@ -142,7 +142,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 97 | [Embedding Model Upgrade (MiniLM → E5)](phases/97-embedding-model-upgrade.md) | 🔲 Pending |
 | 98 | [Workflow Run Chat](phases/98-workflow-run-chat.md) | 🔲 Pending |
 | 99 | [Multi-Conversation Support](phases/99-multi-conversation.md) | 🔲 Pending |
-| 101 | [Session Search & Titles](phases/101-session-search.md) | 🔲 Pending |
+| 101 | [Session Search & Titles](phases/101-session-search.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

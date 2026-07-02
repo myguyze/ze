@@ -1602,6 +1602,20 @@ export type RoutingLogEntry = {
 };
 
 /**
+ * SessionListResponse
+ */
+export type SessionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<SessionSchema>;
+    /**
+     * Next Before
+     */
+    next_before: string | null;
+};
+
+/**
  * SessionSchema
  */
 export type SessionSchema = {
@@ -1618,6 +1632,10 @@ export type SessionSchema = {
      */
     preview: string | null;
     /**
+     * Title Source
+     */
+    title_source?: 'user' | 'generated' | null;
+    /**
      * Created At
      */
     created_at: string;
@@ -1625,6 +1643,48 @@ export type SessionSchema = {
      * Last Active At
      */
     last_active_at: string;
+};
+
+/**
+ * SessionSearchResult
+ */
+export type SessionSearchResult = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Preview
+     */
+    preview: string | null;
+    /**
+     * Title Source
+     */
+    title_source?: 'user' | 'generated' | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Last Active At
+     */
+    last_active_at: string;
+    /**
+     * Match Source
+     */
+    match_source: 'message' | 'metadata' | 'summary';
+    /**
+     * Snippet
+     */
+    snippet: string | null;
+    /**
+     * Rank
+     */
+    rank: number;
 };
 
 /**
@@ -2862,17 +2922,37 @@ export type StartGoalResponse = StartGoalResponses[keyof StartGoalResponses];
 export type ListSessionsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * Max sessions per page
+         */
+        limit?: number;
+        /**
+         * Before
+         *
+         * Return sessions with last_active_at strictly older than this timestamp
+         */
+        before?: string | null;
+    };
     url: '/api/v0/sessions';
 };
 
+export type ListSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListSessionsError = ListSessionsErrors[keyof ListSessionsErrors];
+
 export type ListSessionsResponses = {
     /**
-     * Response Listsessions
-     *
      * Successful Response
      */
-    200: Array<SessionSchema>;
+    200: SessionListResponse;
 };
 
 export type ListSessionsResponse = ListSessionsResponses[keyof ListSessionsResponses];
@@ -2901,6 +2981,46 @@ export type CreateSessionResponses = {
 };
 
 export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
+
+export type SearchSessionsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         *
+         * Search query (min 2 characters for results)
+         */
+        q: string;
+        /**
+         * Limit
+         *
+         * Max results
+         */
+        limit?: number;
+    };
+    url: '/api/v0/sessions/search';
+};
+
+export type SearchSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchSessionsError = SearchSessionsErrors[keyof SearchSessionsErrors];
+
+export type SearchSessionsResponses = {
+    /**
+     * Response Searchsessions
+     *
+     * Successful Response
+     */
+    200: Array<SessionSearchResult>;
+};
+
+export type SearchSessionsResponse = SearchSessionsResponses[keyof SearchSessionsResponses];
 
 export type ListMessagesData = {
     body?: never;
