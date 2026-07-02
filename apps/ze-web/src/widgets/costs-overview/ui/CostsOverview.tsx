@@ -226,8 +226,6 @@ export function CostsOverview() {
 
   return (
     <DashboardShell
-      label="System"
-      title="Usage"
       isLoading={isLoading}
       isError={isError}
       errorMessage="Could not load usage data."

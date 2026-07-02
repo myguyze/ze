@@ -55,11 +55,6 @@ export function SettingsWorkspace() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8 space-y-8">
-      <div>
-        <p className="text-xs font-semibold tracking-widest uppercase text-smoke mb-1">Settings</p>
-        <p className="text-2xl font-extralight text-white">Configuration</p>
-      </div>
-
       <div className="space-y-4">
         <p className="text-xs font-semibold tracking-widest uppercase text-smoke">Connection</p>
         <div>

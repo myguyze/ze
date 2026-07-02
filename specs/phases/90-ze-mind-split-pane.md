@@ -14,8 +14,9 @@ progress. The panel updates as each response arrives, so the user feels Ze think
 rather than receiving a finished answer from a black box.
 
 Whereas Phase 89 (Message Trace) is a *post-hoc* audit trail, this phase is a
-*real-time* observation window. After graph completion, the panel auto-populates
-from the trace of the most recent message.
+*real-time* observation window. On session load, the panel hydrates all persisted
+traces for the conversation; live `trace_update` frames append new turns as they
+complete.
 
 ---
 
@@ -24,7 +25,7 @@ from the trace of the most recent message.
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Live data delivery | Dedicated WebSocket frame type `trace_update` during graph execution | Avoids polling; graph nodes emit partial trace frames as they run |
-| Post-response state | Pull trace from Phase 89 `getMessageTrace` endpoint once WS frame arrives with `message_id` | Single source of truth — WS frame carries live data, REST trace is the durable record |
+| Post-response state | Hydrate session traces from Phase 89 `getMessageTrace` on session load; live turns append via `trace_update` WS frame | REST is the durable record; WS delivers in-flight updates for the current turn |
 | Panel persistence | Toggle stored in `localStorage` (open/closed) | User preference survives page refresh |
 | Panel width | 320 px, resizable via drag handle (min 240 px, max 480 px) | Complements 720 px chat column on typical 1280 px+ screen |
 | Mobile | Panel hidden on < 768 px viewport; accessible from "Brain" icon in toolbar | Mobile screen too narrow for split view |
@@ -42,6 +43,7 @@ from the trace of the most recent message.
 | Panel toggle in chat toolbar | ✅ Done |
 | Width drag handle | ✅ Done |
 | Mobile fallback | ✅ Done (hidden on <768px) |
+| Session trace hydration | ✅ Done (parallel `getMessageTrace` per assistant message on session load) |
 
 ---
 
@@ -175,7 +177,7 @@ message. This prevents the panel from going blank.
 |------------|---------|
 | Phase 89 `MessageTrace` types | Shared shape between WS frame and REST trace |
 | `trace_update` WS frame | Real-time trace delivery |
-| `getMessageTrace` (Phase 89) | Fallback if user opens panel on old message |
+| `getMessageTrace` (Phase 89) | Session hydration on load + per-message "Why?" panel fallback |
 | Zustand | Panel state (open, width, current trace) |
 | `localStorage` | Width + open state persistence |
 

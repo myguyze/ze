@@ -26,7 +26,7 @@ Phase 90 (Ze's Mind Split-Pane), both of which aggregate or display this trace d
 | Trace capture point | `synthesize` graph node (final node before `write_memory`) | All execution data is settled at this point — agent, envelope, memory context |
 | Memory context in trace | Top-k retrieved chunks (text + score), not IDs | IDs may be vacuumed; including text makes traces self-contained |
 | Tool calls in trace | Summary list from `AgentResult.tool_calls` | Full tool I/O is too large; names + one-line result snippet is enough |
-| API endpoint | `GET /api/v0/messages/{message_id}/trace` | Lazy-loaded — don't fetch on initial chat load |
+| API endpoint | `GET /api/v0/messages/{message_id}/trace` | Lazy-loaded per message — used by the per-message "Why?" panel and by the session trace sidebar on load |
 | Frontend trigger | "Why?" icon button on AI message hover | Non-intrusive; only visible on hover |
 
 ---
@@ -264,6 +264,7 @@ widgets/message-trace/
 - Sections are individually collapsible.
 - If `trace` is null (old message), show "No trace available for this message."
 - Fetched via `getMessageTrace` from `@ze/client`; cached in TanStack Query by message id.
+- The chat trace sidebar hydrates all assistant-message traces for the active session on load (parallel per-message fetches, shared query cache with the "Why?" panel).
 
 ---
 

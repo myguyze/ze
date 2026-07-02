@@ -90,8 +90,6 @@ export function DataOverview() {
 
   return (
     <DashboardShell
-      label="System"
-      title="Your data"
       className="h-full flex flex-col min-h-0"
       isLoading={isLoading}
       isError={isError || !data}

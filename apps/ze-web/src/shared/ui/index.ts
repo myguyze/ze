@@ -30,6 +30,7 @@ export { ChatErrorBoundary } from "./layout/ChatErrorBoundary";
 export { ZeErrorBoundary } from "./layout/ZeErrorBoundary";
 export { ZeErrorFallback } from "./layout/ZeErrorFallback";
 export { ListPage } from "./layout/ListPage";
+export { SidePanel } from "./layout/SidePanel";
 export { TopBar } from "./layout/TopBar";
-export { TopBarQuickActionLink } from "./layout/TopBarQuickAction";
+export { TopBarQuickActionButton, TopBarQuickActionLink } from "./layout/TopBarQuickAction";
 export { RedirectHintTarget } from "./layout/RedirectHintTarget";

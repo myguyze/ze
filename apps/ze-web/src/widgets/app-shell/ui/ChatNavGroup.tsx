@@ -3,7 +3,7 @@ import { listSessions } from "@myguyze/ze-client";
 import type { SessionSchema } from "@myguyze/ze-client";
 import { MessageCircle, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSession } from "@/entities/session";
+import { formatRelative, useSession } from "@/entities/session";
 import { useWsStore } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 import { motion } from "@/shared/lib/motion";
@@ -11,18 +11,6 @@ import { queryKeys } from "@/shared/lib";
 import { NavGroup } from "./NavGroup";
 
 const MAX_SESSIONS = 8;
-
-function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 function SessionItem({ session, active, isThinking, hasAttention, onSelect }: {
   session: SessionSchema;

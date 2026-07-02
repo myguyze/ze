@@ -2,12 +2,9 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./ListSkeleton";
-import { PageHeader } from "./PageHeader";
 import { PageShell } from "./PageShell";
 
 interface DashboardShellProps {
-  label: string;
-  title: string;
   children?: ReactNode;
   className?: string;
   isLoading?: boolean;
@@ -18,8 +15,6 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({
-  label,
-  title,
   children,
   className,
   isLoading,
@@ -30,18 +25,10 @@ export function DashboardShell({
 }: DashboardShellProps) {
   return (
     <PageShell className={cn(className)}>
-      <PageHeader label={label} title={title} />
-
-      {isLoading && (
-        <div className="mt-8">
-          <ListSkeleton count={skeletonCount} />
-        </div>
-      )}
+      {isLoading && <ListSkeleton count={skeletonCount} />}
 
       {isError && !isLoading && (
-        <div className="mt-8">
-          <ErrorState message={errorMessage} onRetry={onRetry ? () => void onRetry() : undefined} />
-        </div>
+        <ErrorState message={errorMessage} onRetry={onRetry ? () => void onRetry() : undefined} />
       )}
 
       {!isLoading && !isError && children}
