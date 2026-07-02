@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Activity } from "lucide-react";
 import { useActivityHeatmapQuery } from "@/entities/activity";
 import { AgentHeatmap, HeatmapLegend } from "@/widgets/agent-heatmap";
-import { EmptyState, ErrorState } from "@/shared/ui";
+import { DashboardSectionTitle, EmptyState, ErrorState } from "@/shared/ui";
 
 type Preset = "3M" | "6M" | "12M" | "YTD" | "custom";
 
@@ -45,13 +45,11 @@ export function ActivityHeatmapPanel() {
   );
 
   return (
-    <section className="space-y-4 border-t border-white/[0.06] pt-8">
+    <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-smoke">
-            Agent activity
-          </p>
-          <p className="mt-1 text-xs text-smoke/70">
+          <DashboardSectionTitle className="mb-1">Agent activity</DashboardSectionTitle>
+          <p className="text-xs text-smoke/70">
             Daily message volume by agent
           </p>
         </div>

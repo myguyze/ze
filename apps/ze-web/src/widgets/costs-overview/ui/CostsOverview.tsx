@@ -7,7 +7,19 @@ import {
   useCostsQuery,
   useCostAnomaliesQuery,
 } from "@/entities/cost-entry";
-import { PageHeader, ErrorState, ListSkeleton } from "@/shared/ui";
+import {
+  BreakdownItem,
+  BreakdownPanel,
+  DashboardGrid,
+  DashboardGridAside,
+  DashboardGridMain,
+  DashboardHero,
+  DashboardSectionTitle,
+  DashboardShell,
+  DashboardStatCard,
+  MetricProgressBar,
+  SectionPanel,
+} from "@/shared/ui";
 import type { CostAnomalyItem, DailyCostBucket } from "@myguyze/ze-client";
 
 function formatRelativeTime(isoString: string): string {
@@ -24,9 +36,9 @@ function AnomalyPanel({ anomalies, isLoading }: { anomalies: CostAnomalyItem[]; 
 
   return (
     <div className="space-y-2">
-      <p className={`text-[10px] font-semibold tracking-widest uppercase ${hasAnomalies ? "text-amber-spark/80" : "text-smoke"}`}>
+      <DashboardSectionTitle tone={hasAnomalies ? "warning" : "default"}>
         Spend alerts
-      </p>
+      </DashboardSectionTitle>
 
       {!isLoading && !hasAnomalies && (
         <div className="px-3 py-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-center gap-3">
@@ -159,7 +171,7 @@ function TokenSplit({
   );
 }
 
-function AgentRow({
+function AgentUsageItem({
   agent,
   usage,
   totalUsd,
@@ -178,17 +190,11 @@ function AgentRow({
   const avgPerCall = usage.calls > 0 ? usage.usd / usage.calls : 0;
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3 mb-1.5">
-        <p className="text-sm text-white">{formatAgentName(agent)}</p>
-        <p className="text-sm text-white tabular-nums">{formatUsd(usage.usd)}</p>
-      </div>
-      <div className="relative h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
-        <div
-          className="absolute inset-y-0 left-0 bg-plum-voltage rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+    <BreakdownItem
+      header={<p className="text-sm text-white">{formatAgentName(agent)}</p>}
+      meta={<span className="text-sm text-white">{formatUsd(usage.usd)}</span>}
+    >
+      <MetricProgressBar pct={pct} minWidthPct={0} />
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-smoke">
         <span className="tabular-nums">{pct.toFixed(1)}%</span>
         <span className="text-smoke/30">·</span>
@@ -202,11 +208,8 @@ function AgentRow({
           </>
         )}
       </div>
-      <TokenSplit
-        prompt={usage.prompt_tokens}
-        completion={usage.completion_tokens}
-      />
-    </div>
+      <TokenSplit prompt={usage.prompt_tokens} completion={usage.completion_tokens} />
+    </BreakdownItem>
   );
 }
 
@@ -221,118 +224,80 @@ export function CostsOverview() {
 
   const dailyAvg = data ? data.total_usd / 30 : 0;
 
-  if (isLoading) {
-    return (
-      <div className="px-6 py-8">
-        <PageHeader label="System" title="Usage" />
-        <div className="mt-8">
-          <ListSkeleton />
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="px-6 py-8">
-        <PageHeader label="System" title="Usage" />
-        <div className="mt-8">
-          <ErrorState
-            message="Could not load usage data."
-            onRetry={() => void refetch()}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
   return (
-    <div className="px-6 py-8 space-y-8">
-      <PageHeader label="System" title="Usage" />
+    <DashboardShell
+      label="System"
+      title="Usage"
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage="Could not load usage data."
+      onRetry={() => void refetch()}
+    >
+      {data && (
+        <>
+          <DashboardGrid className="items-start">
+            <DashboardGridMain>
+              <DashboardHero value={formatUsd(data.total_usd)} caption={data.period} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[5fr_7fr] gap-8">
-        {/* Left: hero + chart + stats */}
-        <div className="flex flex-col gap-6">
-          {/* Hero spend */}
-          <div>
-            <p className="text-[64px] font-extralight leading-none tracking-tight text-white">
-              {formatUsd(data.total_usd)}
-            </p>
-            <p className="mt-2 text-[10px] text-smoke tracking-widest uppercase">
-              {data.period}
-            </p>
-          </div>
+              {data.by_day.length > 0 && (
+                <div>
+                  <SpendChart by_day={data.by_day} />
+                  <div className="flex justify-between mt-1">
+                    <p className="text-[9px] text-smoke/40">30 days ago</p>
+                    <p className="text-[9px] text-smoke/40">today</p>
+                  </div>
+                </div>
+              )}
 
-          {/* Daily histogram */}
-          {data.by_day.length > 0 && (
-            <div>
-              <SpendChart by_day={data.by_day} />
-              <div className="flex justify-between mt-1">
-                <p className="text-[9px] text-smoke/40">30 days ago</p>
-                <p className="text-[9px] text-smoke/40">today</p>
-              </div>
-            </div>
-          )}
-
-          {/* Secondary stats */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="px-3 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <p className="text-base font-light text-white tabular-nums">
-                {formatUsd(dailyAvg)}
-              </p>
-              <p className="text-[10px] text-smoke mt-0.5">per day</p>
-            </div>
-            <div className="px-3 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <p className="text-base font-light text-white tabular-nums">
-                {data.total_calls > 0
-                  ? formatUsd(data.total_usd / data.total_calls)
-                  : "—"}
-              </p>
-              <p className="text-[10px] text-smoke mt-0.5">per call</p>
-            </div>
-            <div className="px-3 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <p className="text-base font-light text-white tabular-nums">
-                {formatTokens(data.total_tokens)}
-              </p>
-              <p className="text-[10px] text-smoke mt-0.5">tokens</p>
-            </div>
-          </div>
-
-          <AnomalyPanel anomalies={anomalies} isLoading={anomaliesLoading} />
-
-          <p className="text-[10px] text-smoke/30">
-            {data.total_calls.toLocaleString()} LLM{" "}
-            {data.total_calls === 1 ? "call" : "calls"} total
-          </p>
-        </div>
-
-        {/* Right: agent breakdown */}
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-5">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-smoke">
-              By agent
-            </p>
-            {sortedAgents.length === 0 ? (
-              <p className="text-sm text-smoke">No agent data yet.</p>
-            ) : (
-              sortedAgents.map(([agent, usage]) => (
-                <AgentRow
-                  key={agent}
-                  agent={agent}
-                  usage={usage}
-                  totalUsd={data.total_usd}
+              <div className="grid grid-cols-3 gap-2">
+                <DashboardStatCard label="per day" value={formatUsd(dailyAvg)} />
+                <DashboardStatCard
+                  label="per call"
+                  value={
+                    data.total_calls > 0
+                      ? formatUsd(data.total_usd / data.total_calls)
+                      : "—"
+                  }
                 />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+                <DashboardStatCard label="tokens" value={formatTokens(data.total_tokens)} />
+              </div>
 
-      <ActivityHeatmapPanel />
+              <ActivityHeatmapPanel />
 
-      <FloatingButton screen="costs" />
-    </div>
+              <SectionPanel>
+                <AnomalyPanel anomalies={anomalies} isLoading={anomaliesLoading} />
+              </SectionPanel>
+
+              <p className="text-[10px] text-smoke/30">
+                {data.total_calls.toLocaleString()} LLM{" "}
+                {data.total_calls === 1 ? "call" : "calls"} total
+              </p>
+            </DashboardGridMain>
+
+            <DashboardGridAside>
+              <BreakdownPanel
+                title="By agent"
+                scrollable={false}
+                isEmpty={sortedAgents.length === 0}
+                emptyMessage="No agent data yet."
+              >
+                <div className="space-y-2">
+                  {sortedAgents.map(([agent, usage]) => (
+                    <AgentUsageItem
+                      key={agent}
+                      agent={agent}
+                      usage={usage}
+                      totalUsd={data.total_usd}
+                    />
+                  ))}
+                </div>
+              </BreakdownPanel>
+            </DashboardGridAside>
+          </DashboardGrid>
+
+          <FloatingButton screen="costs" />
+        </>
+      )}
+    </DashboardShell>
   );
 }
