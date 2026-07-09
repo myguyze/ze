@@ -163,5 +163,5 @@ If the sidecar is unreachable, Ze logs a warning and prospecting falls back to w
 
 ## Further reading
 
-- [specs/phases/26-prospecting-agent.md](../../specs/phases/26-prospecting-agent.md) — full design for the prospecting agent and browser contract
+- [specs/phases/026-prospecting-agent/spec.md](../../specs/phases/026-prospecting-agent/spec.md) — full design for the prospecting agent and browser contract
 - [README.md](../README.md) — main Ze project setup and deployment

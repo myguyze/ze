@@ -114,7 +114,7 @@ ze/                           # monorepo root
 │   ├── results/              # JSON run outputs (gitignored)
 │   ├── run.py                # CLI: python eval/run.py [--judge] [--tag X] [report]
 │   └── server.py             # MCP server: python eval/server.py
-├── specs/                    # Design specs (zc-* ze-core, numbered ze modules)
+├── specs/                    # Design specs — spec-kit feature dirs in phases/, plus core/ and arch/
 ├── docs/                     # architecture.md, configuration.md, …
 └── Makefile                  # make test, make test-core, make dev, …
 ```
@@ -208,7 +208,7 @@ make eval-server     # start MCP eval server (requires dev-eval running; see doc
   in `settings.py` and `embeddings.py`).
 - **OpenAPI**: Every REST route must declare `response_model`, `summary`, and
   `description`; request/query params use Pydantic or annotated `Query`. See
-  `specs/phases/07-api.md`.
+  `specs/phases/007-api/spec.md`.
 - **Logging**: Always use `get_logger(__name__)`. Never use `print()` or stdlib
   `logging` directly.
 - **Errors**: Raise from `ze_api/errors.py` or `ze_sdk/errors.py`. Never raise bare
@@ -294,7 +294,7 @@ Hot-reloaded on SIGHUP without restart.
 
 ## Adding a new agent
 
-1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE-phase.md`; see `specs/README.md` for the index and template guide).
+1. Write a spec first via spec-kit: `/speckit-specify` creates `specs/phases/NNN-<name>/spec.md` (see `specs/README.md` for the pipeline and index).
 2. Create the agent in the appropriate package — `ze_personal/agents/`, `ze_messenger/agents/`,
    `ze_prospecting/agents/`, or `ze_calendar/agents/` — decorate with `@agent` from
    `ze_sdk`, subclass `BaseAgent` from `ze_sdk`.

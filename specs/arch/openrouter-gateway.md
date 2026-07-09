@@ -83,5 +83,5 @@ a commercial service that could change pricing or availability.
 
 ## Links
 
-- [Phase 6 — OpenRouter Client](../phases/06-openrouter-client.md)
+- [Phase 6 — OpenRouter Client](../phases/006-openrouter-client/spec.md)
 - `core/ze-core/ze_core/openrouter/` — `OpenRouterClient` implementation

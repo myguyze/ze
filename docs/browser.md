@@ -111,5 +111,5 @@ python scripts/check_browser_health.py http://ze-browser.internal:8080 --probe
 
 - [sidecar/browser/README.md](../sidecar/browser/README.md) — API contract, extractor behaviour, Fly config
 - [core/ze-browser/README.md](../core/ze-browser/README.md) — `BrowserClient` package
-- [specs/phases/26-prospecting-agent.md](../specs/phases/26-prospecting-agent.md) — original design
+- [specs/phases/026-prospecting-agent/spec.md](../specs/phases/026-prospecting-agent/spec.md) — original design
 - [deployment.md](deployment.md) — main backend Fly deploy

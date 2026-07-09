@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-sdk` — `ze_sdk/`
 > **Status:** Done
-> **Implemented in:** [Phase 49](../phases/49-ze-sdk.md)
+> **Implemented in:** [Phase 49](../phases/049-ze-sdk/spec.md)
 
 ---
 

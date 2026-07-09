@@ -98,6 +98,6 @@ core/ze-memory/ze_memory/
 
 ## Links
 
-- [Phase 78 — Dream Memory](../phases/78-dream-memory.md)
-- [Phase 79 — NLI Cross-Encoder](../phases/79-nli-model.md)
-- [Phase 57 — Correlation Engine](../phases/57-correlation-engine.md)
+- [Phase 78 — Dream Memory](../phases/078-dream-memory/spec.md)
+- [Phase 79 — NLI Cross-Encoder](../phases/079-nli-model/spec.md)
+- [Phase 57 — Correlation Engine](../phases/057-correlation-engine/spec.md)

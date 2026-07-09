@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-communication` — `ze_communication/`
 > **Status:** Done
-> **Implemented in:** [Phase 83](../phases/83-ze-communication.md)
+> **Implemented in:** [Phase 83](../phases/083-ze-communication/spec.md)
 > **Architecture:** [arch/communication-hub.md](../arch/communication-hub.md)
 
 ---
@@ -77,6 +77,6 @@ class InboundChannel(Channel, ABC):
 
 ## Links
 
-- [Phase 27 — Channels](../phases/27-channels.md)
-- [Phase 83 — ze-communication + ze-messenger](../phases/83-ze-communication.md)
-- [Phase 85 — Messaging Hub](../phases/85-messaging-hub.md)
+- [Phase 27 — Channels](../phases/027-channels/spec.md)
+- [Phase 83 — ze-communication + ze-messenger](../phases/083-ze-communication/spec.md)
+- [Phase 85 — Messaging Hub](../phases/085-messaging-hub/spec.md)

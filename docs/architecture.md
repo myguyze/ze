@@ -263,8 +263,8 @@ See [docs/ingestion.md](ingestion.md) for the pipeline, extractors, and plugin h
 Correlation turns memory and external signals into hypotheses and surfaced
 connections. It can run inline during chat turns and as a proactive background job.
 
-See [specs/phases/57-correlation-engine.md](../specs/phases/57-correlation-engine.md)
-and [specs/phases/58-inline-correlation.md](../specs/phases/58-inline-correlation.md)
+See [specs/phases/057-correlation-engine/spec.md](../specs/phases/057-correlation-engine/spec.md)
+and [specs/phases/058-inline-correlation/spec.md](../specs/phases/058-inline-correlation/spec.md)
 for the deeper design notes.
 
 ---
@@ -580,7 +580,7 @@ Add a builder function in `ze_components/builders.py` that returns a `Primitive`
 Add a named render tool in `ze_components/tools.py` if the LLM should call it directly.
 No React changes required.
 
-See [specs/phases/66-primitive-ui.md](../specs/phases/66-primitive-ui.md) for the full design.
+See [specs/phases/066-primitive-ui/spec.md](../specs/phases/066-primitive-ui/spec.md) for the full design.
 
 ---
 
@@ -741,8 +741,8 @@ Generated files are committed. `@ze/client` also exports WS frame types (from
 `json-schema-to-typescript`), blob helpers (`downloadExport`, `importArchive`,
 `healthCheck`), and `ApiError`.
 
-See [specs/phases/72-api-client-codegen.md](../specs/phases/72-api-client-codegen.md) for
-the full codegen design and [specs/phases/73-api-surface.md](../specs/phases/73-api-surface.md)
+See [specs/phases/072-api-client-codegen/spec.md](../specs/phases/072-api-client-codegen/spec.md) for
+the full codegen design and [specs/phases/073-api-surface/spec.md](../specs/phases/073-api-surface/spec.md)
 for the versioned API surface spec.
 
 ---

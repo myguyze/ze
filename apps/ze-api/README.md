@@ -38,7 +38,7 @@ Collects plugin signal sources via `collect_plugin_signal_sources()` in `contain
 | `migrate.py` | Alembic meta-migrator — discovers all package migration chains |
 | `migrations/env.py` | Alembic runner harness (no owned tables) |
 
-Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`. Core package jobs (automation, memory, correlation) are registered via package bootstrap modules — see [specs/phases/76-ze-api-shell-cleanup.md](../../specs/phases/76-ze-api-shell-cleanup.md).
+Agents and proactive jobs live in plugin packages (`ze-personal`, `ze-email`, `ze-calendar`, etc.) — not in `ze-api`. Core package jobs (automation, memory, correlation) are registered via package bootstrap modules — see [specs/phases/076-ze-api-shell-cleanup/spec.md](../../specs/phases/076-ze-api-shell-cleanup/spec.md).
 
 ## Dependencies
 

@@ -7,7 +7,7 @@ learning loop that improves retention, abstraction, and robustness.
 
 **Package:** `core/ze-memory/ze_memory/dream/`
 **Architecture:** [specs/arch/dream-memory.md](../specs/arch/dream-memory.md)
-**Implementation spec:** [specs/phases/78-dream-memory.md](../specs/phases/78-dream-memory.md)
+**Implementation spec:** [specs/phases/078-dream-memory/spec.md](../specs/phases/078-dream-memory/spec.md)
 
 ---
 
@@ -260,4 +260,4 @@ Full bibliography and architectural rationale:
 |-----|----------------|
 | [memory.md](memory.md) | Base memory layers — facts, episodes, retrieval |
 | [scheduled-jobs.md](scheduled-jobs.md) | Proactive job scheduler and nightly job pipeline |
-| [specs/phases/79-nli-model.md](../specs/phases/79-nli-model.md) | NLI cross-encoder — shared singleton, contradiction, retrieval cache |
+| [specs/phases/079-nli-model/spec.md](../specs/phases/079-nli-model/spec.md) | NLI cross-encoder — shared singleton, contradiction, retrieval cache |

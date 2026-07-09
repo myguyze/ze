@@ -1,6 +1,6 @@
 # ze-web frontend architecture
 
-The React web client (`apps/ze-web`) uses [Feature-Sliced Design](https://feature-sliced.design/) (FSD). Spec: [specs/phases/82-ze-web-fsd.md](../specs/phases/82-ze-web-fsd.md).
+The React web client (`apps/ze-web`) uses [Feature-Sliced Design](https://feature-sliced.design/) (FSD). Spec: [specs/phases/082-ze-web-fsd/spec.md](../specs/phases/082-ze-web-fsd/spec.md).
 
 ## Layers
 

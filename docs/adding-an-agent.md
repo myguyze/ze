@@ -7,7 +7,7 @@ This guide explains how to author a new agent. Read it alongside the existing ag
 
 ## Before you start
 
-1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE-phase.md`; see `specs/README.md` for the template guide). No implementation begins without one.
+1. Write a spec first via spec-kit: `/speckit-specify` creates `specs/phases/NNN-<name>/spec.md` (see `specs/README.md` for the pipeline). No implementation begins without one.
 2. Resolve any open questions in the spec before writing code.
 3. Decide which package the agent belongs in (see [docs/package-architecture.md](package-architecture.md)):
    - General assistant agents (research, companion) → `ze_personal/agents/<name>/`
@@ -178,7 +178,7 @@ plugin constructor; the bootstrapper resolves it automatically. For batch scorin
 outside the agent loop, call `await nli_client.scores([(premise, hypothesis), ...])`
 or `nli_client.grounding_score(hypothesis, evidence_texts)`.
 
-See [sdk.md](sdk.md#nliclient) and [specs/phases/80-nli-client.md](../specs/phases/80-nli-client.md).
+See [sdk.md](sdk.md#nliclient) and [specs/phases/080-nli-client/spec.md](../specs/phases/080-nli-client/spec.md).
 
 ### Progress messages
 

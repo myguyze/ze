@@ -76,4 +76,4 @@ plugins (SignalSource)  →  ze-api (collect + dedupe)  →  ze-memory (admissio
                                                          ze-correlation (hypotheses)
 ```
 
-Implement `SignalSource` in plugins that produce time-stamped domain events worth correlating. See `specs/phases/60-signal-source-contract.md`.
+Implement `SignalSource` in plugins that produce time-stamped domain events worth correlating. See `specs/phases/060-signal-source-contract/spec.md`.

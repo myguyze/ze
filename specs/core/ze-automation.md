@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-automation` — `ze_automation/`
 > **Status:** Done
-> **Implemented in:** [Phase 74](../phases/74-automation-substrate.md)
+> **Implemented in:** [Phase 74](../phases/074-automation-substrate/spec.md)
 
 ---
 
@@ -84,6 +84,6 @@ core/ze-automation/ze_automation/
 
 ## Links
 
-- [Phase 19 — Goal Engine](../phases/28-goal-engine.md)
-- [Phase 74 — Automation Substrate](../phases/74-automation-substrate.md)
-- [Phase 46 — Accountability Layer](../phases/46-accountability-layer.md)
+- [Phase 19 — Goal Engine](../phases/028-goal-engine/spec.md)
+- [Phase 74 — Automation Substrate](../phases/074-automation-substrate/spec.md)
+- [Phase 46 — Accountability Layer](../phases/046-accountability-layer/spec.md)

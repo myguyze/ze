@@ -29,7 +29,7 @@ to `{NTFY_BASE_URL}/{NTFY_TOPIC}`. Used by `ProactiveNotifier` (ze-proactive) an
 **Purpose:** Browser sidecar client. `BrowserClient` connects to a Playwright sidecar
 process. `browser_tool` is a `@tool` for the prospecting agent to fetch and extract
 web page content. No Ze domain knowledge.  
-**See also:** [Phase 26 — Prospecting Agent](../phases/26-prospecting-agent.md)
+**See also:** [Phase 26 — Prospecting Agent](../phases/026-prospecting-agent/spec.md)
 
 ---
 
@@ -38,7 +38,7 @@ web page content. No Ze domain knowledge.
 **Package:** `core/ze-data`  
 **Purpose:** `DataDomain` Protocol and `DataPortabilityService`. Plugins implement
 `DataDomain` to expose their data for export. No Ze domain knowledge.  
-**See also:** [Phase 62 — Data Portability](../phases/62-data-portability.md), [Phase 68 — ze-data Package](../phases/68-ze-data.md)
+**See also:** [Phase 62 — Data Portability](../phases/062-data-portability/spec.md), [Phase 68 — ze-data Package](../phases/068-ze-data/spec.md)
 
 ---
 
@@ -48,7 +48,7 @@ web page content. No Ze domain knowledge.
 **Purpose:** Server-driven UI component descriptor types and serialisation. Agents
 return component descriptors (`atoms/`, `molecules/`, `organisms/`) that the React
 client renders. No rendering logic lives here.  
-**See also:** [Phase 41 — Component Descriptors](../phases/41-component-descriptors.md), [ADR — Plugin UI](../arch/plugin-ui.md)
+**See also:** [Phase 41 — Component Descriptors](../phases/041-component-descriptors/spec.md), [ADR — Plugin UI](../arch/plugin-ui.md)
 
 ---
 
@@ -59,7 +59,7 @@ client renders. No rendering logic lives here.
 facts, and episodes inside the user's neighbourhood. `PostgresHypothesisStore` persists
 hypotheses. Recall-tagged: every correlation includes `provenance` marking whether
 evidence came from graph recall or live search.  
-**See also:** [Phase 57 — Correlation Engine](../phases/57-correlation-engine.md), [ADR — Correlation Engine](../arch/correlation-engine.md)
+**See also:** [Phase 57 — Correlation Engine](../phases/057-correlation-engine/spec.md), [ADR — Correlation Engine](../arch/correlation-engine.md)
 
 ---
 
@@ -69,7 +69,7 @@ evidence came from graph recall or live search.
 **Purpose:** Eval infrastructure — `EvalRunner`, `EvalJudge`, `EvalVerifier`, `EvalScorer`,
 YAML scenario loading, MCP server for interactive evals. Connects to ze-api over HTTP;
 no internal Ze imports.  
-**See also:** [Phase 23 — Eval](../phases/23-eval.md), [docs/eval.md](../../docs/eval.md)
+**See also:** [Phase 23 — Eval](../phases/023-eval/spec.md), [docs/eval.md](../../docs/eval.md)
 
 ---
 
@@ -79,7 +79,7 @@ no internal Ze imports.
 **Purpose:** `OnboardingCoordinator` drives first-run setup through a series of
 `OnboardingProvider` steps (persona capture, channel setup, goal elicitation).
 `PostgresOnboardingStore` persists progress. Can be replayed per-step.  
-**See also:** [Phase 51 — Onboarding Platform](../phases/51-onboarding.md)
+**See also:** [Phase 51 — Onboarding Platform](../phases/051-onboarding/spec.md)
 
 ---
 
@@ -89,7 +89,7 @@ no internal Ze imports.
 **Purpose:** Ingest pipeline for external content (RSS, emails, documents). Fetchers
 pull raw content; processors extract structured signals; the sink writes to ze-memory
 and ze-correlation. `IngestionAgent` handles user-triggered ingestion.  
-**See also:** [Phase 69 — ze-ingestion Pipeline](../phases/69-ze-ingestion.md)
+**See also:** [Phase 69 — ze-ingestion Pipeline](../phases/069-ze-ingestion/spec.md)
 
 ---
 
@@ -99,4 +99,4 @@ and ze-correlation. `IngestionAgent` handles user-triggered ingestion.
 **Purpose:** Development data seeder. Generates realistic synthetic facts, episodes,
 goals, and conversations for local development and eval. Not imported by any production
 package.  
-**See also:** [Phase 96 — Dev Data Seeder](../phases/96-dev-data-seeder.md)
+**See also:** [Phase 96 — Dev Data Seeder](../phases/096-dev-data-seeder/spec.md)

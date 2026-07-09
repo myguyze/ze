@@ -2,7 +2,7 @@
 
 React web client for Ze. Connects to `ze-api` over WebSocket for chat, renders server-driven UI components, and provides management pages for goals, contacts, reminders, news, and costs.
 
-Architecture: [Feature-Sliced Design](https://feature-sliced.design/). See [docs/frontend.md](../../docs/frontend.md) and [specs/phases/82-ze-web-fsd.md](../../specs/phases/82-ze-web-fsd.md).
+Architecture: [Feature-Sliced Design](https://feature-sliced.design/). See [docs/frontend.md](../../docs/frontend.md) and [specs/phases/082-ze-web-fsd/spec.md](../../specs/phases/082-ze-web-fsd/spec.md).
 
 ## Role in Ze
 

@@ -5,7 +5,7 @@ milestones, executing work in the background, and pausing at **verification gate
 for your approval before continuing. A single workflow run handles one batch of
 steps; a goal spans days or weeks with meaningful check-ins in between.
 
-See the spec series for implementation detail: [28-goal-engine](../specs/phases/28-goal-engine.md) · [31-goal-engine-v2](../specs/phases/31-goal-engine-v2.md) · [32-goal-collaboration](../specs/phases/32-goal-collaboration.md) · [33-goal-suggestions](../specs/phases/33-goal-suggestions.md) · [34-stuck-goal-detection](../specs/phases/34-stuck-goal-detection.md) · [35-cross-goal-output-reuse](../specs/phases/35-cross-goal-output-reuse.md) · [36-cross-goal-learning-promotion](../specs/phases/36-cross-goal-learning-promotion.md). See [docs/architecture.md](architecture.md#goal-engine) for how goals connect to workflows and the scheduler.
+See the spec series for implementation detail: [28-goal-engine](../specs/phases/028-goal-engine/spec.md) · [31-goal-engine-v2](../specs/phases/031-goal-engine-v2/spec.md) · [32-goal-collaboration](../specs/phases/032-goal-collaboration/spec.md) · [33-goal-suggestions](../specs/phases/033-goal-suggestions/spec.md) · [34-stuck-goal-detection](../specs/phases/034-stuck-goal-detection/spec.md) · [35-cross-goal-output-reuse](../specs/phases/035-cross-goal-output-reuse/spec.md) · [36-cross-goal-learning-promotion](../specs/phases/036-cross-goal-learning-promotion/spec.md). See [docs/architecture.md](architecture.md#goal-engine) for how goals connect to workflows and the scheduler.
 
 ---
 

@@ -1,8 +1,8 @@
 # Ze — Dream Memory Architecture
 
 > **Package:** `ze-memory` (`dream/` submodule) + `ze-api` (job wiring)
-> **Implementation spec:** [Phase 78 — Dream Memory](../phases/78-dream-memory.md)
-> **NLI integration:** [Phase 79 — NLI Cross-Encoder](../phases/79-nli-model.md)
+> **Implementation spec:** [Phase 78 — Dream Memory](../phases/078-dream-memory/spec.md)
+> **NLI integration:** [Phase 79 — NLI Cross-Encoder](../phases/079-nli-model/spec.md)
 > **Status:** 78a implemented; 78b pending. Phase 79 (NLI singleton) done — see below.
 
 ---
@@ -253,6 +253,6 @@ and `source_fact_ids` concentration (same fact sourcing >5 promoted artifacts �
 | Document | Purpose |
 |----------|---------|
 | [docs/dreaming.md](../../docs/dreaming.md) | Developer guide — concepts, config, API surface |
-| [specs/phases/78-dream-memory.md](../phases/78-dream-memory.md) | Full implementation spec — schema, API, steps |
-| [specs/phases/79-nli-model.md](../phases/79-nli-model.md) | NLI cross-encoder integration details |
+| [specs/phases/078-dream-memory/spec.md](../phases/078-dream-memory/spec.md) | Full implementation spec — schema, API, steps |
+| [specs/phases/079-nli-model/spec.md](../phases/079-nli-model/spec.md) | NLI cross-encoder integration details |
 | [docs/memory.md](../../docs/memory.md) | Base memory system (facts, episodes, retrieval) |

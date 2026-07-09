@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-proactive` — `ze_proactive/`
 > **Status:** Done
-> **Implemented in:** [Phase 48](../phases/48-core-split.md) (extracted from ze-core)
+> **Implemented in:** [Phase 48](../phases/048-core-split/spec.md) (extracted from ze-core)
 
 ---
 

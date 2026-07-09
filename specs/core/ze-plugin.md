@@ -2,7 +2,7 @@
 
 > **Package:** `core/ze-plugin` — `ze_plugin/`
 > **Status:** Done
-> **Implemented in:** [Phase 47](../phases/47-plugin-framework.md), [Phase 64](../phases/64-plugin-package-extraction.md)
+> **Implemented in:** [Phase 47](../phases/047-plugin-framework/spec.md), [Phase 64](../phases/064-plugin-package-extraction/spec.md)
 
 ---
 

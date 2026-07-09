@@ -509,7 +509,7 @@ in `ze_plugin/bootstrap.py` and `ze_agents/bootstrap.py` — not in ze-api.
 
 Phase 76 moved domain bootstrap into package modules (`ze_automation/bootstrap`,
 `ze-memory/bootstrap`, etc.). See
-[specs/phases/76-ze-api-shell-cleanup.md](../specs/phases/76-ze-api-shell-cleanup.md).
+[specs/phases/076-ze-api-shell-cleanup/spec.md](../specs/phases/076-ze-api-shell-cleanup/spec.md).
 
 ---
 

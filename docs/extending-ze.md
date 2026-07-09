@@ -67,7 +67,7 @@ The short path — no new package needed.
 
 ### 1. Write a spec first
 
-Every implementation starts with a spec in `specs/phases/`. Use `specs/TEMPLATE.md`.
+Every implementation starts with a spec in `specs/phases/`. Create it with `/speckit-specify` (see `specs/README.md`).
 Resolve all open questions before writing code.
 
 ### 2. Create the agent files

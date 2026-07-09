@@ -89,7 +89,7 @@ Keep the subject line under 72 characters. If the *why* isn't obvious from the d
 
 See [docs/adding-an-agent.md](docs/adding-an-agent.md) for the full authoring guide. The short version:
 
-1. Write a spec in `specs/phases/` first (use `specs/TEMPLATE.md`).
+1. Write a spec first via spec-kit: `/speckit-specify` creates `specs/phases/NNN-<name>/spec.md`.
 2. Create the agent in the appropriate package under `agents/`, decorated with `@agent`, subclassing `BaseAgent`.
 3. Write tests in `tests/agents/<name>/`.
 4. Wire it in `ze_api/container.py`.
