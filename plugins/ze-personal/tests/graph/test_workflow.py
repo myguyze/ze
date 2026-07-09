@@ -10,8 +10,10 @@ from ze_personal.graph.workflow import (
     _resolve_step_output,
     after_route_branch,
     after_verify_step,
+    load_workflow_step,
     route_branch,
     verify_step,
+    workflow_failed,
 )
 
 
@@ -264,3 +266,204 @@ class TestFailurePrecedesRouting:
 
         assert result["workflow_step_results"][-1].success is False
         assert after_verify_step(result) == "workflow_failed"
+
+
+class TestLoopGuard:
+    def _client(self, response: str) -> MagicMock:
+        client = MagicMock()
+        client.complete = AsyncMock(return_value=response)
+        return client
+
+    def _loop_step(self) -> WorkflowStep:
+        return WorkflowStep(
+            task="Retry until done",
+            id="s0",
+            branches=[Branch(condition="not done yet", to="s0")],
+        )
+
+    async def _run_route_cycle(
+        self,
+        *,
+        steps: list[WorkflowStep],
+        step_results: list[StepResult],
+        visit_counts: dict[str, int],
+        client: MagicMock,
+    ) -> tuple[dict, dict[str, int]]:
+        steps_by_id = {s.id: s for s in steps}
+        store = _make_store()
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        state = {
+            "workflow_steps": steps,
+            "steps_by_id": steps_by_id,
+            "workflow_step_results": step_results,
+            "workflow_execution_id": uuid4(),
+            "visit_counts": visit_counts,
+        }
+        result = await route_branch(state, config)
+        return result, dict(result.get("visit_counts") or visit_counts)
+
+    async def test_self_loop_fails_after_fourth_execution(self):
+        step = self._loop_step()
+        steps = [step]
+        client = self._client(json.dumps({"index": 0}))
+        visit_counts: dict[str, int] = {}
+        step_results: list[StepResult] = []
+
+        for i in range(3):
+            loaded = await load_workflow_step(
+                {
+                    "workflow_steps": steps,
+                    "steps_by_id": {"s0": step},
+                    "current_step_id": "s0",
+                    "visit_counts": visit_counts,
+                    "workflow_execution_id": uuid4(),
+                },
+                {"configurable": {}},
+            )
+            visit_counts = loaded["visit_counts"]
+            step_results.append(
+                StepResult(
+                    step_index=i,
+                    step_id="s0",
+                    task=step.task,
+                    output="still not done",
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
+            )
+            result, visit_counts = await self._run_route_cycle(
+                steps=steps,
+                step_results=step_results,
+                visit_counts=visit_counts,
+                client=client,
+            )
+            assert result["current_step_id"] == "s0"
+            assert after_route_branch(result) == "load_workflow_step"
+
+        loaded = await load_workflow_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": {"s0": step},
+                "current_step_id": "s0",
+                "visit_counts": visit_counts,
+                "workflow_execution_id": uuid4(),
+            },
+            {"configurable": {}},
+        )
+        visit_counts = loaded["visit_counts"]
+        step_results.append(
+            StepResult(
+                step_index=3,
+                step_id="s0",
+                task=step.task,
+                output="still not done",
+                success=True,
+                error=None,
+                duration_ms=0,
+            )
+        )
+        result, _ = await self._run_route_cycle(
+            steps=steps,
+            step_results=step_results,
+            visit_counts=visit_counts,
+            client=client,
+        )
+
+        assert result["current_step_id"] == "FAIL"
+        assert after_route_branch(result) == "workflow_failed"
+        assert "s0" in result["error"]
+        assert "loop limit" in result["error"].lower()
+        assert len(step_results) == 4
+
+        failed = await workflow_failed(result, {"configurable": {"workflow_store": _make_store()}})
+        assert "loop limit" in failed["final_response"].lower()
+        assert "Retry until done" in failed["final_response"]
+
+    async def test_loop_exits_forward_before_limit(self):
+        step_a = WorkflowStep(
+            task="Poll source",
+            id="s0",
+            branches=[
+                Branch(condition="no answer yet", to="s0"),
+                Branch(condition="answer found", to="s1"),
+            ],
+        )
+        step_b = WorkflowStep(task="Summarize answer", id="s1")
+        steps = [step_a, step_b]
+        client = MagicMock()
+        client.complete = AsyncMock(
+            side_effect=[
+                json.dumps({"index": 0}),
+                json.dumps({"index": 0}),
+                json.dumps({"index": 1}),
+            ]
+        )
+        visit_counts: dict[str, int] = {}
+        step_results: list[StepResult] = []
+
+        for i, output in enumerate(["waiting", "waiting again"]):
+            loaded = await load_workflow_step(
+                {
+                    "workflow_steps": steps,
+                    "steps_by_id": {"s0": step_a, "s1": step_b},
+                    "current_step_id": "s0",
+                    "visit_counts": visit_counts,
+                    "workflow_execution_id": uuid4(),
+                },
+                {"configurable": {}},
+            )
+            visit_counts = loaded["visit_counts"]
+            step_results.append(
+                StepResult(
+                    step_index=i,
+                    step_id="s0",
+                    task=step_a.task,
+                    output=output,
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
+            )
+            result, visit_counts = await self._run_route_cycle(
+                steps=steps,
+                step_results=step_results,
+                visit_counts=visit_counts,
+                client=client,
+            )
+            assert result["current_step_id"] == "s0"
+
+        loaded = await load_workflow_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": {"s0": step_a, "s1": step_b},
+                "current_step_id": "s0",
+                "visit_counts": visit_counts,
+                "workflow_execution_id": uuid4(),
+            },
+            {"configurable": {}},
+        )
+        visit_counts = loaded["visit_counts"]
+        step_results.append(
+            StepResult(
+                step_index=2,
+                step_id="s0",
+                task=step_a.task,
+                output="found it",
+                success=True,
+                error=None,
+                duration_ms=0,
+            )
+        )
+        result, visit_counts = await self._run_route_cycle(
+            steps=steps,
+            step_results=step_results,
+            visit_counts=visit_counts,
+            client=client,
+        )
+
+        assert result["current_step_id"] == "s1"
+        assert result["current_step_id"] != "FAIL"
+        assert result["workflow_step_results"][-1].branch_taken == "answer found"
+        assert visit_counts["s0"] == 3
+        assert after_route_branch(result) == "load_workflow_step"

@@ -23,6 +23,7 @@ from ze_automation.workflow.types import StepResult, WorkflowStep
 log = get_logger(__name__)
 
 _TERMINAL_TARGETS = {"END", "FAIL"}
+_MAX_STEP_VISITS = 4  # 1 initial + 3 revisits (FR-008)
 
 
 class WorkflowAgentState(AgentState, total=False):
@@ -36,6 +37,7 @@ class WorkflowAgentState(AgentState, total=False):
     workflow_steps: list | None          # list[WorkflowStep]
     current_step_id: str
     steps_by_id: dict[str, WorkflowStep]
+    visit_counts: dict[str, int]
     workflow_step_results: list          # list[StepResult]
 
 
@@ -48,17 +50,22 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
     current_step_id: str = state.get("current_step_id") or (steps[0].id if steps else "")
     step = steps_by_id[current_step_id]
 
+    visit_counts = dict(state.get("visit_counts") or {})
+    visit_counts[current_step_id] = visit_counts.get(current_step_id, 0) + 1
+
     log.info(
         "workflow_step_start",
         step_id=current_step_id,
         total=len(steps),
         task=step.task[:80],
         execution_id=str(state.get("workflow_execution_id")),
+        visit_count=visit_counts[current_step_id],
     )
 
     return {
         "steps_by_id": steps_by_id,
         "current_step_id": current_step_id,
+        "visit_counts": visit_counts,
         "prompt": step.task,
         "envelope": None,
         "memory_context": None,
@@ -171,6 +178,27 @@ async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
     if execution_id:
         await store.record_step(execution_id, last_result)
 
+    visit_counts = dict(state.get("visit_counts") or {})
+    if target not in _TERMINAL_TARGETS and visit_counts.get(target, 0) >= _MAX_STEP_VISITS:
+        target_step = steps_by_id.get(target)
+        task_label = target_step.task if target_step else target
+        error_msg = (
+            f"Loop limit exceeded for step {target} ({task_label}): "
+            f"executed {_MAX_STEP_VISITS} times (1 initial + 3 revisits); "
+            f"cannot revisit again."
+        )
+        log.warning(
+            "workflow_loop_limit",
+            step_id=target,
+            visits=visit_counts.get(target, 0),
+        )
+        return {
+            "workflow_step_results": step_results,
+            "current_step_id": "FAIL",
+            "visit_counts": visit_counts,
+            "error": error_msg,
+        }
+
     log.info("workflow_branch_routed", step_id=step.id, target=target, branch_taken=branch_taken)
 
     if target not in _TERMINAL_TARGETS:
@@ -182,6 +210,7 @@ async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
     return {
         "workflow_step_results": step_results,
         "current_step_id": target,
+        "visit_counts": visit_counts,
     }
 
 

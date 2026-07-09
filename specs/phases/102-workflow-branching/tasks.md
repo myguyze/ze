@@ -87,12 +87,12 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Add test: a step whose branch always routes back to itself fails the run after its 4th execution (1 initial + 3 revisits), with an error naming the step and explaining the loop limit, in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T020 [P] [US2] Add test: a loop that routes forward before the limit is hit continues normally past the loop, in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T019 [P] [US2] Add test: a step whose branch always routes back to itself fails the run after its 4th execution (1 initial + 3 revisits), with an error naming the step and explaining the loop limit, in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T020 [P] [US2] Add test: a loop that routes forward before the limit is hit continues normally past the loop, in `plugins/ze-personal/tests/graph/test_workflow.py`
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Add `visit_counts: dict[str, int]` to `WorkflowAgentState`; increment and check it in `route_branch` before advancing to a target, failing with a descriptive loop-limit error once a step's total execution count exceeds 4, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T015)
+- [X] T021 [US2] Add `visit_counts: dict[str, int]` to `WorkflowAgentState`; increment and check it in `route_branch` before advancing to a target, failing with a descriptive loop-limit error once a step's total execution count exceeds 4, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T015)
 
 **Checkpoint**: User Stories 1 and 2 both work independently — branching and bounded looping are functional.
 
