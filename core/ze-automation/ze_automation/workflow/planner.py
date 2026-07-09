@@ -11,6 +11,28 @@ from ze_automation.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
 
+_TERMINAL_TARGETS = {"END", "FAIL"}
+
+
+def validate_step_targets(steps: list[WorkflowStep]) -> None:
+    """Raise WorkflowPlanError if any Branch.to/default_next points at an unknown step id, or ids collide."""
+    step_ids = [s.id for s in steps]
+    seen: set[str] = set()
+    for step_id in step_ids:
+        if step_id in seen:
+            raise WorkflowPlanError(f"duplicate step id '{step_id}'")
+        seen.add(step_id)
+
+    valid_targets = seen | _TERMINAL_TARGETS
+    for step in steps:
+        for branch in step.branches:
+            if branch.to not in valid_targets:
+                raise WorkflowPlanError(f"step '{step.id}' branches to unknown step '{branch.to}'")
+        if step.default_next is not None and step.default_next not in valid_targets:
+            raise WorkflowPlanError(
+                f"step '{step.id}' default_next refers to unknown step '{step.default_next}'"
+            )
+
 _PLAN_SYSTEM = """\
 You decompose a workflow description into an ordered list of steps.
 Each step must have:

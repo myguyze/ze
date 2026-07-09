@@ -31,7 +31,7 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 **Purpose**: Confirm environment readiness. This feature introduces no new dependencies, no new package, no new database migration.
 
-- [ ] T001 Confirm `make db-up`, `make dev`, `make test-automation`, `make test-personal`, and `make test-web` all run cleanly on the current branch before starting (baseline check — no code changes)
+- [X] T001 Confirm `make db-up`, `make dev`, `make test-automation`, `make test-personal`, and `make test-web` all run cleanly on the current branch before starting (baseline check — no code changes)
 
 ---
 
@@ -41,13 +41,13 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add `Branch` dataclass (`condition: str`, `to: str`) and extend `WorkflowStep` (+ `id: str`, `branches: list[Branch] = []`, `default_next: str | None = None`) and `StepResult` (+ `step_id: str`, `branch_taken: str | None = None`) in `core/ze-automation/ze_automation/workflow/types.py`
-- [ ] T003 [P] Extend `_step_to_dict`/`_step_from_dict` (backfill `id = f"s{index}"` when absent, requiring an `index` parameter) and `_step_result_to_dict`/`_step_result_from_dict` (new fields, absent-safe on read) in `core/ze-automation/ze_automation/workflow/postgres.py`
-- [ ] T004 [P] Add a branch/default-next target-validation helper (every `Branch.to`/`default_next` must equal `"END"`, `"FAIL"`, or another step's `id` in the same plan; unique `id`s) that raises the existing `WorkflowPlanError` in `core/ze-automation/ze_automation/workflow/planner.py`
-- [ ] T005 [P] Add `BranchResponse` model and extend `WorkflowStepResponse` (+ `id`, `branches`, `default_next`) and `StepResultResponse` (+ `step_id`, `branch_taken`) in `apps/ze-api/ze_api/api/schemas.py`
-- [ ] T006 Extend `get_workflow()` and `list_workflow_executions()` dict builders to include the new fields in `core/ze-automation/ze_automation/rest.py` (depends on T002)
-- [ ] T007 [P] Add unit tests for `Branch`/`WorkflowStep`/`StepResult` field defaults (empty `branches`, `None` `default_next`/`branch_taken` reproduce today's shape) in `core/ze-automation/tests/workflow_engine/test_types.py` (new file)
-- [ ] T008 [P] Add unit tests for id backfill (`"s{index}"` for steps missing `id`) and branch/default_next/step_id/branch_taken JSONB round-trip in `core/ze-automation/tests/workflow_engine/test_postgres_workflow_store.py`
+- [X] T002 Add `Branch` dataclass (`condition: str`, `to: str`) and extend `WorkflowStep` (+ `id: str`, `branches: list[Branch] = []`, `default_next: str | None = None`) and `StepResult` (+ `step_id: str`, `branch_taken: str | None = None`) in `core/ze-automation/ze_automation/workflow/types.py`
+- [X] T003 [P] Extend `_step_to_dict`/`_step_from_dict` (backfill `id = f"s{index}"` when absent, requiring an `index` parameter) and `_step_result_to_dict`/`_step_result_from_dict` (new fields, absent-safe on read) in `core/ze-automation/ze_automation/workflow/postgres.py`
+- [X] T004 [P] Add a branch/default-next target-validation helper (every `Branch.to`/`default_next` must equal `"END"`, `"FAIL"`, or another step's `id` in the same plan; unique `id`s) that raises the existing `WorkflowPlanError` in `core/ze-automation/ze_automation/workflow/planner.py`
+- [X] T005 [P] Add `BranchResponse` model and extend `WorkflowStepResponse` (+ `id`, `branches`, `default_next`) and `StepResultResponse` (+ `step_id`, `branch_taken`) in `apps/ze-api/ze_api/api/schemas.py`
+- [X] T006 Extend `get_workflow()` and `list_workflow_executions()` dict builders to include the new fields in `core/ze-automation/ze_automation/rest.py` (depends on T002)
+- [X] T007 [P] Add unit tests for `Branch`/`WorkflowStep`/`StepResult` field defaults (empty `branches`, `None` `default_next`/`branch_taken` reproduce today's shape) in `core/ze-automation/tests/workflow_engine/test_types.py` (new file)
+- [X] T008 [P] Add unit tests for id backfill (`"s{index}"` for steps missing `id`) and branch/default_next/step_id/branch_taken JSONB round-trip in `core/ze-automation/tests/workflow_engine/test_postgres_workflow_store.py`
 
 **Checkpoint**: Data model, persistence, and REST schema are ready — user story work can begin.
 

@@ -7,13 +7,21 @@ from uuid import UUID
 import asyncpg
 
 from ze_logging import get_logger
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_automation.workflow.types import Branch, StepResult, Workflow, WorkflowExecution, WorkflowStep
 
 log = get_logger(__name__)
 
 
 def _step_to_dict(step: WorkflowStep) -> dict:
-    return {"task": step.task, "agent_hint": step.agent_hint, "verify": step.verify, "intent": step.intent}
+    return {
+        "task": step.task,
+        "agent_hint": step.agent_hint,
+        "verify": step.verify,
+        "intent": step.intent,
+        "id": step.id,
+        "branches": [{"condition": b.condition, "to": b.to} for b in step.branches],
+        "default_next": step.default_next,
+    }
 
 
 def _coerce_jsonb_list(value: object) -> list:
@@ -31,7 +39,7 @@ def _coerce_jsonb_list(value: object) -> list:
     return list(value)
 
 
-def _step_from_dict(d: dict | str) -> WorkflowStep:
+def _step_from_dict(d: dict | str, index: int) -> WorkflowStep:
     if isinstance(d, str):
         d = json.loads(d)
     return WorkflowStep(
@@ -39,6 +47,9 @@ def _step_from_dict(d: dict | str) -> WorkflowStep:
         agent_hint=d.get("agent_hint"),
         verify=d.get("verify"),
         intent=d.get("intent", "execute"),
+        id=d.get("id") or f"s{index}",
+        branches=[Branch(condition=b["condition"], to=b["to"]) for b in d.get("branches") or []],
+        default_next=d.get("default_next"),
     )
 
 
@@ -50,6 +61,8 @@ def _step_result_to_dict(r: StepResult) -> dict:
         "success": r.success,
         "error": r.error,
         "duration_ms": r.duration_ms,
+        "step_id": r.step_id,
+        "branch_taken": r.branch_taken,
     }
 
 
@@ -63,6 +76,8 @@ def _step_result_from_dict(d: dict | str) -> StepResult:
         success=d["success"],
         error=d.get("error"),
         duration_ms=d.get("duration_ms", 0),
+        step_id=d.get("step_id", ""),
+        branch_taken=d.get("branch_taken"),
     )
 
 
@@ -71,7 +86,7 @@ def _row_to_workflow(row) -> Workflow:
         id=row["id"],
         name=row["name"],
         description=row["description"],
-        steps=[_step_from_dict(s) for s in _coerce_jsonb_list(row["steps"])],
+        steps=[_step_from_dict(s, i) for i, s in enumerate(_coerce_jsonb_list(row["steps"]))],
         schedule=row["schedule"],
         enabled=row["enabled"],
         last_run_at=row["last_run_at"],

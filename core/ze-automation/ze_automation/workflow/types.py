@@ -4,11 +4,20 @@ from uuid import UUID
 
 
 @dataclass
+class Branch:
+    condition: str
+    to: str
+
+
+@dataclass
 class WorkflowStep:
     task: str
     agent_hint: str | None = None
     verify: str | None = None
     intent: str = "execute"
+    id: str = ""
+    branches: list["Branch"] = field(default_factory=list)
+    default_next: str | None = None
 
 
 @dataclass
@@ -33,6 +42,8 @@ class StepResult:
     success: bool
     error: str | None
     duration_ms: int
+    step_id: str = ""
+    branch_taken: str | None = None
 
 
 @dataclass

@@ -37,7 +37,14 @@ async def get_workflow(store: WorkflowStore, workflow_id: UUID) -> dict | None:
         "next_run_at": wf.next_run_at.isoformat() if wf.next_run_at else None,
         "created_at": wf.created_at.isoformat(),
         "steps": [
-            {"task": s.task, "agent_hint": s.agent_hint, "verify": s.verify}
+            {
+                "task": s.task,
+                "agent_hint": s.agent_hint,
+                "verify": s.verify,
+                "id": s.id,
+                "branches": [{"condition": b.condition, "to": b.to} for b in s.branches],
+                "default_next": s.default_next,
+            }
             for s in wf.steps
         ],
     }
@@ -58,6 +65,8 @@ async def list_workflow_executions(store: WorkflowStore, workflow_id: UUID) -> l
                     "success": r.success,
                     "error": r.error,
                     "duration_ms": r.duration_ms,
+                    "step_id": r.step_id,
+                    "branch_taken": r.branch_taken,
                 }
                 for r in ex.step_results
             ],

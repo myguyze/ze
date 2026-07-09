@@ -379,6 +379,11 @@ class ImportResponse(BaseModel):
 
 # ── REST: workflows ───────────────────────────────────────────────────────────
 
+class BranchResponse(BaseModel):
+    condition: str
+    to: str
+
+
 class StepResultResponse(BaseModel):
     step_index: int
     task: str
@@ -386,12 +391,17 @@ class StepResultResponse(BaseModel):
     success: bool
     error: str | None
     duration_ms: int
+    step_id: str
+    branch_taken: str | None
 
 
 class WorkflowStepResponse(BaseModel):
     task: str
     agent_hint: str | None
     verify: str | None
+    id: str
+    branches: list[BranchResponse]
+    default_next: str | None
 
 
 class WorkflowResponse(BaseModel):
