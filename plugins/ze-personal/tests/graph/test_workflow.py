@@ -467,3 +467,173 @@ class TestLoopGuard:
         assert result["workflow_step_results"][-1].branch_taken == "answer found"
         assert visit_counts["s0"] == 3
         assert after_route_branch(result) == "load_workflow_step"
+
+
+class TestLegacyWorkflowExecution:
+    def _legacy_linear_steps(self) -> list[WorkflowStep]:
+        return [
+            WorkflowStep(task="Fetch news", agent_hint="news", intent="read", id="s0"),
+            WorkflowStep(task="Summarize", intent="reason", id="s1"),
+            WorkflowStep(task="Send digest", intent="execute", id="s2"),
+        ]
+
+    async def _run_linear_step(
+        self,
+        *,
+        steps: list[WorkflowStep],
+        step_id: str,
+        output: str,
+        step_results: list[StepResult],
+        visit_counts: dict[str, int],
+        client: MagicMock,
+    ) -> tuple[dict, list[StepResult], dict[str, int]]:
+        steps_by_id = {s.id: s for s in steps}
+        store = _make_store()
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        execution_id = uuid4()
+
+        loaded = await load_workflow_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": step_id,
+                "visit_counts": visit_counts,
+                "workflow_execution_id": execution_id,
+            },
+            {"configurable": {}},
+        )
+        visit_counts = loaded["visit_counts"]
+
+        verified = await verify_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": step_id,
+                "workflow_execution_id": execution_id,
+                "workflow_step_results": step_results,
+                "agent_result": AgentResult(agent="news", response=output),
+                "subtask_results": [],
+            },
+            config,
+        )
+        step_results = list(verified["workflow_step_results"])
+        assert after_verify_step(verified) == "route_branch"
+
+        routed = await route_branch(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "workflow_step_results": step_results,
+                "workflow_execution_id": execution_id,
+                "visit_counts": visit_counts,
+            },
+            config,
+        )
+        return routed, step_results, dict(routed.get("visit_counts") or visit_counts)
+
+    async def test_linear_legacy_run_executes_every_step_in_original_order(self):
+        steps = self._legacy_linear_steps()
+        step_results: list[StepResult] = []
+        visit_counts: dict[str, int] = {}
+        client = MagicMock()
+        client.complete = AsyncMock()
+
+        for step_id, output in [("s0", "headlines"), ("s1", "summary"), ("s2", "sent")]:
+            routed, step_results, visit_counts = await self._run_linear_step(
+                steps=steps,
+                step_id=step_id,
+                output=output,
+                step_results=step_results,
+                visit_counts=visit_counts,
+                client=client,
+            )
+            if step_id != "s2":
+                assert routed["current_step_id"] == {"s0": "s1", "s1": "s2"}[step_id]
+                assert after_route_branch(routed) == "load_workflow_step"
+            else:
+                assert routed["current_step_id"] == "END"
+                assert after_route_branch(routed) == "workflow_synthesize"
+
+        assert [r.step_id for r in step_results] == ["s0", "s1", "s2"]
+        assert all(r.branch_taken is None for r in step_results)
+        assert all(r.success for r in step_results)
+        client.complete.assert_not_called()
+
+    async def test_failed_legacy_step_fails_whole_run_without_retry(self):
+        steps = self._legacy_linear_steps()
+        steps_by_id = {s.id: s for s in steps}
+        store = _make_store()
+        config = {"configurable": {"workflow_store": store, "openrouter_client": MagicMock()}}
+        execution_id = uuid4()
+        visit_counts: dict[str, int] = {}
+
+        loaded = await load_workflow_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": "s0",
+                "visit_counts": visit_counts,
+                "workflow_execution_id": execution_id,
+            },
+            {"configurable": {}},
+        )
+        visit_counts = loaded["visit_counts"]
+
+        first = await verify_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": "s0",
+                "workflow_execution_id": execution_id,
+                "workflow_step_results": [],
+                "agent_result": AgentResult(agent="news", response="headlines"),
+                "subtask_results": [],
+            },
+            config,
+        )
+        step_results = list(first["workflow_step_results"])
+        assert after_verify_step(first) == "route_branch"
+
+        routed = await route_branch(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "workflow_step_results": step_results,
+                "workflow_execution_id": execution_id,
+                "visit_counts": visit_counts,
+            },
+            config,
+        )
+        assert routed["current_step_id"] == "s1"
+        visit_counts = dict(routed.get("visit_counts") or visit_counts)
+
+        loaded = await load_workflow_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": "s1",
+                "visit_counts": visit_counts,
+                "workflow_execution_id": execution_id,
+            },
+            {"configurable": {}},
+        )
+        visit_counts = loaded["visit_counts"]
+
+        failed = await verify_step(
+            {
+                "workflow_steps": steps,
+                "steps_by_id": steps_by_id,
+                "current_step_id": "s1",
+                "workflow_execution_id": execution_id,
+                "workflow_step_results": step_results,
+                "agent_result": AgentResult(agent="research", response=""),
+                "subtask_results": [],
+            },
+            config,
+        )
+
+        assert failed["workflow_step_results"][-1].success is False
+        assert failed["workflow_step_results"][-1].step_id == "s1"
+        assert after_verify_step(failed) == "workflow_failed"
+        assert len(failed["workflow_step_results"]) == 2
+        assert [r.step_id for r in failed["workflow_step_results"]] == ["s0", "s1"]

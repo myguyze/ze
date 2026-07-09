@@ -106,9 +106,9 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 ### Tests for User Story 3
 
-- [ ] T022 [P] [US3] Add test: a stored workflow row whose `steps` JSON has no `id`/`branches`/`default_next` keys loads via `_row_to_workflow` with ids backfilled as `s0, s1, ...` in list order and `branches == []` on every step, in `core/ze-automation/tests/workflow_engine/test_postgres_workflow_store.py`
-- [ ] T023 [P] [US3] Add test: a legacy (backfilled, branch-less) workflow run executes every step in original order, and a failed step fails the whole run with no implicit branching or retry, in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T024 [P] [US3] Add test: `get_workflow`/`list_workflows` agent tools return a legacy workflow's steps with backfilled ids and empty `branches`, indistinguishable in shape from a newly authored linear workflow, in `core/ze-automation/tests/workflow_agent/test_tools.py`
+- [X] T022 [P] [US3] Add test: a stored workflow row whose `steps` JSON has no `id`/`branches`/`default_next` keys loads via `_row_to_workflow` with ids backfilled as `s0, s1, ...` in list order and `branches == []` on every step, in `core/ze-automation/tests/workflow_engine/test_postgres_workflow_store.py`
+- [X] T023 [P] [US3] Add test: a legacy (backfilled, branch-less) workflow run executes every step in original order, and a failed step fails the whole run with no implicit branching or retry, in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T024 [P] [US3] Add test: `get_workflow`/`list_workflows` agent tools return a legacy workflow's steps with backfilled ids and empty `branches`, indistinguishable in shape from a newly authored linear workflow, in `core/ze-automation/tests/workflow_agent/test_tools.py`
 
 **Checkpoint**: User Story 3 verified — no implementation tasks beyond Foundational; this phase is pure regression coverage confirming T002/T003/T014–T017 didn't change legacy behavior.
 

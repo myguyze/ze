@@ -6,7 +6,7 @@ from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.planner import WorkflowPlanner, validate_step_targets
 from ze_automation.workflow.store import WorkflowStore
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution
+from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
 from ze_automation.workflow.scheduler import WorkflowScheduler
 
 
@@ -18,6 +18,19 @@ def _serialize_step_result(result: StepResult) -> dict:
         "success": result.success,
         "error": result.error,
         "duration_ms": result.duration_ms,
+        "step_id": result.step_id,
+        "branch_taken": result.branch_taken,
+    }
+
+
+def _serialize_step(step: WorkflowStep) -> dict:
+    return {
+        "task": step.task,
+        "agent_hint": step.agent_hint,
+        "intent": step.intent,
+        "id": step.id,
+        "branches": [{"condition": b.condition, "to": b.to} for b in step.branches],
+        "default_next": step.default_next,
     }
 
 
@@ -61,10 +74,7 @@ async def get_workflow(store: WorkflowStore, workflow_name: str) -> dict:
         "schedule": wf.schedule,
         "last_run_at": wf.last_run_at.isoformat() if wf.last_run_at else None,
         "next_run_at": wf.next_run_at.isoformat() if wf.next_run_at else None,
-        "steps": [
-            {"task": s.task, "agent_hint": s.agent_hint, "intent": s.intent}
-            for s in wf.steps
-        ],
+        "steps": [_serialize_step(s) for s in wf.steps],
         "last_execution": _serialize_execution(recent[0]) if recent else None,
     }
 

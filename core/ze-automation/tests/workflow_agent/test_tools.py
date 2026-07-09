@@ -112,3 +112,84 @@ async def test_create_workflow_rejects_invalid_branch_target():
     assert result == {"error": "Couldn't plan the workflow: step 's0' branches to unknown step 's9'"}
     store.create.assert_not_called()
     planner.extract_schedule.assert_not_called()
+
+
+def _legacy_workflow(name: str = "morning-briefing") -> Workflow:
+    now = datetime.now(tz=timezone.utc)
+    return Workflow(
+        id=uuid4(),
+        name=name,
+        description="Legacy stored workflow",
+        steps=[
+            WorkflowStep(task="Fetch news", agent_hint="news", intent="read", id="s0"),
+            WorkflowStep(task="Summarize", intent="reason", id="s1"),
+        ],
+        schedule="0 8 * * *",
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _linear_workflow(name: str = "morning-briefing-new") -> Workflow:
+    now = datetime.now(tz=timezone.utc)
+    return Workflow(
+        id=uuid4(),
+        name=name,
+        description="Newly authored linear workflow",
+        steps=[
+            WorkflowStep(task="Fetch news", agent_hint="news", intent="read", id="s0"),
+            WorkflowStep(task="Summarize", intent="reason", id="s1"),
+        ],
+        schedule=None,
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+async def test_get_workflow_returns_legacy_steps_with_backfilled_branch_fields():
+    legacy = _legacy_workflow()
+    linear = _linear_workflow()
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(side_effect=[legacy, linear])
+    store.list_executions = AsyncMock(return_value=[])
+
+    legacy_result = await tools.get_workflow(store, "morning-briefing")
+    linear_result = await tools.get_workflow(store, "morning-briefing-new")
+
+    assert legacy_result["steps"] == [
+        {
+            "task": "Fetch news",
+            "agent_hint": "news",
+            "intent": "read",
+            "id": "s0",
+            "branches": [],
+            "default_next": None,
+        },
+        {
+            "task": "Summarize",
+            "agent_hint": None,
+            "intent": "reason",
+            "id": "s1",
+            "branches": [],
+            "default_next": None,
+        },
+    ]
+    assert legacy_result["steps"] == linear_result["steps"]
+
+
+async def test_list_workflows_includes_legacy_workflow_metadata():
+    legacy = _legacy_workflow()
+    store = AsyncMock()
+    store.list_all = AsyncMock(return_value=[legacy])
+
+    result = await tools.list_workflows(store)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "morning-briefing"
+    assert result[0]["enabled"] is True
