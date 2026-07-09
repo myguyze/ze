@@ -7,7 +7,7 @@ from ze_agents.errors import WorkflowPlanError
 from ze_logging import get_logger
 from ze_agents.client import LLMClient
 from ze_sdk.memory import Procedure
-from ze_automation.workflow.types import StepResult, WorkflowStep
+from ze_automation.workflow.types import Branch, StepResult, WorkflowStep
 
 log = get_logger(__name__)
 
@@ -40,6 +40,16 @@ Each step must have:
   "agent_hint" — one of: research, calendar, email, companion (or null)
   "intent"     — one of: read, create, update, delete, execute, reason
   "verify"     — natural language criterion to check the step output (or null)
+
+When the description contains an explicit either/or or conditional outcome, you MAY
+also include on the relevant step(s):
+  "id"           — stable step id such as "s0", "s1", ... (unique within the plan)
+  "branches"     — ordered list of {"condition": "...", "to": "..."} pairs where
+                   "to" is another step's id or the terminal targets "END" / "FAIL"
+  "default_next" — step id or "END" / "FAIL" to use when no branch matches
+
+For plain sequential workflows with no conditional language, omit id, branches, and
+default_next entirely — the system assigns ids and runs steps in list order.
 
 Output ONLY a JSON array — no explanation, no markdown:
 [{"task": "...", "agent_hint": "research", "intent": "read", "verify": "..."}, ...]
@@ -105,6 +115,38 @@ def _extract_json(raw: str) -> str:
     return text
 
 
+def _parse_branches(raw: object) -> list[Branch]:
+    if not isinstance(raw, list):
+        return []
+    branches: list[Branch] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        condition = item.get("condition")
+        target = item.get("to")
+        if isinstance(condition, str) and isinstance(target, str):
+            branches.append(Branch(condition=condition, to=target))
+    return branches
+
+
+def _parse_step(item: dict, index: int) -> WorkflowStep:
+    default_next = item.get("default_next")
+    if default_next is not None and not isinstance(default_next, str):
+        default_next = None
+    step_id = item.get("id")
+    if not isinstance(step_id, str) or not step_id:
+        step_id = f"s{index}"
+    return WorkflowStep(
+        task=item["task"],
+        agent_hint=item.get("agent_hint"),
+        verify=item.get("verify"),
+        intent=item.get("intent", "execute"),
+        id=step_id,
+        branches=_parse_branches(item.get("branches")),
+        default_next=default_next,
+    )
+
+
 class WorkflowPlanner:
     def __init__(self, openrouter_client: LLMClient) -> None:
         self._client = openrouter_client
@@ -119,15 +161,7 @@ class WorkflowPlanner:
             data = json.loads(_extract_json(raw))
             if not isinstance(data, list) or len(data) == 0:
                 raise ValueError("Expected a non-empty JSON array")
-            steps = [
-                WorkflowStep(
-                    task=item["task"],
-                    agent_hint=item.get("agent_hint"),
-                    verify=item.get("verify"),
-                    intent=item.get("intent", "execute"),
-                )
-                for item in data
-            ]
+            steps = [_parse_step(item, index) for index, item in enumerate(data)]
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             log.warning("workflow_plan_parse_error", error=str(exc), raw=raw[:200])
             raise WorkflowPlanError(f"Planner returned invalid plan: {exc}") from exc

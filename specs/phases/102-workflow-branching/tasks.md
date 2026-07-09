@@ -122,13 +122,13 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Add test: `WorkflowPlanner.plan()` given a description with explicit either/or conditional language returns steps including a non-empty `branches` list (mock `LLMClient.complete` to return a fixed branching JSON payload), in `core/ze-automation/tests/workflow_engine/test_workflow_planner.py`
-- [ ] T026 [P] [US4] Add test: `WorkflowPlanner.plan()` given a plain sequential description returns steps with `branches == []` on every step (regression), in `core/ze-automation/tests/workflow_engine/test_workflow_planner.py`
+- [X] T025 [P] [US4] Add test: `WorkflowPlanner.plan()` given a description with explicit either/or conditional language returns steps including a non-empty `branches` list (mock `LLMClient.complete` to return a fixed branching JSON payload), in `core/ze-automation/tests/workflow_engine/test_workflow_planner.py`
+- [X] T026 [P] [US4] Add test: `WorkflowPlanner.plan()` given a plain sequential description returns steps with `branches == []` on every step (regression), in `core/ze-automation/tests/workflow_engine/test_workflow_planner.py`
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Extend `_PLAN_SYSTEM` to optionally request `id`, `branches` (list of `{condition, to}`), and `default_next` per step, instructing the model to omit them for plain linear workflows, in `core/ze-automation/ze_automation/workflow/planner.py` (depends on T004)
-- [ ] T028 [US4] Extend `WorkflowPlanner.plan()`'s JSON parsing to build `Branch` objects and populate the new `WorkflowStep` fields, defaulting to `id=f"s{index}"`, `branches=[]`, `default_next=None` when the model omits them, in `core/ze-automation/ze_automation/workflow/planner.py` (depends on T002, T027)
+- [X] T027 [US4] Extend `_PLAN_SYSTEM` to optionally request `id`, `branches` (list of `{condition, to}`), and `default_next` per step, instructing the model to omit them for plain linear workflows, in `core/ze-automation/ze_automation/workflow/planner.py` (depends on T004)
+- [X] T028 [US4] Extend `WorkflowPlanner.plan()`'s JSON parsing to build `Branch` objects and populate the new `WorkflowStep` fields, defaulting to `id=f"s{index}"`, `branches=[]`, `default_next=None` when the model omits them, in `core/ze-automation/ze_automation/workflow/planner.py` (depends on T002, T027)
 
 **Checkpoint**: All backend user stories (1–4) are independently functional.
 

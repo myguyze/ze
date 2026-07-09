@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 
 from ze_automation.workflow.planner import WorkflowPlanner
-from ze_automation.workflow.types import StepResult
+from ze_automation.workflow.types import Branch, StepResult
 
 
 def _make_step(task: str, success: bool = True, idx: int = 0) -> StepResult:
@@ -114,6 +114,49 @@ class TestPlan:
         assert len(steps) == 1
         assert steps[0].task == "Send reminder"
         assert steps[0].agent_hint == "email"
+
+    async def test_plan_emits_branches_for_conditional_description(self):
+        payload = json.dumps([
+            {
+                "task": "Check inbox for an invoice from Acme",
+                "agent_hint": "email",
+                "intent": "read",
+                "verify": "inbox was checked",
+                "id": "s0",
+                "branches": [
+                    {"condition": "invoice found", "to": "s1"},
+                    {"condition": "no invoice found", "to": "s2"},
+                ],
+            },
+            {"task": "Forward invoice to accounting", "id": "s1", "intent": "execute"},
+            {"task": "Log that no invoice arrived", "id": "s2", "intent": "execute"},
+        ])
+        planner = _make_planner(payload)
+        steps = await planner.plan(
+            "Check my inbox for an Acme invoice; if one arrived forward it to accounting, otherwise log that none arrived."
+        )
+
+        assert any(s.branches for s in steps)
+        assert steps[0].branches == [
+            Branch(condition="invoice found", to="s1"),
+            Branch(condition="no invoice found", to="s2"),
+        ]
+        assert steps[0].id == "s0"
+        assert [s.id for s in steps] == ["s0", "s1", "s2"]
+
+    async def test_plan_returns_empty_branches_for_linear_description(self):
+        payload = json.dumps([
+            {"task": "Fetch news headlines", "agent_hint": "news", "intent": "read"},
+            {"task": "Summarize the headlines", "intent": "reason"},
+            {"task": "Send the digest", "agent_hint": "email", "intent": "execute"},
+        ])
+        planner = _make_planner(payload)
+        steps = await planner.plan("Fetch news, summarize it, and email me the digest.")
+
+        assert len(steps) == 3
+        assert all(s.branches == [] for s in steps)
+        assert all(s.default_next is None for s in steps)
+        assert [s.id for s in steps] == ["s0", "s1", "s2"]
 
 
 class TestExtractSchedule:
