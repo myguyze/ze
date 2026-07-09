@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from dataclasses import replace
 from typing import Any
 from uuid import UUID
 
@@ -21,6 +22,8 @@ from ze_automation.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
 
+_TERMINAL_TARGETS = {"END", "FAIL"}
+
 
 class WorkflowAgentState(AgentState, total=False):
     """AgentState extension carrying workflow execution fields.
@@ -31,7 +34,8 @@ class WorkflowAgentState(AgentState, total=False):
     workflow_id: UUID | None
     workflow_execution_id: UUID | None
     workflow_steps: list | None          # list[WorkflowStep]
-    current_step_index: int
+    current_step_id: str
+    steps_by_id: dict[str, WorkflowStep]
     workflow_step_results: list          # list[StepResult]
 
 
@@ -40,18 +44,21 @@ class WorkflowAgentState(AgentState, total=False):
 async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     """Set prompt to the current step's task and reset all per-step state."""
     steps: list[WorkflowStep] = state["workflow_steps"]
-    idx: int = state.get("current_step_index", 0)
-    step = steps[idx]
+    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {s.id: s for s in steps}
+    current_step_id: str = state.get("current_step_id") or (steps[0].id if steps else "")
+    step = steps_by_id[current_step_id]
 
     log.info(
         "workflow_step_start",
-        step_index=idx,
+        step_id=current_step_id,
         total=len(steps),
         task=step.task[:80],
         execution_id=str(state.get("workflow_execution_id")),
     )
 
     return {
+        "steps_by_id": steps_by_id,
+        "current_step_id": current_step_id,
         "prompt": step.task,
         "envelope": None,
         "memory_context": None,
@@ -64,17 +71,19 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
 
 
 async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
-    """Validate step output; append StepResult and advance index."""
+    """Validate step output and append a StepResult. Routing to the next step happens in route_branch."""
     store: WorkflowStore = config["configurable"]["workflow_store"]
     client: Any = config["configurable"]["openrouter_client"]
     model = _resolve_verify_model(config)
 
-    steps: list[WorkflowStep] = state["workflow_steps"]
-    idx: int = state.get("current_step_index", 0)
-    step = steps[idx]
+    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {}
+    step_id: str = state.get("current_step_id", "")
+    step = steps_by_id[step_id]
     execution_id = state.get("workflow_execution_id")
     result = state.get("agent_result")
     subtask_results = state.get("subtask_results") or []
+    prior = list(state.get("workflow_step_results") or [])
+    exec_index = len(prior)
 
     tool_calls = list(result.tool_calls) if result and result.tool_calls else []
     for subtask_result in subtask_results:
@@ -84,11 +93,11 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     if tool_calls:
         failed = [tc for tc in tool_calls if not tc.success and not getattr(tc, "is_draft", False)]
         if failed:
-            return await _fail_step(store, execution_id, state, idx, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
+            return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
 
     output = _resolve_step_output(state)
     if not output.strip():
-        return await _fail_step(store, execution_id, state, idx, step.task, "", "Step produced empty output")
+        return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, "", "Step produced empty output")
 
     if step.verify:
         try:
@@ -106,27 +115,73 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
             verdict = json.loads(raw)
             if not verdict.get("pass", True):
                 reason = verdict.get("reason", "Verification failed")
-                return await _fail_step(store, execution_id, state, idx, step.task, output, reason)
+                return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, output, reason)
         except Exception as exc:
-            log.warning("workflow_verify_error", step_index=idx, error=str(exc))
+            log.warning("workflow_verify_error", step_id=step_id, error=str(exc))
 
+    # Persistence (and branch_taken) is finalized by route_branch, which runs next and
+    # knows whether/which branch matched — avoids writing this row twice.
     step_result = StepResult(
-        step_index=idx,
+        step_index=exec_index,
+        step_id=step_id,
         task=step.task,
         output=output,
         success=True,
         error=None,
         duration_ms=0,
     )
-    await store.record_step(execution_id, step_result)
 
-    prior = list(state.get("workflow_step_results") or [])
-    next_idx = idx + 1
-    asyncio.create_task(_sync_workflow_task_state(config, state, steps, next_idx, "in_progress"))
-    log.info("workflow_step_complete", step_index=idx, task=step.task[:60])
+    log.info("workflow_step_complete", step_id=step_id, task=step.task[:60])
     return {
         "workflow_step_results": prior + [step_result],
-        "current_step_index": next_idx,
+    }
+
+
+async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
+    """Resolve the just-verified step's branches (if any) to the next step id, END, or FAIL.
+
+    Also finalizes persistence of the last StepResult (branch_taken included) — verify_step
+    builds the result but defers the write here so branch_taken lands on the same row.
+    """
+    store: WorkflowStore = config["configurable"]["workflow_store"]
+    client: Any = config["configurable"]["openrouter_client"]
+    model = _resolve_verify_model(config)
+
+    steps: list[WorkflowStep] = state.get("workflow_steps") or []
+    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {}
+    step_results: list[StepResult] = list(state.get("workflow_step_results") or [])
+    execution_id = state.get("workflow_execution_id")
+
+    last_result = step_results[-1]
+    step = steps_by_id[last_result.step_id]
+
+    branch_taken: str | None = None
+    target: str | None = None
+    if step.branches:
+        target, branch_taken = await _classify_branch(client, model, step, last_result.output)
+    if target is None:
+        target = step.default_next
+    if target is None:
+        target = _next_step_id_in_list(steps, step.id)
+    if target is None:
+        target = "END"
+
+    last_result = replace(last_result, branch_taken=branch_taken)
+    step_results[-1] = last_result
+    if execution_id:
+        await store.record_step(execution_id, last_result)
+
+    log.info("workflow_branch_routed", step_id=step.id, target=target, branch_taken=branch_taken)
+
+    if target not in _TERMINAL_TARGETS:
+        executed_ids = {r.step_id for r in step_results}
+        asyncio.create_task(
+            _sync_workflow_task_state(config, state, steps, executed_ids, step.task, "in_progress")
+        )
+
+    return {
+        "workflow_step_results": step_results,
+        "current_step_id": target,
     }
 
 
@@ -159,7 +214,10 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
     if execution_id:
         await store.finish_execution(execution_id, "completed", summary=response)
 
-    asyncio.create_task(_sync_workflow_task_state(config, state, state.get("workflow_steps") or [], len(step_results), "completed"))
+    steps = state.get("workflow_steps") or []
+    executed_ids = {r.step_id for r in step_results}
+    last_task = step_results[-1].task if step_results else None
+    asyncio.create_task(_sync_workflow_task_state(config, state, steps, executed_ids, last_task, "completed"))
     asyncio.create_task(_extract_and_store_workflow_procedure(config, state, step_results))
     log.info("workflow_complete", execution_id=str(execution_id), steps=len(step_results))
     return {"final_response": response}
@@ -182,7 +240,12 @@ async def workflow_failed(state: dict[str, Any], config: RunnableConfig) -> dict
     if execution_id:
         await store.finish_execution(execution_id, "failed", error=error_msg)
 
-    asyncio.create_task(_sync_workflow_task_state(config, state, state.get("workflow_steps") or [], -1, "blocked", blocked_by=[error_msg]))
+    steps = state.get("workflow_steps") or []
+    executed_ids = {r.step_id for r in step_results}
+    last_task = step_results[-1].task if step_results else None
+    asyncio.create_task(
+        _sync_workflow_task_state(config, state, steps, executed_ids, last_task, "blocked", blocked_by=[error_msg])
+    )
     log.warning("workflow_failed", execution_id=str(execution_id), error=error_msg)
     return {"final_response": f"Workflow failed: {error_msg}"}
 
@@ -201,9 +264,15 @@ def after_verify_step(state: dict[str, Any]) -> str:
     step_results = state.get("workflow_step_results") or []
     if step_results and not step_results[-1].success:
         return "workflow_failed"
-    steps = state.get("workflow_steps") or []
-    if state.get("current_step_index", 0) >= len(steps):
+    return "route_branch"
+
+
+def after_route_branch(state: dict[str, Any]) -> str:
+    target = state.get("current_step_id")
+    if target == "END":
         return "workflow_synthesize"
+    if target == "FAIL":
+        return "workflow_failed"
     return "load_workflow_step"
 
 
@@ -222,6 +291,7 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
 
     builder.add_node("load_workflow_step", load_workflow_step)
     builder.add_node("verify_step",        verify_step)
+    builder.add_node("route_branch",       route_branch)
     builder.add_node("workflow_synthesize", workflow_synthesize)
     builder.add_node("workflow_failed",    workflow_failed)
 
@@ -249,6 +319,14 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     builder.add_conditional_edges(
         "verify_step",
         after_verify_step,
+        {
+            "route_branch":        "route_branch",
+            "workflow_failed":     "workflow_failed",
+        },
+    )
+    builder.add_conditional_edges(
+        "route_branch",
+        after_route_branch,
         {
             "load_workflow_step":  "load_workflow_step",
             "workflow_synthesize": "workflow_synthesize",
@@ -336,7 +414,8 @@ async def _sync_workflow_task_state(
     config: RunnableConfig,
     state: dict[str, Any],
     steps: list[WorkflowStep],
-    next_idx: int,
+    executed_step_ids: set[str],
+    last_action: str | None,
     status: str,
     blocked_by: list[str] | None = None,
 ) -> None:
@@ -350,7 +429,7 @@ async def _sync_workflow_task_state(
     from ze_sdk.memory import TaskState
     from uuid import UUID
     try:
-        open_steps = [s.task for s in steps[next_idx:]] if next_idx >= 0 else []
+        open_steps = [s.task for s in steps if s.id not in executed_step_ids]
         next_action = open_steps[0] if open_steps else None
         await memory_store.upsert_task_state(TaskState(
             id=None,
@@ -359,24 +438,70 @@ async def _sync_workflow_task_state(
             status=status,
             open_steps=open_steps,
             blocked_by=blocked_by or [],
-            last_action=steps[next_idx - 1].task if next_idx > 0 and next_idx - 1 < len(steps) else None,
+            last_action=last_action,
             next_action=next_action,
         ))
     except Exception as exc:
         log.warning("workflow_task_state_sync_failed", workflow_id=str(workflow_id), error=str(exc))
 
 
+def _next_step_id_in_list(steps: list[WorkflowStep], step_id: str) -> str | None:
+    """The id of the step immediately after `step_id` in authored (list) order, or None if last."""
+    ids = [s.id for s in steps]
+    try:
+        idx = ids.index(step_id)
+    except ValueError:
+        return None
+    return ids[idx + 1] if idx + 1 < len(ids) else None
+
+
+async def _classify_branch(
+    client: Any,
+    model: str,
+    step: WorkflowStep,
+    output: str,
+) -> tuple[str | None, str | None]:
+    """Ask the LLM which of the step's branches (if any) matches its output.
+
+    Returns (target, condition_matched), or (None, None) if none matched or classification failed.
+    """
+    conditions = "\n".join(f"{i}. {b.condition}" for i, b in enumerate(step.branches))
+    try:
+        raw = await client.complete(
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Step output:\n{output}\n\n"
+                    "Which of these conditions best matches the output? Reply with JSON only: "
+                    '{"index": <int or null>}\n\n'
+                    f"Conditions:\n{conditions}"
+                ),
+            }],
+            model=model,
+        )
+        verdict = json.loads(raw)
+        index = verdict.get("index")
+        if isinstance(index, int) and 0 <= index < len(step.branches):
+            branch = step.branches[index]
+            return branch.to, branch.condition
+    except Exception as exc:
+        log.warning("workflow_branch_classify_error", step_id=step.id, error=str(exc))
+    return None, None
+
+
 async def _fail_step(
     store: WorkflowStore,
     execution_id: Any,
     state: dict[str, Any],
-    idx: int,
+    exec_index: int,
+    step_id: str,
     task: str,
     output: str,
     error: str,
 ) -> dict:
     step_result = StepResult(
-        step_index=idx,
+        step_index=exec_index,
+        step_id=step_id,
         task=task,
         output=output,
         success=False,
@@ -386,8 +511,7 @@ async def _fail_step(
     if execution_id:
         await store.record_step(execution_id, step_result)
     prior = list(state.get("workflow_step_results") or [])
-    log.warning("workflow_step_failed", step_index=idx, error=error)
+    log.warning("workflow_step_failed", step_id=step_id, error=error)
     return {
         "workflow_step_results": prior + [step_result],
-        "current_step_index": idx + 1,
     }

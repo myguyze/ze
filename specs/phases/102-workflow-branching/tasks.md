@@ -61,19 +61,19 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Add test: a step with two branches routes to the matching branch's target and the non-matching branch's target never executes, in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T010 [P] [US1] Add test: a step with no branches continues to the next step in list order (regression against today's behavior), in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T011 [P] [US1] Add test: a step with no branches but `default_next` set jumps to that target instead of the next step in list order (FR-006's no-branches override case), in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T012 [P] [US1] Add test: a step whose own verification fails routes to `workflow_failed` and never reaches `route_branch`, even when that step has `branches` defined (FR-009 regression against the refactored routing path), in `plugins/ze-personal/tests/graph/test_workflow.py`
-- [ ] T013 [P] [US1] Add test: `create_workflow` rejects a plan containing a branch/default_next target that isn't an existing step id or `END`/`FAIL`, returning the existing `{"error": ...}` shape, in `core/ze-automation/tests/workflow_agent/test_tools.py`
+- [X] T009 [P] [US1] Add test: a step with two branches routes to the matching branch's target and the non-matching branch's target never executes, in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T010 [P] [US1] Add test: a step with no branches continues to the next step in list order (regression against today's behavior), in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T011 [P] [US1] Add test: a step with no branches but `default_next` set jumps to that target instead of the next step in list order (FR-006's no-branches override case), in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T012 [P] [US1] Add test: a step whose own verification fails routes to `workflow_failed` and never reaches `route_branch`, even when that step has `branches` defined (FR-009 regression against the refactored routing path), in `plugins/ze-personal/tests/graph/test_workflow.py`
+- [X] T013 [P] [US1] Add test: `create_workflow` rejects a plan containing a branch/default_next target that isn't an existing step id or `END`/`FAIL`, returning the existing `{"error": ...}` shape, in `core/ze-automation/tests/workflow_agent/test_tools.py`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Add `current_step_id: str`, `steps_by_id: dict[str, WorkflowStep]` to `WorkflowAgentState`, built once from `workflow_steps` when a run starts, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T002)
-- [ ] T015 [US1] Implement the `route_branch` node: resolve output against `branches` in order via one `LLMClient.complete()` classification call (reusing the `workflow_verify` model config key), falling back to `default_next` then plain sequential order, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T014)
-- [ ] T016 [US1] Update `after_verify_step` and the graph builder's conditional edges to route through `route_branch`, handling `END`/`FAIL` terminal targets, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T015)
-- [ ] T017 [US1] Record `step_id` and `branch_taken` on every `StepResult` produced by `verify_step`/`_fail_step`, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T002, T016)
-- [ ] T018 [US1] Wire the T004 target-validation helper into `create_workflow`, immediately after `planner.plan()`, in `core/ze-automation/ze_automation/agents/workflow/tools.py` (depends on T004)
+- [X] T014 [US1] Add `current_step_id: str`, `steps_by_id: dict[str, WorkflowStep]` to `WorkflowAgentState`, built once from `workflow_steps` when a run starts, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T002)
+- [X] T015 [US1] Implement the `route_branch` node: resolve output against `branches` in order via one `LLMClient.complete()` classification call (reusing the `workflow_verify` model config key), falling back to `default_next` then plain sequential order, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T014)
+- [X] T016 [US1] Update `after_verify_step` and the graph builder's conditional edges to route through `route_branch`, handling `END`/`FAIL` terminal targets, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T015)
+- [X] T017 [US1] Record `step_id` and `branch_taken` on every `StepResult` produced by `verify_step`/`_fail_step`, in `plugins/ze-personal/ze_personal/graph/workflow.py` (depends on T002, T016)
+- [X] T018 [US1] Wire the T004 target-validation helper into `create_workflow`, immediately after `planner.plan()`, in `core/ze-automation/ze_automation/agents/workflow/tools.py` (depends on T004)
 
 **Checkpoint**: User Story 1 is fully functional and testable independently — this is the MVP.
 

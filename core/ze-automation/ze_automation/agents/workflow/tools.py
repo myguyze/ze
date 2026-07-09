@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
-from ze_automation.workflow.planner import WorkflowPlanner
+from ze_automation.workflow.planner import WorkflowPlanner, validate_step_targets
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution
 from ze_automation.workflow.scheduler import WorkflowScheduler
@@ -99,6 +99,7 @@ async def create_workflow(
 ) -> dict:
     try:
         steps = await planner.plan(description)
+        validate_step_targets(steps)
         schedule = await planner.extract_schedule(schedule_description or description)
     except WorkflowPlanError as exc:
         return {"error": f"Couldn't plan the workflow: {exc}"}

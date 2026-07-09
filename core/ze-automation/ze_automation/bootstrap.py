@@ -231,7 +231,7 @@ async def configure_workflow_executor(
             "workflow_id": workflow.id,
             "workflow_execution_id": execution_id,
             "workflow_steps": workflow.steps,
-            "current_step_index": 0,
+            "current_step_id": workflow.steps[0].id if workflow.steps else "",
             "workflow_step_results": [],
         }
         run_config = {

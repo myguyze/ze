@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import ze_automation.agents.workflow.tools as tools
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_automation.workflow.types import Branch, StepResult, Workflow, WorkflowExecution, WorkflowStep
 
 
 def _workflow(name: str = "trump-health") -> Workflow:
@@ -96,3 +96,19 @@ async def test_list_workflow_executions_unknown_workflow():
     result = await tools.list_workflow_executions(store, "missing")
 
     assert "error" in result
+
+
+async def test_create_workflow_rejects_invalid_branch_target():
+    store = AsyncMock()
+    scheduler = AsyncMock()
+    planner = MagicMock()
+    planner.plan = AsyncMock(return_value=[
+        WorkflowStep(task="Check invoice", id="s0", branches=[Branch(condition="invoice found", to="s9")]),
+    ])
+    planner.extract_schedule = AsyncMock()
+
+    result = await tools.create_workflow(store, planner, scheduler, "invoice-check", "Check for invoices")
+
+    assert result == {"error": "Couldn't plan the workflow: step 's0' branches to unknown step 's9'"}
+    store.create.assert_not_called()
+    planner.extract_schedule.assert_not_called()
