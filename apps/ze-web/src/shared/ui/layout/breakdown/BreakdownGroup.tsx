@@ -28,12 +28,12 @@ export function BreakdownGroup({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-3 py-1 text-left group"
       >
-        <span className="text-[10px] font-semibold tracking-widest uppercase text-smoke/70 group-hover:text-smoke transition-colors">
+        <span className="text-[10px] font-semibold tracking-widest uppercase text-smoke/80 group-hover:text-smoke transition-colors">
           {title}
         </span>
         <div className="flex items-center gap-2 flex-shrink-0">
           {summary && (
-            <span className="text-[10px] text-smoke/50 tabular-nums">{summary}</span>
+            <span className="text-[10px] text-smoke/80 tabular-nums">{summary}</span>
           )}
           <ChevronDown
             className={cn(
@@ -47,7 +47,7 @@ export function BreakdownGroup({
       {open && <div className="mt-3 space-y-2">{children}</div>}
 
       {!open && collapsedHint && (
-        <p className="mt-1 text-[9px] text-smoke/40 tabular-nums">{collapsedHint}</p>
+        <p className="mt-1 text-[9px] text-smoke/80 tabular-nums">{collapsedHint}</p>
       )}
     </div>
   );

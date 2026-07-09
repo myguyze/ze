@@ -114,9 +114,9 @@ export function SessionRow({
         <div className="min-w-0 flex-1">
           <SessionRowContent session={session} searchSnippet={searchSnippet} />
           <div className="mt-1.5 flex items-center gap-2">
-            <p className="text-[10px] text-smoke/70">{formatRelative(session.last_active_at)}</p>
+            <p className="text-[10px] text-smoke/80">{formatRelative(session.last_active_at)}</p>
             {matchSource && (
-              <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-smoke/70">
+              <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-smoke/80">
                 {matchSourceLabel(matchSource)}
               </span>
             )}

@@ -37,9 +37,9 @@ interface StepRowProps {
 }
 
 function StepIcon({ state }: { state: StepState }) {
-  if (state === "completed-ok") return <CheckCircle2 className="w-5 h-5 text-green-400" />;
-  if (state === "completed-fail") return <XCircle className="w-5 h-5 text-red-400" />;
-  if (state === "failed-inferred") return <XCircle className="w-5 h-5 text-red-400/50" />;
+  if (state === "completed-ok") return <CheckCircle2 className="w-5 h-5 text-success" />;
+  if (state === "completed-fail") return <XCircle className="w-5 h-5 text-destructive" />;
+  if (state === "failed-inferred") return <XCircle className="w-5 h-5 text-destructive/50" />;
   if (state === "running") return <Loader2 className="w-5 h-5 text-plum-voltage animate-spin" />;
   return null;
 }
@@ -63,7 +63,7 @@ function StepRow({ step, index, state, result, executionError, isLast, expanded,
         </div>
         {!isLast && (
           <div className={`w-px flex-1 min-h-3 mt-1.5 ${
-            state === "completed-ok" ? "bg-green-400/20" : "bg-white/[0.08]"
+            state === "completed-ok" ? "bg-success/20" : "bg-white/[0.08]"
           }`} />
         )}
       </div>
@@ -87,7 +87,7 @@ function StepRow({ step, index, state, result, executionError, isLast, expanded,
               "w-3.5 h-3.5 flex-shrink-0 mt-0.5 group-hover:text-white/50",
               motion.colors,
               motion.rotate,
-              expanded ? "text-smoke/60 rotate-0" : "text-smoke/40 -rotate-90",
+              expanded ? "text-smoke/80 rotate-0" : "text-smoke/80 -rotate-90",
             )} />
           )}
         </button>
@@ -125,10 +125,10 @@ function StepRow({ step, index, state, result, executionError, isLast, expanded,
                   </div>
                 )}
                 {result?.error && (
-                  <p className="text-xs text-red-400">{result.error}</p>
+                  <p className="text-xs text-destructive">{result.error}</p>
                 )}
                 {state === "failed-inferred" && executionError && !result?.error && (
-                  <p className="text-xs text-red-400/70">{executionError}</p>
+                  <p className="text-xs text-destructive/70">{executionError}</p>
                 )}
               </div>
             </div>

@@ -1,3 +1,6 @@
+// Categorical dataviz palette distinguishing agents in charts (heatmap, cost
+// breakdowns) — deliberately separate from the brand's UI-state tokens
+// (success/warning/destructive), which carry meaning, not identity.
 export const AGENT_COLORS: Record<string, string> = {
   companion: "#3b82f6",
   research: "#f59e0b",

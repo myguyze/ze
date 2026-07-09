@@ -6,7 +6,7 @@ interface GoalLearningsListProps {
 
 export function GoalLearningsList({ learnings }: GoalLearningsListProps) {
   if (!learnings.length) {
-    return <p className="text-xs text-smoke/60 italic">No learnings yet.</p>;
+    return <p className="text-xs text-smoke/80 italic">No learnings yet.</p>;
   }
 
   return (

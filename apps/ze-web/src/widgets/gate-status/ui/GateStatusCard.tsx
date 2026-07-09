@@ -4,11 +4,11 @@ import { Button } from "@/shared/ui";
 import { useStartGoalMutation } from "@/entities/goal";
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  awaiting_approval: <Clock className="w-4 h-4 text-amber-400" />,
-  approved: <CheckCheck className="w-4 h-4 text-emerald-400" />,
-  stopped: <XCircle className="w-4 h-4 text-red-400" />,
-  redirected: <ShieldCheck className="w-4 h-4 text-blue-400" />,
-  pending: <ShieldCheck className="w-4 h-4 text-smoke/50" />,
+  awaiting_approval: <Clock className="w-4 h-4 text-warning" />,
+  approved: <CheckCheck className="w-4 h-4 text-success" />,
+  stopped: <XCircle className="w-4 h-4 text-destructive" />,
+  redirected: <ShieldCheck className="w-4 h-4 text-primary" />,
+  pending: <ShieldCheck className="w-4 h-4 text-smoke/80" />,
 };
 
 interface GateStatusCardProps {
@@ -33,7 +33,7 @@ export function GateStatusCard({ gate, goalId }: GateStatusCardProps) {
 
       {isAwaiting && (
         <div className="pt-1">
-          <p className="text-xs text-smoke/60 mb-2">Awaiting your approval to continue.</p>
+          <p className="text-xs text-smoke/80 mb-2">Awaiting your approval to continue.</p>
           <Button
             size="sm"
             disabled={startGoal.isPending}

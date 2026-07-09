@@ -41,7 +41,7 @@ export function FactReviewActions({ item, filters }: FactReviewActionsProps) {
         />
         <button
           onClick={submitEdit}
-          className="text-xs text-green-400 hover:text-green-300"
+          className="text-xs text-success hover:text-success"
           disabled={isPending}
         >
           Save
@@ -60,21 +60,21 @@ export function FactReviewActions({ item, filters }: FactReviewActionsProps) {
     <div className="flex items-center gap-3 mt-1">
       <button
         onClick={confirm}
-        className="text-xs text-green-400 hover:text-green-300"
+        className="text-xs text-success hover:text-success"
         disabled={isPending}
       >
         Confirm
       </button>
       <button
         onClick={() => setEditing(true)}
-        className="text-xs text-blue-400 hover:text-blue-300"
+        className="text-xs text-primary hover:text-primary"
         disabled={isPending}
       >
         Edit
       </button>
       <button
         onClick={reject}
-        className="text-xs text-red-400 hover:text-red-300"
+        className="text-xs text-destructive hover:text-destructive"
         disabled={isPending}
       >
         Reject

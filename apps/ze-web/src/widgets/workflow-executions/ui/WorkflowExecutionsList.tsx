@@ -47,9 +47,9 @@ function ExecutionRow({ execution, selected, onClick }: ExecutionRowProps) {
         {isRunning ? (
           <Loader2 className="w-4 h-4 text-plum-voltage animate-spin" />
         ) : succeeded ? (
-          <CheckCircle2 className="w-4 h-4 text-green-400" />
+          <CheckCircle2 className="w-4 h-4 text-success" />
         ) : (
-          <XCircle className="w-4 h-4 text-red-400" />
+          <XCircle className="w-4 h-4 text-destructive" />
         )}
       </div>
 
@@ -65,10 +65,10 @@ function ExecutionRow({ execution, selected, onClick }: ExecutionRowProps) {
         </div>
         <div className="flex items-center justify-between mt-0.5">
           {execution.started_at && (
-            <span className="text-xs text-smoke/70">{formatTimestamp(execution.started_at)}</span>
+            <span className="text-xs text-smoke/80">{formatTimestamp(execution.started_at)}</span>
           )}
           {!isRunning && (
-            <span className="text-xs text-smoke/50">{stepCount} step{stepCount !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-smoke/80">{stepCount} step{stepCount !== 1 ? "s" : ""}</span>
           )}
         </div>
       </div>

@@ -9,7 +9,7 @@ interface ConfirmBarProps {
 
 export function ConfirmBar({ prompt, actions, onConfirm }: ConfirmBarProps) {
   return (
-    <div className="relative z-10 mx-4 mb-2 p-4 rounded-pill border border-plum-voltage/40 bg-plum-voltage/5">
+    <div className="relative z-10 mb-3 w-full rounded-pill border border-plum-voltage/40 bg-plum-voltage/5 p-4">
       <p className="text-sm text-white mb-3">{prompt}</p>
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
@@ -21,7 +21,7 @@ export function ConfirmBar({ prompt, actions, onConfirm }: ConfirmBarProps) {
               action.style === "primary" || !action.style
                 ? "bg-plum-voltage text-white"
                 : action.style === "danger"
-                  ? "border border-amber-spark text-amber-spark"
+                  ? "border border-destructive text-destructive"
                   : "border border-white/20 text-white",
             )}
           >

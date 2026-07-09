@@ -262,8 +262,8 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
     if (liveExecution.status === "completed") {
       return (
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-          <span className="text-xs text-green-400">Complete</span>
+          <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+          <span className="text-xs text-success">Complete</span>
           <button className="ml-1 text-xs text-smoke hover:text-white transition-colors" onClick={onClear}>
             Clear
           </button>
@@ -273,8 +273,8 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
     if (liveExecution.status === "failed") {
       return (
         <div className="flex items-center gap-1.5">
-          <XCircle className="w-3.5 h-3.5 text-red-400" />
-          <span className="text-xs text-red-400">Failed</span>
+          <XCircle className="w-3.5 h-3.5 text-destructive" />
+          <span className="text-xs text-destructive">Failed</span>
           <button className="ml-1 text-xs text-smoke hover:text-white transition-colors" onClick={onClear}>
             Clear
           </button>
@@ -288,10 +288,10 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
     return (
       <div className="flex items-center gap-1.5">
         {succeeded
-          ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-          : <XCircle className="w-3.5 h-3.5 text-red-400" />
+          ? <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+          : <XCircle className="w-3.5 h-3.5 text-destructive" />
         }
-        <span className={`text-xs ${succeeded ? "text-green-400" : "text-red-400"}`}>
+        <span className={`text-xs ${succeeded ? "text-success" : "text-destructive"}`}>
           {succeeded ? "Completed" : "Failed"}
         </span>
         <button className="ml-1 text-xs text-smoke hover:text-white transition-colors" onClick={onClear}>

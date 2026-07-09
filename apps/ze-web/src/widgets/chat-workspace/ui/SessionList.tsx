@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
 import type { SessionSchema, SessionSearchResult } from "@myguyze/ze-client";
+import { useEffect, useRef, useState } from "react";
 import {
   SessionRow,
   useSession,
   useSessionSearchQuery,
   useSessionsQuery,
 } from "@/entities/session";
-import { SessionSearchInput } from "./SessionSearchInput";
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -30,10 +29,13 @@ function searchResultToSession(result: SessionSearchResult): SessionSchema {
   };
 }
 
-export function SessionList() {
+interface SessionListProps {
+  searchQuery: string;
+}
+
+export function SessionList({ searchQuery }: SessionListProps) {
   const threadId = useSession((s) => s.threadId);
   const selectSession = useSession((s) => s.selectSession);
-  const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -70,53 +72,47 @@ export function SessionList() {
   const isLoading = isSearching ? searchLoading : browseLoading;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <SessionSearchInput value={searchQuery} onChange={setSearchQuery} />
+    <div className="space-y-2 px-3 py-3">
+      {isLoading &&
+        [1, 2, 3].map((i) => (
+          <div key={i} className="h-[4.5rem] animate-pulse rounded-pill border border-white/10 bg-white/[0.02]" />
+        ))}
 
-      <div className="space-y-2 px-3 pb-3">
-        {isLoading &&
-          [1, 2, 3].map((i) => (
-            <div key={i} className="h-[4.5rem] animate-pulse rounded-pill border border-white/10 bg-white/[0.02]" />
-          ))}
+      {!isLoading && isSearching && (searchResults?.length ?? 0) === 0 && (
+        <p className="px-3 py-8 text-center text-sm text-smoke">No conversations found.</p>
+      )}
 
-        {!isLoading && isSearching && (searchResults?.length ?? 0) === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-smoke">No conversations found.</p>
-        )}
+      {!isLoading && !isSearching && browseSessions.length === 0 && (
+        <p className="px-3 py-8 text-center text-sm text-smoke">No past sessions yet.</p>
+      )}
 
-        {!isLoading && !isSearching && browseSessions.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-smoke">No past sessions yet.</p>
-        )}
+      {isSearching &&
+        searchResults?.map((result) => (
+          <SessionRow
+            key={result.id}
+            session={searchResultToSession(result)}
+            active={result.id === threadId}
+            onSelect={() => selectSession(result.id)}
+            searchSnippet={result.snippet}
+            matchSource={result.match_source}
+          />
+        ))}
 
-        {isSearching &&
-          searchResults?.map((result) => (
-            <SessionRow
-              key={result.id}
-              session={searchResultToSession(result)}
-              active={result.id === threadId}
-              onSelect={() => selectSession(result.id)}
-              searchSnippet={result.snippet}
-              matchSource={result.match_source}
-            />
-          ))}
+      {!isSearching &&
+        browseSessions.map((session) => (
+          <SessionRow
+            key={session.id}
+            session={session}
+            active={session.id === threadId}
+            onSelect={() => selectSession(session.id)}
+          />
+        ))}
 
-        {!isSearching &&
-          browseSessions.map((session) => (
-            <SessionRow
-              key={session.id}
-              session={session}
-              active={session.id === threadId}
-              onSelect={() => selectSession(session.id)}
-            />
-          ))}
-
-        {!isSearching && hasNextPage && (
-          <div ref={loadMoreRef} className="flex justify-center py-2">
-            {isFetchingNextPage && (
-              <span className="text-[10px] text-smoke/70">Loading more…</span>
-            )}
-          </div>
-        )}
-      </div>
+      {!isSearching && hasNextPage && (
+        <div ref={loadMoreRef} className="flex justify-center py-2">
+          {isFetchingNextPage && <span className="text-[10px] text-smoke/80">Loading more…</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,7 @@ export function MovingBorder({
   const transform = useMotionTemplate`translateX(${x}px) translateY(${y}px) translateX(-50%) translateY(-50%)`;
 
   return (
-    <div className={cn("relative p-[1px] overflow-hidden rounded-[24px]", containerClassName)}>
+    <div className={cn("relative p-[1px] overflow-hidden rounded", containerClassName)}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"

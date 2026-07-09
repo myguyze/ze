@@ -4,9 +4,9 @@ import { CheckCircle2, Circle, Clock, SkipForward, ChevronDown, ChevronUp } from
 import { ExecutionTraceLog } from "./ExecutionTraceLog";
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  completed: <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />,
+  completed: <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />,
   in_progress: <Clock className="w-4 h-4 text-plum-voltage flex-shrink-0 animate-pulse" />,
-  skipped: <SkipForward className="w-4 h-4 text-smoke/50 flex-shrink-0" />,
+  skipped: <SkipForward className="w-4 h-4 text-smoke/80 flex-shrink-0" />,
   pending: <Circle className="w-4 h-4 text-white/20 flex-shrink-0" />,
 };
 

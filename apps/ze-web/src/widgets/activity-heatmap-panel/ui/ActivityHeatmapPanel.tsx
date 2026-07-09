@@ -49,7 +49,7 @@ export function ActivityHeatmapPanel() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <DashboardSectionTitle className="mb-1">Agent activity</DashboardSectionTitle>
-          <p className="text-xs text-smoke/70">
+          <p className="text-xs text-smoke/80">
             Daily message volume by agent
           </p>
         </div>

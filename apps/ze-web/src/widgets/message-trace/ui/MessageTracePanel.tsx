@@ -21,7 +21,7 @@ export function MessageTracePanel({ messageId }: MessageTracePanelProps) {
 
   if (!trace) {
     return (
-      <div className="mt-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-xs text-smoke/60 italic">
+      <div className="mt-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-xs text-smoke/80 italic">
         No trace available for this message.
       </div>
     );

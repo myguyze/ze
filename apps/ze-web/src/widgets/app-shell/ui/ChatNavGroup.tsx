@@ -108,7 +108,7 @@ export function ChatNavGroup() {
       ))}
 
       {!isLoading && recent.length === 0 && (
-        <p className="px-3 py-1.5 text-xs text-smoke/50">No past chats yet.</p>
+        <p className="px-3 py-1.5 text-xs text-smoke/80">No past chats yet.</p>
       )}
     </NavGroup>
   );

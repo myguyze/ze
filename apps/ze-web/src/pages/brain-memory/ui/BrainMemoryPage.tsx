@@ -46,7 +46,7 @@ export function BrainMemoryPage() {
       )}
 
       {isPast && asOfDate && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs text-warning">
           Viewing Ze's memory as of{" "}
           <span className="font-medium">
             {asOfDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}

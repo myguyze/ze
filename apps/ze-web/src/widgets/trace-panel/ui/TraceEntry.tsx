@@ -36,10 +36,10 @@ export function TraceEntry({ trace, index, defaultOpen = false, live }: TraceEnt
           <span className="w-16 h-3.5 rounded bg-white/[0.06] animate-pulse" />
         ) : null}
         {trace.total_duration_ms > 0 && (
-          <span className="text-smoke/50 text-[10px] ml-auto">{trace.total_duration_ms}ms</span>
+          <span className="text-smoke/80 text-[10px] ml-auto">{trace.total_duration_ms}ms</span>
         )}
         {confidencePct > 0 && (
-          <span className="text-smoke/50 text-[10px]">{confidencePct}%</span>
+          <span className="text-smoke/80 text-[10px]">{confidencePct}%</span>
         )}
       </button>
 

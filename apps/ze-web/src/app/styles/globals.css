@@ -10,41 +10,39 @@
   --color-plum-voltage:  #8052ff;
   --color-amber-spark:   #ffb829;
   --color-lichen:        #15846e;
+  --color-ember:         #ef4444;
 
   /* shadcn semantic aliases */
-  --color-background:    #000000;
-  --color-foreground:    #ffffff;
+  --color-background:    var(--color-void);
+  --color-foreground:    var(--color-bone);
   --color-muted:         #1a1a1a;
-  --color-muted-foreground: #9a9a9a;
+  --color-muted-foreground: var(--color-smoke);
   --color-border:        rgba(255,255,255,0.12);
   --color-input:         rgba(255,255,255,0.08);
-  --color-ring:          #8052ff;
-  --color-primary:       #8052ff;
-  --color-primary-foreground: #ffffff;
+  --color-ring:          var(--color-plum-voltage);
+  --color-primary:       var(--color-plum-voltage);
+  --color-primary-foreground: var(--color-bone);
   --color-secondary:     rgba(255,255,255,0.06);
-  --color-secondary-foreground: #ffffff;
-  --color-destructive:   #ef4444;
-  --color-destructive-foreground: #ffffff;
+  --color-secondary-foreground: var(--color-bone);
+  --color-destructive:   var(--color-ember);
+  --color-destructive-foreground: var(--color-bone);
   --color-accent:        rgba(128,82,255,0.15);
-  --color-accent-foreground: #ffffff;
-  --color-card:          #000000;
-  --color-card-foreground: #ffffff;
+  --color-accent-foreground: var(--color-bone);
+  --color-card:          var(--color-void);
+  --color-card-foreground: var(--color-bone);
   --color-popover:       #0a0a0a;
-  --color-popover-foreground: #ffffff;
+  --color-popover-foreground: var(--color-bone);
+
+  /* State semantics — one accent per meaning. success is always lichen,
+     warning is always amber-spark, danger is always ember/destructive.
+     Never use these hues decoratively outside their reserved role. */
+  --color-success:            var(--color-lichen);
+  --color-success-foreground: var(--color-bone);
+  --color-warning:            var(--color-amber-spark);
+  --color-warning-foreground: #000000;
 
   /* ── Typography ───────────────────────────────────────────────── */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-
-  /* ── Spacing ──────────────────────────────────────────────────── */
-  --spacing-6:   6px;
-  --spacing-12:  12px;
-  --spacing-18:  18px;
-  --spacing-24:  24px;
-  --spacing-30:  30px;
-  --spacing-36:  36px;
-  --spacing-60:  60px;
-  --spacing-96:  96px;
-  --spacing-120: 120px;
 
   /* ── Radius ───────────────────────────────────────────────────── */
   --radius-pill: 24px;
@@ -89,4 +87,19 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Focus visibility — every interactive element gets a visible keyboard ring */
+button, a, input, textarea, select, [role="button"], [tabindex] {
+  outline: none;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-plum-voltage);
+  outline-offset: 2px;
 }

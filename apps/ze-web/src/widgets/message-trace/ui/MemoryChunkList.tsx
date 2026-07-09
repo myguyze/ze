@@ -1,5 +1,7 @@
 import type { MemoryChunkTraceResponse } from "@myguyze/ze-client";
 
+// Categorical palette identifying memory source type — distinct from the
+// success/warning/destructive state tokens, so it intentionally doesn't use them.
 const SOURCE_COLORS: Record<string, string> = {
   fact: "text-emerald-400",
   episode: "text-sky-400",
@@ -12,7 +14,7 @@ interface MemoryChunkListProps {
 
 export function MemoryChunkList({ chunks }: MemoryChunkListProps) {
   if (chunks.length === 0) {
-    return <p className="text-xs text-smoke/60 italic">No memory retrieved</p>;
+    return <p className="text-xs text-smoke/80 italic">No memory retrieved</p>;
   }
 
   return (

@@ -33,7 +33,7 @@ export function TimelineScrubber({ earliest, value, onChange }: TimelineScrubber
       <div className="flex items-center justify-between text-xs text-smoke">
         <span>{formatDate(earliest)}</span>
         {value ? (
-          <span className="font-medium text-amber-400">{formatDate(value)} — {ago} day{ago !== 1 ? "s" : ""} ago</span>
+          <span className="font-medium text-warning">{formatDate(value)} — {ago} day{ago !== 1 ? "s" : ""} ago</span>
         ) : (
           <span className="text-white/50">Now</span>
         )}

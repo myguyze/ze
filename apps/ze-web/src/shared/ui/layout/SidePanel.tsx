@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
-import { cn } from "@/shared/lib/cn";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { cn, motion } from "@/shared/lib";
 
 interface SidePanelProps {
   open: boolean;
@@ -11,6 +11,21 @@ interface SidePanelProps {
   className?: string;
 }
 
+function useMinMd() {
+  const [minMd, setMinMd] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => setMinMd(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return minMd;
+}
+
 export function SidePanel({
   open,
   width,
@@ -20,6 +35,7 @@ export function SidePanel({
   children,
   className,
 }: SidePanelProps) {
+  const isDesktop = useMinMd();
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -51,7 +67,43 @@ export function SidePanel({
     };
   }, [onWidthChange]);
 
-  if (!open) return null;
+  const panelBody = (
+    <>
+      <div
+        onMouseDown={onMouseDown}
+        className={cn(
+          "absolute left-0 top-0 bottom-0 z-10 hidden w-1 cursor-col-resize hover:bg-plum-voltage/40 md:block",
+          motion.colors,
+        )}
+      />
+      {header}
+      <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <div
+        className={cn(
+          "flex-shrink-0 overflow-hidden",
+          motion.base,
+          !open && "pointer-events-none",
+        )}
+        style={{ width: open ? width : 0, opacity: open ? 1 : 0 }}
+        aria-hidden={!open}
+      >
+        <aside
+          className={cn(
+            "relative flex h-full flex-col overflow-hidden border-l border-white/10 bg-black/20",
+            className,
+          )}
+          style={{ width }}
+        >
+          {panelBody}
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -59,22 +111,25 @@ export function SidePanel({
         type="button"
         aria-label="Close panel"
         onClick={onClose}
-        className="md:hidden fixed inset-0 z-40 bg-black/60"
+        aria-hidden={!open}
+        tabIndex={open ? 0 : -1}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60",
+          motion.fade,
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
       />
       <aside
+        aria-hidden={!open}
         className={cn(
-          "flex flex-col flex-shrink-0 border-l border-white/10 bg-black/20 relative overflow-hidden z-50",
-          "fixed inset-y-0 right-0 md:relative md:inset-auto",
+          "fixed inset-y-0 right-0 z-50 flex flex-col overflow-hidden border-l border-white/10 bg-black/20",
+          motion.slide,
+          open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-full opacity-0",
           className,
         )}
         style={{ width }}
       >
-        <div
-          onMouseDown={onMouseDown}
-          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-plum-voltage/40 transition-colors z-10 hidden md:block"
-        />
-        {header}
-        <div className="flex-1 min-h-0 overflow-y-auto relative">{children}</div>
+        {panelBody}
       </aside>
     </>
   );

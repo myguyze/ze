@@ -65,7 +65,7 @@ export function WorkflowCard({ workflow, variant = "row" }: WorkflowCardProps) {
         </div>
 
         {workflow.last_run_at && (
-          <p className="text-xs text-smoke/70">Last run {formatTimestamp(workflow.last_run_at)}</p>
+          <p className="text-xs text-smoke/80">Last run {formatTimestamp(workflow.last_run_at)}</p>
         )}
 
         {workflow.enabled && (
@@ -106,7 +106,7 @@ export function WorkflowCard({ workflow, variant = "row" }: WorkflowCardProps) {
           {formatSchedule(workflow.schedule)}
         </span>
         {(workflow.last_run_at || workflow.next_run_at) && (
-          <span className="text-xs text-smoke/70">
+          <span className="text-xs text-smoke/80">
             {workflow.last_run_at ? formatTimestamp(workflow.last_run_at) : `Next ${formatTimestamp(workflow.next_run_at!)}`}
           </span>
         )}

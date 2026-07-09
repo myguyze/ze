@@ -14,7 +14,7 @@ export function MemoryFeedItem({ item, filters }: MemoryFeedItemProps) {
       <div
         className={`px-4 py-3 rounded-lg border ${
           item.contradicted
-            ? "border-red-500/30 bg-red-500/5"
+            ? "border-destructive/30 bg-destructive/5"
             : "border-white/10 bg-white/[0.03]"
         }`}
       >
@@ -37,7 +37,7 @@ export function MemoryFeedItem({ item, filters }: MemoryFeedItemProps) {
               </span>
             )}
             {item.contradicted && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/20 text-destructive">
                 contradicted
               </span>
             )}

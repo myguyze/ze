@@ -10,6 +10,8 @@ export interface EntityNodeData {
   dimmed?: boolean;
 }
 
+// Categorical palette identifying entity type — distinct from the
+// success/warning/destructive state tokens, so it intentionally doesn't use them.
 const ENTITY_COLORS: Record<string, string> = {
   person: "bg-blue-500/20 border-blue-500/40 text-blue-300",
   place: "bg-green-500/20 border-green-500/40 text-green-300",

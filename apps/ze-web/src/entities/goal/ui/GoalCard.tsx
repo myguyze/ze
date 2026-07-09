@@ -11,7 +11,7 @@ interface GoalCardProps {
 
 function statusStyle(status: string) {
   if (status === "active") return "border-plum-voltage/50 text-plum-voltage";
-  if (status === "completed") return "border-green-500/50 text-green-400";
+  if (status === "completed") return "border-success/50 text-success";
   if (status === "abandoned") return "border-white/20 text-smoke";
   return "border-white/20 text-smoke";
 }

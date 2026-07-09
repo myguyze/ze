@@ -35,16 +35,16 @@ export function LiveRunPanel({ execution, workflow }: Props) {
 
   return (
     <div className={`border rounded-pill overflow-hidden bg-white/[0.02] ${
-      failed ? "border-red-500/30" : isRunning ? "border-plum-voltage/30" : "border-green-500/20"
+      failed ? "border-destructive/30" : isRunning ? "border-plum-voltage/30" : "border-success/20"
     }`}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
         {isRunning ? (
           <Loader2 className="w-4 h-4 text-plum-voltage animate-spin flex-shrink-0" />
         ) : failed ? (
-          <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <XCircle className="w-4 h-4 text-destructive flex-shrink-0" />
         ) : (
-          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
         )}
         <span className="text-sm font-medium text-white">
           {isRunning ? "Running…" : failed ? "Run failed" : "Run complete"}
@@ -70,9 +70,9 @@ export function LiveRunPanel({ execution, workflow }: Props) {
           return (
             <div key={i} className="flex gap-3">
               <div className="flex-shrink-0 mt-0.5">
-                {state === "completed-ok" && <CheckCircle2 className="w-4 h-4 text-green-400" />}
-                {state === "completed-fail" && <XCircle className="w-4 h-4 text-red-400" />}
-                {state === "failed-inferred" && <XCircle className="w-4 h-4 text-red-400/60" />}
+                {state === "completed-ok" && <CheckCircle2 className="w-4 h-4 text-success" />}
+                {state === "completed-fail" && <XCircle className="w-4 h-4 text-destructive" />}
+                {state === "failed-inferred" && <XCircle className="w-4 h-4 text-destructive/60" />}
                 {state === "running" && <Loader2 className="w-4 h-4 text-plum-voltage animate-spin" />}
                 {state === "pending" && <Circle className="w-4 h-4 text-white/20" />}
               </div>
@@ -90,10 +90,10 @@ export function LiveRunPanel({ execution, workflow }: Props) {
                   </p>
                 )}
                 {result?.error && (
-                  <p className="mt-1 text-xs text-red-400">{result.error}</p>
+                  <p className="mt-1 text-xs text-destructive">{result.error}</p>
                 )}
                 {state === "failed-inferred" && execution.error && !result?.error && (
-                  <p className="mt-1 text-xs text-red-400/70">{execution.error}</p>
+                  <p className="mt-1 text-xs text-destructive/70">{execution.error}</p>
                 )}
               </div>
             </div>
@@ -104,16 +104,16 @@ export function LiveRunPanel({ execution, workflow }: Props) {
       {/* Summary footer (success) */}
       {execution.summary && (
         <div className="px-4 py-3 border-t border-white/10">
-          <p className="text-xs text-smoke/70 uppercase tracking-wide mb-1">Summary</p>
+          <p className="text-xs text-smoke/80 uppercase tracking-wide mb-1">Summary</p>
           <p className="text-sm text-white/80 whitespace-pre-wrap">{execution.summary}</p>
         </div>
       )}
 
       {/* Error footer (failure without a per-step error already shown) */}
       {failed && execution.error && !execution.summary && completedCount < workflow.steps.length && (
-        <div className="px-4 py-3 border-t border-red-500/20">
-          <p className="text-xs text-red-400 font-medium mb-0.5">Failure reason</p>
-          <p className="text-xs text-red-300/80">{execution.error}</p>
+        <div className="px-4 py-3 border-t border-destructive/20">
+          <p className="text-xs text-destructive font-medium mb-0.5">Failure reason</p>
+          <p className="text-xs text-destructive/80">{execution.error}</p>
         </div>
       )}
     </div>

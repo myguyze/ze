@@ -91,7 +91,7 @@ export function SettingsWorkspace() {
             </span>
           )}
           {testResult === "error" && (
-            <span className="flex items-center gap-1 text-xs text-red-400">
+            <span className="flex items-center gap-1 text-xs text-destructive">
               <AlertCircle className="w-3.5 h-3.5" /> Failed
             </span>
           )}
@@ -132,7 +132,7 @@ export function SettingsWorkspace() {
         <Button variant="ghost" onClick={exportData} disabled={exporting} className="w-full">
           {exporting ? "Preparing export…" : "Export your data"}
         </Button>
-        {exportError && <p className="text-xs text-red-400">{exportError}</p>}
+        {exportError && <p className="text-xs text-destructive">{exportError}</p>}
 
         <input
           ref={importInputRef}
@@ -150,7 +150,7 @@ export function SettingsWorkspace() {
             {Object.values(importResult.rows_imported).reduce((a, b) => a + b, 0)} rows).
           </p>
         )}
-        {importError && <p className="text-xs text-red-400">{importError}</p>}
+        {importError && <p className="text-xs text-destructive">{importError}</p>}
 
         <Button variant="danger" onClick={openDeleteModal} className="w-full">
           Delete all data
@@ -186,10 +186,10 @@ export function SettingsWorkspace() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
-          <div className="bg-[#111] border border-red-900/40 rounded-xl p-6 w-full max-w-sm space-y-5">
+          <div className="bg-[#111] border border-destructive/40 rounded-xl p-6 w-full max-w-sm space-y-5">
             <div>
               <p className="text-lg font-semibold text-white">Delete all data?</p>
-              <p className="text-xs text-red-400 mt-0.5 font-medium uppercase tracking-widest">
+              <p className="text-xs text-destructive mt-0.5 font-medium uppercase tracking-widest">
                 This cannot be undone
               </p>
             </div>
@@ -204,7 +204,7 @@ export function SettingsWorkspace() {
                 "Usage history",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-red-500/60 flex-shrink-0" />
+                  <span className="w-1 h-1 rounded-full bg-destructive/60 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -234,7 +234,7 @@ export function SettingsWorkspace() {
               />
             </div>
 
-            {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+            {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
 
             <div className="flex gap-3">
               <Button

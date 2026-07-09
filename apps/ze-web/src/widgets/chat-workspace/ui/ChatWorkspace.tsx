@@ -1,7 +1,5 @@
-import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ChatMessageList, ChatInput, ConfirmBar } from "@/entities/message";
-import { useSession } from "@/entities/session";
 import { reconnect, send } from "@/shared/api";
 import { useTopBarQuickActions } from "@/shared/lib";
 import { BackgroundBeamsCanvas } from "@/shared/effects/background-beams";
@@ -14,7 +12,6 @@ import { ChatSidePanelQuickActions } from "./ChatSidePanelQuickActions";
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
 export function ChatWorkspace() {
-  const newSession = useSession((s) => s.newSession);
   const {
     threadId,
     messages,
@@ -26,7 +23,6 @@ export function ChatWorkspace() {
     pendingConfirm,
     sendMessage,
     respondToConfirm,
-    resetInteraction,
   } = useChatWorkspace();
 
   const [input, setInput] = useState("");
@@ -57,39 +53,22 @@ export function ChatWorkspace() {
     }
   }
 
-  function handleNewSession() {
-    newSession();
-    setInput("");
-    resetInteraction();
-  }
-
   const isEmpty = messages.length === 0 && connState === "connected";
 
   return (
     <ChatLayout sidebar={<ChatSidePanel threadId={threadId} assistantMessageIds={assistantMessageIds} />}>
       <BackgroundBeamsCanvas className="opacity-40" />
 
-      <div className="relative z-10 flex items-center justify-end px-4 py-3 border-b border-white/10 flex-shrink-0">
-        <button
-          type="button"
-          onClick={handleNewSession}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-pill bg-plum-voltage text-white text-xs font-medium hover:bg-plum-voltage/90 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          New chat
-        </button>
-      </div>
-
       {connState === "connecting" && (
-        <div className="relative z-10 mx-4 mt-3 flex items-center gap-2 px-4 py-2 rounded-pill border border-amber-spark/40 text-amber-spark text-xs">
+        <div className="relative z-10 mb-3 flex w-full items-center gap-2 rounded-pill border border-amber-spark/40 px-4 py-2 text-xs text-amber-spark">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-spark animate-pulse" />
           Connecting to Ze…
         </div>
       )}
       {connState === "disconnected" && (
-        <div className="relative z-10 mx-4 mt-3 flex items-center justify-between px-4 py-2 rounded-pill border border-white/15 text-white text-xs">
+        <div className="relative z-10 mb-3 flex w-full items-center justify-between rounded-pill border border-white/15 px-4 py-2 text-xs text-white">
           <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
             Could not connect.
           </span>
           <button

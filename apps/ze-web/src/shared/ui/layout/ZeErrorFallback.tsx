@@ -41,7 +41,7 @@ export function ZeErrorFallback({ error, onReset }: ZeErrorFallbackProps) {
 
       {import.meta.env.DEV && error && (
         <details className="mt-4 max-w-xl text-left">
-          <summary className="cursor-pointer text-xs text-smoke/70 hover:text-smoke">
+          <summary className="cursor-pointer text-xs text-smoke/80 hover:text-smoke">
             Developer details
           </summary>
           <pre className="mt-3 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left text-xs text-smoke/80 whitespace-pre-wrap">

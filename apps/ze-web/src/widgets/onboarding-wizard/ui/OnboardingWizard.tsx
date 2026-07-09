@@ -110,7 +110,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </span>
                 )}
                 {testResult === "error" && (
-                  <span className="flex items-center gap-1 text-xs text-red-400">
+                  <span className="flex items-center gap-1 text-xs text-destructive">
                     <AlertCircle className="w-3.5 h-3.5" /> Failed
                   </span>
                 )}

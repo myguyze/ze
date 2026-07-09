@@ -11,7 +11,7 @@ export function StorageDonutChart({ segments, totalBytes }: StorageDonutChartPro
     return (
       <div className="flex items-center gap-6">
         <div className="w-[140px] h-[140px] rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center flex-shrink-0">
-          <p className="text-[10px] text-smoke/50 uppercase tracking-widest">No data</p>
+          <p className="text-[10px] text-smoke/80 uppercase tracking-widest">No data</p>
         </div>
         <p className="text-sm text-smoke">Storage will appear once domains have data.</p>
       </div>
@@ -78,7 +78,7 @@ export function StorageDonutChart({ segments, totalBytes }: StorageDonutChartPro
               <p className="text-[10px] text-smoke tabular-nums flex-shrink-0">
                 {formatBytes(seg.bytes)}
               </p>
-              <p className="text-[10px] text-smoke/60 tabular-nums w-10 text-right flex-shrink-0">
+              <p className="text-[10px] text-smoke/80 tabular-nums w-10 text-right flex-shrink-0">
                 {pct.toFixed(0)}%
               </p>
             </div>

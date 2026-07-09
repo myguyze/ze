@@ -10,11 +10,11 @@ export function ExecutionTraceLog({ goalId, milestoneId }: ExecutionTraceLogProp
   const { data: traces, isLoading } = useGoalTracesQuery(goalId, milestoneId);
 
   if (isLoading) {
-    return <p className="text-xs text-smoke/60 py-2">Loading traces…</p>;
+    return <p className="text-xs text-smoke/80 py-2">Loading traces…</p>;
   }
 
   if (!traces?.length) {
-    return <p className="text-xs text-smoke/60 italic py-2">No tool calls recorded.</p>;
+    return <p className="text-xs text-smoke/80 italic py-2">No tool calls recorded.</p>;
   }
 
   return (

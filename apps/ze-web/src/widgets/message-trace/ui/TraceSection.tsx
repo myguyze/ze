@@ -26,7 +26,7 @@ export function TraceSection({ title, count, loading, children, defaultOpen = tr
         <span className="font-medium">
           {title}
           {count !== undefined && !loading && (
-            <span className="ml-1 text-smoke/60">({count})</span>
+            <span className="ml-1 text-smoke/80">({count})</span>
           )}
         </span>
         {loading && (

@@ -8,7 +8,7 @@ interface MilestoneTimelineProps {
 
 export function MilestoneTimeline({ milestones, goalId }: MilestoneTimelineProps) {
   if (!milestones.length) {
-    return <p className="text-sm text-smoke/60 italic">No milestones planned yet.</p>;
+    return <p className="text-sm text-smoke/80 italic">No milestones planned yet.</p>;
   }
 
   return (

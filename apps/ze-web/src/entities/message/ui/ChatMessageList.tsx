@@ -38,7 +38,7 @@ export function ChatMessageList({
     : null;
 
   return (
-    <div className={className ?? "flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"}>
+    <div className={className ?? "min-h-0 flex-1 space-y-4 overflow-y-auto py-2"}>
       {messages.map((msg) => (
         <ChatErrorBoundary key={msg.id}>
           <MessageBubble message={msg} />

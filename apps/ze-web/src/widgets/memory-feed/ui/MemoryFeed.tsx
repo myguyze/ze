@@ -43,7 +43,7 @@ export function MemoryFeed({ filters, asOf }: MemoryFeedProps) {
 
   if (isError) {
     return (
-      <div className="text-sm text-red-400 text-center py-8">
+      <div className="text-sm text-destructive text-center py-8">
         Failed to load memory feed.{" "}
         <button onClick={() => void refetch()} className="underline">
           Retry

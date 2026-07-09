@@ -7,7 +7,7 @@ interface ToolCallListProps {
 
 export function ToolCallList({ toolCalls }: ToolCallListProps) {
   if (toolCalls.length === 0) {
-    return <p className="text-xs text-smoke/60 italic">No tools called</p>;
+    return <p className="text-xs text-smoke/80 italic">No tools called</p>;
   }
 
   return (
@@ -15,14 +15,14 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
       {toolCalls.map((tc, i) => (
         <li key={i} className="flex items-center gap-2 text-xs">
           {tc.success ? (
-            <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+            <CheckCircle className="w-3 h-3 text-success flex-shrink-0" />
           ) : (
-            <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
+            <XCircle className="w-3 h-3 text-destructive flex-shrink-0" />
           )}
           <span className="font-mono text-white/90">{tc.name}</span>
           <span className="text-smoke">{tc.duration_ms}ms</span>
           {tc.result_snippet && (
-            <span className="text-smoke/60 truncate max-w-[160px]">{tc.result_snippet}</span>
+            <span className="text-smoke/80 truncate max-w-[160px]">{tc.result_snippet}</span>
           )}
         </li>
       ))}

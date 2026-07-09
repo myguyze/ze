@@ -61,7 +61,7 @@ function DomainBreakdownItem({
       {showSize && (
         <>
           <MetricProgressBar pct={pct} />
-          <p className="mt-1.5 text-[9px] text-smoke/50 tabular-nums">
+          <p className="mt-1.5 text-[9px] text-smoke/80 tabular-nums">
             {pct.toFixed(1)}% of storage
           </p>
         </>
@@ -120,7 +120,7 @@ export function DataOverview() {
               />
             </div>
 
-            <p className="text-[10px] text-smoke/30">
+            <p className="text-[10px] text-smoke/80">
               Disk usage from Postgres table sizes (data + indexes)
             </p>
           </DashboardGridMain>

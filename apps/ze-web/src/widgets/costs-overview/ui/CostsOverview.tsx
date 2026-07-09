@@ -164,7 +164,7 @@ function TokenSplit({
         />
         <div className="bg-white/15 rounded-r-full flex-1" />
       </div>
-      <p className="text-[9px] text-smoke/50">
+      <p className="text-[9px] text-smoke/80">
         {inputPct}% input · {100 - inputPct}% output
       </p>
     </div>
@@ -197,13 +197,13 @@ function AgentUsageItem({
       <MetricProgressBar pct={pct} minWidthPct={0} />
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-smoke">
         <span className="tabular-nums">{pct.toFixed(1)}%</span>
-        <span className="text-smoke/30">·</span>
+        <span className="text-smoke/80">·</span>
         <span>{usage.calls} {usage.calls === 1 ? "call" : "calls"}</span>
-        <span className="text-smoke/30">·</span>
+        <span className="text-smoke/80">·</span>
         <span className="tabular-nums">{formatTokens(usage.tokens)} tok</span>
         {avgPerCall > 0 && (
           <>
-            <span className="text-smoke/30">·</span>
+            <span className="text-smoke/80">·</span>
             <span className="tabular-nums">{formatUsd(avgPerCall)}/call</span>
           </>
         )}
@@ -241,8 +241,8 @@ export function CostsOverview() {
                 <div>
                   <SpendChart by_day={data.by_day} />
                   <div className="flex justify-between mt-1">
-                    <p className="text-[9px] text-smoke/40">30 days ago</p>
-                    <p className="text-[9px] text-smoke/40">today</p>
+                    <p className="text-[9px] text-smoke/80">30 days ago</p>
+                    <p className="text-[9px] text-smoke/80">today</p>
                   </div>
                 </div>
               )}
@@ -266,7 +266,7 @@ export function CostsOverview() {
                 <AnomalyPanel anomalies={anomalies} isLoading={anomaliesLoading} />
               </SectionPanel>
 
-              <p className="text-[10px] text-smoke/30">
+              <p className="text-[10px] text-smoke/80">
                 {data.total_calls.toLocaleString()} LLM{" "}
                 {data.total_calls === 1 ? "call" : "calls"} total
               </p>
