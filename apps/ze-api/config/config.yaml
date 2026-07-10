@@ -2,7 +2,25 @@
 
 models:
   default: tencent/hy3:free   # trial default through 2026-07-21 — revert by editing this line
-  overrides: {}
+  overrides:
+    # Every agent/step below has its own declared model, which normally wins over
+    # models.default (declared beats default in the resolution chain). These
+    # overrides force the trial model onto them too, for a full fleet-wide trial.
+    # To exclude something from the trial, delete its line — it'll fall back to
+    # its declared model.
+    messenger: tencent/hy3:free
+    research: tencent/hy3:free
+    companion: tencent/hy3:free
+    finance: tencent/hy3:free
+    goals: tencent/hy3:free
+    workflow: tencent/hy3:free
+    calendar: tencent/hy3:free
+    reminders: tencent/hy3:free   # shared by RemindersAgent + reminder interval assessor
+    router_fallback: tencent/hy3:free
+    synthesis: tencent/hy3:free
+    session_title: tencent/hy3:free
+    workflow_verify: tencent/hy3:free
+    insights: tencent/hy3:free
   embedding:        intfloat/multilingual-e5-base
   whisper:          openai/gpt-audio
   vision_caption:   google/gemini-flash-1.5
