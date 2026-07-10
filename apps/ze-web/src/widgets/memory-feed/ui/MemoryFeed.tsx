@@ -1,20 +1,47 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { Brain, Loader2 } from "lucide-react";
 import { useMemoryFeedQuery } from "@/entities/memory-feed-item";
 import type { MemoryFeedFilters } from "@/entities/memory-feed-item";
+import { EmptyState, ErrorState, ListSkeleton } from "@/shared/ui";
+import { dayGroupLabel } from "../lib/format";
 import { MemoryFeedItem } from "./MemoryFeedItem";
 
 interface MemoryFeedProps {
   filters: MemoryFeedFilters;
   asOf?: string;
+  search?: string;
 }
 
-export function MemoryFeed({ filters, asOf }: MemoryFeedProps) {
+export function MemoryFeed({ filters, asOf, search }: MemoryFeedProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
     useMemoryFeedQuery(filters, asOf);
 
   const firstPage = data?.pages[0];
   const allItems = data?.pages.flatMap((p) => p.items) ?? [];
+
+  const query = search?.trim().toLowerCase() ?? "";
+  const filteredItems = useMemo(() => {
+    if (!query) return allItems;
+    return allItems.filter((item) => {
+      const haystack = [item.key, item.value, item.summary, item.prompt_snippet, item.agent]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [allItems, query]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, typeof filteredItems>();
+    for (const item of filteredItems) {
+      const label = dayGroupLabel(item.created_at);
+      const bucket = map.get(label);
+      if (bucket) bucket.push(item);
+      else map.set(label, [item]);
+    }
+    return Array.from(map.entries());
+  }, [filteredItems]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -32,47 +59,61 @@ export function MemoryFeed({ filters, asOf }: MemoryFeedProps) {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-14 rounded-lg bg-white/5 animate-pulse" />
-        ))}
-      </div>
-    );
+    return <ListSkeleton count={6} height="h-16" />;
   }
 
   if (isError) {
     return (
-      <div className="text-sm text-destructive text-center py-8">
-        Failed to load memory feed.{" "}
-        <button onClick={() => void refetch()} className="underline">
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        message="Failed to load memory feed."
+        onRetry={() => void refetch()}
+      />
     );
   }
 
   if (!allItems.length) {
     return (
-      <div className="text-sm text-smoke text-center py-12">
-        No memory items yet.
-      </div>
+      <EmptyState
+        icon={Brain}
+        message="No memory items yet."
+        detail="Facts and episodes Ze learns from your conversations will show up here."
+      />
+    );
+  }
+
+  if (!filteredItems.length) {
+    return (
+      <EmptyState icon={Brain} message="No memory items match your search." />
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-6">
       {firstPage && (
-        <p className="text-xs text-smoke mb-4">
-          {firstPage.total_facts} facts · {firstPage.total_episodes} episodes
+        <p className="text-xs text-smoke">
+          <span className="text-white font-medium">{firstPage.total_facts}</span> facts ·{" "}
+          <span className="text-white font-medium">{firstPage.total_episodes}</span> episodes
         </p>
       )}
-      {allItems.map((item) => (
-        <MemoryFeedItem key={item.id} item={item} filters={filters} />
+
+      {groups.map(([label, items]) => (
+        <div key={label} className="space-y-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-smoke/70 px-1">
+            {label}
+          </h3>
+          <div className="space-y-2">
+            {items.map((item) => (
+              <MemoryFeedItem key={item.id} item={item} filters={filters} />
+            ))}
+          </div>
+        </div>
       ))}
+
       <div ref={sentinelRef} className="h-1" />
       {isFetchingNextPage && (
-        <div className="text-xs text-smoke text-center py-2">Loading more…</div>
+        <div className="flex items-center justify-center gap-2 text-xs text-smoke py-2">
+          <Loader2 className="size-3.5 animate-spin" /> Loading more…
+        </div>
       )}
     </div>
   );
