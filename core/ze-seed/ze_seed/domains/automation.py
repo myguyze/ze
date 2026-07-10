@@ -8,6 +8,9 @@ from ze_seed.domain import SeedDomain
 from ze_seed.domains._helpers import delete_by_ids
 from ze_seed.narrative.ids import (
     EXECUTION_IDS,
+    EXEC_HEALTH_LOOP_FAIL,
+    EXEC_INV_FOUND,
+    EXEC_INV_NONE,
     EXEC_LL_1,
     EXEC_MB_1,
     EXEC_MB_2,
@@ -37,6 +40,8 @@ from ze_seed.narrative.ids import (
     TRACE_PT_3,
     TRACE_SP_1,
     TRACE_SP_2,
+    WF_DEPLOY_HEALTH_CHECK,
+    WF_INVOICE_CHECK,
     WF_LEDGERLITE_DIGEST,
     WF_MORNING_BRIEFING,
     WF_PORTUGUESE_CHECKIN,
@@ -269,6 +274,42 @@ async def _apply_automation(ctx: SeedContext) -> int:
             {"task": "Summarize signups and active users", "agent_hint": "research", "intent": "execute"},
             {"task": "Draft a build-in-public update post", "agent_hint": "companion", "intent": "execute"},
         ])
+        invoice_steps = json.dumps([
+            {
+                "task": "Check inbox for an Acme invoice",
+                "agent_hint": "messenger",
+                "intent": "execute",
+                "id": "s0",
+                "branches": [
+                    {"condition": "an Acme invoice arrived", "to": "s1"},
+                    {"condition": "no Acme invoice arrived", "to": "s2"},
+                ],
+            },
+            {
+                "task": "Forward the invoice to accounting@example.com",
+                "agent_hint": "messenger",
+                "intent": "execute",
+                "id": "s1",
+            },
+            {
+                "task": "Log that no invoice arrived today",
+                "agent_hint": "companion",
+                "intent": "execute",
+                "id": "s2",
+            },
+        ])
+        health_check_steps = json.dumps([
+            {
+                "task": "Ping the LedgerLite health endpoint",
+                "agent_hint": "research",
+                "intent": "execute",
+                "id": "s0",
+                "branches": [
+                    {"condition": "endpoint is healthy", "to": "END"},
+                    {"condition": "endpoint is still failing", "to": "s0"},
+                ],
+            },
+        ])
 
         await conn.execute(
             """
@@ -320,7 +361,40 @@ async def _apply_automation(ctx: SeedContext) -> int:
             now - timedelta(days=7),
             now - timedelta(days=30),
         )
-        count += 3
+        await conn.execute(
+            """
+            INSERT INTO workflows
+                (id, name, description, steps, schedule, enabled,
+                 last_run_at, next_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5, true, $6, $7, $8, $8)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            WF_INVOICE_CHECK,
+            "Invoice inbox check",
+            "Check inbox for an Acme invoice; if one arrived, forward it to accounting, otherwise log that none arrived",
+            invoice_steps,
+            "0 8 * * *",
+            now - timedelta(hours=16),
+            now + timedelta(hours=8),
+            now - timedelta(days=14),
+        )
+        await conn.execute(
+            """
+            INSERT INTO workflows
+                (id, name, description, steps, schedule, enabled,
+                 last_run_at, next_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5, false, $6, NULL, $7, $7)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            WF_DEPLOY_HEALTH_CHECK,
+            "Deploy health check",
+            "Poll the LedgerLite health endpoint after a deploy, retrying until it reports healthy",
+            health_check_steps,
+            None,
+            now - timedelta(days=5),
+            now - timedelta(days=5),
+        )
+        count += 5
 
         pt_ok_1_results = json.dumps([
             {
@@ -445,6 +519,64 @@ async def _apply_automation(ctx: SeedContext) -> int:
             },
         ])
 
+        invoice_found_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Check inbox for an Acme invoice",
+                "output": "Found invoice #4471 from Acme for $2,340, received this morning",
+                "success": True,
+                "error": None,
+                "duration_ms": 640,
+                "step_id": "s0",
+                "branch_taken": "an Acme invoice arrived",
+            },
+            {
+                "step_index": 1,
+                "task": "Forward the invoice to accounting@example.com",
+                "output": "Forwarded invoice #4471 to accounting@example.com",
+                "success": True,
+                "error": None,
+                "duration_ms": 210,
+                "step_id": "s1",
+                "branch_taken": None,
+            },
+        ])
+        invoice_none_results = json.dumps([
+            {
+                "step_index": 0,
+                "task": "Check inbox for an Acme invoice",
+                "output": "No Acme invoice in the inbox today",
+                "success": True,
+                "error": None,
+                "duration_ms": 510,
+                "step_id": "s0",
+                "branch_taken": "no Acme invoice arrived",
+            },
+            {
+                "step_index": 1,
+                "task": "Log that no invoice arrived today",
+                "output": "Logged: no Acme invoice today",
+                "success": True,
+                "error": None,
+                "duration_ms": 90,
+                "step_id": "s2",
+                "branch_taken": None,
+            },
+        ])
+        health_loop_fail_results = json.dumps([
+            {
+                "step_index": i,
+                "task": "Ping the LedgerLite health endpoint",
+                "output": "Health endpoint returned 503 Service Unavailable",
+                "success": True,
+                "error": None,
+                "duration_ms": 300 + i * 50,
+                "step_id": "s0",
+                "branch_taken": "endpoint is still failing",
+            }
+            for i in range(4)
+        ])
+
         executions = [
             (
                 EXEC_PT_OK_1,
@@ -505,6 +637,37 @@ async def _apply_automation(ctx: SeedContext) -> int:
                 "12 signups, 7 active users. CSV date format fix is top request.",
                 now - timedelta(days=7),
                 now - timedelta(days=7) + timedelta(minutes=5),
+            ),
+            (
+                EXEC_INV_FOUND,
+                WF_INVOICE_CHECK,
+                "completed",
+                invoice_found_results,
+                None,
+                "Found Acme invoice #4471 and forwarded it to accounting.",
+                now - timedelta(hours=16),
+                now - timedelta(hours=16) + timedelta(minutes=1),
+            ),
+            (
+                EXEC_INV_NONE,
+                WF_INVOICE_CHECK,
+                "completed",
+                invoice_none_results,
+                None,
+                "No Acme invoice today; logged for the record.",
+                now - timedelta(hours=40),
+                now - timedelta(hours=40) + timedelta(minutes=1),
+            ),
+            (
+                EXEC_HEALTH_LOOP_FAIL,
+                WF_DEPLOY_HEALTH_CHECK,
+                "failed",
+                health_loop_fail_results,
+                "Loop limit exceeded for step s0 (Ping the LedgerLite health endpoint): "
+                "executed 4 times (1 initial + 3 revisits); cannot revisit again.",
+                None,
+                now - timedelta(days=5),
+                now - timedelta(days=5) + timedelta(minutes=2),
             ),
         ]
         for exec_id, wf_id, status, step_results, error, summary, started, completed in executions:

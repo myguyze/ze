@@ -147,6 +147,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 98 | [Workflow Run Chat](phases/098-workflow-run-chat/spec.md) | 🔲 Pending |
 | 99 | [Multi-Conversation Support](phases/099-multi-conversation/spec.md) | 🔲 Pending |
 | 101 | [Session Search & Titles](phases/101-session-search/spec.md) | ✅ Done |
+| 102 | [Workflow Conditional Branching](phases/102-workflow-branching/spec.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

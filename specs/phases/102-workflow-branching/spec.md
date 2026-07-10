@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-09
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Add conditional branching and bounded looping to the workflow engine. Currently a Workflow is a flat list of WorkflowStep executed strictly in order, with a single verify-gate per step that either advances to the next step or fails the whole run. This spec should cover: giving each step a stable id; adding an optional list of branches (condition, target) on a step so it can route to a different step (or end/fail) based on a classification of the step's output, falling back to sequential order when no branches are defined; a default-next override; a bounded loop guard to allow a branch to point backward to an earlier step without risking infinite execution; extending workflow planning to optionally emit branches (defaulting to linear when not needed); and backward compatibility with existing saved workflows. Parallel execution of multiple steps at once is explicitly out of scope — that is a separate future feature. The motivation is unlocking conditional logic (if/else, switch-like branching) for workflows like 'check inbox, if invoice found do X else do Y', and eventually a visual graph-based view of a workflow, though that view is not part of this spec."
 

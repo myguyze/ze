@@ -142,6 +142,20 @@ export type BodyIngest = {
 };
 
 /**
+ * BranchResponse
+ */
+export type BranchResponse = {
+    /**
+     * Condition
+     */
+    condition: string;
+    /**
+     * To
+     */
+    to: string;
+};
+
+/**
  * CapabilitiesResponse
  *
  * Full capabilities map keyed by agent name.
@@ -1715,6 +1729,14 @@ export type StepResultResponse = {
      * Duration Ms
      */
     duration_ms: number;
+    /**
+     * Step Id
+     */
+    step_id: string;
+    /**
+     * Branch Taken
+     */
+    branch_taken: string | null;
 };
 
 /**
@@ -2124,6 +2146,18 @@ export type WorkflowStepResponse = {
      * Verify
      */
     verify: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Branches
+     */
+    branches: Array<BranchResponse>;
+    /**
+     * Default Next
+     */
+    default_next: string | null;
 };
 
 /**

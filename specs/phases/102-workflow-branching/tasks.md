@@ -142,18 +142,18 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 ### Tests for User Story 5
 
-- [ ] T029 [P] [US5] Add route test: `getWorkflow` and `listWorkflowExecutions` responses include `id`/`branches`/`default_next` and `step_id`/`branch_taken`, in `apps/ze-api/tests/api/test_workflows_route.py` (new file, following the `test_<name>_route.py` convention used by `test_channels_route.py`)
-- [ ] T030 [P] [US5] Add component test: `WorkflowStepsList` renders rows in `step_results` execution order keyed by `step_id`, repeating a looped step as separate rows rather than collapsing to one, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.test.tsx` (new file)
-- [ ] T031 [P] [US5] Add component test: a step absent from the executed `step_id` set renders as "not taken this run" (visually distinct from pending/running/completed/failed) on a completed or failed execution, and pre-existing non-branching workflows show zero visual change, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.test.tsx`
-- [ ] T032 [P] [US5] Add component test: `LiveRunPanel` shows the fixed "N / total" header for a workflow with no branches, and a running-count-only header (no denominator) for a workflow with any step's `branches` non-empty, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.test.tsx` (new file)
+- [X] T029 [P] [US5] Add route test: `getWorkflow` and `listWorkflowExecutions` responses include `id`/`branches`/`default_next` and `step_id`/`branch_taken`, in `apps/ze-api/tests/api/test_workflows_route.py` (new file, following the `test_<name>_route.py` convention used by `test_channels_route.py`)
+- [X] T030 [P] [US5] Add component test: `WorkflowStepsList` renders rows in `step_results` execution order keyed by `step_id`, repeating a looped step as separate rows rather than collapsing to one, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.test.tsx` (new file)
+- [X] T031 [P] [US5] Add component test: a step absent from the executed `step_id` set renders as "not taken this run" (visually distinct from pending/running/completed/failed) on a completed or failed execution, and pre-existing non-branching workflows show zero visual change, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.test.tsx`
+- [X] T032 [P] [US5] Add component test: `LiveRunPanel` shows the fixed "N / total" header for a workflow with no branches, and a running-count-only header (no denominator) for a workflow with any step's `branches` non-empty, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.test.tsx` (new file)
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Run `make codegen` to regenerate `@myguyze/ze-client` after the T005 schema changes land, so `WorkflowStepResponse`/`StepResultResponse` TypeScript types include the new fields
-- [ ] T034 [US5] Rewrite `WorkflowStepsList` to iterate `execution.step_results` (execution order) keyed by `step_id`, looking up static step metadata (`task`, `agent_hint`, ...) from a `Map<string, WorkflowStepResponse>` built from `workflow.steps` by `id`, falling back to rendering `workflow.steps` in authored order only when no execution exists yet, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.tsx` (depends on T033)
-- [ ] T035 [US5] Add the `"not-taken"` `StepState` value and its resolution rule (a step's `id` absent from the executed-`step_id` set on a completed/failed, non-running execution resolves to `"not-taken"`, distinct from `"pending"`) with its dimmed + labeled visual treatment, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.tsx` (depends on T034)
-- [ ] T036 [US5] Apply the same execution-order/`step_id` rendering fix and `"not-taken"` state to `LiveRunPanel`, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.tsx` (depends on T033)
-- [ ] T037 [US5] Change `LiveRunPanel`'s header to a running-count-only display (no denominator) when `workflow.steps.some(s => s.branches.length > 0)` — `default_next` alone does not count, per FR-017 — keeping the existing fixed "N / total" form otherwise, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.tsx` (depends on T036)
+- [X] T033 [US5] Run `make codegen` to regenerate `@myguyze/ze-client` after the T005 schema changes land, so `WorkflowStepResponse`/`StepResultResponse` TypeScript types include the new fields
+- [X] T034 [US5] Rewrite `WorkflowStepsList` to iterate `execution.step_results` (execution order) keyed by `step_id`, looking up static step metadata (`task`, `agent_hint`, ...) from a `Map<string, WorkflowStepResponse>` built from `workflow.steps` by `id`, falling back to rendering `workflow.steps` in authored order only when no execution exists yet, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.tsx` (depends on T033)
+- [X] T035 [US5] Add the `"not-taken"` `StepState` value and its resolution rule (a step's `id` absent from the executed-`step_id` set on a completed/failed, non-running execution resolves to `"not-taken"`, distinct from `"pending"`) with its dimmed + labeled visual treatment, in `apps/ze-web/src/widgets/workflow-steps/ui/WorkflowStepsList.tsx` (depends on T034)
+- [X] T036 [US5] Apply the same execution-order/`step_id` rendering fix and `"not-taken"` state to `LiveRunPanel`, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.tsx` (depends on T033)
+- [X] T037 [US5] Change `LiveRunPanel`'s header to a running-count-only display (no denominator) when `workflow.steps.some(s => s.branches.length > 0)` — `default_next` alone does not count, per FR-017 — keeping the existing fixed "N / total" form otherwise, in `apps/ze-web/src/widgets/workflow-executions/ui/LiveRunPanel.tsx` (depends on T036)
 
 **Checkpoint**: All five user stories are independently functional; the existing Workflows screen is accurate for every workflow shape.
 
@@ -163,10 +163,10 @@ This is the existing Ze monorepo — no new packages. Paths used below:
 
 **Purpose**: Repo-wide close-out per constitution's Definition of Done.
 
-- [ ] T038 [P] Update `spec.md`'s `**Status**` field from `Draft` to `Implemented` in `specs/phases/102-workflow-branching/spec.md`, in the same commit as the implementation (constitution Principle I)
-- [ ] T039 [P] Add the phase 102 index row to `specs/README.md`
-- [ ] T040 Run every scenario in `specs/phases/102-workflow-branching/quickstart.md` end-to-end (`make dev-full`) and confirm expected outcomes
-- [ ] T041 Run `make lint`, `make test-automation`, `make test-personal`, and `make test-web`; fix any failures
+- [X] T038 [P] Update `spec.md`'s `**Status**` field from `Draft` to `Implemented` in `specs/phases/102-workflow-branching/spec.md`, in the same commit as the implementation (constitution Principle I)
+- [X] T039 [P] Add the phase 102 index row to `specs/README.md`
+- [ ] T040 Run every scenario in `specs/phases/102-workflow-branching/quickstart.md` end-to-end (`make dev-full`) and confirm expected outcomes — not run this session (requires a live `make dev-full` + manual browser walkthrough); automated coverage (T009-T037) exercises the same scenarios
+- [X] T041 Run `make lint`, `make test-automation`, `make test-personal`, and `make web-test`; fix any failures — all touched-package tests pass (281 ze-automation, 186 ze-personal, 142 ze-api, 44 ze-web); `make lint` has 3 pre-existing failures unrelated to this feature (`apps/ze-api/ze_api/api/websocket/connection.py`, `core/ze-core/tests/conversation/test_session_store.py`, `core/ze-seed/tests/test_loader.py`) and one pre-existing unrelated ze-api test failure (`test_routing_config_defaults_empty_without_yaml_block`)
 
 ---
 
