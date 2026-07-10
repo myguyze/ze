@@ -10,6 +10,7 @@ from ze_logging import get_logger
 from ze_sdk.proactive import PushLogStore
 from ze_calendar.reminders.calendar_store import CalendarReminderStore
 from ze_agents.client import LLMClient
+from ze_agents.model_resolution import resolve_model
 from ze_sdk.proactive import ProactiveNotifier
 
 log = get_logger(__name__)
@@ -220,9 +221,7 @@ class CalendarReminderService:
         start_time: datetime,
         now: datetime,
     ) -> list[tuple[timedelta, datetime]]:
-        model = self._settings.config.get("models", {}).get(
-            "reminders", "anthropic/claude-haiku-4-5"
-        )
+        model = resolve_model("reminders", "anthropic/claude-haiku-4-5", self._settings.config)
         end_time = _event_start({"start": event.get("end", {})})
         duration_minutes = (
             int((end_time - start_time).total_seconds() / 60)

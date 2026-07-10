@@ -182,6 +182,23 @@ async def test_assess_intervals_fallback_on_haiku_error():
     assert result[0][0] == timedelta(hours=1)
 
 
+async def test_assess_intervals_uses_models_override_when_set():
+    client = AsyncMock()
+    client.complete = AsyncMock(return_value='{"intervals": ["1 hour"]}')
+    settings = MagicMock()
+    settings.config = {
+        "models": {"default": "fleet-default", "overrides": {"reminders": "pinned-model"}}
+    }
+    svc, _ = make_reminder_service(client=client, settings=settings)
+
+    now = datetime.now(timezone.utc)
+    event = _make_event(start_offset_hours=5)
+    start_time = now + timedelta(hours=5)
+    await svc._assess_intervals(event, start_time, now)
+
+    assert client.complete.call_args.kwargs["model"] == "pinned-model"
+
+
 async def test_assess_intervals_discards_past():
     client = AsyncMock()
     # Event starts in 30 minutes; "1 hour" interval → fire_at = -30 min (past)

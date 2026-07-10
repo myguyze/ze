@@ -6,6 +6,7 @@ import asyncpg
 
 from ze_logging import get_logger
 from ze_agents.client import LLMClient
+from ze_agents.model_resolution import resolve_model
 from ze_sdk.proactive import ProactiveNotifier
 from ze_agents.settings import Settings
 from ze_sdk.proactive import proactive_job
@@ -54,9 +55,7 @@ class InsightEngine:
         cooldown_days = int(
             self._settings.config.get("proactive", {}).get("insights", {}).get("category_cooldown_days", 7)
         )
-        model = self._settings.config.get("models", {}).get(
-            "insights", "anthropic/claude-haiku-4-5"
-        )
+        model = resolve_model("insights", "anthropic/claude-haiku-4-5", self._settings.config)
 
         week_of = date.today() - timedelta(days=date.today().weekday())
 

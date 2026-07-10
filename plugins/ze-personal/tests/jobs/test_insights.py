@@ -43,7 +43,7 @@ def make_settings(extra_insights_mem: dict | None = None):
         **(extra_insights_mem or {}),
     }
     s.proactive_config = {"insights": {"category_cooldown_days": 7}}
-    s.config = {"models": {"insights": "anthropic/claude-haiku-4-5"}}
+    s.config = {"models": {"default": "anthropic/claude-haiku-4-5", "overrides": {}}}
     return s
 
 
@@ -108,6 +108,32 @@ async def test_insights_generates_and_pushes():
     assert "sleep" in pushed_text.lower()
     # UPDATE should mark pushed
     conn.execute.assert_awaited_once()
+
+
+async def test_insights_uses_models_override_when_set():
+    conn = make_conn()
+    conn.fetch = AsyncMock(side_effect=[
+        [_fact_row(), _fact_row(), _fact_row()],  # facts
+        [_episode_row()],                          # episodes
+        [],                                        # recent insights
+        [],                                        # pushed categories
+    ])
+    conn.fetchrow = AsyncMock(side_effect=[
+        _profile_row(),
+        {"id": uuid4()},
+    ])
+
+    client = AsyncMock()
+    client.complete = AsyncMock(return_value=_insight_json())
+    settings = make_settings()
+    settings.config = {
+        "models": {"default": "fleet-default", "overrides": {"insights": "pinned-model"}}
+    }
+
+    engine, _ = make_engine(conn=conn, client=client, settings=settings)
+    await engine.run()
+
+    assert client.complete.call_args.kwargs["model"] == "pinned-model"
 
 
 async def test_insights_skips_sparse():

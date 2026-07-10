@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ze_agents.model_resolution import resolve_model
 from ze_agents.tasks import fire_and_forget
 from ze_core.conversation.sessions import SessionTitleGenerator
 from ze_logging import get_logger
@@ -12,7 +13,7 @@ _DEFAULT_MODEL = "anthropic/claude-haiku-4-5"
 
 
 def _title_generator(container: Any) -> SessionTitleGenerator:
-    model = container.settings.config.get("models", {}).get("session_title", _DEFAULT_MODEL)
+    model = resolve_model("session_title", _DEFAULT_MODEL, container.settings.config)
     return SessionTitleGenerator(container.openrouter_client, model)
 
 

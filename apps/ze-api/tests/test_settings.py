@@ -29,7 +29,7 @@ def test_config_loads_yaml():
     s = make_settings()
     config = s.config
     assert "models" in config
-    assert "router" in config["models"]
+    assert "default" in config["models"]
 
 
 def test_routing_config_defaults_empty_without_yaml_block():

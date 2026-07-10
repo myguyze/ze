@@ -328,15 +328,19 @@ class Container:
         )
 
         # 9. Build EmbeddingRouter
+        from ze_agents.defaults import MODEL_ROUTER_FALLBACK
+        from ze_agents.model_resolution import resolve_model
         from ze_core.routing.router import EmbeddingRouter
         from ze_core.routing.types import RouterConfig
+
+        _validate_model_config(settings)
 
         routing_cfg = settings.config.get("routing", {})
         _defaults = RouterConfig()
         router_config = RouterConfig(
             threshold=routing_cfg.get("threshold", _defaults.threshold),
             gap_threshold=routing_cfg.get("gap_threshold", _defaults.gap_threshold),
-            fallback_model=routing_cfg.get("fallback_model", _defaults.fallback_model),
+            fallback_model=resolve_model("router_fallback", MODEL_ROUTER_FALLBACK, settings.config),
         )
         from ze_core.routing.store import PostgresRoutingStore
 
@@ -346,6 +350,7 @@ class Container:
             openrouter_client=openrouter_client,
             routing_store=routing_store,
             config=router_config,
+            app_config=settings.config,
         )
 
         # 10. Build CapabilityGate
@@ -455,6 +460,15 @@ def _validate_registry(settings: Any) -> None:
     enabled = {n: c for n, c in registered.items() if getattr(c, "enabled", True)}
     if not enabled:
         raise RoutingError("No enabled agents found after discovery")
+
+
+def _validate_model_config(settings: Any) -> None:
+    """Fail fast at startup if `models.default`/`models.overrides` are malformed."""
+    from ze_agents.model_resolution import KNOWN_STEP_KEYS, validate_model_config
+    from ze_agents.registry import get_enabled_agents
+
+    known_model_keys = frozenset(get_enabled_agents().keys()) | KNOWN_STEP_KEYS
+    validate_model_config(settings.config, known_model_keys)
 
 
 def _resolve(cls: type, deps: dict[type, Any]) -> Any:

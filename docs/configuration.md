@@ -98,28 +98,67 @@ crons, and news. Secrets and deployment values stay in `.env`. Persona profiles 
 `config/persona.yaml`. Agent metadata is declared as class attributes on `@agent`
 classes — there is no `agents:` block in YAML.
 
-Optional `routing:` overrides (threshold, gap_threshold, fallback_model) use ze-core
-defaults when omitted — see `ze_core.routing.types.RouterConfig`.
+Optional `routing:` overrides (threshold, gap_threshold) use ze-core defaults when
+omitted — see `ze_core.routing.types.RouterConfig`. The router's LLM-decomposition
+fallback model is resolved via `models.overrides.router_fallback` / `models.default`
+(see `models:` below), not a `routing.fallback_model` key.
 
 ### `models:`
 
-System-level model assignments for internal flows. These are not agent models.
+```yaml
+models:
+  default: tencent/hy3:free     # REQUIRED — fleet-wide fallback for every resolvable key
+  overrides: {}                 # OPTIONAL — per-key pins, e.g. {companion: anthropic/claude-sonnet-4-5}
+  embedding:        intfloat/multilingual-e5-base   # capability-specific — never resolved via the chain
+  whisper:          openai/gpt-audio                # capability-specific — never resolved via the chain
+  vision_caption:   google/gemini-flash-1.5         # capability-specific — never resolved via the chain
+```
+
+Every general chat-completion call site — every `@agent`, plus the non-agent steps
+`router_fallback`, `synthesis`, `session_title`, `workflow_verify`, `insights`, and
+`reminders` — resolves its model through one shared resolver
+(`ze_agents.model_resolution.resolve_model`) in this order:
+
+1. **`models.overrides.<key>`** — if set, wins outright, regardless of the agent's own
+   declared model.
+2. **The call site's own declared default** — an agent's `model` class attribute (or
+   `model_simple` for low-complexity prompts), or the `MODEL_*` constant in
+   `ze_agents/defaults.py` for a non-agent step.
+3. **`models.default`** — used only when neither of the above applies.
+
+To trial a new model everywhere with zero code changes and no restart, edit
+`models.default` — config.yaml is re-read on every access, so the next request to any
+non-overridden agent picks it up immediately. To revert, change `models.default` back;
+that's a one-line edit.
+
+To pin one agent or step to a specific model independent of the fleet-wide default, add
+it under `models.overrides`:
 
 ```yaml
 models:
-  router:           anthropic/claude-haiku-4-5      # Haiku fallback + fact dedup merge
-  synthesis:        anthropic/claude-haiku-4-5      # Multi-agent response synthesis + episode summaries
-  profile:          anthropic/claude-haiku-4-5      # User profile facet synthesis
-  reminders:        anthropic/claude-haiku-4-5      # Calendar reminder interval assessment
-  insights:         anthropic/claude-haiku-4-5      # Weekly insight generation
-  whisper:          openai/gpt-audio                # Voice note transcription
-  vision_caption:   google/gemini-flash-1.5         # Routing caption for photos with no text
+  default: tencent/hy3:free
+  overrides:
+    companion: anthropic/claude-sonnet-4-5
 ```
 
-`whisper` is used by the preprocessing node to convert voice input to text before
-routing. `vision_caption` is called during preprocessing when a photo arrives without
-a text caption so the embedding router has text to score. Both are invoked via
-OpenRouter.
+**Fail-fast validation** — startup raises `AgentConfigError` if `models.default` is
+missing/empty, or if any `models.overrides` key isn't a recognized agent name or step
+key (`router_fallback`, `synthesis`, `session_title`, `workflow_verify`, `insights`,
+`reminders`). A typo'd override key is caught immediately at boot, not silently ignored.
+
+**Known limitation**: the `reminders` key is shared between the `RemindersAgent`
+(per-turn model) and the calendar reminder interval assessor
+(`ze_calendar/reminders/calendar.py::_assess_intervals`) — they're different call
+sites but use the same override key today, so pinning one pins both. Not split into
+distinct keys yet since both reasonably want the same behavior; a future spec can
+split them if that assumption proves wrong.
+
+`models.embedding`, `models.whisper`, and `models.vision_caption` are capability-specific
+pins, entirely outside the default/override resolution chain — changing `models.default`
+never affects them. `whisper` is used by the preprocessing node to convert voice input to
+text before routing. `vision_caption` is called during preprocessing when a photo arrives
+without a text caption so the embedding router has text to score. All three are invoked
+via OpenRouter (except `embedding`, which is a local model).
 
 ### `memory:`
 

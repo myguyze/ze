@@ -1,21 +1,16 @@
 # Ze structural config — secrets and deployment values live in .env
 
 models:
+  default: tencent/hy3:free   # trial default through 2026-07-21 — revert by editing this line
+  overrides: {}
   embedding:        intfloat/multilingual-e5-base
-  router:         anthropic/claude-haiku-4-5
-  session_title:  anthropic/claude-haiku-4-5
+  whisper:          openai/gpt-audio
+  vision_caption:   google/gemini-flash-1.5
 
 routing:
   # E5 scores compress into 0.73–0.86 range; 0.10 gap was calibrated for MiniLM.
   # At 0.03 gap, clear single-agent queries route via embedding without haiku overhead.
   gap_threshold: 0.03
-  synthesis:      anthropic/claude-haiku-4-5
-  profile:        anthropic/claude-haiku-4-5
-  reminders:      anthropic/claude-haiku-4-5
-  insights:       anthropic/claude-haiku-4-5
-  whisper:          openai/gpt-audio
-  vision_caption:   google/gemini-flash-1.5
-  workflow_verify:  anthropic/claude-haiku-4-5
 
 memory:
   nli_contradiction_threshold: 0.60

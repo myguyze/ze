@@ -189,6 +189,42 @@ class TestModelResolution:
         assert env.subtasks[0].model == "big-model"
 
 
+class TestAppConfigResolution:
+    async def test_default_changes_resolved_model_when_no_declared_override(self):
+        _register("a", model="declared-model", intent_map={"read": "Read"})
+        embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
+        r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
+        env = await r.route("hello", "s1")
+        # Agent has its own declared model, so models.default (unset here) is irrelevant.
+        assert env.subtasks[0].model == "declared-model"
+
+    async def test_override_pins_one_agent_while_sibling_follows_default(self):
+        app_config = {
+            "models": {
+                "default": "fleet-default",
+                "overrides": {"alpha": "alpha-pinned"},
+            }
+        }
+
+        _register("alpha", model="alpha-declared", intent_map={"read": "Read"})
+        embedder_alpha = _FakeEmbedder({"alpha": [1.0]}, [1.0])
+        r_alpha = EmbeddingRouter(
+            embedder_alpha, _make_client(), _make_routing_store(), app_config=app_config
+        )
+        env_alpha = await r_alpha.route("hello", "s1")
+        assert env_alpha.subtasks[0].model == "alpha-pinned"
+
+        clear_registry()
+        _register("beta", model="beta-declared", intent_map={"create": "Create"})
+        embedder_beta = _FakeEmbedder({"beta": [1.0]}, [1.0])
+        r_beta = EmbeddingRouter(
+            embedder_beta, _make_client(), _make_routing_store(), app_config=app_config
+        )
+        env_beta = await r_beta.route("hello", "s1")
+        # beta has no override, but does have its own declared model, so it wins over default.
+        assert env_beta.subtasks[0].model == "beta-declared"
+
+
 class TestRoutingLog:
     async def test_write_log_called_after_route(self):
         _register("a")

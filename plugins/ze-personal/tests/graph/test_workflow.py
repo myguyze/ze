@@ -8,6 +8,7 @@ from ze_agents.types import AgentResult, ToolCall
 from ze_automation.workflow.types import Branch, StepResult, WorkflowStep
 from ze_personal.graph.workflow import (
     _resolve_step_output,
+    _resolve_verify_model,
     after_route_branch,
     after_verify_step,
     load_workflow_step,
@@ -21,6 +22,25 @@ def _make_store() -> MagicMock:
     store = MagicMock()
     store.record_step = AsyncMock()
     return store
+
+
+class TestResolveVerifyModel:
+    def test_no_settings_returns_declared_default(self):
+        config = {"configurable": {}}
+        assert _resolve_verify_model(config) == "anthropic/claude-haiku-4-5"
+
+    def test_models_override_pins_workflow_verify(self):
+        config = {
+            "configurable": {
+                "settings": {
+                    "models": {
+                        "default": "fleet-default",
+                        "overrides": {"workflow_verify": "pinned-model"},
+                    }
+                }
+            }
+        }
+        assert _resolve_verify_model(config) == "pinned-model"
 
 
 def test_resolve_step_output_prefers_final_response():

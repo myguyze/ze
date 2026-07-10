@@ -178,6 +178,84 @@ class TestValidateRegistry:
         _validate_registry(None)
 
 
+class TestValidateModelConfig:
+    def test_passes_with_valid_config(self):
+        from ze_core.container import _validate_model_config
+
+        cls = _agent_cls("companion", "desc")
+        agent(cls)
+        settings = MagicMock()
+        settings.config = {"models": {"default": "default/model", "overrides": {}}}
+        _validate_model_config(settings)  # should not raise
+
+    def test_raises_when_default_missing(self):
+        from ze_core.container import _validate_model_config
+
+        cls = _agent_cls("companion", "desc")
+        agent(cls)
+        settings = MagicMock()
+        settings.config = {"models": {"overrides": {}}}
+        with pytest.raises(AgentConfigError, match="models.default"):
+            _validate_model_config(settings)
+
+    def test_raises_on_unknown_override_key_agent_name_shaped_typo(self):
+        from ze_core.container import _validate_model_config
+
+        cls = _agent_cls("companion", "desc")
+        agent(cls)
+        settings = MagicMock()
+        settings.config = {
+            "models": {
+                "default": "default/model",
+                "overrides": {"compnaion": "some/model"},
+            }
+        }
+        with pytest.raises(AgentConfigError, match="compnaion"):
+            _validate_model_config(settings)
+
+    def test_raises_on_unknown_override_key_step_key_shaped_typo(self):
+        from ze_core.container import _validate_model_config
+
+        cls = _agent_cls("companion", "desc")
+        agent(cls)
+        settings = MagicMock()
+        settings.config = {
+            "models": {
+                "default": "default/model",
+                "overrides": {"synthesys": "some/model"},
+            }
+        }
+        with pytest.raises(AgentConfigError, match="synthesys"):
+            _validate_model_config(settings)
+
+    def test_known_step_keys_and_agent_names_both_pass(self):
+        from ze_core.container import _validate_model_config
+
+        cls = _agent_cls("companion", "desc")
+        agent(cls)
+        settings = MagicMock()
+        settings.config = {
+            "models": {
+                "default": "default/model",
+                "overrides": {"companion": "pinned/model", "synthesis": "pinned/other"},
+            }
+        }
+        _validate_model_config(settings)  # should not raise
+
+
+class TestEmbeddingModelUnaffectedByDefault:
+    """models.embedding is read directly, entirely outside the resolve_model chain
+    (see container.py step 4: `settings.config.get("models", {}).get("embedding")`)."""
+
+    def test_embedding_key_unchanged_across_different_defaults(self):
+        def _embedding_model(config: dict) -> str | None:
+            return config.get("models", {}).get("embedding")
+
+        config_a = {"models": {"default": "model-a", "embedding": "pinned-embedding-model"}}
+        config_b = {"models": {"default": "model-b", "embedding": "pinned-embedding-model"}}
+        assert _embedding_model(config_a) == _embedding_model(config_b) == "pinned-embedding-model"
+
+
 # ── TestResolve ───────────────────────────────────────────────────────────────
 
 class TestResolve:

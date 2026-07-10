@@ -15,6 +15,7 @@ from langchain_core.runnables import RunnableConfig
 
 from ze_agents.types import GateDecision
 from ze_agents.defaults import MODEL_WORKFLOW_VERIFY
+from ze_agents.model_resolution import resolve_model
 from ze_logging import get_logger
 from ze_core.orchestration.state import AgentState
 from ze_automation.workflow.store import WorkflowStore
@@ -399,14 +400,10 @@ def _resolve_step_output(state: dict[str, Any]) -> str:
 
 def _resolve_verify_model(config: RunnableConfig) -> str:
     cfg = config["configurable"].get("settings")
-    if cfg is None:
-        return MODEL_WORKFLOW_VERIFY
-    models = (
-        cfg.get("models", {})
-        if isinstance(cfg, dict)
-        else getattr(cfg, "config", {}).get("models", {})
-    )
-    return models.get("workflow_verify", MODEL_WORKFLOW_VERIFY)
+    app_config: dict = {}
+    if cfg is not None:
+        app_config = cfg if isinstance(cfg, dict) else getattr(cfg, "config", {})
+    return resolve_model("workflow_verify", MODEL_WORKFLOW_VERIFY, app_config)
 
 
 async def _extract_and_store_workflow_procedure(

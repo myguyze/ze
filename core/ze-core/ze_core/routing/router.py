@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ze_agents.errors import InvalidPromptError, RoutingError
+from ze_agents.model_resolution import resolve_model
 from ze_logging import get_logger
 from ze_agents.registry import get_enabled_agents
 from ze_agents.tasks import fire_and_forget
@@ -21,12 +22,14 @@ class EmbeddingRouter:
         routing_store: RoutingStore | None = None,
         config: RouterConfig | None = None,
         estimator: ComplexityEstimator | None = None,
+        app_config: dict | None = None,
     ) -> None:
         self._embedder = embedder
         self._client = openrouter_client
         self._store = routing_store
         self._config = config or RouterConfig()
         self._estimator = estimator or ComplexityEstimator()
+        self._app_config = app_config or {}
 
         self._agent_names: list[str] = []
         self._agent_matrix: Any = None
@@ -63,10 +66,12 @@ class EmbeddingRouter:
         enabled = get_enabled_agents()
         agent_cls = enabled.get(agent_name)
         if agent_cls is None:
-            return "anthropic/claude-sonnet-4-5"
-        if complexity == "simple" and agent_cls.model_simple:
-            return agent_cls.model_simple
-        return agent_cls.model
+            declared = None
+        elif complexity == "simple" and agent_cls.model_simple:
+            declared = agent_cls.model_simple
+        else:
+            declared = agent_cls.model
+        return resolve_model(agent_name, declared, self._app_config)
 
     def _primary_intent(self, agent_name: str) -> str:
         enabled = get_enabled_agents()

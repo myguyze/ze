@@ -186,3 +186,21 @@ class TestSynthesize:
         state = {"session_id": "s1", "prompt": "q", "subtask_results": []}
         result = await synthesize(state, _config())
         assert result == {}
+
+    async def test_models_overrides_synthesis_changes_resolved_model(self):
+        # Regression test: config.yaml used to define this under `routing.synthesis`,
+        # which synthesize() never read — models.overrides.synthesis is the fix.
+        client = AsyncMock()
+        client.complete = AsyncMock(return_value="merged answer")
+        subtask_results = [AgentResult(agent="a", response="answer A")]
+        state = {
+            "session_id": "s1",
+            "prompt": "complex question",
+            "subtask_results": subtask_results,
+        }
+        settings = {
+            "models": {"default": "fleet-default-model", "overrides": {"synthesis": "pinned-model"}}
+        }
+        await synthesize(state, _config(client=client, settings=settings))
+        call_args = client.complete.call_args
+        assert call_args[1]["model"] == "pinned-model"

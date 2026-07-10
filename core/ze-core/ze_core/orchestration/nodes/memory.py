@@ -5,6 +5,8 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from ze_logging import get_logger
+from ze_agents.defaults import MODEL_SYNTHESIS
+from ze_agents.model_resolution import resolve_model
 from ze_agents.tasks import fire_and_forget
 from ze_core.orchestration.nodes.context import SESSION_HISTORY_LIMIT
 from ze_core.orchestration.nodes.correlation import _format_text_section
@@ -117,10 +119,10 @@ async def synthesize(state: AgentState, config: RunnableConfig) -> dict:
     client: Any = config["configurable"]["openrouter_client"]
     cfg: Any = config["configurable"].get("settings")
 
-    synthesis_model = "anthropic/claude-haiku-4-5"
+    app_config: dict = {}
     if cfg is not None:
-        models = cfg.get("models", {}) if isinstance(cfg, dict) else getattr(cfg, "config", {}).get("models", {})
-        synthesis_model = models.get("synthesis", synthesis_model)
+        app_config = cfg if isinstance(cfg, dict) else getattr(cfg, "config", {})
+    synthesis_model = resolve_model("synthesis", MODEL_SYNTHESIS, app_config)
 
     subtask_results = state.get("subtask_results") or []
     if not subtask_results:

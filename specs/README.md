@@ -148,6 +148,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 99 | [Multi-Conversation Support](phases/099-multi-conversation/spec.md) | 🔲 Pending |
 | 101 | [Session Search & Titles](phases/101-session-search/spec.md) | ✅ Done |
 | 102 | [Workflow Conditional Branching](phases/102-workflow-branching/spec.md) | ✅ Done |
+| 103 | [Model Default with Overrides](phases/103-model-default-overrides/spec.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 
