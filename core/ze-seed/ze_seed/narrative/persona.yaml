@@ -294,6 +294,209 @@ facts:
     confidence: 0.88
     subject_id: "0000000b-0001-4000-8000-000000000002"
     days_ago: 30
+  - id: "00000006-0001-4000-8000-000000000026"
+    predicate: ceo_note
+    value: João Batista co-founded PayFlow and sets company OKRs
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000019"
+    days_ago: 85
+  - id: "00000006-0001-4000-8000-000000000027"
+    predicate: hr_note
+    value: Catarina Reis handles onboarding and benefits questions at PayFlow
+    agent: companion
+    confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-000000000018"
+    days_ago: 70
+  - id: "00000006-0001-4000-8000-000000000028"
+    predicate: reporting_chain
+    value: Marco reports directly to João on the eng org chart
+    agent: companion
+    confidence: 0.75
+    subject_id: "0000000b-0001-4000-8000-000000000002"
+    object_id: "0000000b-0001-4000-8000-000000000019"
+    days_ago: 85
+  - id: "00000006-0001-4000-8000-000000000029"
+    predicate: project_note
+    value: API Redesign project aims to consolidate three internal services into one gateway
+    agent: companion
+    confidence: 0.82
+    subject_id: "0000000b-0001-4000-8000-000000000025"
+    source_episode_id: "00000007-0001-4000-8000-00000000000a"
+    days_ago: 15
+  - id: "00000006-0001-4000-8000-00000000002a"
+    predicate: project_owner
+    value: Rui leads the Docker Migration effort moving services to containers
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-00000000000a"
+    object_id: "0000000b-0001-4000-8000-000000000026"
+    days_ago: 20
+  - id: "00000006-0001-4000-8000-00000000002b"
+    predicate: infra_note
+    value: Docker Migration is scheduled to finish before Q3
+    agent: companion
+    confidence: 0.68
+    subject_id: "0000000b-0001-4000-8000-000000000026"
+    days_ago: 5
+    reviewed: false
+  - id: "00000006-0001-4000-8000-00000000002c"
+    predicate: repo_note
+    value: LedgerLite source lives in a private GitHub repo
+    agent: research
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-00000000001e"
+    days_ago: 35
+  - id: "00000006-0001-4000-8000-00000000002d"
+    predicate: hosting_note
+    value: LedgerLite is deployed on Vercel with automatic preview deploys
+    agent: research
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-000000000021"
+    days_ago: 32
+  - id: "00000006-0001-4000-8000-00000000002e"
+    predicate: payments_note
+    value: Stripe handles payment processing for LedgerLite subscriptions
+    agent: research
+    confidence: 0.83
+    subject_id: "0000000b-0001-4000-8000-000000000006"
+    object_id: "0000000b-0001-4000-8000-00000000001f"
+    source_episode_id: "00000007-0001-4000-8000-000000000007"
+    days_ago: 25
+  - id: "00000006-0001-4000-8000-00000000002f"
+    predicate: roadmap_note
+    value: LedgerLite v2 will add multi-currency support and shared budgets
+    agent: research
+    confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-00000000002a"
+    days_ago: 10
+    reviewed: false
+  - id: "00000006-0001-4000-8000-000000000030"
+    predicate: fundraising_note
+    value: Preparing an investor pitch deck for a small pre-seed round
+    agent: research
+    confidence: 0.65
+    subject_id: "0000000b-0001-4000-8000-00000000002b"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 6
+  - id: "00000006-0001-4000-8000-000000000031"
+    predicate: mentor_note
+    value: Miguel Braga, a fellow Indie Hacker, is informally advising on LedgerLite pricing
+    agent: research
+    confidence: 0.55
+    subject_id: "0000000b-0001-4000-8000-00000000001c"
+    object_id: "0000000b-0001-4000-8000-000000000006"
+    days_ago: 18
+  - id: "00000006-0001-4000-8000-000000000032"
+    predicate: savings_goal
+    value: Saving for a home down payment; target 20% saved by next year
+    agent: companion
+    confidence: 0.78
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000027"
+    days_ago: 40
+  - id: "00000006-0001-4000-8000-000000000033"
+    predicate: home_search_note
+    value: Looking at apartments in Príncipe Real and nearby areas with Sofia
+    agent: companion
+    confidence: 0.72
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000028"
+    days_ago: 12
+  - id: "00000006-0001-4000-8000-000000000034"
+    predicate: family_note
+    value: Helena is Alex's mother; lives in Coimbra and visits monthly
+    agent: companion
+    confidence: 0.85
+    subject_id: "0000000b-0001-4000-8000-00000000001a"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    source_episode_id: "00000007-0001-4000-8000-000000000009"
+    days_ago: 100
+  - id: "00000006-0001-4000-8000-000000000035"
+    predicate: sibling_note
+    value: Beatriz is Alex's younger sister; studying in Coimbra
+    agent: companion
+    confidence: 0.8
+    subject_id: "0000000b-0001-4000-8000-00000000001b"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 100
+  - id: "00000006-0001-4000-8000-000000000036"
+    predicate: hometown_note
+    value: Alex grew up in Coimbra before moving to Lisbon for work
+    agent: companion
+    confidence: 0.75
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000022"
+    days_ago: 100
+  - id: "00000006-0001-4000-8000-000000000037"
+    predicate: weekend_note
+    value: Alex and Sofia take weekend trips to Cascais to unwind
+    agent: companion
+    confidence: 0.6
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000023"
+    days_ago: 45
+    reviewed: false
+  - id: "00000006-0001-4000-8000-000000000038"
+    predicate: running_note
+    value: Training for the Lisbon Marathon with running buddy Tiago
+    agent: companion
+    confidence: 0.77
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000029"
+    source_episode_id: "00000007-0001-4000-8000-000000000008"
+    days_ago: 9
+  - id: "00000006-0001-4000-8000-000000000039"
+    predicate: running_club_note
+    value: Member of Lisbon Runners, a weekend running club that meets by the river
+    agent: companion
+    confidence: 0.7
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000020"
+    days_ago: 22
+  - id: "00000006-0001-4000-8000-00000000003a"
+    predicate: coworking_note
+    value: Sometimes works from LX Factory coworking space on Fridays
+    agent: companion
+    confidence: 0.6
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-000000000024"
+    days_ago: 15
+    reviewed: false
+  - id: "00000006-0001-4000-8000-00000000003b"
+    predicate: study_group_note
+    value: Joined Ana's Portuguese study group with Carla for extra conversation practice
+    agent: companion
+    confidence: 0.73
+    subject_id: "0000000b-0001-4000-8000-000000000001"
+    object_id: "0000000b-0001-4000-8000-00000000002c"
+    days_ago: 11
+  - id: "00000006-0001-4000-8000-00000000003c"
+    predicate: study_peer_note
+    value: Carla Dias is a study group peer also preparing for the B1 exam
+    agent: companion
+    confidence: 0.68
+    subject_id: "0000000b-0001-4000-8000-00000000001d"
+    object_id: "0000000b-0001-4000-8000-000000000007"
+    days_ago: 11
+  - id: "00000006-0001-4000-8000-00000000003d"
+    predicate: exec_style
+    value: João favors small autonomous teams and quarterly OKRs
+    agent: companion
+    confidence: 0.6
+    subject_id: "0000000b-0001-4000-8000-000000000019"
+    provenance: synthesized
+    days_ago: 85
+  - id: "00000006-0001-4000-8000-00000000003e"
+    predicate: onboarding_note
+    value: Catarina scheduled a benefits review meeting for next month
+    agent: calendar
+    confidence: 0.65
+    subject_id: "0000000b-0001-4000-8000-000000000018"
+    object_id: "0000000b-0001-4000-8000-000000000001"
+    days_ago: 4
 
 episodes:
   - id: "00000007-0001-4000-8000-000000000001"
@@ -332,6 +535,30 @@ episodes:
     response: Added a reminder to gather insurance card and list of questions before the dentist visit next Tuesday.
     summary: Dentist prep reminder created
     days_ago: 3
+  - id: "00000007-0001-4000-8000-000000000007"
+    agent: research
+    prompt: Should LedgerLite move to Stripe for payments?
+    response: Stripe fits best given EU support and subscription billing; migration should take about a week.
+    summary: Decided to integrate Stripe for LedgerLite payments
+    days_ago: 25
+  - id: "00000007-0001-4000-8000-000000000008"
+    agent: companion
+    prompt: How's marathon training going?
+    response: You've run three times this week with Tiago. Long run is up to 14km. Lisbon Marathon is in 8 weeks.
+    summary: Marathon training update — 14km long run
+    days_ago: 9
+  - id: "00000007-0001-4000-8000-000000000009"
+    agent: companion
+    prompt: Remind me about mom's visit
+    response: Helena is visiting next weekend from Coimbra; you mentioned wanting to book a nice dinner in Príncipe Real.
+    summary: Mom's visit reminder — book dinner
+    days_ago: 6
+  - id: "00000007-0001-4000-8000-00000000000a"
+    agent: companion
+    prompt: What's the status on the API redesign?
+    response: You and Rui merged the first gateway service this week; two more to go before the Docker migration can start.
+    summary: API redesign progress — one gateway service merged
+    days_ago: 4
 
 entities:
   - id: "0000000b-0001-4000-8000-000000000001"
@@ -468,6 +695,139 @@ entities:
     aliases: []
     attrs:
       kind: podcast
+  - id: "0000000b-0001-4000-8000-000000000017"
+    entity_type: person
+    canonical_name: Tiago Fonseca
+    aliases: [Tiago]
+    attrs:
+      role: running buddy
+  - id: "0000000b-0001-4000-8000-000000000018"
+    entity_type: person
+    canonical_name: Catarina Reis
+    aliases: [Catarina]
+    attrs:
+      role: HR lead
+  - id: "0000000b-0001-4000-8000-000000000019"
+    entity_type: person
+    canonical_name: João Batista
+    aliases: [João]
+    attrs:
+      role: CEO
+  - id: "0000000b-0001-4000-8000-00000000001a"
+    entity_type: person
+    canonical_name: Helena Nunes
+    aliases: [Helena, Mom]
+    attrs:
+      role: mother
+  - id: "0000000b-0001-4000-8000-00000000001b"
+    entity_type: person
+    canonical_name: Beatriz Rocha
+    aliases: [Beatriz]
+    attrs:
+      role: sister
+  - id: "0000000b-0001-4000-8000-00000000001c"
+    entity_type: person
+    canonical_name: Miguel Braga
+    aliases: [Miguel]
+    attrs:
+      role: indie hacker friend
+  - id: "0000000b-0001-4000-8000-00000000001d"
+    entity_type: person
+    canonical_name: Carla Dias
+    aliases: [Carla]
+    attrs:
+      role: Portuguese study peer
+  - id: "0000000b-0001-4000-8000-00000000001e"
+    entity_type: org
+    canonical_name: GitHub
+    aliases: []
+    attrs:
+      kind: code hosting
+  - id: "0000000b-0001-4000-8000-00000000001f"
+    entity_type: org
+    canonical_name: Stripe
+    aliases: []
+    attrs:
+      kind: payments provider
+  - id: "0000000b-0001-4000-8000-000000000020"
+    entity_type: org
+    canonical_name: Lisbon Runners
+    aliases: []
+    attrs:
+      kind: running club
+  - id: "0000000b-0001-4000-8000-000000000021"
+    entity_type: org
+    canonical_name: Vercel
+    aliases: []
+    attrs:
+      kind: hosting provider
+  - id: "0000000b-0001-4000-8000-000000000022"
+    entity_type: place
+    canonical_name: Coimbra
+    aliases: []
+    attrs:
+      country: Portugal
+  - id: "0000000b-0001-4000-8000-000000000023"
+    entity_type: place
+    canonical_name: Cascais
+    aliases: []
+    attrs:
+      country: Portugal
+  - id: "0000000b-0001-4000-8000-000000000024"
+    entity_type: place
+    canonical_name: LX Factory
+    aliases: []
+    attrs:
+      type: coworking
+      city: Lisbon
+  - id: "0000000b-0001-4000-8000-000000000025"
+    entity_type: topic
+    canonical_name: API Redesign
+    aliases: []
+    attrs:
+      kind: work project
+  - id: "0000000b-0001-4000-8000-000000000026"
+    entity_type: topic
+    canonical_name: Docker Migration
+    aliases: []
+    attrs:
+      kind: infra project
+  - id: "0000000b-0001-4000-8000-000000000027"
+    entity_type: topic
+    canonical_name: Financial Planning
+    aliases: []
+    attrs:
+      kind: personal finance
+  - id: "0000000b-0001-4000-8000-000000000028"
+    entity_type: topic
+    canonical_name: Home Search
+    aliases: []
+    attrs:
+      kind: personal goal
+  - id: "0000000b-0001-4000-8000-000000000029"
+    entity_type: topic
+    canonical_name: Lisbon Marathon
+    aliases: []
+    attrs:
+      kind: race
+  - id: "0000000b-0001-4000-8000-00000000002a"
+    entity_type: topic
+    canonical_name: LedgerLite v2
+    aliases: []
+    attrs:
+      kind: roadmap
+  - id: "0000000b-0001-4000-8000-00000000002b"
+    entity_type: topic
+    canonical_name: Investor Pitch
+    aliases: []
+    attrs:
+      kind: fundraising
+  - id: "0000000b-0001-4000-8000-00000000002c"
+    entity_type: topic
+    canonical_name: Portuguese Study Group
+    aliases: []
+    attrs:
+      kind: study group
 
 relationships:
   # ── Alex hub (personal) ──
@@ -686,6 +1046,264 @@ relationships:
     target_id: "0000000b-0001-4000-8000-00000000000b"
     predicate: belongs_to
     confidence: 0.9
+  # ── Executive/org cluster ──
+  - id: "0000000c-0001-4000-8000-00000000002b"
+    source_id: "0000000b-0001-4000-8000-000000000019"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.95
+  - id: "0000000c-0001-4000-8000-00000000002c"
+    source_id: "0000000b-0001-4000-8000-000000000018"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: works_at
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-00000000002d"
+    source_id: "0000000b-0001-4000-8000-000000000002"
+    target_id: "0000000b-0001-4000-8000-000000000019"
+    predicate: reports_to
+    confidence: 0.8
+  # ── Work projects cluster ──
+  - id: "0000000c-0001-4000-8000-00000000002e"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000025"
+    predicate: working_on
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-00000000002f"
+    source_id: "0000000b-0001-4000-8000-00000000000a"
+    target_id: "0000000b-0001-4000-8000-000000000025"
+    predicate: working_on
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000030"
+    source_id: "0000000b-0001-4000-8000-000000000025"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: belongs_to
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000031"
+    source_id: "0000000b-0001-4000-8000-00000000000a"
+    target_id: "0000000b-0001-4000-8000-000000000026"
+    predicate: leading
+    confidence: 0.82
+  - id: "0000000c-0001-4000-8000-000000000032"
+    source_id: "0000000b-0001-4000-8000-000000000026"
+    target_id: "0000000b-0001-4000-8000-00000000000b"
+    predicate: belongs_to
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000033"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000026"
+    predicate: collaborates_with
+    confidence: 0.6
+  # ── LedgerLite infra cluster ──
+  - id: "0000000c-0001-4000-8000-000000000034"
+    source_id: "0000000b-0001-4000-8000-00000000001e"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: hosts
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000035"
+    source_id: "0000000b-0001-4000-8000-000000000006"
+    target_id: "0000000b-0001-4000-8000-000000000021"
+    predicate: deployed_on
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000036"
+    source_id: "0000000b-0001-4000-8000-00000000001f"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: integrated_with
+    confidence: 0.83
+  - id: "0000000c-0001-4000-8000-000000000037"
+    source_id: "0000000b-0001-4000-8000-000000000006"
+    target_id: "0000000b-0001-4000-8000-00000000002a"
+    predicate: evolves_into
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-000000000038"
+    source_id: "0000000b-0001-4000-8000-00000000002a"
+    target_id: "0000000b-0001-4000-8000-00000000002b"
+    predicate: discussed_in
+    confidence: 0.6
+  - id: "0000000c-0001-4000-8000-000000000039"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000002b"
+    predicate: preparing
+    confidence: 0.65
+  - id: "0000000c-0001-4000-8000-00000000003a"
+    source_id: "0000000b-0001-4000-8000-00000000001c"
+    target_id: "0000000b-0001-4000-8000-000000000014"
+    predicate: member_of
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-00000000003b"
+    source_id: "0000000b-0001-4000-8000-00000000001c"
+    target_id: "0000000b-0001-4000-8000-000000000001"
+    predicate: friends_with
+    confidence: 0.65
+  - id: "0000000c-0001-4000-8000-00000000003c"
+    source_id: "0000000b-0001-4000-8000-00000000001c"
+    target_id: "0000000b-0001-4000-8000-000000000006"
+    predicate: advises
+    confidence: 0.5
+  # ── Financial planning / home search cluster ──
+  - id: "0000000c-0001-4000-8000-00000000003d"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000027"
+    predicate: pursuing
+    confidence: 0.78
+  - id: "0000000c-0001-4000-8000-00000000003e"
+    source_id: "0000000b-0001-4000-8000-000000000027"
+    target_id: "0000000b-0001-4000-8000-000000000028"
+    predicate: relates_to
+    confidence: 0.6
+  - id: "0000000c-0001-4000-8000-00000000003f"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000028"
+    predicate: pursuing
+    confidence: 0.72
+  - id: "0000000c-0001-4000-8000-000000000040"
+    source_id: "0000000b-0001-4000-8000-000000000004"
+    target_id: "0000000b-0001-4000-8000-000000000028"
+    predicate: pursuing
+    confidence: 0.7
+  - id: "0000000c-0001-4000-8000-000000000041"
+    source_id: "0000000b-0001-4000-8000-000000000028"
+    target_id: "0000000b-0001-4000-8000-00000000000d"
+    predicate: focused_on
+    confidence: 0.55
+  # ── Family cluster ──
+  - id: "0000000c-0001-4000-8000-000000000042"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000001a"
+    predicate: child_of
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000043"
+    source_id: "0000000b-0001-4000-8000-00000000001a"
+    target_id: "0000000b-0001-4000-8000-000000000022"
+    predicate: lives_in
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000044"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000022"
+    predicate: from
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000045"
+    source_id: "0000000b-0001-4000-8000-00000000001b"
+    target_id: "0000000b-0001-4000-8000-00000000001a"
+    predicate: child_of
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000046"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000001b"
+    predicate: sibling_of
+    confidence: 0.9
+  - id: "0000000c-0001-4000-8000-000000000047"
+    source_id: "0000000b-0001-4000-8000-00000000001b"
+    target_id: "0000000b-0001-4000-8000-000000000022"
+    predicate: lives_in
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000048"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000023"
+    predicate: visits
+    confidence: 0.55
+  - id: "0000000c-0001-4000-8000-000000000049"
+    source_id: "0000000b-0001-4000-8000-000000000004"
+    target_id: "0000000b-0001-4000-8000-000000000023"
+    predicate: visits
+    confidence: 0.5
+  # ── Running cluster ──
+  - id: "0000000c-0001-4000-8000-00000000004a"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000017"
+    predicate: friends_with
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-00000000004b"
+    source_id: "0000000b-0001-4000-8000-000000000017"
+    target_id: "0000000b-0001-4000-8000-000000000020"
+    predicate: member_of
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-00000000004c"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000020"
+    predicate: member_of
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-00000000004d"
+    source_id: "0000000b-0001-4000-8000-000000000020"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: located_in
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-00000000004e"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000029"
+    predicate: training_for
+    confidence: 0.77
+  - id: "0000000c-0001-4000-8000-00000000004f"
+    source_id: "0000000b-0001-4000-8000-000000000017"
+    target_id: "0000000b-0001-4000-8000-000000000029"
+    predicate: training_for
+    confidence: 0.77
+  - id: "0000000c-0001-4000-8000-000000000050"
+    source_id: "0000000b-0001-4000-8000-000000000029"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: held_in
+    confidence: 0.85
+  - id: "0000000c-0001-4000-8000-000000000051"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000024"
+    predicate: frequents
+    confidence: 0.6
+  - id: "0000000c-0001-4000-8000-000000000052"
+    source_id: "0000000b-0001-4000-8000-000000000024"
+    target_id: "0000000b-0001-4000-8000-000000000005"
+    predicate: located_in
+    confidence: 0.85
+  # ── Language/study cluster ──
+  - id: "0000000c-0001-4000-8000-000000000053"
+    source_id: "0000000b-0001-4000-8000-000000000003"
+    target_id: "0000000b-0001-4000-8000-00000000001d"
+    predicate: tutors
+    confidence: 0.8
+  - id: "0000000c-0001-4000-8000-000000000054"
+    source_id: "0000000b-0001-4000-8000-00000000001d"
+    target_id: "0000000b-0001-4000-8000-00000000002c"
+    predicate: member_of
+    confidence: 0.75
+  - id: "0000000c-0001-4000-8000-000000000055"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000002c"
+    predicate: member_of
+    confidence: 0.73
+  - id: "0000000c-0001-4000-8000-000000000056"
+    source_id: "0000000b-0001-4000-8000-00000000002c"
+    target_id: "0000000b-0001-4000-8000-000000000007"
+    predicate: practices
+    confidence: 0.7
+  # ── Cross-cluster links ──
+  - id: "0000000c-0001-4000-8000-000000000057"
+    source_id: "0000000b-0001-4000-8000-000000000008"
+    target_id: "0000000b-0001-4000-8000-000000000020"
+    predicate: member_of
+    confidence: 0.55
+  - id: "0000000c-0001-4000-8000-000000000058"
+    source_id: "0000000b-0001-4000-8000-000000000009"
+    target_id: "0000000b-0001-4000-8000-000000000024"
+    predicate: frequents
+    confidence: 0.4
+  - id: "0000000c-0001-4000-8000-000000000059"
+    source_id: "0000000b-0001-4000-8000-00000000000a"
+    target_id: "0000000b-0001-4000-8000-00000000001e"
+    predicate: uses
+    confidence: 0.7
+  - id: "0000000c-0001-4000-8000-00000000005a"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-00000000001e"
+    predicate: uses
+    confidence: 0.7
+  - id: "0000000c-0001-4000-8000-00000000005b"
+    source_id: "0000000b-0001-4000-8000-000000000001"
+    target_id: "0000000b-0001-4000-8000-000000000021"
+    predicate: uses
+    confidence: 0.65
+  - id: "0000000c-0001-4000-8000-00000000005c"
+    source_id: "0000000b-0001-4000-8000-000000000019"
+    target_id: "0000000b-0001-4000-8000-000000000011"
+    predicate: reviews
+    confidence: 0.55
 
 contacts:
   - id: "00000009-0001-4000-8000-000000000001"
