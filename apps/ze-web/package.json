@@ -13,8 +13,6 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
-    "@dagrejs/dagre": "3.0.0",
-    "@dagrejs/graphlib": "4.0.1",
     "@myguyze/ze-client": "workspace:*",
     "@myguyze/ze-ui": "workspace:*",
     "@radix-ui/react-dialog": "1.1.17",
@@ -22,7 +20,6 @@
     "@radix-ui/react-tooltip": "1.2.10",
     "@tanstack/react-query": "5.101.0",
     "@uiw/react-heat-map": "2.3.4",
-    "@xyflow/react": "12.11.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cronstrue": "^3.24.0",
@@ -30,9 +27,12 @@
     "lucide-react": "0.474.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
+    "react-force-graph-3d": "1.29.1",
     "react-markdown": "9.1.0",
     "react-router-dom": "7.18.0",
     "tailwind-merge": "2.6.1",
+    "three": "0.180.0",
+    "three-spritetext": "1.10.0",
     "zustand": "5.0.14"
   },
   "devDependencies": {
@@ -43,6 +43,7 @@
     "@testing-library/react": "16.3.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "@types/three": "0.180.0",
     "@typescript-eslint/eslint-plugin": "8.62.0",
     "@typescript-eslint/parser": "8.62.0",
     "@vitejs/plugin-react": "4.7.0",

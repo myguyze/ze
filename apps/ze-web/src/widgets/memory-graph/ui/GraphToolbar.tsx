@@ -1,5 +1,4 @@
-import { ZoomIn, ZoomOut, Maximize2, RotateCcw } from "lucide-react";
-import { useReactFlow } from "@xyflow/react";
+import { Maximize2, RotateCcw } from "lucide-react";
 
 const ENTITY_TYPES = ["all", "person", "place", "org", "topic"] as const;
 type EntityTypeFilter = (typeof ENTITY_TYPES)[number];
@@ -7,12 +6,11 @@ type EntityTypeFilter = (typeof ENTITY_TYPES)[number];
 interface Props {
   entityType: EntityTypeFilter;
   onEntityTypeChange: (type: EntityTypeFilter) => void;
+  onFitView: () => void;
   onResetLayout: () => void;
 }
 
-export function GraphToolbar({ entityType, onEntityTypeChange, onResetLayout }: Props) {
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
-
+export function GraphToolbar({ entityType, onEntityTypeChange, onFitView, onResetLayout }: Props) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
@@ -33,21 +31,7 @@ export function GraphToolbar({ entityType, onEntityTypeChange, onResetLayout }: 
 
       <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
         <button
-          onClick={() => zoomIn()}
-          className="p-1 rounded text-smoke hover:text-white transition-colors"
-          title="Zoom in"
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={() => zoomOut()}
-          className="p-1 rounded text-smoke hover:text-white transition-colors"
-          title="Zoom out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={() => fitView({ padding: 0.2 })}
+          onClick={onFitView}
           className="p-1 rounded text-smoke hover:text-white transition-colors"
           title="Fit view"
         >
