@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { listWorkflows } from "@myguyze/ze-client";
 import type { WorkflowResponse } from "@myguyze/ze-client";
+import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 
 export function useWorkflowsQuery() {

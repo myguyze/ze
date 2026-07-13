@@ -13,7 +13,7 @@ import {
   formatSchedule,
   averageSuccessfulRunDuration,
 } from "@/entities/workflow";
-import { WorkflowStepsList } from "@/widgets/workflow-steps";
+import { WorkflowGraph } from "@/widgets/workflow-graph";
 import { WorkflowExecutionsList } from "@/widgets/workflow-executions";
 import { ListSkeleton, ErrorState, Button, PageShell, SectionPanel } from "@/shared/ui";
 
@@ -149,7 +149,7 @@ export function WorkflowDetailPage() {
             </div>
           </div>
 
-          <WorkflowStepsList steps={detail.steps} execution={displayExecution} isLive={isRunning} />
+          <WorkflowGraph steps={detail.steps} execution={displayExecution} isLive={isRunning} />
 
           {displayExecution?.summary && displayExecution.status !== "running" && (
             <div className="mt-5 pt-5 border-t border-white/[0.06]">
