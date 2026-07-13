@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { navRoutes, settingsNavRoute } from "@/shared/config";
 import { useBreadcrumb } from "@/shared/lib/breadcrumb";
+import { usePageHeader } from "@/shared/lib/page-header";
 import { useTopBarActions } from "@/shared/lib/top-bar-actions";
 
 const allRoutes = [...navRoutes, settingsNavRoute];
@@ -29,11 +30,13 @@ export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { detailTitle } = useBreadcrumb();
+  const { pageHeader } = usePageHeader();
   const { quickActions } = useTopBarActions();
 
   const detail = parseDetailRoute(pathname);
   const currentRoute = detail ? null : getCurrentRoute(pathname);
-  const CurrentIcon = currentRoute?.icon ?? null;
+  const CurrentIcon = pageHeader?.icon ?? currentRoute?.icon ?? null;
+  const currentTitle = pageHeader?.title ?? currentRoute?.label ?? "";
 
   return (
     <div className="flex items-center justify-between px-6 h-14 border-b border-white/[0.08] bg-white/[0.02] flex-shrink-0">
@@ -58,9 +61,7 @@ export function TopBar() {
             {CurrentIcon && (
               <CurrentIcon className="w-5 h-5 text-plum-voltage shrink-0" />
             )}
-            <span className="text-base font-semibold text-white">
-              {currentRoute?.label ?? ""}
-            </span>
+            <span className="text-base font-semibold text-white">{currentTitle}</span>
           </div>
         )}
       </div>

@@ -1,13 +1,13 @@
 import { Settings, Puzzle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { mergeMobileNavRoutes, pluginNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
 import { RefreshHandler } from "@/features/invalidate-on-ws-refresh";
 import { useOverlay } from "@/features/open-context-overlay";
 import { NoticeBanner } from "@/features/send-context-notice";
+import { mergeMobileNavRoutes, pluginNavRoutes, useUiManifestQuery } from "@/entities/ui-manifest";
 import { WorkIcon, KnowledgeIcon, SystemIcon, workNavRoutes, knowledgeNavRoutes, systemNavRoutes, navRoutes, settingsNavRoute } from "@/shared/config";
+import { BreadcrumbProvider, PageHeaderProvider, TopBarActionsProvider } from "@/shared/lib";
 import { cn } from "@/shared/lib/cn";
-import { BreadcrumbProvider, TopBarActionsProvider } from "@/shared/lib";
 import { TopBar } from "@/shared/ui";
 import { ChatNavGroup } from "./ChatNavGroup";
 import { ContextOverlay } from "./ContextOverlay";
@@ -136,13 +136,15 @@ export function AppShell() {
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <BreadcrumbProvider>
-          <TopBarActionsProvider>
-            <TopBar />
-            <NoticeBanner />
-            <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
-              <Outlet />
-            </div>
-          </TopBarActionsProvider>
+          <PageHeaderProvider>
+            <TopBarActionsProvider>
+              <TopBar />
+              <NoticeBanner />
+              <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
+                <Outlet />
+              </div>
+            </TopBarActionsProvider>
+          </PageHeaderProvider>
         </BreadcrumbProvider>
       </main>
 

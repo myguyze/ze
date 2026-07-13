@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { UiContribution } from "@/entities/ui-manifest";
 import { PluginScreen } from "./PluginScreen";
 
-const { usePluginPageQuery } = vi.hoisted(() => ({
+const { usePluginPageQuery, useSetPageHeader } = vi.hoisted(() => ({
   usePluginPageQuery: vi.fn(),
+  useSetPageHeader: vi.fn(),
 }));
 
 vi.mock("@/entities/ui-manifest", async (importOriginal) => {
@@ -12,6 +13,14 @@ vi.mock("@/entities/ui-manifest", async (importOriginal) => {
   return {
     ...actual,
     usePluginPageQuery,
+  };
+});
+
+vi.mock("@/shared/lib", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/lib")>();
+  return {
+    ...actual,
+    useSetPageHeader,
   };
 });
 
@@ -61,7 +70,7 @@ describe("PluginScreen", () => {
     expect(container.querySelector(".animate-pulse")).toBeTruthy();
   });
 
-  it("renders page title and primitive tree on success", () => {
+  it("renders primitive tree and pushes title/icon to the top bar on success", () => {
     usePluginPageQuery.mockReturnValue({
       data: { title: "News", tree: validTree },
       isLoading: false,
@@ -71,8 +80,10 @@ describe("PluginScreen", () => {
 
     render(<PluginScreen entry={entry} />);
 
-    expect(screen.getByText("News")).toBeInTheDocument();
     expect(screen.getByText("Hello")).toBeInTheDocument();
+    expect(useSetPageHeader).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "News" }),
+    );
   });
 
   it("shows error state when page query fails", () => {
