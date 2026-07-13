@@ -17,6 +17,7 @@ from ze_core.capability.gate import CapabilityGate
 from ze_core.capability.overrides import PostgresCapabilityOverrideStore
 from ze_core.checkpoint_serde import build_checkpoint_serde
 from ze_core.embeddings import get_embedder
+from ze_core.orchestration.checkpoint_pruner import CheckpointPruner
 from ze_core.nli import LocalNLIClient
 from ze_core.openrouter.client import OpenRouterClient
 from ze_core.routing.complexity import ComplexityEstimator
@@ -278,3 +279,11 @@ def register_engine_jobs(
         job_id="cost_reconciliation",
     )
     log.info("cost_reconciliation_scheduled")
+
+    checkpoint_pruner = CheckpointPruner(pool=stack.pool)
+    workflow_scheduler.schedule_job(
+        fn=checkpoint_pruner.run,
+        cron="0 * * * *",
+        job_id="checkpoint_pruning",
+    )
+    log.info("checkpoint_pruning_scheduled")

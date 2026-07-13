@@ -788,7 +788,7 @@ it owns no tables and no revision files.
 | `memory_procedures` | Reusable step lists captured from successful task executions |
 | `memory_task_state` | Goal/workflow task progress checkpoints |
 | `memory_profile_facets` | Structured user portrait — key/value facets with stability and confidence |
-| `checkpoints` | LangGraph `AsyncPostgresSaver` graph state |
+| `checkpoints` | LangGraph `AsyncPostgresSaver` graph state — pruned hourly, see [scheduled-jobs.md](scheduled-jobs.md#checkpoint-pruning-hourly) |
 | `workflow_plans` | Persisted multi-step workflow definitions |
 | `workflow_executions` | Per-run state for each workflow |
 | `push_log` | Proactive push delivery log |

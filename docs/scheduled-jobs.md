@@ -352,6 +352,27 @@ The threshold is a conservative first guess — calibrate after 30 days of live 
 
 ---
 
+## Checkpoint pruning (hourly)
+
+**Module:** `ze_core/orchestration/checkpoint_pruner.py` (`CheckpointPruner`) · registered in `ze_core/bootstrap.py`  
+**Job id:** `checkpoint_pruning` · **Cron:** `0 * * * *`
+
+LangGraph's `AsyncPostgresSaver` writes a full checkpoint on every node transition and
+never prunes old ones on its own — resume/replay only ever reads the latest checkpoint
+per thread, so history beyond a small safety margin is pure storage growth. For each
+`(thread_id, checkpoint_ns)`, keeps the most recent `keep_per_thread` checkpoints
+(default 3) and deletes older rows from `checkpoints` + their `checkpoint_writes`, plus
+any `checkpoint_blobs` no longer referenced by a kept checkpoint's `channel_versions`.
+
+This only reclaims *logical* rows — Postgres `VACUUM` (run automatically by autovacuum)
+adds the freed pages to the free-space map for reuse but doesn't shrink the file on
+disk. The `pg_total_relation_size` figure shown on the Data Overview page (`graph.checkpoints`
+domain) will plateau rather than keep climbing once this job is running continuously,
+but a one-time backlog won't visibly shrink there without a manual `VACUUM FULL` /
+`pg_repack` (not scheduled — it takes an exclusive table lock).
+
+---
+
 ## Cost reconciliation (every 15 minutes)
 
 **Module:** `ze_core/telemetry/reconciler.py` (`CostReconciler`) · registered in `ze_api/container.py`  
@@ -408,6 +429,7 @@ are used for filtering by the `get_headlines` tool and the morning briefing.
 | 9:00 AM Tue | Stuck goal detection | `ze_automation/jobs/stuck_goals.py` |
 | Every 6 hours | **Cost anomaly detection** | `ze_automation/jobs/cost_anomaly.py` |
 | Every 15 min | Goal advance sweep | `ze_automation/goals/executor.py` |
+| Hourly | Checkpoint pruning | `ze_core/orchestration/checkpoint_pruner.py` |
 | Every 15 min | Cost reconciliation | `ze_core/telemetry/reconciler.py` |
 | Every 15 min | Stale campaign recovery | `ze_prospecting/jobs/campaigns.py` |
 | Every 30 min | News article fetch + embed | `ze_news/jobs/fetch.py` |
