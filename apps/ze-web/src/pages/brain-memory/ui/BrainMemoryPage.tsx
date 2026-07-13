@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { MemoryFeedFilters } from "@/entities/memory-feed-item";
-import { useMemoryTimelineBoundsQuery } from "@/entities/memory-feed-item";
+import { useMemoryActivityQuery, useMemoryTimelineBoundsQuery } from "@/entities/memory-feed-item";
 import { MemoryFeed } from "@/widgets/memory-feed";
 import { TimelineScrubber } from "@/widgets/timeline-scrubber";
 import { FilterChips, SearchBar } from "@/shared/ui";
@@ -18,6 +18,10 @@ export function BrainMemoryPage() {
   const [asOfDate, setAsOfDate] = useState<Date | null>(null);
 
   const { data: bounds } = useMemoryTimelineBoundsQuery();
+  const earliest = bounds?.earliest ? new Date(bounds.earliest) : undefined;
+  // Stable "now" snapshot — recomputing per render would churn the activity query key.
+  const now = useMemo(() => new Date(), []);
+  const { data: activity } = useMemoryActivityQuery(earliest, earliest ? now : undefined);
 
   const isPast = asOfDate !== null;
   const asOfIso = asOfDate ? asOfDate.toISOString() : undefined;
@@ -46,6 +50,8 @@ export function BrainMemoryPage() {
             earliest={new Date(bounds.earliest)}
             value={asOfDate}
             onChange={setAsOfDate}
+            activity={activity?.days}
+            activityMax={activity?.max_count}
           />
         </div>
       )}

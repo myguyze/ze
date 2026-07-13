@@ -1,6 +1,6 @@
 import type { WsTraceUpdateFrame } from "@myguyze/ze-client";
-import { getMessageTrace } from "@myguyze/ze-client";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { getMessageTraces } from "@myguyze/ze-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { queryKeys } from "@/shared/lib";
 import { toTraceFrame } from "../lib/toTraceFrame";
@@ -19,29 +19,28 @@ export function useSessionTraces(threadId: string, assistantMessageIds: string[]
     clearTraces();
   }, [threadId, clearTraces]);
 
-  const traceQueries = useQueries({
-    queries: assistantMessageIds.map((messageId) => ({
-      queryKey: queryKeys.messageTrace(messageId),
-      queryFn: async () => {
-        const { data, error } = await getMessageTrace({ path: { message_id: messageId } });
-        if (error || !data) return null;
-        return toTraceFrame(messageId, data);
-      },
-      staleTime: Infinity,
-      retry: false,
-    })),
+  const { data: traceFrames, isLoading } = useQuery({
+    queryKey: queryKeys.messageTraces(threadId, idsKey),
+    queryFn: async () => {
+      if (assistantMessageIds.length === 0) return [] as WsTraceUpdateFrame[];
+      const { data, error } = await getMessageTraces({
+        query: { ids: assistantMessageIds },
+      });
+      if (error || !data) return [];
+      const byId = new Map(
+        data.traces.map((entry) => [
+          entry.message_id,
+          toTraceFrame(entry.message_id, entry.trace),
+        ]),
+      );
+      return assistantMessageIds
+        .map((id) => byId.get(id))
+        .filter((frame): frame is WsTraceUpdateFrame => frame !== undefined);
+    },
+    enabled: assistantMessageIds.length > 0,
+    staleTime: Infinity,
+    retry: false,
   });
-
-  const isLoading = assistantMessageIds.length > 0 && traceQueries.some((q) => q.isLoading);
-
-  const queryStatusKey = traceQueries
-    .map((q, i) => {
-      const id = assistantMessageIds[i] ?? "";
-      if (q.isLoading || q.isFetching) return `${id}:pending`;
-      if (q.data) return `${id}:hit`;
-      return `${id}:miss`;
-    })
-    .join("|");
 
   useEffect(() => {
     if (idsKey.length === 0) {
@@ -53,14 +52,11 @@ export function useSessionTraces(threadId: string, assistantMessageIds: string[]
     if (isLoading) return;
 
     const messageIds = idsKey.split(",");
-    const incoming = messageIds
-      .map((id) =>
-        queryClient.getQueryData<WsTraceUpdateFrame | null>(queryKeys.messageTrace(id)),
-      )
-      .filter((t): t is WsTraceUpdateFrame => t !== null && t !== undefined);
-
-    mergeTraces(incoming, messageIds);
-  }, [threadId, idsKey, queryStatusKey, isLoading, mergeTraces, setHydrating, queryClient]);
+    mergeTraces(traceFrames ?? [], messageIds);
+    for (const frame of traceFrames ?? []) {
+      queryClient.setQueryData(queryKeys.messageTrace(frame.message_id), frame);
+    }
+  }, [threadId, idsKey, isLoading, traceFrames, mergeTraces, setHydrating, queryClient]);
 
   return hydrating;
 }

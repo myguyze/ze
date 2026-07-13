@@ -9,11 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # ── REST: health ──────────────────────────────────────────────────────────────
 
+
 class HealthResponse(BaseModel):
     status: Literal["ok"]
 
 
 # ── REST: sessions ────────────────────────────────────────────────────────────
+
 
 class SessionSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +52,7 @@ class CreateSessionRequest(BaseModel):
 
 # ── REST: messages ────────────────────────────────────────────────────────────
 
+
 class MessageSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +66,7 @@ class MessageSchema(BaseModel):
 
 
 # ── REST: message trace ───────────────────────────────────────────────────────
+
 
 class MemoryChunkTraceResponse(BaseModel):
     text: str
@@ -87,6 +91,15 @@ class MessageTraceResponse(BaseModel):
     memory_chunks: list[MemoryChunkTraceResponse]
     tool_calls: list[ToolCallTraceResponse]
     total_duration_ms: int
+
+
+class MessageTraceEntry(BaseModel):
+    message_id: UUIDType
+    trace: MessageTraceResponse
+
+
+class MessageTracesResponse(BaseModel):
+    traces: list[MessageTraceEntry]
 
 
 # ── REST: capabilities ────────────────────────────────────────────────────────
@@ -115,6 +128,7 @@ class UpdateCapabilityResponse(RootModel[dict[str, AgentCapabilityConfig]]):
 
 
 # ── REST: memory ──────────────────────────────────────────────────────────────
+
 
 class UserFactResponse(BaseModel):
     id: UUIDType
@@ -200,6 +214,7 @@ class FactReviewRequest(BaseModel):
 
 # ── REST: routing log ─────────────────────────────────────────────────────────
 
+
 class RoutingLogEntry(BaseModel):
     id: UUIDType
     session_id: str
@@ -218,6 +233,7 @@ class ErrorDetail(BaseModel):
 
 
 # ── REST: web data screens ────────────────────────────────────────────────────
+
 
 class GoalListItem(BaseModel):
     id: UUIDType
@@ -349,6 +365,7 @@ class ArticleItem(BaseModel):
 
 # ── REST: data portability ────────────────────────────────────────────────────
 
+
 class DataDomainItem(BaseModel):
     name: str
     importable: bool
@@ -378,6 +395,7 @@ class ImportResponse(BaseModel):
 
 
 # ── REST: workflows ───────────────────────────────────────────────────────────
+
 
 class BranchResponse(BaseModel):
     condition: str
@@ -439,6 +457,7 @@ class TriggerWorkflowResponse(BaseModel):
 
 # ── REST: eval ────────────────────────────────────────────────────────────────
 
+
 class EvalChatRequest(BaseModel):
     prompt: str
     session_id: str = "eval"
@@ -475,6 +494,7 @@ class EvalChatResponse(BaseModel):
 
 
 # ── WebSocket protocol — Server → Client (inbound frames) ─────────────────────
+
 
 class OnboardingMeta(BaseModel):
     session_id: str
@@ -578,6 +598,7 @@ WsInboundFrame = Annotated[
 
 # ── WebSocket protocol — Client → Server (outbound frames) ────────────────────
 
+
 class WsScreenContext(BaseModel):
     screen: str
     goal_id: str | None = None
@@ -612,7 +633,15 @@ class WsActionFrame(BaseModel):
 
 class WsCommandFrame(BaseModel):
     type: Literal["command"]
-    name: Literal["cancel", "costs", "capabilities", "status", "onboarding", "reset", "reset_preview"]
+    name: Literal[
+        "cancel",
+        "costs",
+        "capabilities",
+        "status",
+        "onboarding",
+        "reset",
+        "reset_preview",
+    ]
 
 
 class WsComponentSubmitFrame(BaseModel):
@@ -647,6 +676,7 @@ class WsSchemaResponse(BaseModel):
 
 
 # ── REST: dream memory ─────────────────────────────────────────────────────────
+
 
 class DreamJournalEntryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -701,6 +731,7 @@ class DreamRollbackResponse(BaseModel):
 
 # ── REST: memory feed ─────────────────────────────────────────────────────────
 
+
 class MemoryFeedItem(BaseModel):
     id: UUIDType
     type: Literal["fact", "episode"]
@@ -719,8 +750,8 @@ class MemoryFeedItem(BaseModel):
 class MemoryFeedResponse(BaseModel):
     items: list[MemoryFeedItem]
     next_before: datetime | None
-    total_facts: int
-    total_episodes: int
+    total_facts: int | None = None
+    total_episodes: int | None = None
 
 
 class TimelineBoundsResponse(BaseModel):
@@ -728,7 +759,18 @@ class TimelineBoundsResponse(BaseModel):
     latest: datetime
 
 
+class MemoryActivityDay(BaseModel):
+    date: str
+    count: int
+
+
+class MemoryActivityResponse(BaseModel):
+    days: list[MemoryActivityDay]
+    max_count: int
+
+
 # ── REST: channels ────────────────────────────────────────────────────────────
+
 
 class ChannelInfo(BaseModel):
     channel_id: str
@@ -756,6 +798,7 @@ class ChannelResponse(BaseModel):
 
 
 # ── REST: UI manifest ─────────────────────────────────────────────────────────
+
 
 class UiContributionSchema(BaseModel):
     id: str
@@ -798,6 +841,7 @@ class UiManifestResponse(BaseModel):
 
 # ── REST: activity heatmap ────────────────────────────────────────────────────
 
+
 class AgentDayCount(BaseModel):
     agent: str
     count: int
@@ -817,6 +861,7 @@ class ActivityHeatmapResponse(BaseModel):
 
 
 # ── REST: memory graph ────────────────────────────────────────────────────────
+
 
 class GraphEntityNode(BaseModel):
     id: UUIDType

@@ -89,7 +89,7 @@ export function MemoryFeed({ filters, asOf, search }: MemoryFeedProps) {
 
   return (
     <div className="space-y-6">
-      {firstPage && (
+      {firstPage && firstPage.total_facts != null && firstPage.total_episodes != null && (
         <p className="text-xs text-smoke">
           <span className="text-white font-medium">{firstPage.total_facts}</span> facts ·{" "}
           <span className="text-white font-medium">{firstPage.total_episodes}</span> episodes

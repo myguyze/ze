@@ -130,9 +130,7 @@ class PersonStore:
 
     async def get(self, person_id: UUID) -> Person | None:
         async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT * FROM contacts WHERE id = $1", person_id
-            )
+            row = await conn.fetchrow("SELECT * FROM contacts WHERE id = $1", person_id)
         return _person_from_row(row) if row else None
 
     async def get_by_name(self, name: str) -> list[Person]:
@@ -218,18 +216,21 @@ class PersonStore:
             if not rows:
                 return []
             people = [_person_from_row(r) for r in rows]
-            result: list[tuple[Person, list[PersonSource]]] = []
-            for person in people:
-                source_rows = await conn.fetch(
-                    """
-                    SELECT * FROM contact_sources
-                    WHERE contact_id = $1
-                    ORDER BY created_at DESC
-                    """,
-                    person.id,
+            person_ids = [p.id for p in people]
+            source_rows = await conn.fetch(
+                """
+                SELECT * FROM contact_sources
+                WHERE contact_id = ANY($1::uuid[])
+                ORDER BY created_at DESC
+                """,
+                person_ids,
+            )
+            sources_by_person: dict = {person_id: [] for person_id in person_ids}
+            for source_row in source_rows:
+                sources_by_person[source_row["contact_id"]].append(
+                    _source_from_row(source_row)
                 )
-                result.append((person, [_source_from_row(r) for r in source_rows]))
-        return result
+            return [(person, sources_by_person[person.id]) for person in people]
 
     async def confirm(self, person_id: UUID) -> Person:
         async with self._pool.acquire() as conn:
@@ -251,6 +252,7 @@ class PersonStore:
 
     async def _write_entity(self, person: Person) -> None:
         from ze_sdk.memory import Entity
+
         attrs: dict[str, str] = {}
         if person.relationship_to_user:
             attrs["relationship"] = person.relationship_to_user
@@ -266,7 +268,9 @@ class PersonStore:
         try:
             await self._memory.upsert_entity(entity)
         except Exception as exc:
-            self._log.warning("person_entity_sync_failed", person_id=str(person.id), error=str(exc))
+            self._log.warning(
+                "person_entity_sync_failed", person_id=str(person.id), error=str(exc)
+            )
 
     async def dismiss(self, person_id: UUID) -> None:
         async with self._pool.acquire() as conn:
@@ -378,7 +382,9 @@ class PersonStore:
                 str(stale_days),
                 limit,
             )
-        return [StaleFollowUpNudge(name=r["name"], days_ago=r["days_ago"]) for r in rows]
+        return [
+            StaleFollowUpNudge(name=r["name"], days_ago=r["days_ago"]) for r in rows
+        ]
 
     async def get_context(self, query: str, token_budget: int = 300) -> PersonContext:
         """Return confirmed contacts whose name/role/notes match the query."""
@@ -387,11 +393,7 @@ class PersonStore:
         result: list[Person] = []
         used = 0
         for person in people:
-            text = (
-                f"{person.name}: "
-                f"{person.relationship_to_user} "
-                f"{person.notes}"
-            )
+            text = f"{person.name}: {person.relationship_to_user} {person.notes}"
             cost = _tokens(text)
             if used + cost > token_budget:
                 break

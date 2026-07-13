@@ -14,6 +14,7 @@ Usage from the shell (via Makefile):
     python -m ze_api.migrate heads
     python -m ze_api.migrate stamp <rev> [<rev>...]
 """
+
 from __future__ import annotations
 
 import os
@@ -40,11 +41,17 @@ from ze_plugin.bootstrap import import_plugin_modules_for_migrations
 _SCRIPT_LOCATION = Path(__file__).parent / "migrations"
 
 # Core package version paths (not ZePlugin subclasses — registered explicitly).
-_ZE_AUTOMATION_VERSIONS = Path(ze_automation.__file__).parent / "migrations" / "versions"
+_ZE_AUTOMATION_VERSIONS = (
+    Path(ze_automation.__file__).parent / "migrations" / "versions"
+)
 _ZE_CORE_VERSIONS = Path(ze_core.__file__).parent / "migrations" / "versions"
 _ZE_MEMORY_VERSIONS = Path(ze_memory.__file__).parent / "migrations" / "versions"
-_ZE_ONBOARDING_VERSIONS = Path(ze_onboarding.__file__).parent / "migrations" / "versions"
-_ZE_CORRELATION_VERSIONS = Path(ze_correlation.__file__).parent / "migrations" / "versions"
+_ZE_ONBOARDING_VERSIONS = (
+    Path(ze_onboarding.__file__).parent / "migrations" / "versions"
+)
+_ZE_CORRELATION_VERSIONS = (
+    Path(ze_correlation.__file__).parent / "migrations" / "versions"
+)
 _ZE_PROACTIVE_VERSIONS = Path(ze_proactive.__file__).parent / "migrations" / "versions"
 _ZE_INGESTION_VERSIONS = Path(ze_ingestion.__file__).parent / "migrations" / "versions"
 
@@ -70,7 +77,11 @@ def _collect_version_locations() -> list[Path]:
     for plugin_cls in get_plugin_registry():
         plugin_path = plugin_cls.migrations_path()
         if plugin_path is not None:
-            versions_dir = plugin_path / "versions" if (plugin_path / "versions").exists() else plugin_path
+            versions_dir = (
+                plugin_path / "versions"
+                if (plugin_path / "versions").exists()
+                else plugin_path
+            )
             if versions_dir not in paths and versions_dir.exists():
                 paths.append(versions_dir)
 
@@ -104,32 +115,42 @@ def _resolve_url(database_url: str | None) -> str:
 
 def upgrade(database_url: str | None = None, revision: str = "heads") -> None:
     from alembic import command
+
     command.upgrade(_build_config(_resolve_url(database_url)), revision)
 
 
 def downgrade(database_url: str | None = None, revision: str = "-1") -> None:
     from alembic import command
+
     command.downgrade(_build_config(_resolve_url(database_url)), revision)
 
 
 def current(database_url: str | None = None) -> None:
     from alembic import command
+
     command.current(_build_config(_resolve_url(database_url)))
 
 
 def history(database_url: str | None = None) -> None:
     from alembic import command
+
     command.history(_build_config(_resolve_url(database_url)))
 
 
 def heads(database_url: str | None = None) -> None:
     from alembic import command
+
     command.heads(_build_config(_resolve_url(database_url)))
 
 
-def stamp(database_url: str | None = None, *revisions: str, purge: bool = False) -> None:
+def stamp(
+    database_url: str | None = None, *revisions: str, purge: bool = False
+) -> None:
     from alembic import command
-    command.stamp(_build_config(_resolve_url(database_url)), list(revisions), purge=purge)
+
+    command.stamp(
+        _build_config(_resolve_url(database_url)), list(revisions), purge=purge
+    )
 
 
 def assert_schema_ready(database_url: str | None = None) -> None:

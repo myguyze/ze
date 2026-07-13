@@ -19,6 +19,7 @@ export function useMemoryFeedQuery(filters: MemoryFeedFilters, asOf?: string) {
           type: filters.type,
           agent: filters.agent ?? undefined,
           as_of: asOf ?? undefined,
+          include_totals: pageParam == null,
         },
       });
       return data as MemoryFeedResponse;

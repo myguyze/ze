@@ -42,7 +42,9 @@ async def get_workflow(store: WorkflowStore, workflow_id: UUID) -> dict | None:
                 "agent_hint": s.agent_hint,
                 "verify": s.verify,
                 "id": s.id,
-                "branches": [{"condition": b.condition, "to": b.to} for b in s.branches],
+                "branches": [
+                    {"condition": b.condition, "to": b.to} for b in s.branches
+                ],
                 "default_next": s.default_next,
             }
             for s in wf.steps
@@ -50,34 +52,46 @@ async def get_workflow(store: WorkflowStore, workflow_id: UUID) -> dict | None:
     }
 
 
-async def list_workflow_executions(store: WorkflowStore, workflow_id: UUID) -> list[dict]:
+async def list_workflow_executions(
+    store: WorkflowStore, workflow_id: UUID
+) -> list[dict]:
     executions = await store.list_executions(workflow_id)
-    return [
-        {
-            "id": ex.id,
-            "workflow_id": ex.workflow_id,
-            "status": ex.status,
-            "step_results": [
-                {
-                    "step_index": r.step_index,
-                    "task": r.task,
-                    "output": r.output,
-                    "success": r.success,
-                    "error": r.error,
-                    "duration_ms": r.duration_ms,
-                    "step_id": r.step_id,
-                    "branch_taken": r.branch_taken,
-                }
-                for r in ex.step_results
-            ],
-            "error": ex.error,
-            "summary": ex.summary,
-            "started_at": ex.started_at.isoformat() if ex.started_at else None,
-            "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
-            "created_at": ex.created_at.isoformat(),
-        }
-        for ex in executions
-    ]
+    return [_execution_to_dict(ex) for ex in executions]
+
+
+async def get_workflow_execution(
+    store: WorkflowStore, workflow_id: UUID, execution_id: UUID
+) -> dict | None:
+    ex = await store.get_execution(workflow_id, execution_id)
+    if ex is None:
+        return None
+    return _execution_to_dict(ex)
+
+
+def _execution_to_dict(ex) -> dict:
+    return {
+        "id": ex.id,
+        "workflow_id": ex.workflow_id,
+        "status": ex.status,
+        "step_results": [
+            {
+                "step_index": r.step_index,
+                "task": r.task,
+                "output": r.output,
+                "success": r.success,
+                "error": r.error,
+                "duration_ms": r.duration_ms,
+                "step_id": r.step_id,
+                "branch_taken": r.branch_taken,
+            }
+            for r in ex.step_results
+        ],
+        "error": ex.error,
+        "summary": ex.summary,
+        "started_at": ex.started_at.isoformat() if ex.started_at else None,
+        "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
+        "created_at": ex.created_at.isoformat(),
+    }
 
 
 async def build_status_summary(container: Any, *, period_days: int = 1) -> str:

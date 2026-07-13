@@ -1,4 +1,5 @@
 """Tests for GET /api/v0/workflows/{id} and /api/v0/workflows/{id}/executions."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -39,12 +40,17 @@ def _workflow(steps: list[WorkflowStep]) -> Workflow:
     )
 
 
-def _make_app(workflow: Workflow, executions: list[WorkflowExecution] | None = None) -> FastAPI:
+def _make_app(
+    workflow: Workflow, executions: list[WorkflowExecution] | None = None
+) -> FastAPI:
     app = FastAPI()
 
     workflow_store = AsyncMock()
     workflow_store.get = AsyncMock(return_value=workflow)
     workflow_store.list_executions = AsyncMock(return_value=executions or [])
+    workflow_store.get_execution = AsyncMock(
+        return_value=executions[0] if executions else None
+    )
 
     container = SimpleNamespace(workflow_store=workflow_store)
     app.state.container = container
@@ -60,7 +66,10 @@ async def test_get_workflow_includes_branch_fields():
         WorkflowStep(
             task="Check status",
             id="s0",
-            branches=[Branch(condition="ok", to="s1"), Branch(condition="fail", to="FAIL")],
+            branches=[
+                Branch(condition="ok", to="s1"),
+                Branch(condition="fail", to="FAIL"),
+            ],
             default_next="s1",
         ),
         WorkflowStep(task="Notify", id="s1"),
@@ -68,7 +77,9 @@ async def test_get_workflow_includes_branch_fields():
     workflow = _workflow(steps)
     app = _make_app(workflow)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.get(
             f"/api/v0/workflows/{workflow.id}",
             headers={"Authorization": f"Bearer {API_KEY}"},
@@ -112,7 +123,9 @@ async def test_list_workflow_executions_includes_step_id_and_branch_taken():
     )
     app = _make_app(workflow, executions=[execution])
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.get(
             f"/api/v0/workflows/{workflow.id}/executions",
             headers={"Authorization": f"Bearer {API_KEY}"},
@@ -123,3 +136,28 @@ async def test_list_workflow_executions_includes_step_id_and_branch_taken():
     result = data[0]["step_results"][0]
     assert result["step_id"] == "s0"
     assert result["branch_taken"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_execution_by_id():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    execution = WorkflowExecution(
+        id=uuid4(),
+        workflow_id=workflow.id,
+        status="running",
+        step_results=[],
+        created_at=datetime.now(timezone.utc),
+    )
+    app = _make_app(workflow, executions=[execution])
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            f"/api/v0/workflows/{workflow.id}/executions/{execution.id}",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["id"] == str(execution.id)
+    assert resp.json()["status"] == "running"

@@ -4,6 +4,7 @@ Separated from PostgresMemoryStore to keep the runtime store focused on the
 read/write protocol and to give consolidation jobs a minimal, clearly bounded
 dependency.
 """
+
 from __future__ import annotations
 
 import json
@@ -166,7 +167,9 @@ class PostgresConsolidationStore:
                 max_sessions,
             )
 
-    async def fetch_raw_session_episodes(self, session_id: str, recency_days: int) -> list:
+    async def fetch_raw_session_episodes(
+        self, session_id: str, recency_days: int
+    ) -> list:
         async with self._pool.acquire() as conn:
             return await conn.fetch(
                 """
@@ -211,7 +214,9 @@ class PostgresConsolidationStore:
                 )
         return _parse_update_count(result)
 
-    async def insert_archive_episode(self, archive_text: str, session_id: str = "consolidator") -> None:
+    async def insert_archive_episode(
+        self, archive_text: str, session_id: str = "consolidator"
+    ) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO memory_episodes (session_id, agent, prompt, response, summary)"
@@ -281,7 +286,9 @@ class PostgresConsolidationStore:
             )
         return row is not None
 
-    async def delete_raw_session_episodes(self, session_id: str, recency_days: int) -> int:
+    async def delete_raw_session_episodes(
+        self, session_id: str, recency_days: int
+    ) -> int:
         async with self._pool.acquire() as conn:
             result = await conn.execute(
                 """

@@ -1,4 +1,5 @@
 """Tests for PersonStore.confirm() → entity write path."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -41,28 +42,31 @@ class _AsyncCtx:
 def _make_pool(person: Person) -> MagicMock:
     pool = MagicMock()
     conn = AsyncMock()
-    conn.fetchrow = AsyncMock(return_value={
-        "id": person.id,
-        "name": person.name,
-        "aliases": person.aliases,
-        "classification": person.classification,
-        "classification_confidence": person.classification_confidence,
-        "relationship_to_user": person.relationship_to_user,
-        "contact_info": person.contact_info,
-        "notes": person.notes,
-        "confirmed": True,
-        "dismissed": person.dismissed,
-        "confidence": person.confidence,
-        "first_seen": None,
-        "last_mentioned": None,
-        "created_at": None,
-        "updated_at": None,
-    })
+    conn.fetchrow = AsyncMock(
+        return_value={
+            "id": person.id,
+            "name": person.name,
+            "aliases": person.aliases,
+            "classification": person.classification,
+            "classification_confidence": person.classification_confidence,
+            "relationship_to_user": person.relationship_to_user,
+            "contact_info": person.contact_info,
+            "notes": person.notes,
+            "confirmed": True,
+            "dismissed": person.dismissed,
+            "confidence": person.confidence,
+            "first_seen": None,
+            "last_mentioned": None,
+            "created_at": None,
+            "updated_at": None,
+        }
+    )
     pool.acquire = MagicMock(return_value=_AsyncCtx(conn))
     return pool
 
 
 # ── confirm() → entity write ──────────────────────────────────────────────────
+
 
 async def test_confirm_writes_entity_when_memory_store_set():
     person = _make_person()

@@ -16,6 +16,7 @@
     "@myguyze/ze-client": "workspace:*",
     "@myguyze/ze-ui": "workspace:*",
     "@radix-ui/react-dialog": "1.1.17",
+    "@radix-ui/react-slider": "^1.4.3",
     "@radix-ui/react-slot": "1.3.0",
     "@radix-ui/react-tooltip": "1.2.10",
     "@tanstack/react-query": "5.101.0",

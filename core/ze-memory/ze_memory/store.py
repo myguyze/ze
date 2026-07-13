@@ -36,7 +36,9 @@ class MemoryQueryable(Protocol):
 
 @runtime_checkable
 class MemoryRetrievalPolicy(Protocol):
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext: ...
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext: ...
 
 
 @runtime_checkable

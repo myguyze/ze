@@ -14,6 +14,7 @@ Two tiers:
     planner — called by GoalPlanner before generating a milestone plan
     tool_executor — called by BaseAgent.agentic_loop() before each tool call
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -32,9 +33,79 @@ from ze_memory.types import MemoryContext, RetrievalRequest
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+_FACT_SELECT = """
+    SELECT id, subject_id, predicate, object_text, object_id, value,
+           confidence, reviewed, contradicted, source_episode_id, source_refs,
+           COALESCE(provenance, 'raw') AS provenance
+    FROM memory_facts
+"""
+
+_ENTITY_SELECT = """
+    SELECT id, entity_type, canonical_name, aliases, attrs
+    FROM memory_entities
+"""
+
+_EPISODE_NO_SUMMARY = """
+    AND NOT EXISTS (
+        SELECT 1 FROM memory_session_summaries ss
+        WHERE ss.session_id = memory_episodes.session_id
+    )
+"""
+
+
 def _to_list(embedding: Any) -> str:
     vals = embedding.tolist() if hasattr(embedding, "tolist") else list(embedding)
     return "[" + ",".join(str(v) for v in vals) + "]"
+
+
+async def _fetch_facts_by_similarity(conn: Any, emb: str, limit: int) -> list:
+    rows = await conn.fetch(
+        f"""
+        {_FACT_SELECT}
+        WHERE contradicted = false AND embedding IS NOT NULL
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        """,
+        emb,
+        limit,
+    )
+    if len(rows) >= limit:
+        return rows
+    extra = await conn.fetch(
+        f"""
+        {_FACT_SELECT}
+        WHERE contradicted = false AND embedding IS NULL
+        ORDER BY updated_at DESC
+        LIMIT $1
+        """,
+        limit - len(rows),
+    )
+    return list(rows) + list(extra)
+
+
+async def _fetch_entities_by_similarity(conn: Any, emb: str, limit: int) -> list:
+    rows = await conn.fetch(
+        f"""
+        {_ENTITY_SELECT}
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        """,
+        emb,
+        limit,
+    )
+    if len(rows) >= limit:
+        return rows
+    extra = await conn.fetch(
+        f"""
+        {_ENTITY_SELECT}
+        WHERE embedding IS NULL
+        ORDER BY updated_at DESC
+        LIMIT $1
+        """,
+        limit - len(rows),
+    )
+    return list(rows) + list(extra)
 
 
 async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> list:
@@ -50,6 +121,37 @@ async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> l
         emb,
         limit,
     )
+
+
+async def _fetch_calendar_events_by_similarity(
+    conn: Any, emb: str, limit: int = 20
+) -> list:
+    rows = await conn.fetch(
+        """
+        SELECT id, event_type, title, start_at, end_at,
+               participant_names, participants, roles, summary, outcome, source_episode_id
+        FROM memory_events
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        """,
+        emb,
+        limit,
+    )
+    if len(rows) >= limit:
+        return rows
+    extra = await conn.fetch(
+        """
+        SELECT id, event_type, title, start_at, end_at,
+               participant_names, participants, roles, summary, outcome, source_episode_id
+        FROM memory_events
+        WHERE embedding IS NULL
+        ORDER BY COALESCE(start_at, created_at) DESC
+        LIMIT $1
+        """,
+        limit - len(rows),
+    )
+    return list(rows) + list(extra)
 
 
 async def _fetch_session_summary_rows(conn: Any, emb: str, limit: int = 10) -> list:
@@ -69,29 +171,18 @@ async def _fetch_session_summary_rows(conn: Any, emb: str, limit: int = 10) -> l
 
 # ── orchestration-level policies ──────────────────────────────────────────────
 
+
 class CompanionPolicy:
     """Companion agent: facts + recent episodes + profile facets + entities + events."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY
-                  CASE WHEN embedding IS NOT NULL
-                       THEN embedding <=> $1::vector ELSE 1 END ASC,
-                  updated_at DESC
-                LIMIT 50
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 50)
             episode_rows = await conn.fetch(
                 f"""
                 SELECT id, session_id, agent, prompt, response, summary,
@@ -99,7 +190,7 @@ class CompanionPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {_EPISODE_NO_SUMMARY}
                   {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
@@ -112,34 +203,37 @@ class CompanionPolicy:
                 "SELECT key, value, stability, confidence, source_refs, updated_at"
                 " FROM memory_profile_facets ORDER BY confidence DESC LIMIT 30"
             )
-            entity_rows = await conn.fetch(
-                """
-                SELECT id, entity_type, canonical_name, aliases, attrs
-                FROM memory_entities
-                ORDER BY
-                  CASE WHEN embedding IS NOT NULL
-                       THEN embedding <=> $1::vector ELSE 1 END ASC,
-                  updated_at DESC
-                LIMIT 20
-                """,
-                emb,
-            )
+            entity_rows = await _fetch_entities_by_similarity(conn, emb, 20)
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
         from ze_memory.projection import (
-            budget_episodes, budget_facts, entities_from_rows, events_from_rows,
-            facets_from_rows, session_summaries_from_rows, token_estimate,
+            budget_episodes,
+            budget_facts,
+            entities_from_rows,
+            events_from_rows,
+            facets_from_rows,
+            session_summaries_from_rows,
+            token_estimate,
         )
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(
+            session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        )
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, profile=profile, entities=entities, events=events)
+        ctx = MemoryContext(
+            facts=facts,
+            episodes=episodes,
+            session_summaries=session_summaries,
+            profile=profile,
+            entities=entities,
+            events=events,
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -147,18 +241,17 @@ class CompanionPolicy:
 class ResearchPolicy:
     """Research agent: facts + broader episode window + events. No profile — research is topic-specific."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
+                f"""
+                {_FACT_SELECT}
+                WHERE contradicted = false AND embedding IS NOT NULL
                 ORDER BY embedding <=> $1::vector
                 LIMIT 30
                 """,
@@ -171,7 +264,7 @@ class ResearchPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {_EPISODE_NO_SUMMARY}
                   {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
@@ -183,14 +276,27 @@ class ResearchPolicy:
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, events_from_rows, session_summaries_from_rows, token_estimate
+        from ze_memory.projection import (
+            budget_episodes,
+            budget_facts,
+            events_from_rows,
+            session_summaries_from_rows,
+            token_estimate,
+        )
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(
+            session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        )
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, events=events)
+        ctx = MemoryContext(
+            facts=facts,
+            episodes=episodes,
+            session_summaries=session_summaries,
+            events=events,
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -198,22 +304,13 @@ class ResearchPolicy:
 class GoalsPolicy:
     """Goals agent: facts + profile facets + task state + events for the current goal."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 30
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
             profile_rows = await conn.fetch(
                 "SELECT key, value, stability, confidence, source_refs, updated_at"
                 " FROM memory_profile_facets ORDER BY confidence DESC LIMIT 30"
@@ -222,12 +319,19 @@ class GoalsPolicy:
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
 
-        from ze_memory.projection import budget_facts, events_from_rows, facets_from_rows, token_estimate
+        from ze_memory.projection import (
+            budget_facts,
+            events_from_rows,
+            facets_from_rows,
+            token_estimate,
+        )
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, profile=profile, task_state=task_state, events=events)
+        ctx = MemoryContext(
+            facts=facts, profile=profile, task_state=task_state, events=events
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -235,22 +339,13 @@ class GoalsPolicy:
 class WorkflowPolicy:
     """Workflow agent: minimal facts + task state for the current task."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 20
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
 
         task_state = await store.get_task_state(task_id=request.task_id, goal_id=None)
 
@@ -265,35 +360,22 @@ class WorkflowPolicy:
 class CalendarPolicy:
     """Calendar agent: minimal facts + conversation-extracted events."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
+                f"""
+                {_FACT_SELECT}
+                WHERE contradicted = false AND embedding IS NOT NULL
                 ORDER BY embedding <=> $1::vector
                 LIMIT 20
                 """,
                 emb,
             )
-            event_rows = await conn.fetch(
-                """
-                SELECT id, event_type, title, start_at, end_at,
-                       participant_names, participants, roles, summary, outcome, source_episode_id
-                FROM memory_events
-                ORDER BY
-                  CASE WHEN embedding IS NOT NULL
-                       THEN embedding <=> $1::vector ELSE 1 END ASC,
-                  COALESCE(start_at, created_at) DESC
-                LIMIT 20
-                """,
-                emb,
-            )
+            event_rows = await _fetch_calendar_events_by_similarity(conn, emb)
 
         from ze_memory.projection import budget_facts, events_from_rows, token_estimate
 
@@ -307,22 +389,13 @@ class CalendarPolicy:
 class RemindersPolicy:
     """Reminders agent: minimal facts only — reminder state lives in its own store."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 20
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -335,23 +408,14 @@ class RemindersPolicy:
 class EmailPolicy:
     """Email agent: facts + recent episodes + entities + events for correspondence context."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 20
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
             episode_rows = await conn.fetch(
                 f"""
                 SELECT id, session_id, agent, prompt, response, summary,
@@ -359,7 +423,7 @@ class EmailPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {_EPISODE_NO_SUMMARY}
                   {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
@@ -367,33 +431,34 @@ class EmailPolicy:
                 emb,
                 cur_sid,
             )
-            entity_rows = await conn.fetch(
-                """
-                SELECT id, entity_type, canonical_name, aliases, attrs
-                FROM memory_entities
-                ORDER BY
-                  CASE WHEN embedding IS NOT NULL
-                       THEN embedding <=> $1::vector ELSE 1 END ASC,
-                  updated_at DESC
-                LIMIT 10
-                """,
-                emb,
-            )
+            entity_rows = await _fetch_entities_by_similarity(conn, emb, 10)
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
         from ze_memory.projection import (
-            budget_episodes, budget_facts, entities_from_rows, events_from_rows,
-            session_summaries_from_rows, token_estimate,
+            budget_episodes,
+            budget_facts,
+            entities_from_rows,
+            events_from_rows,
+            session_summaries_from_rows,
+            token_estimate,
         )
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+        session_summaries = session_summaries_from_rows(
+            session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        )
         entities = entities_from_rows(entity_rows)
         events = events_from_rows(event_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries, entities=entities, events=events)
+        ctx = MemoryContext(
+            facts=facts,
+            episodes=episodes,
+            session_summaries=session_summaries,
+            entities=entities,
+            events=events,
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -401,23 +466,14 @@ class EmailPolicy:
 class ProspectingPolicy:
     """Prospecting agent: facts + recent episodes. Profile excluded — prospecting is outbound-focused."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 30
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
             episode_rows = await conn.fetch(
                 f"""
                 SELECT id, session_id, agent, prompt, response, summary,
@@ -425,7 +481,7 @@ class ProspectingPolicy:
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  AND session_id NOT IN (SELECT session_id FROM memory_session_summaries)
+                  {_EPISODE_NO_SUMMARY}
                   {episode_retrievable_sql()}
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
@@ -435,18 +491,28 @@ class ProspectingPolicy:
             )
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        from ze_memory.projection import budget_episodes, budget_facts, session_summaries_from_rows, token_estimate
+        from ze_memory.projection import (
+            budget_episodes,
+            budget_facts,
+            session_summaries_from_rows,
+            token_estimate,
+        )
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
-        session_summaries = session_summaries_from_rows(session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
-        ctx = MemoryContext(facts=facts, episodes=episodes, session_summaries=session_summaries)
+        session_summaries = session_summaries_from_rows(
+            session_summary_rows, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        )
+        ctx = MemoryContext(
+            facts=facts, episodes=episodes, session_summaries=session_summaries
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
 
 # ── domain-service-level policies (called directly, not via fetch_context) ────
+
 
 class PlannerPolicy:
     """Called directly by GoalPlanner before generating a milestone plan.
@@ -455,27 +521,19 @@ class PlannerPolicy:
     for the current goal. Not dispatched via agent name.
     """
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 30
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
             proc_rows = await conn.fetch(
                 """
                 SELECT id, name, trigger, preconditions, steps, success_criteria,
                        version, source_refs
                 FROM memory_procedures
+                WHERE embedding IS NOT NULL
                 ORDER BY embedding <=> $1::vector
                 LIMIT 10
                 """,
@@ -484,7 +542,11 @@ class PlannerPolicy:
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
 
-        from ze_memory.projection import budget_facts, procedures_from_rows, token_estimate
+        from ze_memory.projection import (
+            budget_facts,
+            procedures_from_rows,
+            token_estimate,
+        )
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
         procedures = procedures_from_rows(proc_rows, DEFAULT_PROCEDURE_BUDGET_TOKENS)
@@ -500,22 +562,13 @@ class ToolExecutorPolicy:
     Not dispatched via agent name.
     """
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
-            fact_rows = await conn.fetch(
-                """
-                SELECT id, subject_id, predicate, object_text, object_id, value,
-                       confidence, reviewed, contradicted, source_episode_id, source_refs,
-                       COALESCE(provenance, 'raw') AS provenance
-                FROM memory_facts
-                WHERE contradicted = false
-                ORDER BY embedding <=> $1::vector
-                LIMIT 20
-                """,
-                emb,
-            )
+            fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
 
         task_state = await store.get_task_state(
             task_id=request.task_id, goal_id=request.goal_id
@@ -531,10 +584,13 @@ class ToolExecutorPolicy:
 
 # ── introspection policies ────────────────────────────────────────────────────
 
+
 class ProfilePolicy:
     """Memory profile introspection (/memory profile): all profile facets + top facts."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 "SELECT id, subject_id, predicate, object_text, object_id, value,"
@@ -560,7 +616,9 @@ class ProfilePolicy:
 class MemoryUIPolicy:
     """Full memory UI display: all types at wider budgets."""
 
-    async def retrieve(self, request: RetrievalRequest, store: MemoryQueryable) -> MemoryContext:
+    async def retrieve(
+        self, request: RetrievalRequest, store: MemoryQueryable
+    ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
 
         async with store.pool.acquire() as conn:
@@ -596,14 +654,20 @@ class MemoryUIPolicy:
             )
 
         from ze_memory.projection import (
-            budget_episodes, budget_facts, entities_from_rows, facets_from_rows, token_estimate,
+            budget_episodes,
+            budget_facts,
+            entities_from_rows,
+            facets_from_rows,
+            token_estimate,
         )
 
         facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS * 3)
         episodes = budget_episodes(episode_rows, DEFAULT_EPISODE_BUDGET_TOKENS)
         profile = facets_from_rows(profile_rows, DEFAULT_PROFILE_BUDGET_TOKENS)
         entities = entities_from_rows(entity_rows)
-        ctx = MemoryContext(facts=facts, episodes=episodes, profile=profile, entities=entities)
+        ctx = MemoryContext(
+            facts=facts, episodes=episodes, profile=profile, entities=entities
+        )
         ctx.token_estimate = token_estimate(ctx)
         return ctx
 
@@ -613,8 +677,8 @@ class MemoryUIPolicy:
 # Core-only policies (introspection + tool loop). Agent policies are contributed
 # by plugins via ZePlugin.memory_policies().
 _POLICY_MAP: dict[str, Any] = {
-    "profile":       ProfilePolicy(),
-    "memory_ui":     MemoryUIPolicy(),
+    "profile": ProfilePolicy(),
+    "memory_ui": MemoryUIPolicy(),
     "tool_executor": ToolExecutorPolicy(),
 }
 
@@ -654,6 +718,9 @@ class DefaultPolicyRegistry:
     def for_module(self, module: str) -> Any:
         if module not in self._policies:
             from ze_logging import get_logger
-            get_logger(__name__).warning("unknown_memory_module_fallback", module=module)
+
+            get_logger(__name__).warning(
+                "unknown_memory_module_fallback", module=module
+            )
             return _FALLBACK_POLICY
         return self._policies[module]

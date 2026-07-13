@@ -3,7 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ze_api.api.dependencies import get_container, require_api_key
-from ze_api.api.schemas import AgentCostBucket, CostAnomalyItem, CostAnomaliesResponse, DailyCostBucket, WebCostSummaryResponse
+from ze_api.api.schemas import (
+    AgentCostBucket,
+    CostAnomalyItem,
+    CostAnomaliesResponse,
+    DailyCostBucket,
+    WebCostSummaryResponse,
+)
 from ze_automation.accountability.store import AccountabilityStore
 from ze_core.telemetry import rest as telemetry_rest
 
@@ -84,6 +90,8 @@ async def cost_detail(
     container=Depends(get_container),
 ) -> dict:
     try:
-        return await telemetry_rest.cost_detail(container.pool, days=days, group_by=group_by)
+        return await telemetry_rest.cost_detail(
+            container.pool, days=days, group_by=group_by
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

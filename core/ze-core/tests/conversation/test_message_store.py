@@ -56,6 +56,41 @@ def _make_row(msg: Message):
     return row
 
 
+async def test_get_traces_returns_map():
+    msg_id = uuid4()
+    trace_data = {
+        "agent": "companion",
+        "routing_method": "embedding",
+        "confidence": 0.9,
+        "score_gap": 0.1,
+        "is_compound": False,
+        "subtasks": [],
+        "memory_chunks": [],
+        "tool_calls": [],
+        "total_duration_ms": 50,
+    }
+    row = MagicMock()
+    row.__getitem__ = lambda self, key: {"id": msg_id, "trace": trace_data}[key]
+
+    pool, conn = _make_pool_mock(rows=[row])
+    store = PostgresMessageStore(pool=pool)
+
+    result = await store.get_traces([msg_id])
+
+    assert msg_id in result
+    assert result[msg_id].agent == "companion"
+    sql = conn.fetch.call_args[0][0]
+    assert "ANY($1::uuid[])" in sql
+
+
+async def test_get_traces_empty_list():
+    pool, conn = _make_pool_mock()
+    store = PostgresMessageStore(pool=pool)
+    result = await store.get_traces([])
+    assert result == {}
+    conn.fetch.assert_not_called()
+
+
 async def test_save_writes_correct_row():
     pool, conn = _make_pool_mock()
     store = PostgresMessageStore(pool=pool)

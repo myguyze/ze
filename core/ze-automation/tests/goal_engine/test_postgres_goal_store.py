@@ -15,6 +15,7 @@ def _make_pool(fetchrow=None, fetch=None, execute=None):
     conn.fetchrow = AsyncMock(return_value=fetchrow)
     conn.fetch = AsyncMock(return_value=fetch or [])
     conn.execute = AsyncMock(return_value=execute)
+    conn.executemany = AsyncMock(return_value=execute)
 
     @asynccontextmanager
     async def acquire():
@@ -30,6 +31,7 @@ def _make_conn_with_transaction(fetchrow=None, fetch=None):
     conn.fetchrow = AsyncMock(return_value=fetchrow)
     conn.fetch = AsyncMock(return_value=fetch or [])
     conn.execute = AsyncMock()
+    conn.executemany = AsyncMock()
 
     @asynccontextmanager
     async def transaction():
@@ -62,6 +64,7 @@ def _trace(milestone_id=None, goal_id=None, seq=0) -> ExecutionTrace:
 
 # ── save_traces / list_traces ─────────────────────────────────────────────────
 
+
 async def test_save_traces_inserts_each_trace():
     pool, conn = _make_conn_with_transaction()
     store = PostgresGoalStore(pool)
@@ -72,10 +75,10 @@ async def test_save_traces_inserts_each_trace():
 
     await store.save_traces(traces)
 
-    assert conn.execute.call_count == 3
-    call_args = conn.execute.call_args_list[0].args
+    conn.executemany.assert_awaited_once()
+    call_args = conn.executemany.call_args.args
     assert "goal_execution_traces" in call_args[0]
-    assert call_args[1] == mid  # milestone_id
+    assert len(call_args[1]) == 3
 
 
 async def test_save_traces_no_op_on_empty_list():
@@ -124,6 +127,7 @@ async def test_list_traces_returns_empty_for_unknown_milestone():
 
 # ── increment_consecutive_failures ───────────────────────────────────────────
 
+
 async def test_increment_consecutive_failures_returns_new_count():
     pool, conn = _make_pool(fetchrow={"consecutive_failures": 2})
     store = PostgresGoalStore(pool)
@@ -157,6 +161,7 @@ async def test_reset_consecutive_failures_executes_update():
 
 # ── increment_replan_count ────────────────────────────────────────────────────
 
+
 async def test_increment_replan_count_returns_new_count():
     pool, conn = _make_pool(fetchrow={"replan_count": 1})
     store = PostgresGoalStore(pool)
@@ -184,6 +189,7 @@ async def test_replan_count_has_no_reset_method():
 
 # ── save_retrospective ────────────────────────────────────────────────────────
 
+
 async def test_save_retrospective_executes_update():
     pool, conn = _make_pool()
     store = PostgresGoalStore(pool)
@@ -199,6 +205,7 @@ async def test_save_retrospective_executes_update():
 
 
 # ── list_retrospectives ───────────────────────────────────────────────────────
+
 
 async def test_list_retrospectives_queries_completed_goals_with_retro_text():
     pool, conn = _make_pool(fetch=[])
@@ -221,6 +228,7 @@ async def test_list_retrospectives_returns_empty_when_no_rows():
 
 # ── list_for_display ─────────────────────────────────────────────────────────
 
+
 async def test_list_for_display_includes_planning_and_paused():
     pool, conn = _make_pool(fetch=[])
     store = PostgresGoalStore(pool)
@@ -233,6 +241,7 @@ async def test_list_for_display_includes_planning_and_paused():
 
 
 # ── list_active_goal_titles ───────────────────────────────────────────────────
+
 
 async def test_list_active_goal_titles_returns_titles():
     rows = [{"title": "Learn Spanish"}, {"title": "Run a marathon"}]

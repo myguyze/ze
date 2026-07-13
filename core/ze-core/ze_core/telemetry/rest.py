@@ -10,64 +10,60 @@ async def web_cost_summary(pool: Any, *, days: int = _WEB_SUMMARY_DAYS) -> dict:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT agent,
-                   COUNT(*)::int                AS calls,
-                   SUM(prompt_tokens)::int      AS prompt_tokens,
-                   SUM(completion_tokens)::int  AS completion_tokens,
-                   SUM(total_tokens)::int       AS total_tokens,
-                   SUM(cost_usd)                AS cost_usd
+            SELECT
+                GROUPING(agent) AS g_agent,
+                GROUPING(DATE(created_at)) AS g_day,
+                agent,
+                DATE(created_at)::text AS day,
+                COUNT(*)::int                AS calls,
+                SUM(prompt_tokens)::int      AS prompt_tokens,
+                SUM(completion_tokens)::int  AS completion_tokens,
+                SUM(total_tokens)::int       AS total_tokens,
+                SUM(cost_usd)                AS cost_usd
             FROM llm_cost_log
             WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
-            GROUP BY agent
-            ORDER BY SUM(cost_usd) DESC NULLS LAST
-            """,
-            days,
-        )
-        totals = await conn.fetchrow(
-            """
-            SELECT COUNT(*)::int           AS total_calls,
-                   SUM(total_tokens)::int  AS total_tokens,
-                   SUM(cost_usd)           AS total_cost_usd
-            FROM llm_cost_log
-            WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
-            """,
-            days,
-        )
-        daily_rows = await conn.fetch(
-            """
-            SELECT DATE(created_at)::text  AS day,
-                   COUNT(*)::int           AS calls,
-                   SUM(cost_usd)           AS cost_usd
-            FROM llm_cost_log
-            WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
-            GROUP BY DATE(created_at)
-            ORDER BY DATE(created_at)
+            GROUP BY GROUPING SETS (
+                (agent),
+                (DATE(created_at)),
+                ()
+            )
+            ORDER BY g_agent, g_day, agent NULLS LAST, day NULLS LAST
             """,
             days,
         )
 
-    by_agent = {
-        row["agent"]: {
-            "usd": float(row["cost_usd"] or 0),
-            "tokens": row["total_tokens"] or 0,
-            "calls": row["calls"] or 0,
-            "prompt_tokens": row["prompt_tokens"] or 0,
-            "completion_tokens": row["completion_tokens"] or 0,
-        }
-        for row in rows
-    }
-    by_day = [
-        {
-            "date": row["day"],
-            "usd": float(row["cost_usd"] or 0),
-            "calls": row["calls"] or 0,
-        }
-        for row in daily_rows
-    ]
+    by_agent: dict = {}
+    by_day: list = []
+    total_usd = 0.0
+    total_tokens = 0
+    total_calls = 0
+
+    for row in rows:
+        if row["g_agent"] == 0 and row["g_day"] == 1:
+            by_agent[row["agent"]] = {
+                "usd": float(row["cost_usd"] or 0),
+                "tokens": row["total_tokens"] or 0,
+                "calls": row["calls"] or 0,
+                "prompt_tokens": row["prompt_tokens"] or 0,
+                "completion_tokens": row["completion_tokens"] or 0,
+            }
+        elif row["g_agent"] == 1 and row["g_day"] == 0:
+            by_day.append(
+                {
+                    "date": row["day"],
+                    "usd": float(row["cost_usd"] or 0),
+                    "calls": row["calls"] or 0,
+                }
+            )
+        elif row["g_agent"] == 1 and row["g_day"] == 1:
+            total_usd = float(row["cost_usd"] or 0)
+            total_tokens = int(row["total_tokens"] or 0)
+            total_calls = int(row["calls"] or 0)
+
     return {
-        "total_usd": float(totals["total_cost_usd"] or 0),
-        "total_tokens": int(totals["total_tokens"] or 0),
-        "total_calls": int(totals["total_calls"] or 0),
+        "total_usd": total_usd,
+        "total_tokens": total_tokens,
+        "total_calls": total_calls,
         "by_agent": by_agent,
         "by_day": by_day,
         "period": f"Last {days} days",
@@ -124,7 +120,9 @@ async def cost_detail(pool: Any, *, days: int, group_by: str) -> dict:
         "group_by": group_by,
         "total_calls": totals["total_calls"] or 0,
         "total_tokens": int(totals["total_tokens"] or 0),
-        "total_cost_usd": float(totals["total_cost_usd"]) if totals["total_cost_usd"] is not None else None,
+        "total_cost_usd": float(totals["total_cost_usd"])
+        if totals["total_cost_usd"] is not None
+        else None,
         "buckets": buckets,
     }
 

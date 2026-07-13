@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 
@@ -102,31 +102,35 @@ async def get_memory_feed(
     type_filter: str = "all",
     agent_filter: str | None = None,
     as_of: datetime | None = None,
+    include_totals: bool = False,
 ) -> dict:
     now = datetime.now(timezone.utc)
-    if before is None:
-        before = now
+    first_page = before is None
+    cursor = before if before is not None else now
     snapshot = as_of if as_of is not None else now
+    should_count = include_totals or first_page
 
     async with pool.acquire() as conn:
-        if as_of is not None:
-            totals = await conn.fetchrow(
-                """
-                SELECT
-                    (SELECT COUNT(*) FROM memory_facts
-                     WHERE created_at <= $1
-                       AND (expires_at IS NULL OR expires_at > $1)
-                       AND NOT (contradicted = true AND updated_at <= $1)
-                    ) AS total_facts,
-                    (SELECT COUNT(*) FROM memory_episodes WHERE created_at <= $1) AS total_episodes
-                """,
-                snapshot,
-            )
-        else:
-            totals = await conn.fetchrow(
-                "SELECT (SELECT COUNT(*) FROM memory_facts) AS total_facts,"
-                " (SELECT COUNT(*) FROM memory_episodes) AS total_episodes"
-            )
+        totals = None
+        if should_count:
+            if as_of is not None:
+                totals = await conn.fetchrow(
+                    """
+                    SELECT
+                        (SELECT COUNT(*) FROM memory_facts
+                         WHERE created_at <= $1
+                           AND (expires_at IS NULL OR expires_at > $1)
+                           AND NOT (contradicted = true AND updated_at <= $1)
+                        ) AS total_facts,
+                        (SELECT COUNT(*) FROM memory_episodes WHERE created_at <= $1) AS total_episodes
+                    """,
+                    snapshot,
+                )
+            else:
+                totals = await conn.fetchrow(
+                    "SELECT (SELECT COUNT(*) FROM memory_facts) AS total_facts,"
+                    " (SELECT COUNT(*) FROM memory_episodes) AS total_episodes"
+                )
 
         rows = await conn.fetch(
             """
@@ -158,7 +162,11 @@ async def get_memory_feed(
             ORDER BY created_at DESC
             LIMIT $4
             """,
-            before, agent_filter, type_filter, limit, snapshot,
+            cursor,
+            agent_filter,
+            type_filter,
+            limit,
+            snapshot,
         )
 
     items = [dict(r) for r in rows]
@@ -166,9 +174,44 @@ async def get_memory_feed(
     return {
         "items": items,
         "next_before": next_before,
-        "total_facts": totals["total_facts"],
-        "total_episodes": totals["total_episodes"],
+        "total_facts": totals["total_facts"] if totals else None,
+        "total_episodes": totals["total_episodes"] if totals else None,
     }
+
+
+_ACTIVITY_MAX_DAYS = 365
+
+
+async def get_memory_activity(pool: Any, start: datetime, end: datetime) -> dict:
+    max_start = end - timedelta(days=_ACTIVITY_MAX_DAYS)
+    if start < max_start:
+        start = max_start
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT day, SUM(count)::int AS count
+            FROM (
+                SELECT date_trunc('day', created_at AT TIME ZONE 'UTC')::date AS day, COUNT(*) AS count
+                FROM memory_facts
+                WHERE created_at >= $1 AND created_at < $2
+                GROUP BY 1
+
+                UNION ALL
+
+                SELECT date_trunc('day', created_at AT TIME ZONE 'UTC')::date AS day, COUNT(*) AS count
+                FROM memory_episodes
+                WHERE created_at >= $1 AND created_at < $2
+                GROUP BY 1
+            ) sub
+            GROUP BY day
+            ORDER BY day ASC
+            """,
+            start,
+            end,
+        )
+    days = [{"date": r["day"].isoformat(), "count": r["count"]} for r in rows]
+    max_count = max((d["count"] for d in days), default=0)
+    return {"days": days, "max_count": max_count}
 
 
 async def get_memory_timeline_bounds(pool: Any) -> dict:
@@ -197,10 +240,15 @@ async def get_profile(pool: Any) -> dict | None:
         )
     if row is None:
         return None
-    if not any([
-        row["preferences"], row["habits"], row["topics"],
-        row["relationships"], row["goals"],
-    ]):
+    if not any(
+        [
+            row["preferences"],
+            row["habits"],
+            row["topics"],
+            row["relationships"],
+            row["goals"],
+        ]
+    ):
         return None
     return dict(row)
 
@@ -232,7 +280,8 @@ async def get_memory_graph(
                 GROUP BY e.id
                 LIMIT $2
                 """,
-                seed_id, limit,
+                seed_id,
+                limit,
             )
         elif entity_type is not None:
             rows = await conn.fetch(
@@ -247,7 +296,8 @@ async def get_memory_graph(
                 ORDER BY degree DESC
                 LIMIT $2
                 """,
-                entity_type, limit,
+                entity_type,
+                limit,
             )
         else:
             rows = await conn.fetch(
@@ -360,7 +410,12 @@ async def get_entity_detail(pool: Any, entity_id: Any) -> dict | None:
             entity_id,
         )
         episodes = [
-            {"id": r["id"], "agent": r["agent"], "summary": r["summary"], "created_at": r["created_at"]}
+            {
+                "id": r["id"],
+                "agent": r["agent"],
+                "summary": r["summary"],
+                "created_at": r["created_at"],
+            }
             for r in episode_rows
         ]
 
@@ -409,7 +464,8 @@ async def get_entity_detail(pool: Any, entity_id: Any) -> dict | None:
                   AND source_id = ANY($2)
                   AND target_id = ANY($2)
                 """,
-                entity_id, all_ids,
+                entity_id,
+                all_ids,
             )
         neighbour_edges = [
             {

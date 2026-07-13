@@ -15,6 +15,7 @@ Usage from the shell:
 DATABASE_URL_SYNC must be set in the environment if database_url is not
 passed explicitly.
 """
+
 from __future__ import annotations
 
 import os
@@ -42,24 +43,28 @@ def _config(database_url: str) -> Any:
 def upgrade(database_url: str | None = None, revision: str = "head") -> None:
     """Apply all pending migrations up to `revision` (default: head)."""
     from alembic import command
+
     command.upgrade(_config(_resolve_url(database_url)), revision)
 
 
 def downgrade(database_url: str | None = None, revision: str = "-1") -> None:
     """Roll back to `revision`."""
     from alembic import command
+
     command.downgrade(_config(_resolve_url(database_url)), revision)
 
 
 def current(database_url: str | None = None) -> None:
     """Print the current revision."""
     from alembic import command
+
     command.current(_config(_resolve_url(database_url)))
 
 
 def history(database_url: str | None = None) -> None:
     """Print migration history."""
     from alembic import command
+
     command.history(_config(_resolve_url(database_url)))
 
 

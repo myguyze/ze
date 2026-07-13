@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApproveDreamArtifactData, ApproveDreamArtifactErrors, ApproveDreamArtifactResponses, ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetActivityHeatmapData, GetActivityHeatmapErrors, GetActivityHeatmapResponses, GetContactsPageData, GetContactsPageResponses, GetCostAnomaliesData, GetCostAnomaliesErrors, GetCostAnomaliesResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetDreamArtifactData, GetDreamArtifactErrors, GetDreamArtifactResponses, GetEntityDetailData, GetEntityDetailErrors, GetEntityDetailResponses, GetFactQualityData, GetFactQualityResponses, GetGoalDetailData, GetGoalDetailErrors, GetGoalDetailResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetMemoryFeedData, GetMemoryFeedErrors, GetMemoryFeedResponses, GetMemoryGraphData, GetMemoryGraphErrors, GetMemoryGraphResponses, GetMemoryTimelineBoundsData, GetMemoryTimelineBoundsResponses, GetMessageTraceData, GetMessageTraceErrors, GetMessageTraceResponses, GetNewsPageData, GetNewsPageErrors, GetNewsPageResponses, GetNewsSettingsData, GetNewsSettingsResponses, GetProfileData, GetProfileResponses, GetRemindersPageData, GetRemindersPageResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetUiManifestData, GetUiManifestResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListChannelsData, ListChannelsResponses, ListContactsData, ListContactsResponses, ListDataDomainsData, ListDataDomainsResponses, ListDreamArtifactsData, ListDreamArtifactsResponses, ListDreamJournalData, ListDreamJournalErrors, ListDreamJournalResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListGoalTracesData, ListGoalTracesErrors, ListGoalTracesResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReceiveWebhookData, ReceiveWebhookErrors, ReceiveWebhookResponses, RejectDreamArtifactData, RejectDreamArtifactErrors, RejectDreamArtifactResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, ReviseDreamArtifactData, ReviseDreamArtifactErrors, ReviseDreamArtifactResponses, RollbackDreamRunData, RollbackDreamRunErrors, RollbackDreamRunResponses, SearchSessionsData, SearchSessionsErrors, SearchSessionsResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses } from './types.gen';
+import type { ApproveDreamArtifactData, ApproveDreamArtifactErrors, ApproveDreamArtifactResponses, ConsolidateMemoryData, ConsolidateMemoryResponses, CreateDeleteIntentData, CreateDeleteIntentResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DeleteDataData, DeleteDataErrors, DeleteDataResponses, EvalChatEvalChatPostData, EvalChatEvalChatPostErrors, EvalChatEvalChatPostResponses, ExportDataData, ExportDataResponses, GetActivityHeatmapData, GetActivityHeatmapErrors, GetActivityHeatmapResponses, GetContactsPageData, GetContactsPageResponses, GetCostAnomaliesData, GetCostAnomaliesErrors, GetCostAnomaliesResponses, GetCostDetailData, GetCostDetailErrors, GetCostDetailResponses, GetCostSummaryData, GetCostSummaryResponses, GetDreamArtifactData, GetDreamArtifactErrors, GetDreamArtifactResponses, GetEntityDetailData, GetEntityDetailErrors, GetEntityDetailResponses, GetFactQualityData, GetFactQualityResponses, GetGoalDetailData, GetGoalDetailErrors, GetGoalDetailResponses, GetMemoryActivityData, GetMemoryActivityErrors, GetMemoryActivityResponses, GetMemoryDigestData, GetMemoryDigestResponses, GetMemoryFeedData, GetMemoryFeedErrors, GetMemoryFeedResponses, GetMemoryGraphData, GetMemoryGraphErrors, GetMemoryGraphResponses, GetMemoryTimelineBoundsData, GetMemoryTimelineBoundsResponses, GetMessageTraceData, GetMessageTraceErrors, GetMessageTraceResponses, GetMessageTracesData, GetMessageTracesErrors, GetMessageTracesResponses, GetNewsPageData, GetNewsPageErrors, GetNewsPageResponses, GetNewsSettingsData, GetNewsSettingsResponses, GetProfileData, GetProfileResponses, GetRemindersPageData, GetRemindersPageResponses, GetRoutingLogData, GetRoutingLogErrors, GetRoutingLogResponses, GetUiManifestData, GetUiManifestResponses, GetVersionData, GetVersionResponses, GetWorkflowData, GetWorkflowErrors, GetWorkflowExecutionData, GetWorkflowExecutionErrors, GetWorkflowExecutionResponses, GetWorkflowResponses, GetWsSchemaData, GetWsSchemaResponses, HealthCheckData, HealthCheckResponses, ImportDataData, ImportDataErrors, ImportDataResponses, IngestData, IngestErrors, IngestResponses, ListCapabilitiesData, ListCapabilitiesResponses, ListChannelsData, ListChannelsResponses, ListContactsData, ListContactsResponses, ListDataDomainsData, ListDataDomainsResponses, ListDreamArtifactsData, ListDreamArtifactsResponses, ListDreamJournalData, ListDreamJournalErrors, ListDreamJournalResponses, ListFactsData, ListFactsResponses, ListGoalsData, ListGoalsResponses, ListGoalTracesData, ListGoalTracesErrors, ListGoalTracesResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListNewsData, ListNewsErrors, ListNewsResponses, ListRemindersData, ListRemindersResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListWorkflowExecutionsData, ListWorkflowExecutionsErrors, ListWorkflowExecutionsResponses, ListWorkflowsData, ListWorkflowsResponses, ReceiveWebhookData, ReceiveWebhookErrors, ReceiveWebhookResponses, RejectDreamArtifactData, RejectDreamArtifactErrors, RejectDreamArtifactResponses, ReviewFactsData, ReviewFactsErrors, ReviewFactsResponses, ReviseDreamArtifactData, ReviseDreamArtifactErrors, ReviseDreamArtifactResponses, RollbackDreamRunData, RollbackDreamRunErrors, RollbackDreamRunResponses, SearchSessionsData, SearchSessionsErrors, SearchSessionsResponses, StartGoalData, StartGoalErrors, StartGoalResponses, TriggerWorkflowData, TriggerWorkflowErrors, TriggerWorkflowResponses, UpdateCapabilityData, UpdateCapabilityErrors, UpdateCapabilityResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -102,6 +102,17 @@ export const getMemoryFeed = <ThrowOnError extends boolean = false>(options?: Op
 export const getMemoryTimelineBounds = <ThrowOnError extends boolean = false>(options?: Options<GetMemoryTimelineBoundsData, ThrowOnError>): RequestResult<GetMemoryTimelineBoundsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetMemoryTimelineBoundsResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v0/memory/timeline-bounds',
+    ...options
+});
+
+/**
+ * Memory activity by day
+ *
+ * Per-day counts of facts + episodes created between `start` and `end`. Use to render an activity density overlay on the timeline scrubber.
+ */
+export const getMemoryActivity = <ThrowOnError extends boolean = false>(options: Options<GetMemoryActivityData, ThrowOnError>): RequestResult<GetMemoryActivityResponses, GetMemoryActivityErrors, ThrowOnError> => (options.client ?? client).get<GetMemoryActivityResponses, GetMemoryActivityErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/memory/activity',
     ...options
 });
 
@@ -242,6 +253,17 @@ export const listWorkflowExecutions = <ThrowOnError extends boolean = false>(opt
 });
 
 /**
+ * Get workflow execution
+ *
+ * Return a single workflow execution by ID.
+ */
+export const getWorkflowExecution = <ThrowOnError extends boolean = false>(options: Options<GetWorkflowExecutionData, ThrowOnError>): RequestResult<GetWorkflowExecutionResponses, GetWorkflowExecutionErrors, ThrowOnError> => (options.client ?? client).get<GetWorkflowExecutionResponses, GetWorkflowExecutionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/workflows/{workflow_id}/executions/{execution_id}',
+    ...options
+});
+
+/**
  * Trigger workflow
  *
  * Start a workflow run immediately and return the execution ID.
@@ -374,6 +396,17 @@ export const searchSessions = <ThrowOnError extends boolean = false>(options: Op
 export const listMessages = <ThrowOnError extends boolean = false>(options?: Options<ListMessagesData, ThrowOnError>): RequestResult<ListMessagesResponses, ListMessagesErrors, ThrowOnError> => (options?.client ?? client).get<ListMessagesResponses, ListMessagesErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v0/messages',
+    ...options
+});
+
+/**
+ * Batch get message traces
+ *
+ * Returns execution traces for multiple assistant messages in one request. Omitted IDs have no trace (user messages or pre-Phase-89).
+ */
+export const getMessageTraces = <ThrowOnError extends boolean = false>(options: Options<GetMessageTracesData, ThrowOnError>): RequestResult<GetMessageTracesResponses, GetMessageTracesErrors, ThrowOnError> => (options.client ?? client).get<GetMessageTracesResponses, GetMessageTracesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v0/messages/traces',
     ...options
 });
 

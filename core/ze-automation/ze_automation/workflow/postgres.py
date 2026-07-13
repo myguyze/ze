@@ -7,7 +7,13 @@ from uuid import UUID
 import asyncpg
 
 from ze_logging import get_logger
-from ze_automation.workflow.types import Branch, StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_automation.workflow.types import (
+    Branch,
+    StepResult,
+    Workflow,
+    WorkflowExecution,
+    WorkflowStep,
+)
 
 log = get_logger(__name__)
 
@@ -48,7 +54,10 @@ def _step_from_dict(d: dict | str, index: int) -> WorkflowStep:
         verify=d.get("verify"),
         intent=d.get("intent", "execute"),
         id=d.get("id") or f"s{index}",
-        branches=[Branch(condition=b["condition"], to=b["to"]) for b in d.get("branches") or []],
+        branches=[
+            Branch(condition=b["condition"], to=b["to"])
+            for b in d.get("branches") or []
+        ],
         default_next=d.get("default_next"),
     )
 
@@ -86,7 +95,10 @@ def _row_to_workflow(row) -> Workflow:
         id=row["id"],
         name=row["name"],
         description=row["description"],
-        steps=[_step_from_dict(s, i) for i, s in enumerate(_coerce_jsonb_list(row["steps"]))],
+        steps=[
+            _step_from_dict(s, i)
+            for i, s in enumerate(_coerce_jsonb_list(row["steps"]))
+        ],
         schedule=row["schedule"],
         enabled=row["enabled"],
         last_run_at=row["last_run_at"],
@@ -127,16 +139,12 @@ class PostgresWorkflowStore:
 
     async def get_by_name(self, name: str) -> Workflow | None:
         async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT * FROM workflows WHERE name = $1", name
-            )
+            row = await conn.fetchrow("SELECT * FROM workflows WHERE name = $1", name)
         return _row_to_workflow(row) if row else None
 
     async def list_all(self) -> list[Workflow]:
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT * FROM workflows ORDER BY created_at DESC"
-            )
+            rows = await conn.fetch("SELECT * FROM workflows ORDER BY created_at DESC")
         return [_row_to_workflow(r) for r in rows]
 
     async def list_enabled_scheduled(self) -> list[Workflow]:
@@ -152,7 +160,8 @@ class PostgresWorkflowStore:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "UPDATE workflows SET enabled = $1, updated_at = NOW() WHERE id = $2",
-                enabled, workflow_id,
+                enabled,
+                workflow_id,
             )
 
     async def update_schedule(
@@ -168,7 +177,9 @@ class PostgresWorkflowStore:
                 SET schedule = $1, next_run_at = $2, updated_at = NOW()
                 WHERE id = $3
                 """,
-                schedule, next_run_at, workflow_id,
+                schedule,
+                next_run_at,
+                workflow_id,
             )
         log.info("workflow_schedule_updated", id=str(workflow_id), schedule=schedule)
 
@@ -190,7 +201,9 @@ class PostgresWorkflowStore:
                 SET last_run_at = $1, next_run_at = $2, updated_at = NOW()
                 WHERE id = $3
                 """,
-                last_run_at, next_run_at, workflow_id,
+                last_run_at,
+                next_run_at,
+                workflow_id,
             )
 
     async def start_execution(self, workflow_id: UUID | None) -> UUID:
@@ -231,10 +244,15 @@ class PostgresWorkflowStore:
                 SET status = $1, error = $2, summary = $3, completed_at = NOW()
                 WHERE id = $4
                 """,
-                status, error, summary, execution_id,
+                status,
+                error,
+                summary,
+                execution_id,
             )
 
-    async def list_executions(self, workflow_id: UUID, limit: int = 20) -> list[WorkflowExecution]:
+    async def list_executions(
+        self, workflow_id: UUID, limit: int = 20
+    ) -> list[WorkflowExecution]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -243,14 +261,18 @@ class PostgresWorkflowStore:
                 ORDER BY created_at DESC
                 LIMIT $2
                 """,
-                workflow_id, limit,
+                workflow_id,
+                limit,
             )
         return [
             WorkflowExecution(
                 id=r["id"],
                 workflow_id=r["workflow_id"],
                 status=r["status"],
-                step_results=[_step_result_from_dict(d) for d in _coerce_jsonb_list(r["step_results"])],
+                step_results=[
+                    _step_result_from_dict(d)
+                    for d in _coerce_jsonb_list(r["step_results"])
+                ],
                 error=r["error"],
                 summary=r["summary"],
                 started_at=r["started_at"],
@@ -259,3 +281,32 @@ class PostgresWorkflowStore:
             )
             for r in rows
         ]
+
+    async def get_execution(
+        self, workflow_id: UUID, execution_id: UUID
+    ) -> WorkflowExecution | None:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT * FROM workflow_executions
+                WHERE workflow_id = $1 AND id = $2
+                """,
+                workflow_id,
+                execution_id,
+            )
+        if row is None:
+            return None
+        return WorkflowExecution(
+            id=row["id"],
+            workflow_id=row["workflow_id"],
+            status=row["status"],
+            step_results=[
+                _step_result_from_dict(d)
+                for d in _coerce_jsonb_list(row["step_results"])
+            ],
+            error=row["error"],
+            summary=row["summary"],
+            started_at=row["started_at"],
+            completed_at=row["completed_at"],
+            created_at=row["created_at"],
+        )

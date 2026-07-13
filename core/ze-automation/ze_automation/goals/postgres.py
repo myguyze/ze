@@ -35,8 +35,12 @@ def _goal_from_row(row) -> Goal:
         status=GoalStatus(row["status"]),
         type=row["type"],
         learnings=row["learnings"],
-        retrospective_text=row["retrospective_text"] if "retrospective_text" in keys else None,
-        last_stuck_alert_at=row["last_stuck_alert_at"] if "last_stuck_alert_at" in keys else None,
+        retrospective_text=row["retrospective_text"]
+        if "retrospective_text" in keys
+        else None,
+        last_stuck_alert_at=row["last_stuck_alert_at"]
+        if "last_stuck_alert_at" in keys
+        else None,
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -149,7 +153,8 @@ class PostgresGoalStore:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "UPDATE goals SET status = $1, updated_at = NOW() WHERE id = $2",
-                status.value, goal_id,
+                status.value,
+                goal_id,
             )
 
     async def append_learnings(self, goal_id: UUID, text: str) -> None:
@@ -161,7 +166,8 @@ class PostgresGoalStore:
                     updated_at = NOW()
                 WHERE id = $2
                 """,
-                text, goal_id,
+                text,
+                goal_id,
             )
 
     # ── Milestones ─────────────────────────────────────────────────────────────
@@ -174,8 +180,13 @@ class PostgresGoalStore:
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
                 """,
-                m.goal_id, m.title, m.description, m.sequence,
-                m.agent_hint, m.intent, m.status.value,
+                m.goal_id,
+                m.title,
+                m.description,
+                m.sequence,
+                m.agent_hint,
+                m.intent,
+                m.status.value,
             )
         return _milestone_from_row(row)
 
@@ -193,7 +204,9 @@ class PostgresGoalStore:
         status: MilestoneStatus,
         output: str = "",
     ) -> None:
-        completed_at = datetime.now(timezone.utc) if status == MilestoneStatus.COMPLETED else None
+        completed_at = (
+            datetime.now(timezone.utc) if status == MilestoneStatus.COMPLETED else None
+        )
         async with self._pool.acquire() as conn:
             await conn.execute(
                 """
@@ -201,7 +214,10 @@ class PostgresGoalStore:
                 SET status = $1, output = $2, completed_at = $3
                 WHERE id = $4
                 """,
-                status.value, output, completed_at, milestone_id,
+                status.value,
+                output,
+                completed_at,
+                milestone_id,
             )
 
     async def replace_pending_milestones(
@@ -223,8 +239,13 @@ class PostgresGoalStore:
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
                         RETURNING *
                         """,
-                        goal_id, m.title, m.description, m.sequence,
-                        m.agent_hint, m.intent, m.status.value,
+                        goal_id,
+                        m.title,
+                        m.description,
+                        m.sequence,
+                        m.agent_hint,
+                        m.intent,
+                        m.status.value,
                     )
                     results.append(_milestone_from_row(row))
         return results
@@ -239,7 +260,10 @@ class PostgresGoalStore:
                 VALUES ($1, $2, $3, $4)
                 RETURNING *
                 """,
-                gate.goal_id, gate.after_sequence, gate.title, gate.status.value,
+                gate.goal_id,
+                gate.after_sequence,
+                gate.title,
+                gate.status.value,
             )
         return _gate_from_row(row)
 
@@ -277,7 +301,9 @@ class PostgresGoalStore:
                     fired_at = NOW()
                 WHERE id = $3
                 """,
-                context_summary, plan_summary, gate_id,
+                context_summary,
+                plan_summary,
+                gate_id,
             )
 
     async def resolve_gate(
@@ -293,7 +319,9 @@ class PostgresGoalStore:
                 SET status = $1, user_feedback = $2, resolved_at = NOW()
                 WHERE id = $3
                 """,
-                status.value, user_feedback, gate_id,
+                status.value,
+                user_feedback,
+                gate_id,
             )
 
     async def replace_pending_gates(
@@ -315,7 +343,10 @@ class PostgresGoalStore:
                         VALUES ($1, $2, $3, $4)
                         RETURNING *
                         """,
-                        goal_id, g.after_sequence, g.title, g.status.value,
+                        goal_id,
+                        g.after_sequence,
+                        g.title,
+                        g.status.value,
                     )
                     results.append(_gate_from_row(row))
         return results
@@ -329,7 +360,9 @@ class PostgresGoalStore:
                 INSERT INTO goal_learnings (goal_id, content, source)
                 VALUES ($1, $2, $3)
                 """,
-                learning.goal_id, learning.content, learning.source,
+                learning.goal_id,
+                learning.content,
+                learning.source,
             )
 
     async def list_learnings(self, goal_id: UUID) -> list[GoalLearning]:
@@ -372,17 +405,27 @@ class PostgresGoalStore:
         if not traces:
             return
         async with self._pool.acquire() as conn:
-            async with conn.transaction():
-                for t in traces:
-                    await conn.execute(
-                        """
-                        INSERT INTO goal_execution_traces
-                            (milestone_id, goal_id, seq, tool_name, args, result, duration_ms, success, error)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                        """,
-                        t.milestone_id, t.goal_id, t.seq, t.tool_name,
-                        json.dumps(t.args), t.result, t.duration_ms, t.success, t.error,
+            await conn.executemany(
+                """
+                INSERT INTO goal_execution_traces
+                    (milestone_id, goal_id, seq, tool_name, args, result, duration_ms, success, error)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """,
+                [
+                    (
+                        t.milestone_id,
+                        t.goal_id,
+                        t.seq,
+                        t.tool_name,
+                        json.dumps(t.args),
+                        t.result,
+                        t.duration_ms,
+                        t.success,
+                        t.error,
                     )
+                    for t in traces
+                ],
+            )
 
     async def list_traces(
         self,
@@ -400,7 +443,10 @@ class PostgresGoalStore:
                     ORDER BY seq ASC
                     LIMIT $3 OFFSET $4
                     """,
-                    goal_id, milestone_id, limit, offset,
+                    goal_id,
+                    milestone_id,
+                    limit,
+                    offset,
                 )
             else:
                 rows = await conn.fetch(
@@ -410,7 +456,9 @@ class PostgresGoalStore:
                     ORDER BY seq ASC
                     LIMIT $2 OFFSET $3
                     """,
-                    goal_id, limit, offset,
+                    goal_id,
+                    limit,
+                    offset,
                 )
         return [
             ExecutionTrace(
@@ -419,7 +467,9 @@ class PostgresGoalStore:
                 goal_id=r["goal_id"],
                 seq=r["seq"],
                 tool_name=r["tool_name"],
-                args=json.loads(r["args"]) if isinstance(r["args"], str) else dict(r["args"]),
+                args=json.loads(r["args"])
+                if isinstance(r["args"], str)
+                else dict(r["args"]),
                 result=r["result"],
                 duration_ms=r["duration_ms"],
                 success=r["success"],
@@ -536,7 +586,8 @@ class PostgresGoalStore:
                     OR MAX(m.completed_at) < now() - ($1 || ' days')::interval
                 ORDER BY COALESCE(MAX(m.completed_at), g.created_at) ASC
                 """,
-                str(idle_days), str(alert_cooldown_days),
+                str(idle_days),
+                str(alert_cooldown_days),
             )
 
             gate_rows = await conn.fetch(
@@ -575,7 +626,8 @@ class PostgresGoalStore:
                   )
                 ORDER BY vg.fired_at ASC
                 """,
-                str(idle_days), str(alert_cooldown_days),
+                str(idle_days),
+                str(alert_cooldown_days),
             )
 
         results: list[StuckGoal] = []
@@ -584,14 +636,22 @@ class PostgresGoalStore:
             goal = _goal_from_row(r)
             last_at = r["last_milestone_at"]
             ref_dt = last_at if last_at is not None else goal.created_at
-            idle = int((datetime.now(timezone.utc) - ref_dt.replace(tzinfo=timezone.utc) if ref_dt.tzinfo is None else datetime.now(timezone.utc) - ref_dt).days)
-            results.append(StuckGoal(
-                goal=goal,
-                kind="active",
-                idle_days=idle,
-                last_milestone_title=r["last_milestone_title"],
-                gate=None,
-            ))
+            idle = int(
+                (
+                    datetime.now(timezone.utc) - ref_dt.replace(tzinfo=timezone.utc)
+                    if ref_dt.tzinfo is None
+                    else datetime.now(timezone.utc) - ref_dt
+                ).days
+            )
+            results.append(
+                StuckGoal(
+                    goal=goal,
+                    kind="active",
+                    idle_days=idle,
+                    last_milestone_title=r["last_milestone_title"],
+                    gate=None,
+                )
+            )
 
         for r in gate_rows:
             goal = _goal_from_row(r)
@@ -608,13 +668,15 @@ class PostgresGoalStore:
                 resolved_at=r["resolved_at"],
                 created_at=r["gate_created_at"],
             )
-            results.append(StuckGoal(
-                goal=goal,
-                kind="awaiting_gate",
-                idle_days=r["gate_idle_days"],
-                last_milestone_title=r["last_milestone_title"],
-                gate=gate,
-            ))
+            results.append(
+                StuckGoal(
+                    goal=goal,
+                    kind="awaiting_gate",
+                    idle_days=r["gate_idle_days"],
+                    last_milestone_title=r["last_milestone_title"],
+                    gate=gate,
+                )
+            )
 
         results.sort(key=lambda sg: sg.idle_days, reverse=True)
         return results
@@ -653,7 +715,9 @@ class PostgresGoalStore:
                 ORDER BY m.completed_at DESC
                 LIMIT $3
                 """,
-                days, exclude_goal_id, limit,
+                days,
+                exclude_goal_id,
+                limit,
             )
         return [
             PriorMilestoneOutput(

@@ -1240,6 +1240,34 @@ export type LearningResponse = {
 };
 
 /**
+ * MemoryActivityDay
+ */
+export type MemoryActivityDay = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * MemoryActivityResponse
+ */
+export type MemoryActivityResponse = {
+    /**
+     * Days
+     */
+    days: Array<MemoryActivityDay>;
+    /**
+     * Max Count
+     */
+    max_count: number;
+};
+
+/**
  * MemoryChunkTraceResponse
  */
 export type MemoryChunkTraceResponse = {
@@ -1388,11 +1416,11 @@ export type MemoryFeedResponse = {
     /**
      * Total Facts
      */
-    total_facts: number;
+    total_facts?: number | null;
     /**
      * Total Episodes
      */
-    total_episodes: number;
+    total_episodes?: number | null;
 };
 
 /**
@@ -1446,6 +1474,17 @@ export type MessageSchema = {
 };
 
 /**
+ * MessageTraceEntry
+ */
+export type MessageTraceEntry = {
+    /**
+     * Message Id
+     */
+    message_id: string;
+    trace: MessageTraceResponse;
+};
+
+/**
  * MessageTraceResponse
  */
 export type MessageTraceResponse = {
@@ -1485,6 +1524,16 @@ export type MessageTraceResponse = {
      * Total Duration Ms
      */
     total_duration_ms: number;
+};
+
+/**
+ * MessageTracesResponse
+ */
+export type MessageTracesResponse = {
+    /**
+     * Traces
+     */
+    traces: Array<MessageTraceEntry>;
 };
 
 /**
@@ -2363,6 +2412,12 @@ export type GetMemoryFeedData = {
          * Return only items that existed at this point in time
          */
         as_of?: string | null;
+        /**
+         * Include Totals
+         *
+         * Include total fact/episode counts (auto-enabled on first page without cursor)
+         */
+        include_totals?: boolean;
     };
     url: '/api/v0/memory/feed';
 };
@@ -2400,6 +2455,44 @@ export type GetMemoryTimelineBoundsResponses = {
 };
 
 export type GetMemoryTimelineBoundsResponse = GetMemoryTimelineBoundsResponses[keyof GetMemoryTimelineBoundsResponses];
+
+export type GetMemoryActivityData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Start
+         *
+         * Start of range (inclusive)
+         */
+        start: string;
+        /**
+         * End
+         *
+         * End of range (exclusive)
+         */
+        end: string;
+    };
+    url: '/api/v0/memory/activity';
+};
+
+export type GetMemoryActivityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMemoryActivityError = GetMemoryActivityErrors[keyof GetMemoryActivityErrors];
+
+export type GetMemoryActivityResponses = {
+    /**
+     * Successful Response
+     */
+    200: MemoryActivityResponse;
+};
+
+export type GetMemoryActivityResponse = GetMemoryActivityResponses[keyof GetMemoryActivityResponses];
 
 export type ListFactsData = {
     body?: never;
@@ -2703,6 +2796,40 @@ export type ListWorkflowExecutionsResponses = {
 };
 
 export type ListWorkflowExecutionsResponse = ListWorkflowExecutionsResponses[keyof ListWorkflowExecutionsResponses];
+
+export type GetWorkflowExecutionData = {
+    body?: never;
+    path: {
+        /**
+         * Workflow Id
+         */
+        workflow_id: string;
+        /**
+         * Execution Id
+         */
+        execution_id: string;
+    };
+    query?: never;
+    url: '/api/v0/workflows/{workflow_id}/executions/{execution_id}';
+};
+
+export type GetWorkflowExecutionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkflowExecutionError = GetWorkflowExecutionErrors[keyof GetWorkflowExecutionErrors];
+
+export type GetWorkflowExecutionResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowExecutionResponse;
+};
+
+export type GetWorkflowExecutionResponse = GetWorkflowExecutionResponses[keyof GetWorkflowExecutionResponses];
 
 export type TriggerWorkflowData = {
     body?: never;
@@ -3099,6 +3226,38 @@ export type ListMessagesResponses = {
 };
 
 export type ListMessagesResponse = ListMessagesResponses[keyof ListMessagesResponses];
+
+export type GetMessageTracesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Ids
+         *
+         * Message IDs to fetch traces for
+         */
+        ids: Array<string>;
+    };
+    url: '/api/v0/messages/traces';
+};
+
+export type GetMessageTracesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMessageTracesError = GetMessageTracesErrors[keyof GetMessageTracesErrors];
+
+export type GetMessageTracesResponses = {
+    /**
+     * Successful Response
+     */
+    200: MessageTracesResponse;
+};
+
+export type GetMessageTracesResponse = GetMessageTracesResponses[keyof GetMessageTracesResponses];
 
 export type GetMessageTraceData = {
     body?: never;

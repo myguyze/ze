@@ -37,16 +37,25 @@ ORDER BY 1 ASC, 3 DESC
     ),
 )
 async def get_activity_heatmap(
-    start: date | None = Query(default=None, description="Start date inclusive (ISO date). Defaults to 12 months ago."),
-    end: date | None = Query(default=None, description="End date inclusive (ISO date). Defaults to today."),
+    start: date | None = Query(
+        default=None,
+        description="Start date inclusive (ISO date). Defaults to 12 months ago.",
+    ),
+    end: date | None = Query(
+        default=None, description="End date inclusive (ISO date). Defaults to today."
+    ),
     container=Depends(get_container),
 ) -> ActivityHeatmapResponse:
     today = datetime.now(tz=timezone.utc).date()
     end_date = end or today
     start_date = start or (end_date - timedelta(days=365))
 
-    start_dt = datetime(start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc)
-    end_exclusive = datetime(end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc) + timedelta(days=1)
+    start_dt = datetime(
+        start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc
+    )
+    end_exclusive = datetime(
+        end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc
+    ) + timedelta(days=1)
 
     async with container.pool.acquire() as conn:
         rows = await conn.fetch(_SQL, start_dt, end_exclusive)

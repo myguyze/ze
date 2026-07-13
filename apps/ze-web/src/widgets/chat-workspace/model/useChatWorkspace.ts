@@ -23,11 +23,29 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
   const sessionThreadId = useSession((s) => s.threadId);
   const threadId = threadIdOverride ?? sessionThreadId;
   const queryClient = useQueryClient();
-  const { messages: persistedMessages, upsert, edit, loadHistory, reload } = useMessages(threadId);
+  const { messages: persistedMessages, upsert, edit, loadHistory } = useMessages(threadId);
 
   const [ephemeralMessages, setEphemeralMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const prevActiveRef = useRef(active);
+  const sessionsInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedInvalidateSessions = () => {
+    if (sessionsInvalidateTimerRef.current) {
+      clearTimeout(sessionsInvalidateTimerRef.current);
+    }
+    sessionsInvalidateTimerRef.current = setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+    }, 2000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (sessionsInvalidateTimerRef.current) {
+        clearTimeout(sessionsInvalidateTimerRef.current);
+      }
+    };
+  }, []);
 
   // Typing indicator is derived from per-thread Zustand state so it survives
   // session switches — when you switch back to a processing session the
@@ -73,12 +91,12 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
       // session exists in the DB now — invalidate the sessions list.
       setThreadThinking(frameThread, true);
       setThreadTypingText(frameThread, frame.text ?? null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+      debouncedInvalidateSessions();
       return;
     }
     // Typing for our own thread.
     setThreadTypingText(threadId, frame.text ?? null);
-    void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+    debouncedInvalidateSessions();
   });
 
   function stopThinking() {
@@ -125,7 +143,6 @@ export function useChatWorkspace(options: UseChatWorkspaceOptions = {}) {
         send({ type: "ack", ids: [frame.message.id] });
       }
       if (frame.message.role === "assistant") {
-        void reload();
         void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
       }
     }

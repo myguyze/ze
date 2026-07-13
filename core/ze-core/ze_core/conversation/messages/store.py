@@ -8,17 +8,25 @@ from uuid import UUID
 
 import asyncpg
 
-from ze_core.conversation.messages.types import Message, MessageTrace, MemoryChunkTrace, ToolCallTrace
+from ze_core.conversation.messages.types import (
+    Message,
+    MessageTrace,
+    MemoryChunkTrace,
+    ToolCallTrace,
+)
 
 
 class MessageStore(Protocol):
     async def save(self, message: Message) -> None: ...
     async def list_since(self, since: datetime, limit: int = 100) -> list[Message]: ...
-    async def list_by_thread(self, thread_id: str, limit: int = 200) -> list[Message]: ...
+    async def list_by_thread(
+        self, thread_id: str, limit: int = 200
+    ) -> list[Message]: ...
     async def mark_read(self, ids: list[UUID]) -> None: ...
     async def list_unread(self, thread_id: str | None = None) -> list[Message]: ...
     async def save_trace(self, message_id: UUID, trace: MessageTrace) -> None: ...
     async def get_trace(self, message_id: UUID) -> MessageTrace | None: ...
+    async def get_traces(self, message_ids: list[UUID]) -> dict[UUID, MessageTrace]: ...
     async def list_with_agent(
         self,
         start: datetime,
@@ -129,6 +137,26 @@ class PostgresMessageStore:
             data = json.loads(data)
         return _parse_trace(data)
 
+    async def get_traces(self, message_ids: list[UUID]) -> dict[UUID, MessageTrace]:
+        if not message_ids:
+            return {}
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, trace
+                FROM messages
+                WHERE id = ANY($1::uuid[]) AND trace IS NOT NULL
+                """,
+                message_ids,
+            )
+        result: dict[UUID, MessageTrace] = {}
+        for row in rows:
+            data = row["trace"]
+            if isinstance(data, str):
+                data = json.loads(data)
+            result[row["id"]] = _parse_trace(data)
+        return result
+
     async def list_with_agent(
         self,
         start: datetime,
@@ -158,12 +186,8 @@ def _parse_trace(data: dict) -> MessageTrace:
         score_gap=data["score_gap"],
         is_compound=data["is_compound"],
         subtasks=data.get("subtasks", []),
-        memory_chunks=[
-            MemoryChunkTrace(**c) for c in data.get("memory_chunks", [])
-        ],
-        tool_calls=[
-            ToolCallTrace(**t) for t in data.get("tool_calls", [])
-        ],
+        memory_chunks=[MemoryChunkTrace(**c) for c in data.get("memory_chunks", [])],
+        tool_calls=[ToolCallTrace(**t) for t in data.get("tool_calls", [])],
         total_duration_ms=data.get("total_duration_ms", 0),
     )
 

@@ -1,4 +1,5 @@
 """Tests for GET/PATCH /api/v0/channels."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -50,7 +51,18 @@ def _make_app(
     user_channel_store.set_display_name = AsyncMock()
 
     watermark_store = AsyncMock()
-    watermark_store.get = AsyncMock(return_value=watermark or datetime.now(timezone.utc))
+    watermark_store.get = AsyncMock(
+        return_value=watermark or datetime.now(timezone.utc)
+    )
+    watermark_store.get_many = AsyncMock(
+        return_value={
+            (
+                user_channels[0].channel_id
+                if user_channels
+                else "gmail:alice@example.com"
+            ): watermark or datetime.now(timezone.utc)
+        }
+    )
 
     channel_registry = MagicMock()
     channel_registry.inbound_channels.return_value = []
@@ -75,11 +87,16 @@ def _make_app(
 
 # ── GET /api/v0/channels ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_channels_returns_empty_when_no_channels():
     app = _make_app(user_channels=[])
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/channels", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/channels", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
     assert resp.status_code == 200
     assert resp.json() == {"channels": []}
 
@@ -88,8 +105,12 @@ async def test_list_channels_returns_empty_when_no_channels():
 async def test_list_channels_returns_channel_info():
     uc = _user_channel()
     app = _make_app(user_channels=[uc])
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/channels", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/channels", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["channels"]) == 1
@@ -102,13 +123,16 @@ async def test_list_channels_returns_channel_info():
 
 # ── PATCH /api/v0/channels/{id} ───────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_patch_poll_enabled_calls_store():
     uc = _user_channel()
     app = _make_app(user_channels=[uc])
     user_channel_store = app.state.container._plugin_stores["user_channel_store"]
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.patch(
             f"/api/v0/channels/{uc.channel_id}",
             json={"poll_enabled": False},
@@ -124,7 +148,9 @@ async def test_patch_default_outbound_calls_store():
     app = _make_app(user_channels=[uc])
     user_channel_store = app.state.container._plugin_stores["user_channel_store"]
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.patch(
             f"/api/v0/channels/{uc.channel_id}",
             json={"is_default_outbound": True},
@@ -137,9 +163,13 @@ async def test_patch_default_outbound_calls_store():
 @pytest.mark.asyncio
 async def test_patch_unknown_channel_returns_404():
     app = _make_app(user_channels=[])
-    app.state.container._plugin_stores["user_channel_store"].get = AsyncMock(return_value=None)
+    app.state.container._plugin_stores["user_channel_store"].get = AsyncMock(
+        return_value=None
+    )
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.patch(
             "/api/v0/channels/nonexistent",
             json={"poll_enabled": True},

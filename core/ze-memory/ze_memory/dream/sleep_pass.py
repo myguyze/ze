@@ -85,11 +85,33 @@ class SleepPass:
                 " LIMIT 200"
             )
 
+            sensitive_ids: set = set()
+            if episodes:
+                sensitive_rows = await conn.fetch(
+                    """
+                    SELECT DISTINCT ep.id
+                    FROM memory_episodes ep
+                    JOIN memory_entities ent ON ent.sensitive = true
+                      AND ent.id::text = ANY(
+                        SELECT jsonb_array_elements_text(ep.linked_entity_ids)
+                      )
+                    WHERE ep.id = ANY($1::uuid[])
+                    """,
+                    [ep["id"] for ep in episodes],
+                )
+                sensitive_ids = {r["id"] for r in sensitive_rows}
+
         fact_embeddings = [r["embedding"] for r in facts if r["embedding"] is not None]
 
-        scored = 0
+        class _FactProxyWithEmb:
+            def __init__(self, emb):
+                self.embedding = emb
+
+        fact_proxies = [_FactProxyWithEmb(e) for e in fact_embeddings]
+
+        upsert_rows: list[tuple] = []
         for ep in episodes:
-            has_sensitive = await self._check_sensitive_entities(ep["id"])
+            has_sensitive = ep["id"] in sensitive_ids
             source = ep["source"] or "ze_observed"
 
             class _EpProxy:
@@ -103,18 +125,12 @@ class SleepPass:
             proxy.source = source
             proxy.embedding = ep["embedding"]
 
-            class _FactProxy:
-                pass
-
-            class _FactProxyWithEmb:
-                def __init__(self, emb):
-                    self.embedding = emb
-
-            fact_proxies = [_FactProxyWithEmb(e) for e in fact_embeddings]
             score = compute_replay_score(proxy, now, fact_proxies)
+            upsert_rows.append((ep["id"], score, source, has_sensitive))
 
+        if upsert_rows:
             async with self._pool.acquire() as conn:
-                await conn.execute(
+                await conn.executemany(
                     """
                     INSERT INTO memory_episode_metadata
                         (episode_id, replay_score, source, has_sensitive_entity, updated_at)
@@ -124,14 +140,10 @@ class SleepPass:
                         has_sensitive_entity = EXCLUDED.has_sensitive_entity,
                         updated_at           = now()
                     """,
-                    ep["id"],
-                    score,
-                    source,
-                    has_sensitive,
+                    upsert_rows,
                 )
-            scored += 1
 
-        return scored
+        return len(upsert_rows)
 
     async def _check_sensitive_entities(self, episode_id: Any) -> bool:
         async with self._pool.acquire() as conn:
@@ -181,7 +193,9 @@ class SleepPass:
     async def _decay_pass(self, cfg: dict) -> None:
         decay_cycles = int(cfg.get("decay_cycles", _DEFAULT_DECAY_CYCLES))
         decay_rate = float(cfg.get("decay_rate", _DEFAULT_DECAY_RATE))
-        forgetting_threshold = float(cfg.get("forgetting_weight_threshold", _DEFAULT_FORGETTING_THRESHOLD))
+        forgetting_threshold = float(
+            cfg.get("forgetting_weight_threshold", _DEFAULT_FORGETTING_THRESHOLD)
+        )
 
         async with self._pool.acquire() as conn:
             await conn.execute(
@@ -206,7 +220,9 @@ class SleepPass:
             )
 
     async def _detect_schema_candidates(self, run_id: Any, cfg: dict) -> int:
-        max_candidates = int(cfg.get("max_schema_candidates_per_run", _DEFAULT_MAX_SCHEMA_CANDIDATES))
+        max_candidates = int(
+            cfg.get("max_schema_candidates_per_run", _DEFAULT_MAX_SCHEMA_CANDIDATES)
+        )
 
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(

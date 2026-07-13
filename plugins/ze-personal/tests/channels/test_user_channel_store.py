@@ -21,7 +21,9 @@ def _make_pool(conn=None):
     return pool
 
 
-def _channel(channel_id: str = "gmail:alice@example.com", is_default: bool = False) -> UserChannel:
+def _channel(
+    channel_id: str = "gmail:alice@example.com", is_default: bool = False
+) -> UserChannel:
     return UserChannel(
         id=uuid4(),
         channel_id=channel_id,

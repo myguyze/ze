@@ -24,7 +24,9 @@ router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
     summary="List workflows",
     description="Return all stored workflows, newest first.",
 )
-async def list_workflows(store: WorkflowStore = Depends(get_workflow_store)) -> list[WorkflowResponse]:
+async def list_workflows(
+    store: WorkflowStore = Depends(get_workflow_store),
+) -> list[WorkflowResponse]:
     workflows = await workflow_rest.list_workflows(store)
     return [WorkflowResponse.model_validate(wf) for wf in workflows]
 
@@ -64,10 +66,33 @@ async def list_workflow_executions(
     return [
         WorkflowExecutionResponse(
             **{k: v for k, v in ex.items() if k != "step_results"},
-            step_results=[StepResultResponse.model_validate(r) for r in ex["step_results"]],
+            step_results=[
+                StepResultResponse.model_validate(r) for r in ex["step_results"]
+            ],
         )
         for ex in executions
     ]
+
+
+@router.get(
+    "/{workflow_id}/executions/{execution_id}",
+    response_model=WorkflowExecutionResponse,
+    operation_id="getWorkflowExecution",
+    summary="Get workflow execution",
+    description="Return a single workflow execution by ID.",
+)
+async def get_workflow_execution(
+    workflow_id: UUID,
+    execution_id: UUID,
+    store: WorkflowStore = Depends(get_workflow_store),
+) -> WorkflowExecutionResponse:
+    ex = await workflow_rest.get_workflow_execution(store, workflow_id, execution_id)
+    if ex is None:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    return WorkflowExecutionResponse(
+        **{k: v for k, v in ex.items() if k != "step_results"},
+        step_results=[StepResultResponse.model_validate(r) for r in ex["step_results"]],
+    )
 
 
 @router.post(

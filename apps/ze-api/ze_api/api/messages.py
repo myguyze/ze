@@ -6,7 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ze_api.api.dependencies import get_message_store, require_api_key
-from ze_api.api.schemas import MessageSchema, MessageTraceResponse
+from ze_api.api.schemas import (
+    MessageSchema,
+    MessageTraceEntry,
+    MessageTraceResponse,
+    MessageTracesResponse,
+)
 from ze_core.conversation.messages import MessageStore
 
 router = APIRouter(tags=["messages"], dependencies=[Depends(require_api_key)])
@@ -23,8 +28,12 @@ router = APIRouter(tags=["messages"], dependencies=[Depends(require_api_key)])
     ),
 )
 async def list_messages(
-    since: datetime | None = Query(default=None, description="Load messages after this timestamp (ISO 8601)"),
-    thread_id: str | None = Query(default=None, description="Filter by session thread ID"),
+    since: datetime | None = Query(
+        default=None, description="Load messages after this timestamp (ISO 8601)"
+    ),
+    thread_id: str | None = Query(
+        default=None, description="Filter by session thread ID"
+    ),
     limit: int = Query(default=100, le=200),
     store: MessageStore = Depends(get_message_store),
 ) -> list[MessageSchema]:
@@ -38,24 +47,7 @@ async def list_messages(
     return [MessageSchema.model_validate(m.__dict__) for m in messages]
 
 
-@router.get(
-    "/messages/{message_id}/trace",
-    response_model=MessageTraceResponse,
-    operation_id="getMessageTrace",
-    summary="Get message trace",
-    description=(
-        "Returns the execution trace for an AI message — routing decision, "
-        "memory chunks retrieved, and tool calls made. 404 for user messages "
-        "or messages without a trace (pre-Phase-89)."
-    ),
-)
-async def get_message_trace(
-    message_id: UUID,
-    store: MessageStore = Depends(get_message_store),
-) -> MessageTraceResponse:
-    trace = await store.get_trace(message_id)
-    if trace is None:
-        raise HTTPException(status_code=404, detail="Trace not found")
+def _trace_to_response(trace) -> MessageTraceResponse:
     return MessageTraceResponse(
         agent=trace.agent,
         routing_method=trace.routing_method,
@@ -78,3 +70,51 @@ async def get_message_trace(
         ],
         total_duration_ms=trace.total_duration_ms,
     )
+
+
+@router.get(
+    "/messages/traces",
+    response_model=MessageTracesResponse,
+    operation_id="getMessageTraces",
+    summary="Batch get message traces",
+    description=(
+        "Returns execution traces for multiple assistant messages in one request. "
+        "Omitted IDs have no trace (user messages or pre-Phase-89)."
+    ),
+)
+async def get_message_traces(
+    ids: list[UUID] = Query(
+        default=[], max_length=100, description="Message IDs to fetch traces for"
+    ),
+    store: MessageStore = Depends(get_message_store),
+) -> MessageTracesResponse:
+    if not ids:
+        return MessageTracesResponse(traces=[])
+    traces = await store.get_traces(ids)
+    return MessageTracesResponse(
+        traces=[
+            MessageTraceEntry(message_id=message_id, trace=_trace_to_response(trace))
+            for message_id, trace in traces.items()
+        ]
+    )
+
+
+@router.get(
+    "/messages/{message_id}/trace",
+    response_model=MessageTraceResponse,
+    operation_id="getMessageTrace",
+    summary="Get message trace",
+    description=(
+        "Returns the execution trace for an AI message — routing decision, "
+        "memory chunks retrieved, and tool calls made. 404 for user messages "
+        "or messages without a trace (pre-Phase-89)."
+    ),
+)
+async def get_message_trace(
+    message_id: UUID,
+    store: MessageStore = Depends(get_message_store),
+) -> MessageTraceResponse:
+    trace = await store.get_trace(message_id)
+    if trace is None:
+        raise HTTPException(status_code=404, detail="Trace not found")
+    return _trace_to_response(trace)

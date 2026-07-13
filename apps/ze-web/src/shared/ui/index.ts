@@ -1,6 +1,7 @@
 export { Button } from "./primitives/button";
 export { Input } from "./primitives/input";
 export { Sheet, SheetContent, SheetTrigger } from "./primitives/sheet";
+export { Slider } from "./primitives/slider";
 export { SearchBar } from "./primitives/SearchBar";
 export { FilterChips } from "./primitives/FilterChips";
 export type { FilterOption } from "./primitives/FilterChips";

@@ -1,4 +1,4 @@
-import { listWorkflowExecutions } from "@myguyze/ze-client";
+import { getWorkflowExecution } from "@myguyze/ze-client";
 import type { WorkflowExecutionResponse } from "@myguyze/ze-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
@@ -19,8 +19,10 @@ export function useLiveExecutionQuery(workflowId: string, executionId: string | 
     queryKey: [...queryKeys.workflowExecutions(workflowId), "live", executionId],
     queryFn: async () => {
       if (!executionId) return null;
-      const { data } = await listWorkflowExecutions({ path: { workflow_id: workflowId } });
-      const execution = (data ?? []).find((ex) => ex.id === executionId) ?? null;
+      const { data } = await getWorkflowExecution({
+        path: { workflow_id: workflowId, execution_id: executionId },
+      });
+      const execution = data ?? null;
 
       if (execution && isDone(execution)) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.workflowExecutions(workflowId) });

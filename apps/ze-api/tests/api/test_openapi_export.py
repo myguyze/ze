@@ -19,7 +19,9 @@ def test_collect_static_plugin_routers_includes_news():
 def test_export_openapi_includes_ui_manifest():
     schema = export_openapi()
     assert "/api/v0/ui/manifest" in schema["paths"]
-    assert "getUiManifest" in schema["paths"]["/api/v0/ui/manifest"]["get"]["operationId"]
+    assert (
+        "getUiManifest" in schema["paths"]["/api/v0/ui/manifest"]["get"]["operationId"]
+    )
 
 
 def test_collect_openapi_operation_ids_includes_plugin_pages():
