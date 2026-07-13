@@ -25,12 +25,13 @@ router = APIRouter(tags=["capabilities"], dependencies=[Depends(require_api_key)
         "any persistent DB overrides)."
     ),
 )
-def list_capabilities(gate: CapabilityGate = Depends(get_capability_gate)) -> CapabilitiesResponse:
+def list_capabilities(
+    gate: CapabilityGate = Depends(get_capability_gate),
+) -> CapabilitiesResponse:
     caps = capability_rest.effective_capabilities(gate)
-    return CapabilitiesResponse({
-        name: AgentCapabilityConfig.model_validate(cfg)
-        for name, cfg in caps.items()
-    })
+    return CapabilitiesResponse(
+        {name: AgentCapabilityConfig.model_validate(cfg) for name, cfg in caps.items()}
+    )
 
 
 @router.put(
@@ -56,11 +57,17 @@ async def update_capability(
     cls = get_registered_agents()[agent]
     known_intents = set(getattr(cls, "intents", {}))
     if intent not in known_intents:
-        raise HTTPException(status_code=422, detail=f"Unknown intent {intent!r} for agent {agent!r}")
+        raise HTTPException(
+            status_code=422, detail=f"Unknown intent {intent!r} for agent {agent!r}"
+        )
     try:
-        effective = await capability_rest.update_capability(gate, agent, intent, body.mode)
+        effective = await capability_rest.update_capability(
+            gate, agent, intent, body.mode
+        )
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid mode: {body.mode!r}") from exc
-    return UpdateCapabilityResponse({
-        agent: AgentCapabilityConfig.model_validate(effective[agent])
-    })
+        raise HTTPException(
+            status_code=422, detail=f"Invalid mode: {body.mode!r}"
+        ) from exc
+    return UpdateCapabilityResponse(
+        {agent: AgentCapabilityConfig.model_validate(effective[agent])}
+    )

@@ -6,6 +6,7 @@ Create Date: 2026-06-07
 Branch labels: ze_news
 Depends on: zc001 (pgvector extension must be installed)
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

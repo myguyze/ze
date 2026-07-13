@@ -33,16 +33,33 @@ def _milestone_obj(seq: int, title: str, status: MilestoneStatus) -> Milestone:
 
 
 def _valid_plan_json(start_seq: int = 1) -> str:
-    return json.dumps({
-        "milestones": [
-            {"title": "Research targets", "description": "Find 20 prospects", "sequence": start_seq, "intent": "read"},
-            {"title": "Draft outreach", "description": "Write emails", "sequence": start_seq + 1, "intent": "create"},
-            {"title": "Send outreach", "description": "Send to targets", "sequence": start_seq + 2, "intent": "execute"},
-        ],
-        "gates": [
-            {"after_sequence": start_seq, "title": "Review target list"},
-        ],
-    })
+    return json.dumps(
+        {
+            "milestones": [
+                {
+                    "title": "Research targets",
+                    "description": "Find 20 prospects",
+                    "sequence": start_seq,
+                    "intent": "read",
+                },
+                {
+                    "title": "Draft outreach",
+                    "description": "Write emails",
+                    "sequence": start_seq + 1,
+                    "intent": "create",
+                },
+                {
+                    "title": "Send outreach",
+                    "description": "Send to targets",
+                    "sequence": start_seq + 2,
+                    "intent": "execute",
+                },
+            ],
+            "gates": [
+                {"after_sequence": start_seq, "title": "Review target list"},
+            ],
+        }
+    )
 
 
 @pytest.fixture
@@ -70,30 +87,45 @@ async def test_plan_returns_milestones_and_gates(planner):
 
 async def test_plan_milestones_sorted_by_sequence(planner, client):
     # Return milestones out of order
-    shuffled = json.dumps({
-        "milestones": [
-            {"title": "C", "description": "...", "sequence": 3, "intent": "read"},
-            {"title": "A", "description": "...", "sequence": 1, "intent": "read"},
-            {"title": "B", "description": "...", "sequence": 2, "intent": "read"},
-        ],
-        "gates": [{"after_sequence": 1, "title": "Check"}],
-    })
+    shuffled = json.dumps(
+        {
+            "milestones": [
+                {"title": "C", "description": "...", "sequence": 3, "intent": "read"},
+                {"title": "A", "description": "...", "sequence": 1, "intent": "read"},
+                {"title": "B", "description": "...", "sequence": 2, "intent": "read"},
+            ],
+            "gates": [{"after_sequence": 1, "title": "Check"}],
+        }
+    )
     client.complete = AsyncMock(return_value=shuffled)
     milestones, _ = await planner.plan(_make_goal())
     assert [m.title for m in milestones] == ["A", "B", "C"]
 
 
 async def test_plan_raises_on_empty_milestones(planner, client):
-    client.complete = AsyncMock(return_value=json.dumps({"milestones": [], "gates": []}))
+    client.complete = AsyncMock(
+        return_value=json.dumps({"milestones": [], "gates": []})
+    )
     with pytest.raises(GoalPlanError, match="No milestones"):
         await planner.plan(_make_goal())
 
 
 async def test_plan_raises_on_no_gates(planner, client):
-    client.complete = AsyncMock(return_value=json.dumps({
-        "milestones": [{"title": "X", "description": "...", "sequence": 1, "intent": "read"}],
-        "gates": [],
-    }))
+    client.complete = AsyncMock(
+        return_value=json.dumps(
+            {
+                "milestones": [
+                    {
+                        "title": "X",
+                        "description": "...",
+                        "sequence": 1,
+                        "intent": "read",
+                    }
+                ],
+                "gates": [],
+            }
+        )
+    )
     with pytest.raises(GoalPlanError, match="verification gate"):
         await planner.plan(_make_goal())
 
@@ -105,12 +137,19 @@ async def test_plan_raises_on_invalid_json(planner, client):
 
 
 async def test_plan_parses_markdown_fenced_json(planner, client):
-    payload = json.dumps({
-        "milestones": [
-            {"title": "Research", "description": "Find sources", "sequence": 1, "intent": "read"},
-        ],
-        "gates": [{"after_sequence": 1, "title": "Review sources"}],
-    })
+    payload = json.dumps(
+        {
+            "milestones": [
+                {
+                    "title": "Research",
+                    "description": "Find sources",
+                    "sequence": 1,
+                    "intent": "read",
+                },
+            ],
+            "gates": [{"after_sequence": 1, "title": "Review sources"}],
+        }
+    )
     client.complete = AsyncMock(return_value=f"```json\n{payload}\n```")
     milestones, gates = await planner.plan(_make_goal())
     assert len(milestones) == 1
@@ -118,21 +157,36 @@ async def test_plan_parses_markdown_fenced_json(planner, client):
 
 
 async def test_replan_remaining_normalises_sequences(planner, client):
-    client.complete = AsyncMock(return_value=json.dumps({
-        "milestones": [
-            {"title": "Follow up", "description": "...", "sequence": 1, "intent": "execute"},
-        ],
-        "gates": [{"after_sequence": 1, "title": "Check follow-ups"}],
-    }))
+    client.complete = AsyncMock(
+        return_value=json.dumps(
+            {
+                "milestones": [
+                    {
+                        "title": "Follow up",
+                        "description": "...",
+                        "sequence": 1,
+                        "intent": "execute",
+                    },
+                ],
+                "gates": [{"after_sequence": 1, "title": "Check follow-ups"}],
+            }
+        )
+    )
     goal = _make_goal()
-    milestones, gates = await planner.replan_remaining(goal, [], "pivot to warm leads", next_sequence=5)
+    milestones, gates = await planner.replan_remaining(
+        goal, [], "pivot to warm leads", next_sequence=5
+    )
     assert milestones[0].sequence == 5
     assert gates[0].after_sequence == 5
 
 
 async def test_extract_learning_returns_string(planner, client):
-    client.complete = AsyncMock(return_value="Targets prefer async outreach over cold calls.")
-    result = await planner.extract_learning("Research targets", "Found 20 prospects on LinkedIn.")
+    client.complete = AsyncMock(
+        return_value="Targets prefer async outreach over cold calls."
+    )
+    result = await planner.extract_learning(
+        "Research targets", "Found 20 prospects on LinkedIn."
+    )
     assert isinstance(result, str)
     assert len(result) > 0
 
@@ -148,16 +202,19 @@ async def test_plan_uses_learnings_in_prompt(planner, client):
 
 # ── extract_procedure ─────────────────────────────────────────────────────────
 
+
 async def test_extract_procedure_returns_procedure(planner, client):
     from ze_automation.goals.types import MilestoneStatus
 
-    procedure_json = json.dumps({
-        "name": "Discovery interview loop",
-        "trigger": "User wants to run discovery interviews",
-        "preconditions": ["Target list available"],
-        "steps": ["Research targets", "Draft outreach", "Send outreach"],
-        "success_criteria": ["All interviews completed"],
-    })
+    procedure_json = json.dumps(
+        {
+            "name": "Discovery interview loop",
+            "trigger": "User wants to run discovery interviews",
+            "preconditions": ["Target list available"],
+            "steps": ["Research targets", "Draft outreach", "Send outreach"],
+            "success_criteria": ["All interviews completed"],
+        }
+    )
     client.complete = AsyncMock(return_value=procedure_json)
 
     goal = _make_goal()
@@ -168,6 +225,7 @@ async def test_extract_procedure_returns_procedure(planner, client):
     ]
 
     from ze_sdk.memory import Procedure
+
     result = await planner.extract_procedure(goal, milestones)
 
     assert result is not None
@@ -176,7 +234,9 @@ async def test_extract_procedure_returns_procedure(planner, client):
     assert len(result.steps) == 3
 
 
-async def test_extract_procedure_returns_none_when_no_completed_milestones(planner, client):
+async def test_extract_procedure_returns_none_when_no_completed_milestones(
+    planner, client
+):
     from ze_automation.goals.types import MilestoneStatus
 
     goal = _make_goal()
@@ -211,23 +271,34 @@ async def test_extract_procedure_returns_none_when_name_missing(planner, client)
 
 # ── replan_remaining with local_procedures ────────────────────────────────────
 
+
 async def test_replan_remaining_injects_local_procedures_into_prompt(planner, client):
     from ze_sdk.memory import Procedure
 
-    proc = Procedure(id=None, name="Interview loop", trigger="Run interviews", steps=["a", "b"])
+    proc = Procedure(
+        id=None, name="Interview loop", trigger="Run interviews", steps=["a", "b"]
+    )
     goal = _make_goal()
-    await planner.replan_remaining(goal, [], "pivot", next_sequence=2, local_procedures=[proc])
+    await planner.replan_remaining(
+        goal, [], "pivot", next_sequence=2, local_procedures=[proc]
+    )
 
     content = client.complete.call_args.kwargs["messages"][0]["content"]
     assert "Interview loop" in content
     assert "REUSABLE PROCEDURES" in content
 
 
-async def test_replan_remaining_local_procedure_wins_over_global_on_name_collision(client):
+async def test_replan_remaining_local_procedure_wins_over_global_on_name_collision(
+    client,
+):
     from ze_sdk.memory import Procedure
 
-    global_proc = Procedure(id=None, name="Interview loop", trigger="global version", steps=["old"])
-    local_proc = Procedure(id=None, name="Interview loop", trigger="local version", steps=["new"])
+    global_proc = Procedure(
+        id=None, name="Interview loop", trigger="global version", steps=["old"]
+    )
+    local_proc = Procedure(
+        id=None, name="Interview loop", trigger="local version", steps=["new"]
+    )
 
     memory = AsyncMock()
     ctx = AsyncMock()
@@ -238,10 +309,15 @@ async def test_replan_remaining_local_procedure_wins_over_global_on_name_collisi
     embedder.encode = MagicMock(return_value=[0.1, 0.2])
 
     from ze_automation.goals.planner import GoalPlanner
-    planner_with_memory = GoalPlanner(client=client, model="test-model", memory_store=memory, embedder=embedder)
+
+    planner_with_memory = GoalPlanner(
+        client=client, model="test-model", memory_store=memory, embedder=embedder
+    )
 
     goal = _make_goal()
-    await planner_with_memory.replan_remaining(goal, [], "pivot", next_sequence=2, local_procedures=[local_proc])
+    await planner_with_memory.replan_remaining(
+        goal, [], "pivot", next_sequence=2, local_procedures=[local_proc]
+    )
 
     content = client.complete.call_args.kwargs["messages"][0]["content"]
     assert "local version" in content

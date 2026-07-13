@@ -21,6 +21,7 @@ def clean_registries():
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _agent_cls(
     name="test",
     description="test agent",
@@ -41,6 +42,7 @@ def _agent_cls(
 
 
 # ── TestDiscoverAgents ────────────────────────────────────────────────────────
+
 
 class TestDiscoverAgents:
     def test_imports_agent_module_and_registers(self, tmp_path):
@@ -67,6 +69,7 @@ class TestDiscoverAgents:
         try:
             _discover_agents(tmp_path / "myapp", pkg)
             from ze_agents.registry import get_registered_agents
+
             assert "research" in get_registered_agents()
         finally:
             sys.path.pop(0)
@@ -90,6 +93,7 @@ class TestDiscoverAgents:
 
         _discover_agents(tmp_path, "pkg")
         from ze_agents.registry import get_registered_agents
+
         assert get_registered_agents() == {}
 
     def test_imports_in_sorted_order(self, tmp_path):
@@ -117,6 +121,7 @@ class TestDiscoverAgents:
 
 
 # ── TestValidateRegistry ──────────────────────────────────────────────────────
+
 
 class TestValidateRegistry:
     def test_passes_with_valid_agent(self):
@@ -168,10 +173,11 @@ class TestValidateRegistry:
         from ze_core.container import _validate_registry
 
         cls = _agent_cls(
-            "x", "desc",
+            "x",
+            "desc",
             intents={
-                "read":  Intent(Mode.AUTONOMOUS, "Read."),
-                "write": Intent(Mode.CONFIRM,    "Write."),
+                "read": Intent(Mode.AUTONOMOUS, "Read."),
+                "write": Intent(Mode.CONFIRM, "Write."),
             },
         )
         agent(cls)
@@ -251,12 +257,21 @@ class TestEmbeddingModelUnaffectedByDefault:
         def _embedding_model(config: dict) -> str | None:
             return config.get("models", {}).get("embedding")
 
-        config_a = {"models": {"default": "model-a", "embedding": "pinned-embedding-model"}}
-        config_b = {"models": {"default": "model-b", "embedding": "pinned-embedding-model"}}
-        assert _embedding_model(config_a) == _embedding_model(config_b) == "pinned-embedding-model"
+        config_a = {
+            "models": {"default": "model-a", "embedding": "pinned-embedding-model"}
+        }
+        config_b = {
+            "models": {"default": "model-b", "embedding": "pinned-embedding-model"}
+        }
+        assert (
+            _embedding_model(config_a)
+            == _embedding_model(config_b)
+            == "pinned-embedding-model"
+        )
 
 
 # ── TestResolve ───────────────────────────────────────────────────────────────
+
 
 class TestResolve:
     def test_resolves_single_dep_by_type(self):
@@ -361,6 +376,7 @@ class TestResolve:
 
 # ── TestInstantiateAgents ─────────────────────────────────────────────────────
 
+
 class TestInstantiateAgents:
     def test_instantiates_enabled_agents(self):
         from ze_core.container import _instantiate_agents
@@ -417,6 +433,7 @@ class TestInstantiateAgents:
 
 
 # ── TestContainerClose ────────────────────────────────────────────────────────
+
 
 class TestContainerClose:
     async def test_calls_shutdown_on_all_instances(self):
@@ -475,6 +492,7 @@ def _make_container():
 
 
 # ── TestSettings ──────────────────────────────────────────────────────────────
+
 
 class TestSettings:
     def test_reads_env_vars(self, monkeypatch):

@@ -11,15 +11,15 @@ from ze_agents.types import RetrievalRequest as RetrievalRequest  # noqa: F401 â
 @dataclass
 class EntityRef:
     name: str
-    entity_type: str   # "person" | "org" | "topic" | "ticker" | "place" | "product"
+    entity_type: str  # "person" | "org" | "topic" | "ticker" | "place" | "product"
 
 
 @dataclass
 class RelevanceEntry:
-    key: str                          # entity id or normalized topic
+    key: str  # entity id or normalized topic
     kind: Literal["entity", "topic"]
-    weight: float                     # 0..1
-    sources: list[str]                # why: ["profile:topics", "goal:...", "episode:recent"]
+    weight: float  # 0..1
+    sources: list[str]  # why: ["profile:topics", "goal:...", "episode:recent"]
 
 
 @dataclass
@@ -30,15 +30,15 @@ class RelevanceSet:
 
 @dataclass
 class RelevanceScore:
-    value: float           # 0..1
+    value: float  # 0..1
     contributions: list[str]  # explainable: matched keys and their weights
 
 
 @dataclass
 class Signal:
     id: UUID
-    source: str                  # plugin/source key, e.g. "news"
-    external_ref: str            # stable id in the source store (article URL, etc.)
+    source: str  # plugin/source key, e.g. "news"
+    external_ref: str  # stable id in the source store (article URL, etc.)
     title: str
     summary: str
     occurred_at: datetime
@@ -52,7 +52,7 @@ class Signal:
 class SignalIngestResult:
     signal_id: UUID
     entity_ids: list[UUID]
-    created: bool   # False if deduped to an existing signal
+    created: bool  # False if deduped to an existing signal
 
 
 @dataclass
@@ -117,8 +117,10 @@ class Event:
     title: str
     start_at: datetime | None = None
     end_at: datetime | None = None
-    participant_names: list[str] = field(default_factory=list)   # unresolved names from extraction
-    participants: list[UUID] = field(default_factory=list)        # resolved Entity ids
+    participant_names: list[str] = field(
+        default_factory=list
+    )  # unresolved names from extraction
+    participants: list[UUID] = field(default_factory=list)  # resolved Entity ids
     roles: dict[str, UUID] = field(default_factory=dict)
     summary: str | None = None
     outcome: str | None = None

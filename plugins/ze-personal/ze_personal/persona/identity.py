@@ -13,16 +13,36 @@ _DIAL_CLAUSES: dict[str, list[tuple[float, float, str]]] = {
         (0.8, 1.0, "Wit is central to how you communicate — be openly funny."),
     ],
     "directness": [
-        (0.0, 0.2, "Explore topics Socratically — show reasoning, ask questions before concluding."),
+        (
+            0.0,
+            0.2,
+            "Explore topics Socratically — show reasoning, ask questions before concluding.",
+        ),
         (0.8, 1.0, "State your conclusion first, always. No preamble, no hedging."),
     ],
     "formality": [
-        (0.0, 0.2, "Use casual language — first names, contractions, conversational tone."),
-        (0.8, 1.0, "Formal and precise throughout — avoid contractions and colloquialisms."),
+        (
+            0.0,
+            0.2,
+            "Use casual language — first names, contractions, conversational tone.",
+        ),
+        (
+            0.8,
+            1.0,
+            "Formal and precise throughout — avoid contractions and colloquialisms.",
+        ),
     ],
     "depth": [
-        (0.0, 0.2, "Keep answers at the surface level — one to two sentences unless asked."),
-        (0.8, 1.0, "Go deep — full elaboration with edge cases, examples, and alternatives."),
+        (
+            0.0,
+            0.2,
+            "Keep answers at the surface level — one to two sentences unless asked.",
+        ),
+        (
+            0.8,
+            1.0,
+            "Go deep — full elaboration with edge cases, examples, and alternatives.",
+        ),
     ],
 }
 

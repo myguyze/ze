@@ -4,7 +4,13 @@ import pytest
 
 from ze_communication.channel import Channel
 from ze_communication.registry import ChannelRegistry
-from ze_communication.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_communication.types import (
+    ChannelType,
+    Message,
+    SentMessage,
+    Thread,
+    ThreadMessage,
+)
 from ze_agents.errors import ChannelNotFoundError
 
 
@@ -22,7 +28,9 @@ class _StubChannel(Channel):
     async def get_thread(self, thread_id: str) -> Thread:
         raise NotImplementedError
 
-    async def poll_replies(self, thread_ids: list[str], since: datetime) -> list[ThreadMessage]:
+    async def poll_replies(
+        self, thread_ids: list[str], since: datetime
+    ) -> list[ThreadMessage]:
         return []
 
 

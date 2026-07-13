@@ -2,7 +2,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ze_core.conversation import TurnResult, invoke_raw_turn, make_graph_input, resume_turn
+from ze_core.conversation import (
+    TurnResult,
+    invoke_raw_turn,
+    make_graph_input,
+    resume_turn,
+)
 from ze_agents.interface.types import RawInput
 
 
@@ -24,22 +29,24 @@ async def _astream_events(events):
 def container():
     graph = MagicMock()
     graph.name = "LangGraph"
-    graph.astream_events = lambda *a, **kw: _astream_events([
-        {
-            "event": "on_chain_end",
-            "name": "LangGraph",
-            "data": {
-                "output": {
-                    "final_response": "Done.",
-                    "agent_result": None,
-                    "envelope": None,
-                    "dynamic_plan_steps": None,
-                    "dynamic_plan_high_risk": [],
-                    "error": None,
-                }
-            },
-        }
-    ])
+    graph.astream_events = lambda *a, **kw: _astream_events(
+        [
+            {
+                "event": "on_chain_end",
+                "name": "LangGraph",
+                "data": {
+                    "output": {
+                        "final_response": "Done.",
+                        "agent_result": None,
+                        "envelope": None,
+                        "dynamic_plan_steps": None,
+                        "dynamic_plan_high_risk": [],
+                        "error": None,
+                    }
+                },
+            }
+        ]
+    )
     graph.aget_state = AsyncMock(return_value=MagicMock(next=()))
 
     c = MagicMock()

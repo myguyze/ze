@@ -9,7 +9,10 @@ from ze_calendar.reminders.store import ReminderStore, fire_reminder
 from ze_automation.workflow.scheduler import WorkflowScheduler
 
 
-@tool(access=ToolAccess.WRITE, description="Set a new reminder. fire_at must be an ISO-8601 UTC datetime string.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Set a new reminder. fire_at must be an ISO-8601 UTC datetime string.",
+)
 async def set_reminder(
     store: ReminderStore,
     scheduler: WorkflowScheduler,
@@ -20,9 +23,15 @@ async def set_reminder(
     now = datetime.now(timezone.utc)
     try:
         dt = datetime.fromisoformat(fire_at)
-        fire_dt = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+        fire_dt = (
+            dt.replace(tzinfo=timezone.utc)
+            if dt.tzinfo is None
+            else dt.astimezone(timezone.utc)
+        )
     except (ValueError, TypeError):
-        return {"error": "Could not parse fire_at. Use ISO-8601 format, e.g. 2025-05-28T15:00:00Z."}
+        return {
+            "error": "Could not parse fire_at. Use ISO-8601 format, e.g. 2025-05-28T15:00:00Z."
+        }
 
     if fire_dt <= now:
         return {"error": "fire_at is in the past. Provide a future datetime."}
@@ -37,7 +46,9 @@ async def set_reminder(
     return {"id": str(rid), "label": label, "fire_at": fire_dt.isoformat()}
 
 
-@tool(access=ToolAccess.READ, description="List all pending (unsent, future) reminders.")
+@tool(
+    access=ToolAccess.READ, description="List all pending (unsent, future) reminders."
+)
 async def list_reminders(store: ReminderStore) -> list:
     pending = await store.list_pending()
     return [
@@ -50,8 +61,13 @@ async def list_reminders(store: ReminderStore) -> list:
     ]
 
 
-@tool(access=ToolAccess.WRITE, description="Cancel a pending reminder by its ID. Call list_reminders first to find the ID.")
-async def cancel_reminder(store: ReminderStore, scheduler: WorkflowScheduler, reminder_id: str) -> dict:
+@tool(
+    access=ToolAccess.WRITE,
+    description="Cancel a pending reminder by its ID. Call list_reminders first to find the ID.",
+)
+async def cancel_reminder(
+    store: ReminderStore, scheduler: WorkflowScheduler, reminder_id: str
+) -> dict:
     try:
         uid = UUID(reminder_id)
     except ValueError:

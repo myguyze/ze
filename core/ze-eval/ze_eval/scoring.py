@@ -4,6 +4,7 @@ Objective scoring functions for eval scenarios.
 These are deterministic checks — no LLM calls. Each returns True/False/None
 where None means the scenario did not declare that expectation.
 """
+
 from __future__ import annotations
 
 from ze_eval.types import VerifyResult
@@ -37,10 +38,14 @@ def tools_correct(scenario: dict, ze_result: dict) -> bool | None:
             tool_name = entry["name"]
             expected_args = entry.get("args")
 
-        successful_calls = [tc for tc in calls if tc.get("tool_name") == tool_name and tc.get("success")]
+        successful_calls = [
+            tc for tc in calls if tc.get("tool_name") == tool_name and tc.get("success")
+        ]
         if not successful_calls:
             return False
-        if expected_args and not any(_match_args(tc.get("args", {}), expected_args) for tc in successful_calls):
+        if expected_args and not any(
+            _match_args(tc.get("args", {}), expected_args) for tc in successful_calls
+        ):
             return False
 
     return True

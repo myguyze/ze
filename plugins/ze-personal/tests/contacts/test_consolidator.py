@@ -2,12 +2,17 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from ze_personal.contacts.consolidator import ContactsConsolidator, _format_batch, _safe_classification
+from ze_personal.contacts.consolidator import (
+    ContactsConsolidator,
+    _format_batch,
+    _safe_classification,
+)
 from ze_personal.contacts.types import Person
 from ze_agents.settings import Settings
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_settings():
     return Settings(
@@ -73,6 +78,7 @@ def make_consolidator(pool=None, person_store=None, client=None, settings=None):
 
 # ── _safe_classification ──────────────────────────────────────────────────────
 
+
 def test_safe_classification_accepts_valid():
     assert _safe_classification("personal") == "personal"
     assert _safe_classification("professional") == "professional"
@@ -85,6 +91,7 @@ def test_safe_classification_defaults_unknown():
 
 
 # ── _format_batch ─────────────────────────────────────────────────────────────
+
 
 def test_format_batch_includes_timestamp_and_content():
     row = make_episode_row()
@@ -121,6 +128,7 @@ def test_format_batch_separates_multiple_episodes():
 
 # ── ContactsConsolidator.run — no episodes ────────────────────────────────────
 
+
 async def test_run_returns_empty_report_when_no_episodes():
     conn = make_conn()
     conn.fetch = AsyncMock(return_value=[])
@@ -135,6 +143,7 @@ async def test_run_returns_empty_report_when_no_episodes():
 
 # ── ContactsConsolidator.run — extraction ─────────────────────────────────────
 
+
 async def test_run_creates_new_contact_when_not_found():
     episode = make_episode_row()
     conn = make_conn()
@@ -142,10 +151,14 @@ async def test_run_creates_new_contact_when_not_found():
     conn.execute = AsyncMock()
 
     client = AsyncMock()
-    client.complete = AsyncMock(return_value='[{"name": "João Silva", "classification": "professional", "relationship": "charter operator", "contact_info": {}, "confidence": 0.9, "context": "Called to validate H1"}]')
+    client.complete = AsyncMock(
+        return_value='[{"name": "João Silva", "classification": "professional", "relationship": "charter operator", "contact_info": {}, "confidence": 0.9, "context": "Called to validate H1"}]'
+    )
 
     store = make_person_store(get_by_name_result=[])
-    consolidator = make_consolidator(pool=make_pool(conn), person_store=store, client=client)
+    consolidator = make_consolidator(
+        pool=make_pool(conn), person_store=store, client=client
+    )
 
     report = await consolidator.run()
 
@@ -167,11 +180,15 @@ async def test_run_updates_existing_contact_when_found():
     conn.execute = AsyncMock()
 
     client = AsyncMock()
-    client.complete = AsyncMock(return_value='[{"name": "João Silva", "classification": "professional", "relationship": "charter operator", "contact_info": {}, "confidence": 0.9, "context": "Called again"}]')
+    client.complete = AsyncMock(
+        return_value='[{"name": "João Silva", "classification": "professional", "relationship": "charter operator", "contact_info": {}, "confidence": 0.9, "context": "Called again"}]'
+    )
 
     existing = Person(name="João Silva", id=uuid4(), confirmed=True, confidence=1.0)
     store = make_person_store(get_by_name_result=[existing])
-    consolidator = make_consolidator(pool=make_pool(conn), person_store=store, client=client)
+    consolidator = make_consolidator(
+        pool=make_pool(conn), person_store=store, client=client
+    )
 
     report = await consolidator.run()
 
@@ -188,10 +205,14 @@ async def test_run_skips_candidate_with_empty_name():
     conn.execute = AsyncMock()
 
     client = AsyncMock()
-    client.complete = AsyncMock(return_value='[{"name": "", "classification": "unknown", "relationship": "", "contact_info": {}, "confidence": 0.5, "context": ""}]')
+    client.complete = AsyncMock(
+        return_value='[{"name": "", "classification": "unknown", "relationship": "", "contact_info": {}, "confidence": 0.5, "context": ""}]'
+    )
 
     store = make_person_store()
-    consolidator = make_consolidator(pool=make_pool(conn), person_store=store, client=client)
+    consolidator = make_consolidator(
+        pool=make_pool(conn), person_store=store, client=client
+    )
 
     report = await consolidator.run()
 
@@ -209,7 +230,9 @@ async def test_run_handles_llm_failure_gracefully():
     client.complete = AsyncMock(side_effect=Exception("LLM timeout"))
 
     store = make_person_store()
-    consolidator = make_consolidator(pool=make_pool(conn), person_store=store, client=client)
+    consolidator = make_consolidator(
+        pool=make_pool(conn), person_store=store, client=client
+    )
 
     report = await consolidator.run()
 
@@ -228,7 +251,9 @@ async def test_run_handles_bad_json_gracefully():
     client.complete = AsyncMock(return_value="not valid json at all")
 
     store = make_person_store()
-    consolidator = make_consolidator(pool=make_pool(conn), person_store=store, client=client)
+    consolidator = make_consolidator(
+        pool=make_pool(conn), person_store=store, client=client
+    )
 
     report = await consolidator.run()
 
@@ -236,6 +261,7 @@ async def test_run_handles_bad_json_gracefully():
 
 
 # ── Mark processed ────────────────────────────────────────────────────────────
+
 
 async def test_run_marks_episodes_as_extracted():
     episode_id = uuid4()

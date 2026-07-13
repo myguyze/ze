@@ -6,6 +6,7 @@ Usage (via subcommand):
   python eval/run.py report --compare        # diff last two runs
   python eval/run.py report path/to/run.json # show a specific run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,6 +28,7 @@ def _latest_runs(results_dir: Path, n: int = 2) -> list[Path]:
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
+
 def print_summary(run: dict) -> None:
     t = run["totals"]
     ts = run.get("timestamp", run.get("run_id", "?"))[:19].replace("T", " ")
@@ -38,9 +40,9 @@ def print_summary(run: dict) -> None:
     print()
 
     rt_total = t["routing_correct"] + t["routing_wrong"]
-    rt_pct = f"{100*t['routing_correct']//rt_total}%" if rt_total > 0 else "n/a"
+    rt_pct = f"{100 * t['routing_correct'] // rt_total}%" if rt_total > 0 else "n/a"
     tl_total = t.get("tools_correct", 0) + t.get("tools_wrong", 0)
-    tl_pct = f"{100*t['tools_correct']//tl_total}%" if tl_total > 0 else "n/a"
+    tl_pct = f"{100 * t['tools_correct'] // tl_total}%" if tl_total > 0 else "n/a"
 
     print(f"  Scenarios:           {t['total']}")
     print(f"  Errors:              {t['errors']}")
@@ -51,7 +53,7 @@ def print_summary(run: dict) -> None:
     if t.get("tools_unchecked", 0) > 0:
         print(f"  Tools unchecked:     {t['tools_unchecked']}")
     oc_total = t.get("outcome_correct", 0) + t.get("outcome_wrong", 0)
-    oc_pct = f"{100*t['outcome_correct']//oc_total}%" if oc_total > 0 else "n/a"
+    oc_pct = f"{100 * t['outcome_correct'] // oc_total}%" if oc_total > 0 else "n/a"
     if oc_total > 0:
         print(f"  Outcome accuracy:    {t['outcome_correct']}/{oc_total} ({oc_pct})")
     if t.get("outcome_unchecked", 0) > 0:
@@ -75,15 +77,21 @@ def print_summary(run: dict) -> None:
         p95_lat = lats_s[int(len(lats_s) * 0.95)]
         print()
         print("  Latency (wall-clock)")
-        print(f"    avg: {avg_lat/1000:.1f}s   p95: {p95_lat/1000:.1f}s   max: {lats_s[-1]/1000:.1f}s")
+        print(
+            f"    avg: {avg_lat / 1000:.1f}s   p95: {p95_lat / 1000:.1f}s   max: {lats_s[-1] / 1000:.1f}s"
+        )
 
     if t.get("total_tokens", 0) > 0:
         n = t.get("total", 1)
         print()
         print("  Tokens (from llm_cost_log)")
-        print(f"    total: {t['total_tokens']:,}   avg/scenario: {t['total_tokens']//n:,}")
+        print(
+            f"    total: {t['total_tokens']:,}   avg/scenario: {t['total_tokens'] // n:,}"
+        )
         if t.get("prompt_tokens") and t.get("completion_tokens"):
-            print(f"    prompt: {t['prompt_tokens']:,}   completion: {t['completion_tokens']:,}")
+            print(
+                f"    prompt: {t['prompt_tokens']:,}   completion: {t['completion_tokens']:,}"
+            )
 
     by_agent = run.get("by_agent", {})
     if by_agent:
@@ -108,11 +116,14 @@ def print_summary(run: dict) -> None:
             q = stats.get("avg_quality")
             q_str = f"  quality {q:.1f}" if q else ""
             avg_lat_a = stats.get("avg_latency_ms")
-            lat_str = f"  avg {avg_lat_a/1000:.1f}s" if avg_lat_a else ""
-            print(f"    {agent:<16} {stats['total']:3}{rt_str}{tl_str}{oc_str}{judge_str}{q_str}{lat_str}")
+            lat_str = f"  avg {avg_lat_a / 1000:.1f}s" if avg_lat_a else ""
+            print(
+                f"    {agent:<16} {stats['total']:3}{rt_str}{tl_str}{oc_str}{judge_str}{q_str}{lat_str}"
+            )
 
     failures = [
-        r for r in run.get("results", [])
+        r
+        for r in run.get("results", [])
         if r.get("routing_correct") is False
         or (r.get("judge") and not r["judge"].get("pass") and "error" not in r["judge"])
     ]
@@ -123,13 +134,20 @@ def print_summary(run: dict) -> None:
             sid = r["scenario_id"]
             why_parts = []
             if r.get("routing_correct") is False:
-                why_parts.append(f"routed to {r.get('agent_used')} (expected {r['scenario'].get('expected_agent')})")
-            if r.get("judge") and not r["judge"].get("pass") and "error" not in r["judge"]:
+                why_parts.append(
+                    f"routed to {r.get('agent_used')} (expected {r['scenario'].get('expected_agent')})"
+                )
+            if (
+                r.get("judge")
+                and not r["judge"].get("pass")
+                and "error" not in r["judge"]
+            ):
                 why_parts.append(r["judge"].get("reasoning", "judge failed")[:80])
             print(f"    {sid}: {' | '.join(why_parts)}")
 
 
 # ── Diff ──────────────────────────────────────────────────────────────────────
+
 
 def _delta(old: float | None, new: float | None) -> str:
     if old is None or new is None:
@@ -164,7 +182,9 @@ def print_diff(old: dict, new: dict) -> None:
         sign = "+" if diff > 0 else ""
         return f" ({sign}{diff:.0f}pp)"
 
-    print(f"  Routing accuracy:   {ot['routing_correct']}/{ort_t} → {nt['routing_correct']}/{nrt_t}{pct_delta(old_rt_pct, new_rt_pct)}")
+    print(
+        f"  Routing accuracy:   {ot['routing_correct']}/{ort_t} → {nt['routing_correct']}/{nrt_t}{pct_delta(old_rt_pct, new_rt_pct)}"
+    )
     print(f"  Errors:             {ot['errors']} → {nt['errors']}")
 
     ot_tl = ot.get("tools_correct", 0)
@@ -174,7 +194,9 @@ def print_diff(old: dict, new: dict) -> None:
     if nt_tl_t > 0 or ot_tl_t > 0:
         old_tl_pct = ot_tl / ot_tl_t if ot_tl_t > 0 else None
         new_tl_pct = nt_tl / nt_tl_t if nt_tl_t > 0 else None
-        print(f"  Tool call accuracy: {ot_tl}/{ot_tl_t} → {nt_tl}/{nt_tl_t}{pct_delta(old_tl_pct, new_tl_pct)}")
+        print(
+            f"  Tool call accuracy: {ot_tl}/{ot_tl_t} → {nt_tl}/{nt_tl_t}{pct_delta(old_tl_pct, new_tl_pct)}"
+        )
 
     ot_oc = ot.get("outcome_correct", 0)
     nt_oc = nt.get("outcome_correct", 0)
@@ -183,12 +205,20 @@ def print_diff(old: dict, new: dict) -> None:
     if nt_oc_t > 0 or ot_oc_t > 0:
         old_oc_pct = ot_oc / ot_oc_t if ot_oc_t > 0 else None
         new_oc_pct = nt_oc / nt_oc_t if nt_oc_t > 0 else None
-        print(f"  Outcome accuracy:   {ot_oc}/{ot_oc_t} → {nt_oc}/{nt_oc_t}{pct_delta(old_oc_pct, new_oc_pct)}")
+        print(
+            f"  Outcome accuracy:   {ot_oc}/{ot_oc_t} → {nt_oc}/{nt_oc_t}{pct_delta(old_oc_pct, new_oc_pct)}"
+        )
 
     if nt.get("judged", 0) > 0 or ot.get("judged", 0) > 0:
-        print(f"  Passed:             {ot.get('passed', '-')}/{ot.get('judged', '-')} → {nt.get('passed', '-')}/{nt.get('judged', '-')}")
-        print(f"  Avg quality:        {ot.get('avg_quality') or '-'} → {nt.get('avg_quality') or '-'}{_delta(ot.get('avg_quality'), nt.get('avg_quality'))}")
-        print(f"  Avg tone:           {ot.get('avg_tone') or '-'} → {nt.get('avg_tone') or '-'}{_delta(ot.get('avg_tone'), nt.get('avg_tone'))}")
+        print(
+            f"  Passed:             {ot.get('passed', '-')}/{ot.get('judged', '-')} → {nt.get('passed', '-')}/{nt.get('judged', '-')}"
+        )
+        print(
+            f"  Avg quality:        {ot.get('avg_quality') or '-'} → {nt.get('avg_quality') or '-'}{_delta(ot.get('avg_quality'), nt.get('avg_quality'))}"
+        )
+        print(
+            f"  Avg tone:           {ot.get('avg_tone') or '-'} → {nt.get('avg_tone') or '-'}{_delta(ot.get('avg_tone'), nt.get('avg_tone'))}"
+        )
 
     def _avg_latency(t: dict) -> float | None:
         lats = t.get("latency_values", [])
@@ -197,15 +227,19 @@ def print_diff(old: dict, new: dict) -> None:
     old_avg_lat = _avg_latency(ot)
     new_avg_lat = _avg_latency(nt)
     if old_avg_lat is not None or new_avg_lat is not None:
+
         def _fmt_lat(v: float | None) -> str:
-            return f"{v/1000:.1f}s" if v is not None else "-"
+            return f"{v / 1000:.1f}s" if v is not None else "-"
+
         lat_delta = ""
         if old_avg_lat is not None and new_avg_lat is not None:
             diff = (new_avg_lat - old_avg_lat) / 1000
             if abs(diff) >= 0.1:
                 sign = "+" if diff > 0 else ""
                 lat_delta = f" ({sign}{diff:.1f}s)"
-        print(f"  Avg latency:        {_fmt_lat(old_avg_lat)} → {_fmt_lat(new_avg_lat)}{lat_delta}")
+        print(
+            f"  Avg latency:        {_fmt_lat(old_avg_lat)} → {_fmt_lat(new_avg_lat)}{lat_delta}"
+        )
 
     if ot.get("total_tokens", 0) > 0 or nt.get("total_tokens", 0) > 0:
         old_tok = ot.get("total_tokens", 0)
@@ -264,6 +298,7 @@ def print_diff(old: dict, new: dict) -> None:
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def main(results_dir: Path | None = None) -> None:
     p = argparse.ArgumentParser(description="Ze eval report")

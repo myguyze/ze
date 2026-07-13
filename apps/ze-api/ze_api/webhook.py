@@ -90,7 +90,11 @@ class WebhookDispatcher:
             channel_id = channel.channel_id
             for msg in messages:
                 if self._dedup.is_duplicate(source, msg.message_id):
-                    log.debug("webhook_duplicate_skipped", source=source, message_id=msg.message_id)
+                    log.debug(
+                        "webhook_duplicate_skipped",
+                        source=source,
+                        message_id=msg.message_id,
+                    )
                     continue
                 self._dedup.mark_seen(source, msg.message_id)
                 asyncio.create_task(self._trigger_messenger(msg, channel_id))
@@ -144,10 +148,7 @@ class WebhookDispatcher:
             if hasattr(msg.channel_type, "value")
             else str(msg.channel_type)
         )
-        prompt = (
-            f"[Inbound {channel_type} from {msg.sender}{subject_part}]\n"
-            f"{msg.body}"
-        )
+        prompt = f"[Inbound {channel_type} from {msg.sender}{subject_part}]\n{msg.body}"
         thread_id = f"inbound:{msg.message_id}"
 
         try:

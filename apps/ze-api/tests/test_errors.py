@@ -1,12 +1,17 @@
 from ze_api.errors import (
     ZeError,
-    CapabilityError, CapabilityConfigError,
+    CapabilityError,
+    CapabilityConfigError,
     MemoryError,
 )
 from ze_agents.errors import (
-    AgentError, AgentTimeoutError, UnknownAgentError,
-    InvalidPromptError, RoutingError,
-    OpenRouterError, RateLimitError,
+    AgentError,
+    AgentTimeoutError,
+    UnknownAgentError,
+    InvalidPromptError,
+    RoutingError,
+    OpenRouterError,
+    RateLimitError,
 )
 
 

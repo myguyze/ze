@@ -145,12 +145,22 @@ class TestRouteBranch:
         steps_by_id = {s.id: s for s in steps}
         store = _make_store()
         client = self._client(json.dumps({"index": 0}))
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         state = {
             "workflow_steps": steps,
             "steps_by_id": steps_by_id,
             "workflow_step_results": [
-                StepResult(step_index=0, step_id="s0", task="Check invoice", output="found an invoice", success=True, error=None, duration_ms=0)
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="Check invoice",
+                    output="found an invoice",
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
             ],
             "workflow_execution_id": uuid4(),
         }
@@ -170,12 +180,22 @@ class TestRouteBranch:
         store = _make_store()
         client = MagicMock()
         client.complete = AsyncMock()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         state = {
             "workflow_steps": steps,
             "steps_by_id": steps_by_id,
             "workflow_step_results": [
-                StepResult(step_index=0, step_id="s0", task="Fetch news", output="headlines", success=True, error=None, duration_ms=0)
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="Fetch news",
+                    output="headlines",
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
             ],
             "workflow_execution_id": uuid4(),
         }
@@ -195,12 +215,22 @@ class TestRouteBranch:
         store = _make_store()
         client = MagicMock()
         client.complete = AsyncMock()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         state = {
             "workflow_steps": steps,
             "steps_by_id": steps_by_id,
             "workflow_step_results": [
-                StepResult(step_index=0, step_id="s0", task="Fetch news", output="headlines", success=True, error=None, duration_ms=0)
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="Fetch news",
+                    output="headlines",
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
             ],
             "workflow_execution_id": uuid4(),
         }
@@ -216,12 +246,22 @@ class TestRouteBranch:
         store = _make_store()
         client = MagicMock()
         client.complete = AsyncMock()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         state = {
             "workflow_steps": steps,
             "steps_by_id": steps_by_id,
             "workflow_step_results": [
-                StepResult(step_index=0, step_id="s0", task="Send digest", output="done", success=True, error=None, duration_ms=0)
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="Send digest",
+                    output="done",
+                    success=True,
+                    error=None,
+                    duration_ms=0,
+                )
             ],
             "workflow_execution_id": uuid4(),
         }
@@ -233,7 +273,9 @@ class TestRouteBranch:
 
 
 class TestFailurePrecedesRouting:
-    async def test_failed_step_routes_to_workflow_failed_and_never_reaches_route_branch(self):
+    async def test_failed_step_routes_to_workflow_failed_and_never_reaches_route_branch(
+        self,
+    ):
         store = _make_store()
         config = {
             "configurable": {
@@ -271,14 +313,23 @@ class TestFailurePrecedesRouting:
             }
         }
         step = WorkflowStep(task="Send email", id="s0")
-        failed_call = ToolCall(tool_name="send_email", args={}, result=None, duration_ms=0, success=False, error="SMTP error")
+        failed_call = ToolCall(
+            tool_name="send_email",
+            args={},
+            result=None,
+            duration_ms=0,
+            success=False,
+            error="SMTP error",
+        )
         state = {
             "workflow_steps": [step],
             "steps_by_id": {"s0": step},
             "current_step_id": "s0",
             "workflow_execution_id": uuid4(),
             "workflow_step_results": [],
-            "agent_result": AgentResult(agent="email", response="sent", tool_calls=[failed_call]),
+            "agent_result": AgentResult(
+                agent="email", response="sent", tool_calls=[failed_call]
+            ),
             "subtask_results": [],
         }
 
@@ -311,7 +362,9 @@ class TestLoopGuard:
     ) -> tuple[dict, dict[str, int]]:
         steps_by_id = {s.id: s for s in steps}
         store = _make_store()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         state = {
             "workflow_steps": steps,
             "steps_by_id": steps_by_id,
@@ -396,7 +449,9 @@ class TestLoopGuard:
         assert "loop limit" in result["error"].lower()
         assert len(step_results) == 4
 
-        failed = await workflow_failed(result, {"configurable": {"workflow_store": _make_store()}})
+        failed = await workflow_failed(
+            result, {"configurable": {"workflow_store": _make_store()}}
+        )
         assert "loop limit" in failed["final_response"].lower()
         assert "Retry until done" in failed["final_response"]
 
@@ -509,7 +564,9 @@ class TestLegacyWorkflowExecution:
     ) -> tuple[dict, list[StepResult], dict[str, int]]:
         steps_by_id = {s.id: s for s in steps}
         store = _make_store()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": client}
+        }
         execution_id = uuid4()
 
         loaded = await load_workflow_step(
@@ -583,7 +640,9 @@ class TestLegacyWorkflowExecution:
         steps = self._legacy_linear_steps()
         steps_by_id = {s.id: s for s in steps}
         store = _make_store()
-        config = {"configurable": {"workflow_store": store, "openrouter_client": MagicMock()}}
+        config = {
+            "configurable": {"workflow_store": store, "openrouter_client": MagicMock()}
+        }
         execution_id = uuid4()
         visit_counts: dict[str, int] = {}
 

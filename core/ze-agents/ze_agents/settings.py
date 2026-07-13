@@ -26,6 +26,7 @@ class Settings:
             if config_path.exists():
                 try:
                     import yaml  # type: ignore[import]
+
                     with open(config_path) as f:
                         loaded_config = yaml.safe_load(f) or {}
                 except ImportError as exc:
@@ -47,9 +48,7 @@ class Settings:
             consolidation_enabled=(
                 os.environ.get("CONSOLIDATION_ENABLED", "true").lower() != "false"
             ),
-            auto_migrate=(
-                os.environ.get("ZC_AUTO_MIGRATE", "false").lower() == "true"
-            ),
+            auto_migrate=(os.environ.get("ZC_AUTO_MIGRATE", "false").lower() == "true"),
             log_level=os.environ.get("LOG_LEVEL", "INFO"),
             timezone=os.environ.get("TIMEZONE", "UTC"),
             config=loaded_config,

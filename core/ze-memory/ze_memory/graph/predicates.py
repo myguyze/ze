@@ -25,12 +25,14 @@ BELONGS_TO_GOAL = "BELONGS_TO_GOAL"
 # event → fact: a durable learning extracted from a lived event
 PROMOTES_TO = "PROMOTES_TO"
 
-ALL_PREDICATES: frozenset[str] = frozenset({
-    DESCRIBES,
-    SOURCED_FROM,
-    MENTIONS,
-    PARTICIPATES_IN,
-    USES_PROCEDURE,
-    BELONGS_TO_GOAL,
-    PROMOTES_TO,
-})
+ALL_PREDICATES: frozenset[str] = frozenset(
+    {
+        DESCRIBES,
+        SOURCED_FROM,
+        MENTIONS,
+        PARTICIPATES_IN,
+        USES_PROCEDURE,
+        BELONGS_TO_GOAL,
+        PROMOTES_TO,
+    }
+)

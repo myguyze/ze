@@ -54,7 +54,9 @@ class CompanionAgent(BaseAgent):
     timeout = 60
     tools = []
     intents = {
-        "reason": Intent(Mode.AUTONOMOUS, "Reason, converse, and answer questions directly."),
+        "reason": Intent(
+            Mode.AUTONOMOUS, "Reason, converse, and answer questions directly."
+        ),
     }
     default_mode = Mode.AUTONOMOUS
 
@@ -99,7 +101,8 @@ class CompanionAgent(BaseAgent):
         if event is None:
             return None
         return await self.call_tool(
-            "log_outreach_event", ctx,
+            "log_outreach_event",
+            ctx,
             contact_name=event["contact_name"],
             event_type=event["event_type"],
             channel=event["channel"],

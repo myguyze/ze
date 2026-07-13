@@ -5,7 +5,12 @@ from typing import Any
 
 from ze_logging import get_logger
 from ze_browser import BrowserClient
-from ze_ingestion import ContentClassifier, IngestionPipeline, IngestionStore, MemorySink
+from ze_ingestion import (
+    ContentClassifier,
+    IngestionPipeline,
+    IngestionStore,
+    MemorySink,
+)
 from ze_ingestion.extractors.llm import LLMExtractor
 from ze_ingestion.fetchers.browser import BrowserFetcher
 from ze_ingestion.fetchers.web import WebFetcher

@@ -1,4 +1,5 @@
 """Tests for dream/scorer.py — replay_score, _classify_source, _novelty_score."""
+
 from __future__ import annotations
 
 import math
@@ -48,6 +49,7 @@ def _make_fact(embedding=None):
 
 # ── replay_score ──────────────────────────────────────────────────────────────
 
+
 def test_replay_score_sensitive_returns_zero():
     ep = _make_episode(sensitive=True)
     score = replay_score(ep, datetime.now(tz=timezone.utc), [])
@@ -79,6 +81,7 @@ def test_replay_score_positive_for_normal_episode():
 
 # ── _classify_source ──────────────────────────────────────────────────────────
 
+
 def test_classify_source_email_agent_is_observed():
     assert _classify_source("email", "", "") == "ze_observed"
 
@@ -92,15 +95,21 @@ def test_classify_source_workflow_agent_is_observed():
 
 
 def test_classify_source_companion_no_tools_is_user_asserted():
-    assert _classify_source("companion", "what should I eat?", "here are some ideas") == "user_asserted"
+    assert (
+        _classify_source("companion", "what should I eat?", "here are some ideas")
+        == "user_asserted"
+    )
 
 
 def test_classify_source_tool_result_in_response_is_observed():
-    assert _classify_source(
-        "research",
-        "look up X",
-        '{"type": "tool_result", "content": "..."}',
-    ) == "ze_observed"
+    assert (
+        _classify_source(
+            "research",
+            "look up X",
+            '{"type": "tool_result", "content": "..."}',
+        )
+        == "ze_observed"
+    )
 
 
 def test_classify_source_news_agent_is_observed():
@@ -108,6 +117,7 @@ def test_classify_source_news_agent_is_observed():
 
 
 # ── _novelty_score ────────────────────────────────────────────────────────────
+
 
 def test_novelty_score_no_facts_returns_one():
     assert _novelty_score(None, []) == 1.0
@@ -133,6 +143,7 @@ def test_novelty_score_orthogonal_embedding_returns_one():
 
 # ── tag_episode_metadata ──────────────────────────────────────────────────────
 
+
 async def test_tag_episode_metadata_inserts_row():
     from uuid import uuid4
 
@@ -140,10 +151,12 @@ async def test_tag_episode_metadata_inserts_row():
     conn = AsyncMock()
     conn.execute = AsyncMock()
     pool = MagicMock()
-    pool.acquire = MagicMock(return_value=AsyncMock(
-        __aenter__=AsyncMock(return_value=conn),
-        __aexit__=AsyncMock(return_value=False),
-    ))
+    pool.acquire = MagicMock(
+        return_value=AsyncMock(
+            __aenter__=AsyncMock(return_value=conn),
+            __aexit__=AsyncMock(return_value=False),
+        )
+    )
 
     await tag_episode_metadata(pool, episode_id, "companion", "hello", "world")
     conn.execute.assert_awaited_once()
@@ -158,10 +171,12 @@ async def test_tag_episode_metadata_swallows_db_error():
     conn = AsyncMock()
     conn.execute = AsyncMock(side_effect=Exception("db down"))
     pool = MagicMock()
-    pool.acquire = MagicMock(return_value=AsyncMock(
-        __aenter__=AsyncMock(return_value=conn),
-        __aexit__=AsyncMock(return_value=False),
-    ))
+    pool.acquire = MagicMock(
+        return_value=AsyncMock(
+            __aenter__=AsyncMock(return_value=conn),
+            __aexit__=AsyncMock(return_value=False),
+        )
+    )
 
     # Should not raise
     await tag_episode_metadata(pool, episode_id, "companion", "hello", "world")
@@ -175,10 +190,12 @@ async def test_refresh_episode_sensitive_flag_updates_metadata():
     conn.fetchrow = AsyncMock(return_value={"exists": True})
     conn.execute = AsyncMock()
     pool = MagicMock()
-    pool.acquire = MagicMock(return_value=AsyncMock(
-        __aenter__=AsyncMock(return_value=conn),
-        __aexit__=AsyncMock(return_value=False),
-    ))
+    pool.acquire = MagicMock(
+        return_value=AsyncMock(
+            __aenter__=AsyncMock(return_value=conn),
+            __aexit__=AsyncMock(return_value=False),
+        )
+    )
 
     result = await refresh_episode_sensitive_flag(pool, episode_id)
     assert result is True

@@ -52,9 +52,11 @@ class TestCLIConfirm:
             return "1"
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Create event?", options=["Approve", "Reject"]
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(
+                    content="Create event?", options=["Approve", "Reject"]
+                )
+            )
         assert resp.approved is True
         assert resp.timed_out is False
 
@@ -63,9 +65,11 @@ class TestCLIConfirm:
             return "2"
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Delete file?", options=["Approve", "Reject"]
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(
+                    content="Delete file?", options=["Approve", "Reject"]
+                )
+            )
         assert resp.approved is False
 
     async def test_approve_with_yes(self, cli):
@@ -73,9 +77,9 @@ class TestCLIConfirm:
             return "yes"
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Proceed?", options=["Approve", "Reject"]
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(content="Proceed?", options=["Approve", "Reject"])
+            )
         assert resp.approved is True
 
     async def test_timeout_returns_not_approved(self, cli):
@@ -84,9 +88,11 @@ class TestCLIConfirm:
             return "1"
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Act?", options=["Approve", "Reject"], timeout_seconds=0
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(
+                    content="Act?", options=["Approve", "Reject"], timeout_seconds=0
+                )
+            )
         assert resp.approved is False
         assert resp.timed_out is True
 
@@ -95,9 +101,9 @@ class TestCLIConfirm:
             raise EOFError
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Act?", options=["Approve", "Reject"]
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(content="Act?", options=["Approve", "Reject"])
+            )
         assert resp.timed_out is True
 
     async def test_editable_captures_edit(self, cli):
@@ -107,9 +113,11 @@ class TestCLIConfirm:
             return next(calls)
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Edit draft?", options=["Approve", "Reject"], editable=True
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(
+                    content="Edit draft?", options=["Approve", "Reject"], editable=True
+                )
+            )
         assert resp.approved is True
         assert resp.edited_content == "new content"
 
@@ -120,9 +128,11 @@ class TestCLIConfirm:
             return next(calls)
 
         with patch("ze_core.interface.cli._read_line", side_effect=mock_read):
-            resp = await cli.confirm(ConfirmationRequest(
-                content="Edit draft?", options=["Approve", "Reject"], editable=True
-            ))
+            resp = await cli.confirm(
+                ConfirmationRequest(
+                    content="Edit draft?", options=["Approve", "Reject"], editable=True
+                )
+            )
         assert resp.approved is True
         assert resp.edited_content is None
 

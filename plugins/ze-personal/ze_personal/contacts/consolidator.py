@@ -10,7 +10,12 @@ from uuid import UUID
 import asyncpg
 
 from ze_personal.contacts.store import PersonStore
-from ze_personal.contacts.types import ContactProposal, Person, PersonSource, SOURCE_WEIGHTS
+from ze_personal.contacts.types import (
+    ContactProposal,
+    Person,
+    PersonSource,
+    SOURCE_WEIGHTS,
+)
 from ze_logging import get_logger
 
 _MODEL_DEFAULT = "anthropic/claude-haiku-4-5"
@@ -70,7 +75,9 @@ class ContactsConsolidator:
         episodes = await self._load_unprocessed(max_episodes)
         if not episodes:
             self._log.info("contacts_consolidation_no_episodes")
-            return ContactsConsolidationReport(duration_ms=int((time.monotonic() - start) * 1000))
+            return ContactsConsolidationReport(
+                duration_ms=int((time.monotonic() - start) * 1000)
+            )
 
         report = ContactsConsolidationReport(episodes_scanned=len(episodes))
 
@@ -108,7 +115,9 @@ class ContactsConsolidator:
                 limit,
             )
 
-    async def _extract_candidates(self, batch: list[asyncpg.Record]) -> list[ContactProposal]:
+    async def _extract_candidates(
+        self, batch: list[asyncpg.Record]
+    ) -> list[ContactProposal]:
         block = _format_batch(batch)
         try:
             raw = await self._client.complete(
@@ -126,7 +135,9 @@ class ContactsConsolidator:
                     name=str(c.get("name", "")).strip(),
                     classification=_safe_classification(c.get("classification")),
                     relationship=str(c.get("relationship", ""))[:500],
-                    contact_info={k: str(v) for k, v in (c.get("contact_info") or {}).items() if v},
+                    contact_info={
+                        k: str(v) for k, v in (c.get("contact_info") or {}).items() if v
+                    },
                     confidence=float(c.get("confidence", 0.5)),
                     confirmed=False,
                     source_type="conversation",
@@ -191,7 +202,9 @@ class ContactsConsolidator:
             cfg = self._settings.get("contacts", {})
         consolidation = (cfg or {}).get("consolidation", {}) if cfg else {}
         batch_size = int(consolidation.get("episode_batch_size", _BATCH_SIZE_DEFAULT))
-        max_episodes = int(consolidation.get("max_episodes_per_run", _MAX_EPISODES_DEFAULT))
+        max_episodes = int(
+            consolidation.get("max_episodes_per_run", _MAX_EPISODES_DEFAULT)
+        )
         return batch_size, max_episodes
 
     def _synthesis_model(self) -> str:
@@ -206,6 +219,7 @@ class ContactsConsolidator:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _format_batch(batch: list[asyncpg.Record]) -> str:
     parts = []

@@ -16,7 +16,9 @@ log = get_logger(__name__)
 
 
 class RecurringStore:
-    def __init__(self, pool: asyncpg.Pool, price_change_threshold: float = 0.10) -> None:
+    def __init__(
+        self, pool: asyncpg.Pool, price_change_threshold: float = 0.10
+    ) -> None:
         self._pool = pool
         self._threshold = Decimal(str(price_change_threshold))
 

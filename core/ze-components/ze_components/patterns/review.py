@@ -19,7 +19,12 @@ def review(
         [
             subheading(title),
             table(["Field", "Value"], rows),
-            row([primary(approve_label, f"approve:{id}"), secondary(reject_label, f"edit:{id}")]),
+            row(
+                [
+                    primary(approve_label, f"approve:{id}"),
+                    secondary(reject_label, f"edit:{id}"),
+                ]
+            ),
         ],
         gap="md",
     )

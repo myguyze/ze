@@ -26,11 +26,15 @@ def _set_pipeline(pipeline: object) -> None:
     _pipeline = pipeline
 
 
-@tool(access=ToolAccess.WRITE, description="Fetch, process, and ingest content at the given URL into Ze's memory.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Fetch, process, and ingest content at the given URL into Ze's memory.",
+)
 async def ingest_url(url: str) -> dict:
     if _pipeline is None:
         return {"error": "Ingestion pipeline not available"}
     from ze_ingestion.types import IngestionRequest
+
     result = await _pipeline.ingest(IngestionRequest(url=url))  # type: ignore[union-attr]
     return {
         "ingestion_id": result.ingestion_id,
@@ -42,11 +46,15 @@ async def ingest_url(url: str) -> dict:
     }
 
 
-@tool(access=ToolAccess.WRITE, description="Ingest raw text or pre-extracted document content into Ze's memory.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Ingest raw text or pre-extracted document content into Ze's memory.",
+)
 async def ingest_text(text: str, label: str = "") -> dict:
     if _pipeline is None:
         return {"error": "Ingestion pipeline not available"}
     from ze_ingestion.types import IngestionRequest
+
     result = await _pipeline.ingest(  # type: ignore[union-attr]
         IngestionRequest(
             file_bytes=text.encode(),
@@ -68,7 +76,9 @@ async def ingest_text(text: str, label: str = "") -> dict:
 class IngestionAgent(BaseAgent):
     name = "ingestion"
     display_name = "Content ingestion"
-    description = "Ingest external content — URLs, PDFs, videos, audio — into Ze's memory"
+    description = (
+        "Ingest external content — URLs, PDFs, videos, audio — into Ze's memory"
+    )
     model = "anthropic/claude-sonnet-4-5"
     timeout = 120
     intents = {

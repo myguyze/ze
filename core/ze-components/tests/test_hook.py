@@ -20,7 +20,9 @@ def _make_loop_start(session_id: str) -> LoopStartEvent:
 
 
 def _make_loop_end(session_id: str) -> LoopEndEvent:
-    return LoopEndEvent(agent_name="test", ctx=_make_ctx(session_id), tool_calls=[], iterations_used=1)
+    return LoopEndEvent(
+        agent_name="test", ctx=_make_ctx(session_id), tool_calls=[], iterations_used=1
+    )
 
 
 async def test_on_loop_start_sets_fresh_context():

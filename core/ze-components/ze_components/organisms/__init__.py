@@ -9,7 +9,15 @@ from ze_components.organisms.table import Table, table
 
 __all__ = [
     # Types
-    "ConnectionEvidence", "ConnectionItem", "Connections", "Form", "FormField", "Table",
+    "ConnectionEvidence",
+    "ConnectionItem",
+    "Connections",
+    "Form",
+    "FormField",
+    "Table",
     # helpers
-    "connections", "form", "form_field", "table",
+    "connections",
+    "form",
+    "form_field",
+    "table",
 ]

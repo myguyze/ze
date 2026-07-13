@@ -11,8 +11,8 @@ from ze_core.telemetry.context import set_agent_context
 
 log = get_logger(__name__)
 
-_HISTORY_HINT_TURNS = 4          # last N messages included as routing context
-_HISTORY_HINT_CHARS = 240        # per-message truncation
+_HISTORY_HINT_TURNS = 4  # last N messages included as routing context
+_HISTORY_HINT_CHARS = 240  # per-message truncation
 _HISTORY_INACTIVITY_MINUTES = 30  # mirror fetch_context's session expiry default
 
 
@@ -105,7 +105,9 @@ async def decompose(state: AgentState, config: RunnableConfig) -> dict:
     # Patch per-subtask model using complexity estimation when router is available.
     if router is not None and new_envelope.subtasks:
         primary_intent = new_envelope.subtasks[0].intent
-        complexity = router._estimator.classify(state["prompt"], primary_intent, new_envelope.confidence)
+        complexity = router._estimator.classify(
+            state["prompt"], primary_intent, new_envelope.confidence
+        )
         for subtask in new_envelope.subtasks:
             subtask.model = router._resolve_model(subtask.agent, complexity)
         new_envelope.complexity = complexity
@@ -143,7 +145,11 @@ async def plan_sequential(state: AgentState, config: RunnableConfig) -> dict:
     for i, step in enumerate(steps):
         agent = step.agent_hint or "research"
         decision = gate.evaluate(agent, step.intent, session_overrides)
-        if decision in (GateDecision.AWAIT_CONFIRMATION, GateDecision.DRAFT, GateDecision.BLOCKED):
+        if decision in (
+            GateDecision.AWAIT_CONFIRMATION,
+            GateDecision.DRAFT,
+            GateDecision.BLOCKED,
+        ):
             high_risk.append(i)
 
     log.info("plan_sequential_ready", steps=len(steps), high_risk=high_risk)

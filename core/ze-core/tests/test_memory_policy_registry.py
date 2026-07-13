@@ -6,7 +6,11 @@ import pytest
 
 from ze_agents.errors import AgentConfigError
 from ze_plugin.plugin import ZePlugin
-from ze_memory.policies import CompanionPolicy, build_policy_registry, collect_plugin_memory_policies
+from ze_memory.policies import (
+    CompanionPolicy,
+    build_policy_registry,
+    collect_plugin_memory_policies,
+)
 
 
 class _PluginA(ZePlugin):

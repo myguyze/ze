@@ -14,6 +14,7 @@ become jointly salient — the mechanism for "two small events that only matter 
 
 dry_run=True logs decisions without writing to the graph (used for threshold tuning).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -73,8 +74,7 @@ class AdmissionGate:
         rel_score = self._relevance_model.score(rset, entity_names, topic_names)
 
         admission = (
-            self._w_relevance * rel_score.value
-            + self._w_magnitude * signal.magnitude
+            self._w_relevance * rel_score.value + self._w_magnitude * signal.magnitude
         )
 
         outcome: AdmissionOutcome

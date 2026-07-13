@@ -13,7 +13,9 @@ from ze_memory.types import Fact
 
 def test_parse_fact_response_strips_markdown_fence():
     raw = '```json\n[{"predicate": "city", "value": "Lisbon", "confidence": 0.9}]\n```'
-    assert parse_fact_response(raw) == [{"predicate": "city", "value": "Lisbon", "confidence": 0.9}]
+    assert parse_fact_response(raw) == [
+        {"predicate": "city", "value": "Lisbon", "confidence": 0.9}
+    ]
 
 
 def test_parse_fact_response_invalid_returns_empty():
@@ -32,9 +34,7 @@ def test_merge_explicit_overrides_extracted():
 @pytest.mark.asyncio
 async def test_extract_user_facts_skips_error_responses():
     client = AsyncMock()
-    facts = await extract_facts(
-        client, prompt="hi", response="[ERROR] boom", model="m"
-    )
+    facts = await extract_facts(client, prompt="hi", response="[ERROR] boom", model="m")
     assert facts == []
     client.complete.assert_not_awaited()
 

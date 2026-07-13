@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class NtfyConfig:
-    base_url: str   # "https://ntfy.sh" or self-hosted URL (no trailing slash)
-    topic: str      # e.g. "ze-joao-abc123" — keep non-guessable for ntfy.sh
+    base_url: str  # "https://ntfy.sh" or self-hosted URL (no trailing slash)
+    topic: str  # e.g. "ze-joao-abc123" — keep non-guessable for ntfy.sh
     token: str | None = None  # Bearer token; required when base_url contains "ntfy.sh"
 
 

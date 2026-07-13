@@ -49,7 +49,10 @@ class EmbeddingRouter:
             envelope = await self._score_and_route(prompt)
 
         if self._store is not None:
-            fire_and_forget(self._store.write_log(session_id, prompt, envelope), label="routing_write_log")
+            fire_and_forget(
+                self._store.write_log(session_id, prompt, envelope),
+                label="routing_write_log",
+            )
         return envelope
 
     # ── Private ───────────────────────────────────────────────────────────────
@@ -60,7 +63,9 @@ class EmbeddingRouter:
             raise RoutingError("No enabled agents found")
         self._agent_names = sorted(enabled.keys())
         descriptions = [enabled[n].description.strip() for n in self._agent_names]
-        self._agent_matrix = self._embedder.encode_passage(descriptions, normalize_embeddings=True)
+        self._agent_matrix = self._embedder.encode_passage(
+            descriptions, normalize_embeddings=True
+        )
 
     def _resolve_model(self, agent_name: str, complexity: str) -> str:
         enabled = get_enabled_agents()
@@ -91,7 +96,9 @@ class EmbeddingRouter:
             score_gap=0.0,
             routing_method="embedding",
             is_compound=False,
-            subtasks=[SubTask(agent=agent_name, intent=intent, prompt=prompt, model=model)],
+            subtasks=[
+                SubTask(agent=agent_name, intent=intent, prompt=prompt, model=model)
+            ],
             requires_synthesis=False,
             raw_scores={agent_name: 1.0},
             complexity=complexity,
@@ -126,7 +133,9 @@ class EmbeddingRouter:
                 score_gap=score_gap,
                 routing_method="embedding",
                 is_compound=True,
-                subtasks=[SubTask(agent=top_agent, intent=intent, prompt=prompt, model=model)],
+                subtasks=[
+                    SubTask(agent=top_agent, intent=intent, prompt=prompt, model=model)
+                ],
                 requires_synthesis=False,
                 raw_scores=raw_scores,
                 complexity=complexity,
@@ -141,9 +150,10 @@ class EmbeddingRouter:
             score_gap=score_gap,
             routing_method="embedding",
             is_compound=False,
-            subtasks=[SubTask(agent=top_agent, intent=intent, prompt=prompt, model=model)],
+            subtasks=[
+                SubTask(agent=top_agent, intent=intent, prompt=prompt, model=model)
+            ],
             requires_synthesis=False,
             raw_scores=raw_scores,
             complexity=complexity,
         )
-

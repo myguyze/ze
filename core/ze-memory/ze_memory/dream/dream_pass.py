@@ -1,4 +1,5 @@
 """Dream Pass (REM-like): synthesis, hindsight relabeling, plan stress-tests, and scoring."""
+
 from __future__ import annotations
 
 import time
@@ -40,8 +41,8 @@ _HINDSIGHT_SYSTEM = (
 _STRESS_TEST_SYSTEM = (
     "You are Ze's adversarial planner. Given an active goal with an open milestone that has had "
     "no progress for several days, generate a concrete risk scenario that could cause this "
-    "milestone to fail. Format: {\"risk\": \"...\", \"warning_signal\": \"...\", "
-    "\"recommended_caution\": \"...\"}. Use conditional framing only — no unconditional action verbs."
+    'milestone to fail. Format: {"risk": "...", "warning_signal": "...", '
+    '"recommended_caution": "..."}. Use conditional framing only — no unconditional action verbs.'
 )
 
 
@@ -71,7 +72,9 @@ class DreamPass:
         synthesis_model = cfg.get("synthesis_model", "anthropic/claude-haiku-4-5")
         critic_model = cfg.get("critic_model", "anthropic/claude-sonnet-4-6")
         max_synthesis = int(cfg.get("max_synthesis_per_run", _DEFAULT_MAX_SYNTHESIS))
-        max_stress = int(cfg.get("max_stress_tests_per_goal", _DEFAULT_MAX_STRESS_TESTS))
+        max_stress = int(
+            cfg.get("max_stress_tests_per_goal", _DEFAULT_MAX_STRESS_TESTS)
+        )
         nli_threshold = float(cfg.get("nli_groundedness_threshold", 0.75))
         novelty_threshold = float(cfg.get("novelty_similarity_threshold", 0.92))
 
@@ -85,16 +88,24 @@ class DreamPass:
         )
         critic = DreamCritic(client=self._client, model=critic_model)
 
-        schema_ids = await self._synthesize_schemas(run_id, synthesis_model, max_synthesis)
-        policy_ids = await self._extract_policies(run_id, synthesis_model, max_synthesis - len(schema_ids))
+        schema_ids = await self._synthesize_schemas(
+            run_id, synthesis_model, max_synthesis
+        )
+        policy_ids = await self._extract_policies(
+            run_id, synthesis_model, max_synthesis - len(schema_ids)
+        )
         hindsight_ids = await self._hindsight_relabeling(run_id, synthesis_model)
         stress_ids = await self._plan_stress_tests(run_id, synthesis_model, max_stress)
 
         all_promotable = schema_ids + policy_ids + stress_ids
-        scored = await self._run_scoring_pipeline(all_promotable, gates, critic, synthesis_model)
+        scored = await self._run_scoring_pipeline(
+            all_promotable, gates, critic, synthesis_model
+        )
 
         # hindsight facts get gates + critic but are always needs_review
-        scored_hindsight = await self._run_scoring_pipeline(hindsight_ids, gates, critic, synthesis_model)
+        scored_hindsight = await self._run_scoring_pipeline(
+            hindsight_ids, gates, critic, synthesis_model
+        )
 
         duration_ms = int((time.monotonic() - start) * 1000)
         log.info(
@@ -282,7 +293,9 @@ class DreamPass:
         self, run_id: UUID, model: str, max_per_goal: int
     ) -> list[UUID]:
         """For active goals with stalled milestones (no progress >= 3 days), generate risk scenarios."""
-        idle_cutoff = datetime.now(tz=timezone.utc) - timedelta(days=_STRESS_TEST_IDLE_DAYS)
+        idle_cutoff = datetime.now(tz=timezone.utc) - timedelta(
+            days=_STRESS_TEST_IDLE_DAYS
+        )
 
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
@@ -379,7 +392,9 @@ class DreamPass:
             if row is None:
                 continue
 
-            source_texts = await self._fetch_episode_texts(row.get("source_episode_ids") or [])
+            source_texts = await self._fetch_episode_texts(
+                row.get("source_episode_ids") or []
+            )
 
             # Gate 1 — NLI groundedness
             g1_pass, faithfulness = await gates.gate1_nli(
@@ -387,7 +402,9 @@ class DreamPass:
             )
             await self._dream_store.update_artifact_gate1(artifact_id, faithfulness)
             if not g1_pass:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.REJECTED.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.REJECTED.value
+                )
                 await self._decay_source_episodes(row.get("source_episode_ids") or [])
                 scored += 1
                 continue
@@ -396,7 +413,9 @@ class DreamPass:
             g2_pass, novelty = await gates.gate2_novelty(row["content"])
             await self._dream_store.update_artifact_gate2(artifact_id, novelty)
             if not g2_pass:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.REJECTED.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.REJECTED.value
+                )
                 await self._decay_source_episodes(row.get("source_episode_ids") or [])
                 scored += 1
                 continue
@@ -409,7 +428,9 @@ class DreamPass:
             )
             await self._dream_store.update_artifact_gate3(artifact_id, g3_pass)
             if not g3_pass:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.REJECTED.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.REJECTED.value
+                )
                 await self._decay_source_episodes(row.get("source_episode_ids") or [])
                 scored += 1
                 continue
@@ -423,7 +444,9 @@ class DreamPass:
             )
 
             if a_verdict != "PASS" or b_verdict != "PASS":
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.REJECTED.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.REJECTED.value
+                )
                 await self._decay_source_episodes(row.get("source_episode_ids") or [])
             # Leave as PENDING — promoter will handle final status based on support validation
 
@@ -440,7 +463,9 @@ class DreamPass:
             )
         return [f"{r['prompt']}\n{r['response']}" for r in rows]
 
-    async def _decay_source_episodes(self, episode_ids: list[Any], rate: float = 0.1) -> None:
+    async def _decay_source_episodes(
+        self, episode_ids: list[Any], rate: float = 0.1
+    ) -> None:
         if not episode_ids:
             return
         async with self._pool.acquire() as conn:
@@ -468,4 +493,8 @@ class DreamPass:
 
 def _stress_test_valid(text: str) -> bool:
     """Ensure stress test has the required JSON-ish structure and no unconditional action verbs."""
-    return '"risk"' in text and '"warning_signal"' in text and '"recommended_caution"' in text
+    return (
+        '"risk"' in text
+        and '"warning_signal"' in text
+        and '"recommended_caution"' in text
+    )

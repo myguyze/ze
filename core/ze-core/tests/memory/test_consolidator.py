@@ -8,6 +8,7 @@ from ze_memory.types import ConsolidationReport
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _store(**overrides):
     s = AsyncMock(spec=PostgresConsolidationStore)
     s.fetch_active_facts = AsyncMock(return_value=[])
@@ -62,10 +63,17 @@ def _consolidator(store=None, client=None, settings=None, embedder=None, nli=Non
 
 
 def _fact_row(key="k", value="v", confidence=1.0):
-    return {"id": uuid4(), "predicate": key, "value": value, "agent": "global", "confidence": confidence}
+    return {
+        "id": uuid4(),
+        "predicate": key,
+        "value": value,
+        "agent": "global",
+        "confidence": confidence,
+    }
 
 
 # ── TestRun ───────────────────────────────────────────────────────────────────
+
 
 class TestRun:
     async def test_returns_consolidation_report(self):
@@ -87,6 +95,7 @@ class TestRun:
 
 # ── TestDedupFacts ────────────────────────────────────────────────────────────
 
+
 class TestDedupFacts:
     async def test_no_facts_returns_zero(self):
         assert await _consolidator().dedup_facts() == 0
@@ -102,19 +111,28 @@ class TestDedupFacts:
         ]
         store = _store(fetch_active_facts=AsyncMock(return_value=rows))
         # identical vectors → cosine similarity = 1.0 ≥ 0.95 silent threshold
-        merged = await _consolidator(store=store, embedder=_embedder([1.0, 0.0])).dedup_facts()
+        merged = await _consolidator(
+            store=store, embedder=_embedder([1.0, 0.0])
+        ).dedup_facts()
         assert merged == 1
-        store.mark_contradicted.assert_awaited_once_with(rows[0]["id"])  # lower confidence
+        store.mark_contradicted.assert_awaited_once_with(
+            rows[0]["id"]
+        )  # lower confidence
 
     async def test_llm_merge_medium_similarity(self):
         rows = [_fact_row("k1", "a"), _fact_row("k2", "b")]
         store = _store(fetch_active_facts=AsyncMock(return_value=rows))
-        vecs = [[1.0, 0.0], [0.87, 0.49]]  # cos sim ≈ 0.87: above llm threshold, below silent
+        vecs = [
+            [1.0, 0.0],
+            [0.87, 0.49],
+        ]  # cos sim ≈ 0.87: above llm threshold, below silent
         idx = [0]
+
         def _encode(text):
             v = vecs[idx[0] % len(vecs)]
             idx[0] += 1
             return v
+
         embedder = MagicMock()
         embedder.encode = MagicMock(side_effect=_encode)
         client = _client(response="merged fact")
@@ -131,16 +149,19 @@ class TestDedupFacts:
         store = _store(fetch_active_facts=AsyncMock(return_value=rows))
         vecs = [[1.0, 0.0], [0.0, 1.0]]  # orthogonal → sim = 0.0
         idx = [0]
+
         def _encode(text):
             v = vecs[idx[0] % len(vecs)]
             idx[0] += 1
             return v
+
         embedder = MagicMock()
         embedder.encode = MagicMock(side_effect=_encode)
         assert await _consolidator(store=store, embedder=embedder).dedup_facts() == 0
 
 
 # ── TestExpireFacts ───────────────────────────────────────────────────────────
+
 
 class TestExpireFacts:
     async def test_returns_counts_from_store(self):
@@ -179,6 +200,7 @@ class TestExpireFacts:
 
 # ── TestArchiveEpisodes ───────────────────────────────────────────────────────
 
+
 class TestArchiveEpisodes:
     async def test_skips_llm_when_below_min_batch(self):
         client = _client()
@@ -193,20 +215,39 @@ class TestArchiveEpisodes:
         ]
         store = _store(fetch_episode_candidates=AsyncMock(return_value=candidates))
         client = _client(response="archive summary")
-        settings = {"memory": {"episode_recency_days": 14, "episode_min_archive_batch": 10, "episode_archive_batch": 20}}
-        archived, _ = await _consolidator(store=store, client=client, settings=settings).archive_episodes()
+        settings = {
+            "memory": {
+                "episode_recency_days": 14,
+                "episode_min_archive_batch": 10,
+                "episode_archive_batch": 20,
+            }
+        }
+        archived, _ = await _consolidator(
+            store=store, client=client, settings=settings
+        ).archive_episodes()
         assert archived == 10
         client.complete.assert_awaited_once()
         store.insert_archive_episode.assert_awaited_once_with("archive summary")
         store.delete_episodes_by_ids.assert_awaited_once()
 
     async def test_llm_failure_returns_zero(self):
-        candidates = [{"id": uuid4(), "prompt": "p", "response": "r", "summary": None} for _ in range(10)]
+        candidates = [
+            {"id": uuid4(), "prompt": "p", "response": "r", "summary": None}
+            for _ in range(10)
+        ]
         store = _store(fetch_episode_candidates=AsyncMock(return_value=candidates))
         client = AsyncMock()
         client.complete = AsyncMock(side_effect=Exception("llm down"))
-        settings = {"memory": {"episode_recency_days": 14, "episode_min_archive_batch": 10, "episode_archive_batch": 20}}
-        archived, deleted = await _consolidator(store=store, client=client, settings=settings).archive_episodes()
+        settings = {
+            "memory": {
+                "episode_recency_days": 14,
+                "episode_min_archive_batch": 10,
+                "episode_archive_batch": 20,
+            }
+        }
+        archived, deleted = await _consolidator(
+            store=store, client=client, settings=settings
+        ).archive_episodes()
         assert archived == 0
         assert deleted == 0
 
@@ -216,7 +257,9 @@ class TestArchiveSessionEpisodes:
         store = _store()
         settings = {"memory": {"consolidation": {"session_grouping_enabled": False}}}
 
-        archived = await _consolidator(store=store, settings=settings).archive_session_episodes()
+        archived = await _consolidator(
+            store=store, settings=settings
+        ).archive_session_episodes()
 
         assert archived == 0
         store.fetch_session_archive_candidates.assert_not_awaited()
@@ -224,8 +267,7 @@ class TestArchiveSessionEpisodes:
     async def test_archives_eligible_session(self):
         session_id = "session-1"
         episodes = [
-            {"id": uuid4(), "prompt": f"p{i}", "response": f"r{i}"}
-            for i in range(3)
+            {"id": uuid4(), "prompt": f"p{i}", "response": f"r{i}"} for i in range(3)
         ]
         store = _store(
             fetch_session_archive_candidates=AsyncMock(
@@ -277,7 +319,9 @@ class TestArchiveSessionEpisodes:
         )
         client = _client(response="session summary")
 
-        archived = await _consolidator(store=store, client=client).archive_session_episodes()
+        archived = await _consolidator(
+            store=store, client=client
+        ).archive_session_episodes()
 
         assert archived == 0
         client.complete.assert_not_awaited()
@@ -286,16 +330,23 @@ class TestArchiveSessionEpisodes:
 
 # ── TestUpdateProfile ─────────────────────────────────────────────────────────
 
+
 class TestUpdateProfile:
     async def test_returns_false_when_no_data(self):
         assert await _consolidator().update_profile() is False
 
     async def test_upserts_valid_profile(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
-            fetch_recent_episode_summaries=AsyncMock(return_value=[{"summary": "discussed tech"}]),
+            fetch_active_fact_summaries=AsyncMock(
+                return_value=[{"predicate": "name", "value": "Alice"}]
+            ),
+            fetch_recent_episode_summaries=AsyncMock(
+                return_value=[{"summary": "discussed tech"}]
+            ),
         )
-        facets_json = '[{"key":"name","value":"Alice","stability":"stable","confidence":0.9}]'
+        facets_json = (
+            '[{"key":"name","value":"Alice","stability":"stable","confidence":0.9}]'
+        )
         client = _client(response=facets_json)
         result = await _consolidator(store=store, client=client).update_profile()
         assert result is True
@@ -303,15 +354,29 @@ class TestUpdateProfile:
 
     async def test_invalid_json_returns_false(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
+            fetch_active_fact_summaries=AsyncMock(
+                return_value=[{"predicate": "name", "value": "Alice"}]
+            ),
             fetch_recent_episode_summaries=AsyncMock(return_value=[]),
         )
-        assert await _consolidator(store=store, client=_client(response="not json")).update_profile() is False
+        assert (
+            await _consolidator(
+                store=store, client=_client(response="not json")
+            ).update_profile()
+            is False
+        )
 
     async def test_missing_keys_returns_false(self):
         store = _store(
-            fetch_active_fact_summaries=AsyncMock(return_value=[{"predicate": "name", "value": "Alice"}]),
+            fetch_active_fact_summaries=AsyncMock(
+                return_value=[{"predicate": "name", "value": "Alice"}]
+            ),
             fetch_recent_episode_summaries=AsyncMock(return_value=[]),
         )
         # Object instead of array → invalid
-        assert await _consolidator(store=store, client=_client(response='{"key":"p"}')).update_profile() is False
+        assert (
+            await _consolidator(
+                store=store, client=_client(response='{"key":"p"}')
+            ).update_profile()
+            is False
+        )

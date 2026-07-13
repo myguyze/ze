@@ -33,6 +33,7 @@ def _register(name: str, capabilities: dict, enabled: bool = True) -> None:
 
 # ── Base mode → decision ──────────────────────────────────────────────────────
 
+
 class TestBaseModeDecision:
     def test_autonomous_returns_execute(self, gate):
         _register("a", {"read": Mode.AUTONOMOUS})
@@ -53,6 +54,7 @@ class TestBaseModeDecision:
 
 # ── Edge cases ────────────────────────────────────────────────────────────────
 
+
 class TestEdgeCases:
     def test_unknown_agent_returns_await_confirmation(self, gate):
         assert gate.evaluate("ghost", "read", {}) == GateDecision.AWAIT_CONFIRMATION
@@ -68,6 +70,7 @@ class TestEdgeCases:
     def test_unknown_intent_uses_default_mode_autonomous(self, gate):
         class _B:
             async def run(self, ctx, **_): ...
+
         _B.__name__ = "Agent_b"
         _B.name = "b"
         _B.description = "Agent b"
@@ -75,23 +78,34 @@ class TestEdgeCases:
         _B.intents = {"reason": Intent(Mode.AUTONOMOUS)}
         _B.default_mode = Mode.AUTONOMOUS
         from ze_agents.registry import agent as reg
+
         reg(_B)
         assert gate.evaluate("b", "nonexistent", {}) == GateDecision.EXECUTE
 
     def test_disabled_mode_cannot_be_overridden(self, gate):
         _register("a", {"delete": Mode.DISABLED})
-        assert gate.evaluate("a", "delete", {"a.delete": "autonomous"}) == GateDecision.BLOCKED
+        assert (
+            gate.evaluate("a", "delete", {"a.delete": "autonomous"})
+            == GateDecision.BLOCKED
+        )
 
     def test_unknown_override_mode_falls_back_to_base(self, gate):
         _register("a", {"read": Mode.CONFIRM})
-        assert gate.evaluate("a", "read", {"a.read": "telepathy"}) == GateDecision.AWAIT_CONFIRMATION
+        assert (
+            gate.evaluate("a", "read", {"a.read": "telepathy"})
+            == GateDecision.AWAIT_CONFIRMATION
+        )
 
     def test_disabled_override_value_ignored(self, gate):
         _register("a", {"read": Mode.CONFIRM})
-        assert gate.evaluate("a", "read", {"a.read": "disabled"}) == GateDecision.AWAIT_CONFIRMATION
+        assert (
+            gate.evaluate("a", "read", {"a.read": "disabled"})
+            == GateDecision.AWAIT_CONFIRMATION
+        )
 
 
 # ── Session overrides — escalation ceiling table ──────────────────────────────
+
 
 class TestEscalationCeiling:
     def test_autonomous_no_override(self, gate):
@@ -100,7 +114,10 @@ class TestEscalationCeiling:
 
     def test_autonomous_restricted_to_confirm(self, gate):
         _register("a", {"op": Mode.AUTONOMOUS})
-        assert gate.evaluate("a", "op", {"a.op": "confirm"}) == GateDecision.AWAIT_CONFIRMATION
+        assert (
+            gate.evaluate("a", "op", {"a.op": "confirm"})
+            == GateDecision.AWAIT_CONFIRMATION
+        )
 
     def test_autonomous_restricted_to_draft(self, gate):
         _register("a", {"op": Mode.AUTONOMOUS})
@@ -133,6 +150,7 @@ class TestEscalationCeiling:
 
 # ── Override key scoping ──────────────────────────────────────────────────────
 
+
 class TestOverrideKeyScoping:
     def test_override_only_applies_to_matching_agent_intent(self, gate):
         _register("cal", {"read": Mode.CONFIRM, "write": Mode.CONFIRM})
@@ -142,4 +160,7 @@ class TestOverrideKeyScoping:
     def test_override_for_different_agent_ignored(self, gate):
         _register("cal", {"read": Mode.CONFIRM})
         _register("email", {"read": Mode.CONFIRM})
-        assert gate.evaluate("cal", "read", {"email.read": "autonomous"}) == GateDecision.AWAIT_CONFIRMATION
+        assert (
+            gate.evaluate("cal", "read", {"email.read": "autonomous"})
+            == GateDecision.AWAIT_CONFIRMATION
+        )

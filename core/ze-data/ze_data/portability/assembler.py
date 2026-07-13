@@ -82,7 +82,7 @@ async def bulk_insert(conn, table: str, rows: list[dict]) -> int:
     cols = list(rows[0].keys())
     col_list = ", ".join(f'"{c}"' for c in cols)
     placeholders = ", ".join(f"${i + 1}" for i in range(len(cols)))
-    sql = f'INSERT INTO {table} ({col_list}) VALUES ({placeholders}) ON CONFLICT DO NOTHING'
+    sql = f"INSERT INTO {table} ({col_list}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
     records = [[row.get(c) for c in cols] for row in rows]
     await conn.executemany(sql, records)
     return len(rows)

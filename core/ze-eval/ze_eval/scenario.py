@@ -1,4 +1,5 @@
 """Scenario loading from YAML files."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +7,9 @@ from pathlib import Path
 import yaml
 
 # Default: eval/scenarios/ at the repo root (two levels up from this package)
-_DEFAULT_SCENARIOS_DIR = Path(__file__).parent.parent.parent.parent / "eval" / "scenarios"
+_DEFAULT_SCENARIOS_DIR = (
+    Path(__file__).parent.parent.parent.parent / "eval" / "scenarios"
+)
 
 
 def load_scenarios(

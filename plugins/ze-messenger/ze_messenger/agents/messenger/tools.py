@@ -12,7 +12,9 @@ from ze_personal.channels.thread_channel_map import ThreadChannelMap
 from ze_personal.channels.user_channel_store import UserChannelStore
 
 
-@tool(access=ToolAccess.READ, description="List recent Gmail messages matching a query.")
+@tool(
+    access=ToolAccess.READ, description="List recent Gmail messages matching a query."
+)
 async def list_emails(
     credentials: GoogleCredentials,
     query: str = "",
@@ -20,25 +22,35 @@ async def list_emails(
 ) -> list:
     service = credentials.gmail()
     result = await asyncio.to_thread(
-        lambda: service.users().messages().list(
-            userId="me",
-            q=query,
-            maxResults=max_results,
-        ).execute()
+        lambda: (
+            service.users()
+            .messages()
+            .list(
+                userId="me",
+                q=query,
+                maxResults=max_results,
+            )
+            .execute()
+        )
     )
     return result.get("messages", [])
 
 
-@tool(access=ToolAccess.READ, description="Get the full content of a Gmail message by ID.")
+@tool(
+    access=ToolAccess.READ, description="Get the full content of a Gmail message by ID."
+)
 async def get_email(
     credentials: GoogleCredentials,
     message_id: str,
 ) -> dict:
     service = credentials.gmail()
     msg = await asyncio.to_thread(
-        lambda: service.users().messages().get(
-            userId="me", id=message_id, format="full"
-        ).execute()
+        lambda: (
+            service.users()
+            .messages()
+            .get(userId="me", id=message_id, format="full")
+            .execute()
+        )
     )
     return _parse_message(msg)
 
@@ -53,9 +65,12 @@ async def draft_email(
     service = credentials.gmail()
     raw = _build_raw(to, subject, body)
     result = await asyncio.to_thread(
-        lambda: service.users().drafts().create(
-            userId="me", body={"message": {"raw": raw}}
-        ).execute()
+        lambda: (
+            service.users()
+            .drafts()
+            .create(userId="me", body={"message": {"raw": raw}})
+            .execute()
+        )
     )
     return {"id": result.get("id")}
 
@@ -92,18 +107,25 @@ async def send_email(
     }
 
 
-@tool(access=ToolAccess.WRITE, description="Archive a Gmail message (remove from inbox).")
+@tool(
+    access=ToolAccess.WRITE, description="Archive a Gmail message (remove from inbox)."
+)
 async def archive_email(
     credentials: GoogleCredentials,
     message_id: str,
 ) -> None:
     service = credentials.gmail()
     await asyncio.to_thread(
-        lambda: service.users().messages().modify(
-            userId="me",
-            id=message_id,
-            body={"removeLabelIds": ["INBOX"]},
-        ).execute()
+        lambda: (
+            service.users()
+            .messages()
+            .modify(
+                userId="me",
+                id=message_id,
+                body={"removeLabelIds": ["INBOX"]},
+            )
+            .execute()
+        )
     )
 
 

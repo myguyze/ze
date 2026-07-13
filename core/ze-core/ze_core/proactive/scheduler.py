@@ -16,6 +16,7 @@ class ProactiveScheduler:
 
     def __init__(self) -> None:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
         self._scheduler = AsyncIOScheduler()
         self._started = False
 
@@ -31,6 +32,7 @@ class ProactiveScheduler:
     ) -> None:
         """Register a cron job. Safe to call before or after start()."""
         from apscheduler.triggers.cron import CronTrigger
+
         self._scheduler.add_job(
             fn,
             trigger=CronTrigger.from_crontab(cron),

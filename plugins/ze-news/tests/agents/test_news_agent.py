@@ -8,7 +8,9 @@ from ze_agents.settings import Settings as CoreSettings
 from ze_agents.types import AgentContext, AgentResult
 
 
-def make_article(title: str = "AI breakthrough", url: str = "https://example.com/a1") -> Article:
+def make_article(
+    title: str = "AI breakthrough", url: str = "https://example.com/a1"
+) -> Article:
     return Article(
         url=url,
         source_key="example",
@@ -80,7 +82,10 @@ async def test_run_with_empty_store_marks_candidates_empty():
     with patch.object(agent, "agentic_loop", side_effect=fake_loop):
         await agent.run(make_ctx())
 
-    assert "(none — the local store returned no articles for this query)" in captured["system"]
+    assert (
+        "(none — the local store returned no articles for this query)"
+        in captured["system"]
+    )
 
 
 async def test_run_records_prefetch_provenance_tool_call():
@@ -100,7 +105,9 @@ async def test_run_survives_store_failure():
     agent = make_agent()
     agent._news_store.search = AsyncMock(side_effect=RuntimeError("db down"))
 
-    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("No articles available.", []))):
+    with patch.object(
+        agent, "agentic_loop", AsyncMock(return_value=("No articles available.", []))
+    ):
         result = await agent.run(make_ctx())
 
     assert result.response == "No articles available."

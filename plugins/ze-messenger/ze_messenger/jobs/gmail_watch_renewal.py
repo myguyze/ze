@@ -26,4 +26,6 @@ class GmailWatchRenewalJob:
             await self._channel.register_push(self._topic_name)
             log.info("gmail_watch_renewed", topic=self._topic_name)
         except Exception as exc:
-            log.error("gmail_watch_renewal_failed", topic=self._topic_name, error=str(exc))
+            log.error(
+                "gmail_watch_renewal_failed", topic=self._topic_name, error=str(exc)
+            )

@@ -1,4 +1,5 @@
 """Graph layer data structures."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ class Relationship:
     Every relationship must carry provenance_id or creation_method='extracted'|'synthesized'
     to be considered durable. Relationships created without provenance are ephemeral.
     """
+
     source_id: UUID
     source_type: str
     predicate: str
@@ -22,7 +24,7 @@ class Relationship:
     target_text: str | None = None
     confidence: float = 1.0
     provenance_id: UUID | None = None
-    creation_method: str = "explicit"   # explicit | extracted | synthesized
+    creation_method: str = "explicit"  # explicit | extracted | synthesized
     reviewed: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -35,6 +37,7 @@ class GraphExpansion:
     IDs are partitioned by type so callers can fetch additional rows from the
     appropriate tables without re-querying relationships.
     """
+
     relationships: list[Relationship] = field(default_factory=list)
     fact_ids: list[UUID] = field(default_factory=list)
     entity_ids: list[UUID] = field(default_factory=list)

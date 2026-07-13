@@ -39,6 +39,7 @@ def _dates(start_month: int, interval_days: int, count: int) -> list[datetime]:
 
 # ── snap_interval ──────────────────────────────────────────────────────────────
 
+
 def test_snap_weekly() -> None:
     assert snap_interval(7) == 7
     assert snap_interval(6) == 7
@@ -54,7 +55,7 @@ def test_snap_biweekly() -> None:
 def test_snap_monthly() -> None:
     assert snap_interval(30) == 30
     assert snap_interval(31) == 30
-    assert snap_interval(28) == 28   # 28 is its own natural interval
+    assert snap_interval(28) == 28  # 28 is its own natural interval
 
 
 def test_snap_quarterly() -> None:
@@ -68,16 +69,18 @@ def test_snap_bimonthly() -> None:
 
 # ── cadence_label ──────────────────────────────────────────────────────────────
 
+
 def test_cadence_labels() -> None:
-    assert cadence_label(7)   == "weekly"
-    assert cadence_label(14)  == "every 2 weeks"
-    assert cadence_label(30)  == "monthly"
-    assert cadence_label(90)  == "quarterly"
+    assert cadence_label(7) == "weekly"
+    assert cadence_label(14) == "every 2 weeks"
+    assert cadence_label(30) == "monthly"
+    assert cadence_label(90) == "quarterly"
     assert cadence_label(365) == "yearly"
-    assert cadence_label(45)  == "every 45 days"
+    assert cadence_label(45) == "every 45 days"
 
 
 # ── RecurringDetector ──────────────────────────────────────────────────────────
+
 
 def test_detects_monthly() -> None:
     detector = RecurringDetector()
@@ -163,17 +166,19 @@ def test_rejects_high_amount_variance() -> None:
 def test_rejects_non_spending_types() -> None:
     detector = RecurringDetector()
     dates = _dates(start_month=1, interval_days=30, count=3)
-    txs = [_tx("Salary", Decimal("3000"), d, tx_type=TransactionType.DEPOSIT) for d in dates]
+    txs = [
+        _tx("Salary", Decimal("3000"), d, tx_type=TransactionType.DEPOSIT)
+        for d in dates
+    ]
     assert detector.detect(txs) == []
 
 
 def test_separates_by_account() -> None:
     detector = RecurringDetector()
     dates = _dates(start_month=1, interval_days=30, count=3)
-    txs = (
-        [_tx("Spotify", Decimal("9.99"), d, account_id="acc1") for d in dates]
-        + [_tx("Spotify", Decimal("9.99"), d, account_id="acc2") for d in dates]
-    )
+    txs = [_tx("Spotify", Decimal("9.99"), d, account_id="acc1") for d in dates] + [
+        _tx("Spotify", Decimal("9.99"), d, account_id="acc2") for d in dates
+    ]
     results = detector.detect(txs)
     assert len(results) == 2
     assert {r.account_id for r in results} == {"acc1", "acc2"}
@@ -215,7 +220,9 @@ def test_gap_tolerance_allows_month_length_drift() -> None:
     ]
     results = detector.detect(txs)
     assert len(results) == 1
-    assert results[0].interval_days == 30  # gaps [31, 28, 31], median=31, snaps to 30 (monthly)
+    assert (
+        results[0].interval_days == 30
+    )  # gaps [31, 28, 31], median=31, snaps to 30 (monthly)
 
 
 async def test_recurring_merchant_merge() -> None:
@@ -234,14 +241,16 @@ async def test_recurring_merchant_merge() -> None:
     ]
 
     nli_client = MagicMock()
-    nli_client.scores = AsyncMock(return_value=[
-        {"entailment": 0.85, "contradiction": 0.05, "neutral": 0.10},
-        {"entailment": 0.82, "contradiction": 0.08, "neutral": 0.10},
-        {"entailment": 0.80, "contradiction": 0.10, "neutral": 0.10},
-        {"entailment": 0.79, "contradiction": 0.11, "neutral": 0.10},
-        {"entailment": 0.81, "contradiction": 0.09, "neutral": 0.10},
-        {"entailment": 0.78, "contradiction": 0.12, "neutral": 0.10},
-    ])
+    nli_client.scores = AsyncMock(
+        return_value=[
+            {"entailment": 0.85, "contradiction": 0.05, "neutral": 0.10},
+            {"entailment": 0.82, "contradiction": 0.08, "neutral": 0.10},
+            {"entailment": 0.80, "contradiction": 0.10, "neutral": 0.10},
+            {"entailment": 0.79, "contradiction": 0.11, "neutral": 0.10},
+            {"entailment": 0.81, "contradiction": 0.09, "neutral": 0.10},
+            {"entailment": 0.78, "contradiction": 0.12, "neutral": 0.10},
+        ]
+    )
 
     detector = RecurringDetector(
         embedder=embedder,

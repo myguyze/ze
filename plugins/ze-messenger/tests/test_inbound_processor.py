@@ -57,12 +57,15 @@ def _make_processor(
 
 # ── _is_automated ─────────────────────────────────────────────────────────────
 
+
 def test_is_automated_noreply():
     assert _is_automated("noreply@github.com", {}, [])
 
 
 def test_is_automated_list_unsubscribe_header():
-    assert _is_automated("news@example.com", {"List-Unsubscribe": "<mailto:unsub@example.com>"}, [])
+    assert _is_automated(
+        "news@example.com", {"List-Unsubscribe": "<mailto:unsub@example.com>"}, []
+    )
 
 
 def test_is_automated_precedence_bulk():
@@ -79,6 +82,7 @@ def test_is_automated_custom_pattern():
 
 # ── process() — automated sender ─────────────────────────────────────────────
 
+
 async def test_automated_sender_writes_nothing():
     processor, memory, thread_map, signals = _make_processor()
     await processor.process(
@@ -90,6 +94,7 @@ async def test_automated_sender_writes_nothing():
 
 
 # ── process() — known contact ────────────────────────────────────────────────
+
 
 async def test_known_contact_writes_episode_and_signal():
     known = MagicMock()
@@ -115,8 +120,11 @@ async def test_known_contact_sets_thread_map():
 
 # ── process() — unknown human ────────────────────────────────────────────────
 
+
 async def test_unknown_human_writes_episode_no_signal():
-    processor, memory, thread_map, signals = _make_processor(contact=None, thread_channel=None)
+    processor, memory, thread_map, signals = _make_processor(
+        contact=None, thread_channel=None
+    )
 
     await processor.process(_msg(), channel_id="gmail:ze@example.com")
 
@@ -125,6 +133,7 @@ async def test_unknown_human_writes_episode_no_signal():
 
 
 # ── process() — replied-to ───────────────────────────────────────────────────
+
 
 async def test_replied_to_writes_signal():
     # No contact match but thread is known
@@ -140,6 +149,7 @@ async def test_replied_to_writes_signal():
 
 # ── _extract_facts ────────────────────────────────────────────────────────────
 
+
 async def test_extract_facts_calls_propose_facts():
 
     known = MagicMock()
@@ -147,7 +157,9 @@ async def test_extract_facts_calls_propose_facts():
     processor, memory, _, _ = _make_processor(contact=known)
 
     llm = AsyncMock()
-    llm.complete = AsyncMock(return_value='[{"predicate": "name", "value": "Alice", "confidence": 0.9}]')
+    llm.complete = AsyncMock(
+        return_value='[{"predicate": "name", "value": "Alice", "confidence": 0.9}]'
+    )
     processor._llm_client = llm
 
     await processor._extract_facts(_msg())

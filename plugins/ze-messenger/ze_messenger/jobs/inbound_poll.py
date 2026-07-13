@@ -15,9 +15,9 @@ class InboundPollingJob:
     def __init__(
         self,
         registry: object,  # ChannelRegistry — avoid circular at import time
-        watermark_store: object,   # ChannelWatermarkStore
+        watermark_store: object,  # ChannelWatermarkStore
         user_channel_store: object,  # UserChannelStore
-        processor: object,           # InboundMessageProcessor
+        processor: object,  # InboundMessageProcessor
     ) -> None:
         self._registry = registry
         self._watermarks = watermark_store
@@ -69,13 +69,15 @@ class InboundPollingJob:
 
         # Auto-register channel in user_channels on first successful poll
         handle = getattr(channel, "_user_email", None) or channel.channel_id
-        await self._user_channels.upsert(UserChannel(
-            id=uuid4(),
-            channel_id=channel.channel_id,
-            channel_type=channel.channel_type.value,
-            handle=handle,
-            display_name=None,
-            is_default_outbound=False,
-            poll_enabled=True,
-            created_at=datetime.now(timezone.utc),
-        ))
+        await self._user_channels.upsert(
+            UserChannel(
+                id=uuid4(),
+                channel_id=channel.channel_id,
+                channel_type=channel.channel_type.value,
+                handle=handle,
+                display_name=None,
+                is_default_outbound=False,
+                poll_enabled=True,
+                created_at=datetime.now(timezone.utc),
+            )
+        )

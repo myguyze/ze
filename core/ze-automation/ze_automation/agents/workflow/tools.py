@@ -6,7 +6,12 @@ from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.planner import WorkflowPlanner, validate_step_targets
 from ze_automation.workflow.store import WorkflowStore
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_automation.workflow.types import (
+    StepResult,
+    Workflow,
+    WorkflowExecution,
+    WorkflowStep,
+)
 from ze_automation.workflow.scheduler import WorkflowScheduler
 
 
@@ -40,12 +45,19 @@ def _serialize_execution(execution: WorkflowExecution) -> dict:
         "step_results": [_serialize_step_result(r) for r in execution.step_results],
         "error": execution.error,
         "summary": execution.summary,
-        "started_at": execution.started_at.isoformat() if execution.started_at else None,
-        "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+        "started_at": execution.started_at.isoformat()
+        if execution.started_at
+        else None,
+        "completed_at": execution.completed_at.isoformat()
+        if execution.completed_at
+        else None,
     }
 
 
-@tool(access=ToolAccess.READ, description="List all stored workflows with their status and schedule.")
+@tool(
+    access=ToolAccess.READ,
+    description="List all stored workflows with their status and schedule.",
+)
 async def list_workflows(store: WorkflowStore) -> list:
     workflows = await store.list_all()
     return [
@@ -61,7 +73,10 @@ async def list_workflows(store: WorkflowStore) -> list:
     ]
 
 
-@tool(access=ToolAccess.READ, description="Get full details of a workflow by name, including its steps.")
+@tool(
+    access=ToolAccess.READ,
+    description="Get full details of a workflow by name, including its steps.",
+)
 async def get_workflow(store: WorkflowStore, workflow_name: str) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
@@ -98,7 +113,10 @@ async def list_workflow_executions(
     }
 
 
-@tool(access=ToolAccess.WRITE, description="Create a new workflow from a description with an optional recurring schedule.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Create a new workflow from a description with an optional recurring schedule.",
+)
 async def create_workflow(
     store: WorkflowStore,
     planner: WorkflowPlanner,
@@ -117,6 +135,7 @@ async def create_workflow(
     next_run = None
     if schedule:
         from apscheduler.triggers.cron import CronTrigger
+
         trigger = CronTrigger.from_crontab(schedule)
         next_run = trigger.get_next_fire_time(None, datetime.now(tz=timezone.utc))
 
@@ -165,6 +184,7 @@ async def update_workflow(
     next_run = None
     if schedule:
         from apscheduler.triggers.cron import CronTrigger
+
         trigger = CronTrigger.from_crontab(schedule)
         next_run = trigger.get_next_fire_time(None, datetime.now(tz=timezone.utc))
 
@@ -183,8 +203,13 @@ async def update_workflow(
     }
 
 
-@tool(access=ToolAccess.WRITE, description="Enable a workflow by name so it runs on its schedule.")
-async def enable_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str) -> dict:
+@tool(
+    access=ToolAccess.WRITE,
+    description="Enable a workflow by name so it runs on its schedule.",
+)
+async def enable_workflow(
+    store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str
+) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
         return {"error": f"No workflow named '{workflow_name}' found."}
@@ -193,8 +218,13 @@ async def enable_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, wo
     return {"name": workflow_name, "enabled": True}
 
 
-@tool(access=ToolAccess.WRITE, description="Disable a workflow by name so it stops running on its schedule.")
-async def disable_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str) -> dict:
+@tool(
+    access=ToolAccess.WRITE,
+    description="Disable a workflow by name so it stops running on its schedule.",
+)
+async def disable_workflow(
+    store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str
+) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
         return {"error": f"No workflow named '{workflow_name}' found."}
@@ -204,7 +234,9 @@ async def disable_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, w
 
 
 @tool(access=ToolAccess.WRITE, description="Permanently delete a workflow by name.")
-async def delete_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str) -> dict:
+async def delete_workflow(
+    store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str
+) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
         return {"error": f"No workflow named '{workflow_name}' found."}
@@ -213,8 +245,13 @@ async def delete_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, wo
     return {"deleted": workflow_name}
 
 
-@tool(access=ToolAccess.WRITE, description="Trigger a workflow to run immediately, outside its schedule.")
-async def trigger_workflow(store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str) -> dict:
+@tool(
+    access=ToolAccess.WRITE,
+    description="Trigger a workflow to run immediately, outside its schedule.",
+)
+async def trigger_workflow(
+    store: WorkflowStore, scheduler: WorkflowScheduler, workflow_name: str
+) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
         return {"error": f"No workflow named '{workflow_name}' found."}

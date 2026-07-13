@@ -64,7 +64,9 @@ def get_registered_agents() -> dict[str, type[BaseAgent]]:
 
 def get_enabled_agents() -> dict[str, type[BaseAgent]]:
     """Return only agents with enabled = True."""
-    return {name: cls for name, cls in _registry.items() if getattr(cls, "enabled", True)}
+    return {
+        name: cls for name, cls in _registry.items() if getattr(cls, "enabled", True)
+    }
 
 
 def register_instance(name: str, instance: BaseAgent) -> None:

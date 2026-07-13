@@ -26,7 +26,8 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     if cfg is not None:
         inactivity_minutes = getattr(cfg, "session_inactivity_minutes", None) or (
             cfg.get("session_inactivity_minutes", _DEFAULT_INACTIVITY_MINUTES)
-            if isinstance(cfg, dict) else _DEFAULT_INACTIVITY_MINUTES
+            if isinstance(cfg, dict)
+            else _DEFAULT_INACTIVITY_MINUTES
         )
 
     persona_store: Any = config["configurable"].get("persona_store")
@@ -36,9 +37,7 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
     agent_name = (
         envelope.subtasks[0].agent if envelope and envelope.subtasks else "global"
     )
-    intent = (
-        envelope.subtasks[0].intent if envelope and envelope.subtasks else "read"
-    )
+    intent = envelope.subtasks[0].intent if envelope and envelope.subtasks else "read"
 
     embed_text = state.get("image_caption") or state["prompt"]
     prompt_embedding = embedder.encode(embed_text)
@@ -108,10 +107,16 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
                 if wf:
                     executions = await wf_store.list_executions(wf.id, limit=20)
                     ex = (
-                        next((e for e in executions if str(e.id) == str(execution_id)), None)
-                        if execution_id else None
+                        next(
+                            (e for e in executions if str(e.id) == str(execution_id)),
+                            None,
+                        )
+                        if execution_id
+                        else None
                     )
-                    agent_context.screen_context_note = _build_screen_context_note(wf, ex)
+                    agent_context.screen_context_note = _build_screen_context_note(
+                        wf, ex
+                    )
             except Exception:
                 pass  # best-effort; never block the turn
 
@@ -127,8 +132,16 @@ def _build_screen_context_note(wf: Any, ex: Any) -> str:
     if ex:
         duration_s: str | None = None
         if ex.started_at and ex.completed_at:
-            started = ex.started_at.replace(tzinfo=_tz.utc) if ex.started_at.tzinfo is None else ex.started_at
-            completed = ex.completed_at.replace(tzinfo=_tz.utc) if ex.completed_at.tzinfo is None else ex.completed_at
+            started = (
+                ex.started_at.replace(tzinfo=_tz.utc)
+                if ex.started_at.tzinfo is None
+                else ex.started_at
+            )
+            completed = (
+                ex.completed_at.replace(tzinfo=_tz.utc)
+                if ex.completed_at.tzinfo is None
+                else ex.completed_at
+            )
             secs = int((completed - started).total_seconds())
             duration_s = f"{secs}s"
         step_count = len(ex.step_results) if ex.step_results else 0

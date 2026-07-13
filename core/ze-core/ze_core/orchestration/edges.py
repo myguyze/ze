@@ -46,5 +46,3 @@ def after_await_confirmation(state: AgentState) -> str:
     if state.get("final_response"):
         return "record_trace"
     return "execute_tool"
-
-

@@ -1,4 +1,5 @@
 """Tests for WorkflowPlanner.extract_procedure."""
+
 from __future__ import annotations
 
 import json
@@ -28,16 +29,22 @@ def _make_planner(response: str) -> WorkflowPlanner:
 
 class TestExtractProcedure:
     async def test_returns_procedure_from_valid_response(self):
-        payload = json.dumps({
-            "name": "Send prospecting emails",
-            "trigger": "When reaching out to a new batch of prospects",
-            "preconditions": ["Have a target list"],
-            "steps": ["Research prospect", "Draft email", "Send"],
-            "success_criteria": ["All emails delivered"],
-        })
+        payload = json.dumps(
+            {
+                "name": "Send prospecting emails",
+                "trigger": "When reaching out to a new batch of prospects",
+                "preconditions": ["Have a target list"],
+                "steps": ["Research prospect", "Draft email", "Send"],
+                "success_criteria": ["All emails delivered"],
+            }
+        )
         planner = _make_planner(payload)
 
-        steps = [_make_step("Research prospect"), _make_step("Draft email"), _make_step("Send")]
+        steps = [
+            _make_step("Research prospect"),
+            _make_step("Draft email"),
+            _make_step("Send"),
+        ]
         result = await planner.extract_procedure("Outreach campaign", steps)
 
         assert result is not None
@@ -74,12 +81,17 @@ class TestExtractProcedure:
         assert result is None
 
     async def test_falls_back_to_step_tasks_when_steps_missing(self):
-        payload = json.dumps({
-            "name": "Research and report",
-            "trigger": "When research is needed",
-        })
+        payload = json.dumps(
+            {
+                "name": "Research and report",
+                "trigger": "When research is needed",
+            }
+        )
         planner = _make_planner(payload)
-        steps = [_make_step("Search the web", idx=0), _make_step("Write summary", idx=1)]
+        steps = [
+            _make_step("Search the web", idx=0),
+            _make_step("Write summary", idx=1),
+        ]
         result = await planner.extract_procedure("Research workflow", steps)
 
         assert result is not None
@@ -106,9 +118,16 @@ class TestExtractProcedure:
 
 class TestPlan:
     async def test_parses_markdown_fenced_json_array(self):
-        payload = json.dumps([
-            {"task": "Send reminder", "agent_hint": "email", "intent": "create", "verify": None},
-        ])
+        payload = json.dumps(
+            [
+                {
+                    "task": "Send reminder",
+                    "agent_hint": "email",
+                    "intent": "create",
+                    "verify": None,
+                },
+            ]
+        )
         planner = _make_planner(f"```json\n{payload}\n```")
         steps = await planner.plan("Remind João to water plants")
         assert len(steps) == 1
@@ -116,21 +135,31 @@ class TestPlan:
         assert steps[0].agent_hint == "email"
 
     async def test_plan_emits_branches_for_conditional_description(self):
-        payload = json.dumps([
-            {
-                "task": "Check inbox for an invoice from Acme",
-                "agent_hint": "email",
-                "intent": "read",
-                "verify": "inbox was checked",
-                "id": "s0",
-                "branches": [
-                    {"condition": "invoice found", "to": "s1"},
-                    {"condition": "no invoice found", "to": "s2"},
-                ],
-            },
-            {"task": "Forward invoice to accounting", "id": "s1", "intent": "execute"},
-            {"task": "Log that no invoice arrived", "id": "s2", "intent": "execute"},
-        ])
+        payload = json.dumps(
+            [
+                {
+                    "task": "Check inbox for an invoice from Acme",
+                    "agent_hint": "email",
+                    "intent": "read",
+                    "verify": "inbox was checked",
+                    "id": "s0",
+                    "branches": [
+                        {"condition": "invoice found", "to": "s1"},
+                        {"condition": "no invoice found", "to": "s2"},
+                    ],
+                },
+                {
+                    "task": "Forward invoice to accounting",
+                    "id": "s1",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Log that no invoice arrived",
+                    "id": "s2",
+                    "intent": "execute",
+                },
+            ]
+        )
         planner = _make_planner(payload)
         steps = await planner.plan(
             "Check my inbox for an Acme invoice; if one arrived forward it to accounting, otherwise log that none arrived."
@@ -145,11 +174,17 @@ class TestPlan:
         assert [s.id for s in steps] == ["s0", "s1", "s2"]
 
     async def test_plan_returns_empty_branches_for_linear_description(self):
-        payload = json.dumps([
-            {"task": "Fetch news headlines", "agent_hint": "news", "intent": "read"},
-            {"task": "Summarize the headlines", "intent": "reason"},
-            {"task": "Send the digest", "agent_hint": "email", "intent": "execute"},
-        ])
+        payload = json.dumps(
+            [
+                {
+                    "task": "Fetch news headlines",
+                    "agent_hint": "news",
+                    "intent": "read",
+                },
+                {"task": "Summarize the headlines", "intent": "reason"},
+                {"task": "Send the digest", "agent_hint": "email", "intent": "execute"},
+            ]
+        )
         planner = _make_planner(payload)
         steps = await planner.plan("Fetch news, summarize it, and email me the digest.")
 

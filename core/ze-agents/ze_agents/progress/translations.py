@@ -26,7 +26,9 @@ class ProgressTranslations:
         self._fallback = fallback
 
     @classmethod
-    def build(cls, layers: list[dict], fallback_layers: list[dict]) -> "ProgressTranslations":
+    def build(
+        cls, layers: list[dict], fallback_layers: list[dict]
+    ) -> "ProgressTranslations":
         """Merge multiple locale dicts into one; later layers override earlier ones."""
         merged: dict = {}
         for layer in layers:

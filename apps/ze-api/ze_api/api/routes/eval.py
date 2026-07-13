@@ -2,7 +2,12 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from ze_agents.interface.types import RawInput
 from ze_core.telemetry.context import set_flow_context
 
-from ze_api.api.schemas import EvalChatRequest, EvalChatResponse, EvalRoutingInfo, EvalToolCall
+from ze_api.api.schemas import (
+    EvalChatRequest,
+    EvalChatResponse,
+    EvalRoutingInfo,
+    EvalToolCall,
+)
 from ze_logging import get_logger
 
 log = get_logger(__name__)
@@ -12,7 +17,9 @@ router = APIRouter(tags=["eval"])
 
 def _check_api_key(x_ze_api_key: str | None, settings) -> None:
     if not x_ze_api_key or x_ze_api_key != settings.ze_api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
 
 
 @router.post(

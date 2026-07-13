@@ -113,7 +113,9 @@ def _row_to_hypothesis(row: object) -> Hypothesis:
             external_ref=e.get("external_ref"),
             origin=e["origin"],
             retrieved_at=datetime.fromisoformat(e["retrieved_at"]),
-            ingested_at=datetime.fromisoformat(e["ingested_at"]) if e.get("ingested_at") else None,
+            ingested_at=datetime.fromisoformat(e["ingested_at"])
+            if e.get("ingested_at")
+            else None,
         )
         for e in evidence_raw
     ]

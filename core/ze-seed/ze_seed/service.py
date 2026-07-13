@@ -36,7 +36,9 @@ class DevDataSeeder:
                 await domain.clear(ctx)
                 log.debug("seed_domain_cleared", domain=domain.name)
             except Exception as exc:
-                log.error("seed_domain_clear_failed", domain=domain.name, error=str(exc))
+                log.error(
+                    "seed_domain_clear_failed", domain=domain.name, error=str(exc)
+                )
                 raise
 
 
@@ -46,4 +48,9 @@ def collect_seed_domains(plugins: list[Any]) -> list[SeedDomain]:
     from ze_seed.domains.memory import memory_seed_domains
 
     plugin_domains = [d for plugin in plugins for d in plugin.seed_domains()]
-    return memory_seed_domains() + automation_seed_domains() + engine_seed_domains() + plugin_domains
+    return (
+        memory_seed_domains()
+        + automation_seed_domains()
+        + engine_seed_domains()
+        + plugin_domains
+    )

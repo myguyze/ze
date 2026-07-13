@@ -52,5 +52,7 @@ async def _apply_personal(ctx: SeedContext) -> int:
 
 def personal_seed_domains() -> list[SeedDomain]:
     return [
-        SeedDomain("personal.dev", seed_order=30, clear=_clear_personal, apply=_apply_personal),
+        SeedDomain(
+            "personal.dev", seed_order=30, clear=_clear_personal, apply=_apply_personal
+        ),
     ]

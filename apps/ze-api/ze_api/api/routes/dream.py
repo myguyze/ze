@@ -2,7 +2,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ze_api.api.dependencies import get_dream_store, get_pool, get_embedder, require_api_key
+from ze_api.api.dependencies import (
+    get_dream_store,
+    get_pool,
+    get_embedder,
+    require_api_key,
+)
 from ze_api.api.schemas import (
     DreamArtifactResponse,
     DreamJournalEntryResponse,
@@ -18,7 +23,11 @@ router = APIRouter(
 )
 
 
-def _get_promoter(pool=Depends(get_pool), dream_store=Depends(get_dream_store), embedder=Depends(get_embedder)) -> DreamPromoter:
+def _get_promoter(
+    pool=Depends(get_pool),
+    dream_store=Depends(get_dream_store),
+    embedder=Depends(get_embedder),
+) -> DreamPromoter:
     return DreamPromoter(pool=pool, dream_store=dream_store, embedder=embedder)
 
 
@@ -124,7 +133,9 @@ async def revise_dream_artifact(
     row = await dream_store.get_artifact_row(artifact_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Artifact not found")
-    await promoter.apply_user_decision(artifact_id, "revise", revised_content=body.content)
+    await promoter.apply_user_decision(
+        artifact_id, "revise", revised_content=body.content
+    )
     updated = await dream_store.get_artifact_row(artifact_id)
     return DreamArtifactResponse.model_validate(updated)
 

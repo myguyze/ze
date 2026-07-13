@@ -6,7 +6,13 @@ from uuid import uuid4
 import pytest
 
 from ze_automation.jobs.stuck_goals import StuckGoalJob, _build_message
-from ze_automation.goals.types import Goal, GoalStatus, StuckGoal, VerificationGate, GateStatus
+from ze_automation.goals.types import (
+    Goal,
+    GoalStatus,
+    StuckGoal,
+    VerificationGate,
+    GateStatus,
+)
 
 
 def _goal(title: str = "Learn Rust") -> Goal:
@@ -76,6 +82,7 @@ def _make_job(*, stuck: list[StuckGoal], push_raises: bool = False):
 
 # ── StuckGoalJob.run ──────────────────────────────────────────────────────────
 
+
 async def test_run_no_op_when_no_stuck_goals():
     job, notifier, goal_store = _make_job(stuck=[])
     await job.run()
@@ -109,6 +116,7 @@ async def test_run_does_not_mark_alerted_if_push_fails():
 
 
 # ── _build_message ────────────────────────────────────────────────────────────
+
 
 def test_build_message_single_active_omits_number_from_labels():
     sg = _active_stuck()
@@ -166,7 +174,9 @@ def test_build_message_active_buttons():
 
 def test_build_message_no_last_milestone():
     g = _goal()
-    sg = StuckGoal(goal=g, kind="active", idle_days=8, last_milestone_title=None, gate=None)
+    sg = StuckGoal(
+        goal=g, kind="active", idle_days=8, last_milestone_title=None, gate=None
+    )
     content, _ = _build_message([sg])
     assert "No steps completed yet" in content
 

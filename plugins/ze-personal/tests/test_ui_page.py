@@ -35,7 +35,9 @@ def test_build_contacts_page_renders_contacts():
 def test_build_contacts_page_includes_email_and_notes():
     tree = build_contacts_page([_person()])
     card_children = tree[0]["children"][0]["children"]
-    texts = [child.get("content") for child in card_children if child.get("type") == "text"]
+    texts = [
+        child.get("content") for child in card_children if child.get("type") == "text"
+    ]
     assert "Maria" in texts
     assert "maria@example.com" in texts
     assert "Met at conference" in texts

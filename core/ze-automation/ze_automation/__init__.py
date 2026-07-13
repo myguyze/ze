@@ -18,7 +18,12 @@ from ze_automation.goals.postgres import PostgresGoalStore
 from ze_automation.goals.suggestion_store import GoalSuggestionStore
 from ze_automation.goals.planner import GoalPlanner
 from ze_automation.goals.executor import GoalExecutor
-from ze_automation.workflow.types import Workflow, WorkflowStep, WorkflowExecution, StepResult
+from ze_automation.workflow.types import (
+    Workflow,
+    WorkflowStep,
+    WorkflowExecution,
+    StepResult,
+)
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.postgres import PostgresWorkflowStore
 from ze_automation.workflow.scheduler import WorkflowScheduler

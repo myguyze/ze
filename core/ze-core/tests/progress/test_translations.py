@@ -1,4 +1,3 @@
-
 from ze_agents.progress.translations import ProgressTranslations
 
 
@@ -41,7 +40,9 @@ class TestLoad:
     def test_load_en(self, tmp_path):
         locales = tmp_path / "locales"
         locales.mkdir()
-        (locales / "en.yaml").write_text("research:\n  searching:\n    - Looking it up...")
+        (locales / "en.yaml").write_text(
+            "research:\n  searching:\n    - Looking it up..."
+        )
         t = ProgressTranslations.load("en", tmp_path)
         assert t.resolve("research.searching") == "Looking it up..."
 
@@ -49,7 +50,9 @@ class TestLoad:
         locales = tmp_path / "locales"
         locales.mkdir()
         (locales / "en.yaml").write_text("research:\n  searching:\n    - Searching...")
-        (locales / "pt.yaml").write_text("research:\n  searching:\n    - A pesquisar...")
+        (locales / "pt.yaml").write_text(
+            "research:\n  searching:\n    - A pesquisar..."
+        )
         t = ProgressTranslations.load("pt", tmp_path)
         assert t.resolve("research.searching") == "A pesquisar..."
 

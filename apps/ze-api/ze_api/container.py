@@ -37,7 +37,10 @@ from ze_core.orchestration.graph import build_graph
 from ze_correlation.bootstrap import build_correlation_stack
 from ze_data.portability.service import DataPortabilityService
 from ze_seed.service import DevDataSeeder, collect_seed_domains
-from ze_ingestion.bootstrap import build_ingestion_stack, import_agent_modules as import_ingestion_agents
+from ze_ingestion.bootstrap import (
+    build_ingestion_stack,
+    import_agent_modules as import_ingestion_agents,
+)
 from ze_memory.policies import build_policy_registry
 from ze_notifications.ntfy import NtfyConfig, NtfyNotifier
 from ze_onboarding import (
@@ -63,7 +66,11 @@ from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.compose import register_all_proactive_jobs
 from ze_api.db import create_checkpointer_pool, create_pool
 from ze_api.interface.native import NativeAppInterface
-from ze_api.webhook import EventDeduplicator, WebhookDispatcher, collect_plugin_webhook_handlers
+from ze_api.webhook import (
+    EventDeduplicator,
+    WebhookDispatcher,
+    collect_plugin_webhook_handlers,
+)
 from ze_logging import get_logger
 from ze_api.settings import Settings, get_settings
 import ze_components.tools  # noqa: F401 — registers all render tools at import time
@@ -246,20 +253,22 @@ async def build_container(settings: Settings) -> ZeContainer:
     contact_channel_store = ContactChannelStore(pool=pool)
 
     dep_map = dict(shared.dep_map)
-    dep_map.update({
-        Settings: settings,
-        CoreSettings: core_settings,
-        ProactiveNotifier: notifier,
-        PushLogStore: push_log_store,
-        SentenceTransformer: shared.embedder,
-        NLIClient: shared.nli_client,
-        LocalNLIClient: shared.nli_client,
-        BrowserClient: browser_client,
-        UserChannelStore: user_channel_store,
-        ChannelWatermarkStore: watermark_store,
-        ThreadChannelMap: thread_channel_map,
-        ContactChannelStore: contact_channel_store,
-    })
+    dep_map.update(
+        {
+            Settings: settings,
+            CoreSettings: core_settings,
+            ProactiveNotifier: notifier,
+            PushLogStore: push_log_store,
+            SentenceTransformer: shared.embedder,
+            NLIClient: shared.nli_client,
+            LocalNLIClient: shared.nli_client,
+            BrowserClient: browser_client,
+            UserChannelStore: user_channel_store,
+            ChannelWatermarkStore: watermark_store,
+            ThreadChannelMap: thread_channel_map,
+            ContactChannelStore: contact_channel_store,
+        }
+    )
 
     plugins = discover_and_instantiate_plugins(dep_map, settings)
     ingestion = build_ingestion_stack(
@@ -273,10 +282,16 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     locale: str = settings.config.get("locale", "en")
     en_layers = [p.locale_data("en") for p in plugins]
-    target_layers = [p.locale_data(locale) for p in plugins] if locale != "en" else en_layers
-    app_en = ProgressTranslations._load_file(settings.config_dir / "locales" / "en.yaml")
+    target_layers = (
+        [p.locale_data(locale) for p in plugins] if locale != "en" else en_layers
+    )
+    app_en = ProgressTranslations._load_file(
+        settings.config_dir / "locales" / "en.yaml"
+    )
     app_locale = (
-        ProgressTranslations._load_file(settings.config_dir / "locales" / f"{locale}.yaml")
+        ProgressTranslations._load_file(
+            settings.config_dir / "locales" / f"{locale}.yaml"
+        )
         if locale != "en"
         else app_en
     )
@@ -307,7 +322,9 @@ async def build_container(settings: Settings) -> ZeContainer:
 
     # Build ChannelRegistry after plugins (channels come from plugins) but before
     # agent bootstrap so MessengerAgent can receive it via dep injection.
-    channel_registry = ChannelRegistry(channels=[ch for plugin in plugins for ch in plugin.channels()])
+    channel_registry = ChannelRegistry(
+        channels=[ch for plugin in plugins for ch in plugin.channels()]
+    )
     log.info("channel_registry_built", channels=list(channel_registry.available()))
 
     plugin_webhook_handlers = collect_plugin_webhook_handlers(plugins)
@@ -415,7 +432,9 @@ async def build_container(settings: Settings) -> ZeContainer:
             await plugin.startup(container)
             log.info("plugin_started", plugin=type(plugin).__name__)
         except Exception as exc:
-            log.error("plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc))
+            log.error(
+                "plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc)
+            )
             raise
 
     from ze_personal.graph.workflow import build_workflow_graph

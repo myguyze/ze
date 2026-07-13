@@ -55,7 +55,9 @@ class CsvSchemaInferrer:
         self._client = client
         self._store = mapping_store
 
-    async def infer(self, source_id: str, header: list[str], samples: list[list[str]]) -> CsvMapping:
+    async def infer(
+        self, source_id: str, header: list[str], samples: list[list[str]]
+    ) -> CsvMapping:
         cached = await self._store.get(source_id)
         if cached:
             return cached
@@ -63,7 +65,9 @@ class CsvSchemaInferrer:
         await self._store.upsert(source_id, mapping)
         return mapping
 
-    async def _call_llm(self, source_id: str, header: list[str], samples: list[list[str]]) -> CsvMapping:
+    async def _call_llm(
+        self, source_id: str, header: list[str], samples: list[list[str]]
+    ) -> CsvMapping:
         sample_text = "\n".join(", ".join(row) for row in samples[:5])
         prompt = _INFER_PROMPT.format(headers=", ".join(header), samples=sample_text)
         response = await self._client.complete(
@@ -81,8 +85,12 @@ class CsvSchemaInferrer:
             raise FinanceParseError(f"Could not infer column mapping: {exc}") from exc
 
         amount_col = data.get("amount_column")
-        if not amount_col and not (data.get("debit_column") and data.get("credit_column")):
-            raise FinanceParseError("Could not infer column mapping: no amount column identified")
+        if not amount_col and not (
+            data.get("debit_column") and data.get("credit_column")
+        ):
+            raise FinanceParseError(
+                "Could not infer column mapping: no amount column identified"
+            )
 
         return CsvMapping(
             source_id=source_id,
@@ -142,9 +150,13 @@ class CsvDataSource:
         for row_idx, row in enumerate(self._rows, start=2):
             try:
                 date_str = row.get(m.date_column, "").strip()
-                settled_at = datetime.strptime(date_str, m.date_format).replace(tzinfo=timezone.utc)
+                settled_at = datetime.strptime(date_str, m.date_format).replace(
+                    tzinfo=timezone.utc
+                )
             except (ValueError, KeyError) as exc:
-                raise FinanceParseError(f"Date parse error at row {row_idx}: {exc}") from exc
+                raise FinanceParseError(
+                    f"Date parse error at row {row_idx}: {exc}"
+                ) from exc
 
             if settled_at < since:
                 continue
@@ -154,40 +166,58 @@ class CsvDataSource:
                     raw_amount = row[m.amount_column].strip().replace(",", ".")
                     amount = Decimal(raw_amount)
                 elif m.debit_column and m.credit_column:
-                    debit_str = row.get(m.debit_column, "0").strip().replace(",", ".") or "0"
-                    credit_str = row.get(m.credit_column, "0").strip().replace(",", ".") or "0"
+                    debit_str = (
+                        row.get(m.debit_column, "0").strip().replace(",", ".") or "0"
+                    )
+                    credit_str = (
+                        row.get(m.credit_column, "0").strip().replace(",", ".") or "0"
+                    )
                     amount = Decimal(credit_str) - Decimal(debit_str)
                 else:
-                    raise FinanceParseError(f"No amount column resolvable at row {row_idx}")
+                    raise FinanceParseError(
+                        f"No amount column resolvable at row {row_idx}"
+                    )
             except InvalidOperation as exc:
-                raise FinanceParseError(f"Amount parse error at row {row_idx}: {exc}") from exc
+                raise FinanceParseError(
+                    f"Amount parse error at row {row_idx}: {exc}"
+                ) from exc
 
             description = row.get(m.description_column, "").strip()
-            currency = (row.get(m.currency_column, self._currency) if m.currency_column else self._currency).strip() or self._currency
+            currency = (
+                row.get(m.currency_column, self._currency)
+                if m.currency_column
+                else self._currency
+            ).strip() or self._currency
 
-            tx_type = TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
+            tx_type = (
+                TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
+            )
 
             external_id = hashlib.sha256(
                 f"{date_str}:{amount}:{description}".encode()
             ).hexdigest()[:16]
 
-            transactions.append(Transaction(
-                id=f"{self._source_id}:{external_id}",
-                account_id=self._account_id,
-                transaction_type=tx_type,
-                asset=None,
-                quantity=abs(amount),
-                price=Decimal("1"),
-                fees=Decimal("0"),
-                currency=currency,
-                settled_at=settled_at,
-                notes=description,
-            ))
+            transactions.append(
+                Transaction(
+                    id=f"{self._source_id}:{external_id}",
+                    account_id=self._account_id,
+                    transaction_type=tx_type,
+                    asset=None,
+                    quantity=abs(amount),
+                    price=Decimal("1"),
+                    fees=Decimal("0"),
+                    currency=currency,
+                    settled_at=settled_at,
+                    notes=description,
+                )
+            )
 
         return transactions
 
 
-def parse_csv_content(content: str) -> tuple[list[str], list[list[str]], list[dict[str, str]]]:
+def parse_csv_content(
+    content: str,
+) -> tuple[list[str], list[list[str]], list[dict[str, str]]]:
     """Return (header, sample_rows, all_rows_as_dicts)."""
     content = content.lstrip("﻿")
     dialect = csv.Sniffer().sniff(content[:4096], delimiters=",;")

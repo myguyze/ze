@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from uuid import UUID
 
 from ze_seed.narrative.loader import load_persona
 from ze_seed.narrative.ids import (
@@ -92,7 +91,8 @@ def test_load_persona_alex_is_graph_hub():
     narrative = load_persona()
     alex_id = ENTITY_ALEX
     alex_edges = [
-        r for r in narrative.relationships
+        r
+        for r in narrative.relationships
         if r.source_id == alex_id or r.target_id == alex_id
     ]
     assert len(alex_edges) >= 12

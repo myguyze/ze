@@ -60,7 +60,9 @@ class E5Embedder:
         **kwargs,
     ) -> np.ndarray:
         """Compat shim for memory layer callers — treats all inputs as passages."""
-        return self.encode_passage(text, normalize_embeddings=normalize_embeddings, **kwargs)
+        return self.encode_passage(
+            text, normalize_embeddings=normalize_embeddings, **kwargs
+        )
 
 
 @lru_cache(maxsize=1)

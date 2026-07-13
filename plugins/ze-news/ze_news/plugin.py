@@ -62,7 +62,9 @@ class NewsPlugin(ZePlugin):
         nli_credibility_enabled = bool(news_cfg.get("nli_credibility_enabled", False))
         nli_dedup_enabled = bool(news_cfg.get("nli_dedup_enabled", False))
         signals_cfg = settings.config.get("memory", {}).get("signals", {})
-        self._force_ingest_sources: list[str] = signals_cfg.get("force_ingest_sources", [])
+        self._force_ingest_sources: list[str] = signals_cfg.get(
+            "force_ingest_sources", []
+        )
         salience_raw = settings.config.get("correlation", {}).get("salience", {})
         self._salience_cfg = salience_raw if salience_raw else None
 
@@ -185,9 +187,7 @@ class NewsPlugin(ZePlugin):
                 memory_store, container
             )
 
-        container.proactive_scheduler.register(
-            self._fetch_job, cron=self._fetch_cron
-        )
+        container.proactive_scheduler.register(self._fetch_job, cron=self._fetch_cron)
         log.info(
             "news_fetch_scheduled",
             cron=self._fetch_cron,

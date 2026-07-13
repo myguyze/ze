@@ -16,9 +16,11 @@ class YtDlpClient:
             proc = await asyncio.create_subprocess_exec(
                 "yt-dlp",
                 "--extract-audio",
-                "--audio-format", "mp3",
+                "--audio-format",
+                "mp3",
                 "--no-playlist",
-                "-o", str(out),
+                "-o",
+                str(out),
                 url,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

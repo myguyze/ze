@@ -26,19 +26,26 @@ def _planner(response: str) -> GoalPlanner:
 
 
 def _convergence_json(goal: Goal, description: str, suggestion: str) -> str:
-    return json.dumps({
-        "overlapping_goal_id": str(goal.id),
-        "overlapping_goal_title": goal.title,
-        "overlap_description": description,
-        "suggestion": suggestion,
-    })
+    return json.dumps(
+        {
+            "overlapping_goal_id": str(goal.id),
+            "overlapping_goal_title": goal.title,
+            "overlap_description": description,
+            "suggestion": suggestion,
+        }
+    )
 
 
 # ── detect_convergence ────────────────────────────────────────────────────────
 
+
 async def test_detect_convergence_returns_convergence_on_overlap():
-    active = _goal(title="Research SaaS competitors", objective="Identify top 10 SaaS competitors")
-    planner = _planner(_convergence_json(active, "Both goals research SaaS market.", "share outputs"))
+    active = _goal(
+        title="Research SaaS competitors", objective="Identify top 10 SaaS competitors"
+    )
+    planner = _planner(
+        _convergence_json(active, "Both goals research SaaS market.", "share outputs")
+    )
 
     result = await planner.detect_convergence(_goal(), [active])
 
@@ -85,12 +92,16 @@ async def test_detect_convergence_truncates_long_fields():
     active = _goal()
     long_description = "x" * 500
     long_suggestion = "y" * 200
-    planner = _planner(json.dumps({
-        "overlapping_goal_id": str(active.id),
-        "overlapping_goal_title": active.title,
-        "overlap_description": long_description,
-        "suggestion": long_suggestion,
-    }))
+    planner = _planner(
+        json.dumps(
+            {
+                "overlapping_goal_id": str(active.id),
+                "overlapping_goal_title": active.title,
+                "overlap_description": long_description,
+                "suggestion": long_suggestion,
+            }
+        )
+    )
 
     result = await planner.detect_convergence(_goal(), [active])
 

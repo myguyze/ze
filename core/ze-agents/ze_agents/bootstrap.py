@@ -78,7 +78,9 @@ def _plugin_agent_module_paths(plugins: list[Any]) -> list[str]:
 
 def reload_agent_modules(module_paths: list[str]) -> None:
     if not module_paths:
-        raise AgentConfigError("reload_agent_modules() requires a non-empty module_paths list")
+        raise AgentConfigError(
+            "reload_agent_modules() requires a non-empty module_paths list"
+        )
 
     from ze_agents.registry import _instances, _registry
     from ze_agents.tool import clear_tool_registry
@@ -99,9 +101,8 @@ def _resolve_annotation(annotation: Any, dep_map: dict) -> tuple[bool, Any]:
     origin = getattr(annotation, "__origin__", None)
     args = getattr(annotation, "__args__", ())
 
-    is_optional_union = (
-        (origin is typing.Union and type(None) in args)
-        or (isinstance(annotation, _types.UnionType) and type(None) in args)
+    is_optional_union = (origin is typing.Union and type(None) in args) or (
+        isinstance(annotation, _types.UnionType) and type(None) in args
     )
     if is_optional_union:
         inner_types = [a for a in args if a is not type(None)]

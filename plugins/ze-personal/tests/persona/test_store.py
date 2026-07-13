@@ -68,6 +68,7 @@ def make_row(profile="default", dials=None, updated_at=None):
 
 # ── get_active ────────────────────────────────────────────────────────────────
 
+
 async def test_get_active_returns_default_profile_when_no_overrides():
     conn = make_conn()
     conn.fetchrow = AsyncMock(return_value=make_row("default", dials={}))
@@ -118,6 +119,7 @@ async def test_get_active_falls_back_gracefully_when_db_row_absent():
 
 # ── set_profile ───────────────────────────────────────────────────────────────
 
+
 async def test_set_profile_executes_update():
     conn = make_conn()
     store = make_store(pool=make_pool(conn))
@@ -137,6 +139,7 @@ async def test_set_profile_raises_for_unknown_name():
 
 
 # ── set_dial ─────────────────────────────────────────────────────────────────
+
 
 async def test_set_dial_executes_update():
     conn = make_conn()
@@ -166,6 +169,7 @@ async def test_set_dial_raises_for_out_of_range_value():
 
 # ── reset_dials ───────────────────────────────────────────────────────────────
 
+
 async def test_reset_dials_executes_update():
     conn = make_conn()
     store = make_store(pool=make_pool(conn))
@@ -178,6 +182,7 @@ async def test_reset_dials_executes_update():
 
 
 # ── available_profiles ────────────────────────────────────────────────────────
+
 
 def test_available_profiles_returns_yaml_keys():
     store = make_store()

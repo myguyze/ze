@@ -13,7 +13,19 @@ from ze_plugin.api_auth import require_api_key
 API_KEY = "test-key"
 
 _PRIMITIVE_TYPE_NAMES = frozenset(
-    {"col", "row", "text", "badge", "divider", "spacer", "button", "progress", "table", "form", "connections"}
+    {
+        "col",
+        "row",
+        "text",
+        "badge",
+        "divider",
+        "spacer",
+        "button",
+        "progress",
+        "table",
+        "form",
+        "connections",
+    }
 )
 
 
@@ -22,7 +34,9 @@ def _assert_valid_tree(nodes: list) -> None:
     for node in nodes:
         assert isinstance(node, dict), f"tree node must be a dict, got {type(node)}"
         assert "type" in node, f"tree node missing 'type': {node}"
-        assert node["type"] in _PRIMITIVE_TYPE_NAMES, f"unknown primitive type {node['type']!r}"
+        assert node["type"] in _PRIMITIVE_TYPE_NAMES, (
+            f"unknown primitive type {node['type']!r}"
+        )
         for child_key in ("children", "fields", "connections"):
             if child_key in node and isinstance(node[child_key], list):
                 _assert_valid_tree(node[child_key])
@@ -46,8 +60,12 @@ async def test_get_news_page_returns_tree():
     store.get_recent = AsyncMock(return_value=[])
     app = _make_app(store)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/news/page", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/news/page", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
 
     assert resp.status_code == 200
     data = resp.json()
@@ -60,16 +78,27 @@ async def test_get_news_page_returns_tree():
 @pytest.mark.asyncio
 async def test_get_news_settings_returns_tree():
     app = FastAPI()
-    app.state.container = SimpleNamespace(_plugin_stores={}, settings=SimpleNamespace(ze_api_key=API_KEY))
+    app.state.container = SimpleNamespace(
+        _plugin_stores={}, settings=SimpleNamespace(ze_api_key=API_KEY)
+    )
     app.state.settings = SimpleNamespace(
         ze_api_key=API_KEY,
-        config={"news": {"enabled": True, "sources": [{"key": "bbc", "url": "https://x", "tags": []}]}},
+        config={
+            "news": {
+                "enabled": True,
+                "sources": [{"key": "bbc", "url": "https://x", "tags": []}],
+            }
+        },
     )
     app.dependency_overrides[require_api_key] = lambda: None
     app.include_router(router)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/news/settings", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/news/settings", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
 
     assert resp.status_code == 200
     data = resp.json()
@@ -81,7 +110,11 @@ async def test_get_news_settings_returns_tree():
 @pytest.mark.asyncio
 async def test_list_news_returns_empty_without_store():
     app = _make_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/news", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/news", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
     assert resp.status_code == 200
     assert resp.json() == []

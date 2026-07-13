@@ -13,6 +13,7 @@ from ze_personal.contacts.types import Person, PersonRelationship, PersonSource
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_conn():
     conn = AsyncMock()
     conn.fetch = AsyncMock(return_value=[])
@@ -74,6 +75,7 @@ def make_source_row(**overrides):
 
 # ── _person_from_row ──────────────────────────────────────────────────────────
 
+
 def test_person_from_row_maps_fields():
     row = make_person_row()
     person = _person_from_row(row)
@@ -87,7 +89,9 @@ def test_person_from_row_maps_fields():
 
 
 def test_person_from_row_handles_null_optionals():
-    row = make_person_row(relationship_to_user=None, notes=None, contact_info=None, aliases=None)
+    row = make_person_row(
+        relationship_to_user=None, notes=None, contact_info=None, aliases=None
+    )
     person = _person_from_row(row)
 
     assert person.relationship_to_user == ""
@@ -102,6 +106,7 @@ def test_contact_info_from_row_parses_json_string():
 
 # ── _source_from_row ──────────────────────────────────────────────────────────
 
+
 def test_source_from_row_maps_fields():
     row = make_source_row()
     source = _source_from_row(row)
@@ -113,6 +118,7 @@ def test_source_from_row_maps_fields():
 
 
 # ── PersonStore.upsert ────────────────────────────────────────────────────────
+
 
 async def test_upsert_insert_new_person():
     row = make_person_row(id=uuid4(), confirmed=False)
@@ -146,6 +152,7 @@ async def test_upsert_updates_existing_person():
 
 # ── PersonStore.get ───────────────────────────────────────────────────────────
 
+
 async def test_get_returns_person_when_found():
     person_id = uuid4()
     row = make_person_row(id=person_id)
@@ -170,6 +177,7 @@ async def test_get_returns_none_when_not_found():
 
 
 # ── PersonStore.confirm ───────────────────────────────────────────────────────
+
 
 async def test_confirm_sets_confirmed_true():
     person_id = uuid4()
@@ -199,6 +207,7 @@ async def test_confirm_raises_when_not_found():
 
 # ── PersonStore.dismiss ───────────────────────────────────────────────────────
 
+
 async def test_dismiss_executes_update():
     person_id = uuid4()
     conn = make_conn()
@@ -212,6 +221,7 @@ async def test_dismiss_executes_update():
 
 
 # ── PersonStore.add_source ────────────────────────────────────────────────────
+
 
 async def test_add_source_inserts_and_updates_confidence():
     person_id = uuid4()
@@ -235,6 +245,7 @@ async def test_add_source_inserts_and_updates_confidence():
 
 # ── PersonStore.get_pending ───────────────────────────────────────────────────
 
+
 async def test_get_pending_returns_empty_when_none():
     conn = make_conn()
     conn.fetch = AsyncMock(return_value=[])
@@ -248,7 +259,9 @@ async def test_get_pending_returns_empty_when_none():
 async def test_get_pending_returns_candidates_with_sources():
     person_id = uuid4()
     person_row = make_person_row(id=person_id, confirmed=False, dismissed=False)
-    source_row = make_source_row(contact_id=person_id, source_type="research", weight=0.2)
+    source_row = make_source_row(
+        contact_id=person_id, source_type="research", weight=0.2
+    )
 
     conn = make_conn()
     conn.fetch = AsyncMock(side_effect=[[person_row], [source_row]])
@@ -264,6 +277,7 @@ async def test_get_pending_returns_candidates_with_sources():
 
 
 # ── PersonStore.get_context ───────────────────────────────────────────────────
+
 
 async def test_get_context_returns_empty_when_no_contacts():
     conn = make_conn()
@@ -296,6 +310,7 @@ async def test_get_context_respects_token_budget():
 
 
 # ── PersonStore.add_relationship ─────────────────────────────────────────────
+
 
 async def test_add_relationship_upserts():
     a_id, b_id = uuid4(), uuid4()

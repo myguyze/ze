@@ -50,7 +50,9 @@ class PersonalOnboardingProvider:
         self,
         submission: OnboardingSubmission,
     ) -> OnboardingResult:
-        communication_style = str(submission.values.get("communication_style") or "").strip()
+        communication_style = str(
+            submission.values.get("communication_style") or ""
+        ).strip()
         current_goals = str(submission.values.get("current_goals") or "").strip()
         important_people = str(submission.values.get("important_people") or "").strip()
 

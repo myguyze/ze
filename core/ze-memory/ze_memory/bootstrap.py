@@ -37,7 +37,9 @@ class DreamInactivityWatcher:
         if self._running:
             return
         cfg = self._cfg()
-        threshold_hours = int(cfg.get("inactivity_threshold_hours", _DEFAULT_INACTIVITY_THRESHOLD_HOURS))
+        threshold_hours = int(
+            cfg.get("inactivity_threshold_hours", _DEFAULT_INACTIVITY_THRESHOLD_HOURS)
+        )
 
         async with self._pool.acquire() as conn:
             session_row = await conn.fetchrow(
@@ -51,7 +53,9 @@ class DreamInactivityWatcher:
                 """
             )
 
-        last_active: datetime | None = session_row["last_active"] if session_row else None
+        last_active: datetime | None = (
+            session_row["last_active"] if session_row else None
+        )
         last_run: datetime | None = run_row["finished_at"] if run_row else None
 
         if last_active is None:
@@ -98,8 +102,15 @@ def register_dream_jobs(
     log.info("dream_job_scheduled", cron=cron)
 
     if pool is not None and cfg.get("inactivity_trigger_enabled", False):
-        watcher = DreamInactivityWatcher(pool=pool, dream_job=dream_job, settings=settings)
-        interval = int(cfg.get("inactivity_check_interval_minutes", _DEFAULT_INACTIVITY_CHECK_INTERVAL_MINUTES))
+        watcher = DreamInactivityWatcher(
+            pool=pool, dream_job=dream_job, settings=settings
+        )
+        interval = int(
+            cfg.get(
+                "inactivity_check_interval_minutes",
+                _DEFAULT_INACTIVITY_CHECK_INTERVAL_MINUTES,
+            )
+        )
         scheduler.add_cron_job(
             fn=watcher.check,
             cron=f"*/{interval} * * * *",
@@ -139,8 +150,14 @@ def register_memory_jobs(
     )
     log.info("consolidation_scheduled", cron=nightly_cron)
 
-    _ss_cfg = (getattr(settings, "config", {}) or {}).get("memory", {}).get("session_summary", {})
-    _ss_interval = int(_ss_cfg.get("check_interval_minutes", SESSION_SUMMARY_CHECK_INTERVAL_MINUTES))
+    _ss_cfg = (
+        (getattr(settings, "config", {}) or {})
+        .get("memory", {})
+        .get("session_summary", {})
+    )
+    _ss_interval = int(
+        _ss_cfg.get("check_interval_minutes", SESSION_SUMMARY_CHECK_INTERVAL_MINUTES)
+    )
     _ss_enabled = _ss_cfg.get("enabled", True)
     if _ss_enabled:
         scheduler.add_cron_job(

@@ -49,7 +49,9 @@ def _deserialize_credibility(raw: str | None) -> CredibilityReport | None:
         analyzed_at = None
         if data.get("analyzed_at"):
             try:
-                analyzed_at = datetime.fromisoformat(data["analyzed_at"].replace("Z", "+00:00"))
+                analyzed_at = datetime.fromisoformat(
+                    data["analyzed_at"].replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 pass
         return CredibilityReport(
@@ -64,27 +66,33 @@ def _deserialize_credibility(raw: str | None) -> CredibilityReport | None:
 
 
 def _serialize_credibility(report: CredibilityReport) -> str:
-    return json.dumps({
-        "flags": [
-            {
-                "type": f.type,
-                "label": f.label,
-                "detail": f.detail,
-                "source": f.source,
-                "confidence": f.confidence,
-                "lang": f.lang,
-            }
-            for f in report.flags
-        ],
-        "status": report.status,
-        "analyzed_at": report.analyzed_at.isoformat() if report.analyzed_at else None,
-        "model": report.model,
-        "prompt_version": report.prompt_version,
-    })
+    return json.dumps(
+        {
+            "flags": [
+                {
+                    "type": f.type,
+                    "label": f.label,
+                    "detail": f.detail,
+                    "source": f.source,
+                    "confidence": f.confidence,
+                    "lang": f.lang,
+                }
+                for f in report.flags
+            ],
+            "status": report.status,
+            "analyzed_at": report.analyzed_at.isoformat()
+            if report.analyzed_at
+            else None,
+            "model": report.model,
+            "prompt_version": report.prompt_version,
+        }
+    )
 
 
 def _row_to_article(row: asyncpg.Record) -> Article:
-    credibility_raw = row["credibility_analysis"] if "credibility_analysis" in row.keys() else None
+    credibility_raw = (
+        row["credibility_analysis"] if "credibility_analysis" in row.keys() else None
+    )
     return Article(
         url=row["url"],
         source_key=row["source_key"],
@@ -291,15 +299,14 @@ class NewsStore:
         min_facts: int = _MIN_FACTS_DEFAULT,
     ) -> tuple[list[Article], list[Article]]:
         include_preferences = [
-            p for p in ctx.preferences
-            if p.polarity == "include" and p.topic.strip()
+            p for p in ctx.preferences if p.polarity == "include" and p.topic.strip()
         ]
         query_preferences = [p for p in include_preferences if p.source == "query"]
         has_structured_preferences = bool(ctx.preferences)
 
         if has_structured_preferences:
-            has_enough_preferences = (
-                len(include_preferences) >= min_facts or bool(query_preferences)
+            has_enough_preferences = len(include_preferences) >= min_facts or bool(
+                query_preferences
             )
             if not has_enough_preferences:
                 articles = await self.get_recent(limit=limit, tags=tags)
@@ -365,19 +372,14 @@ class NewsStore:
         ctx: PersonalizationContext,
     ) -> list[tuple[Article, float]]:
         include_preferences = [
-            p for p in ctx.preferences
-            if p.polarity == "include" and p.topic.strip()
+            p for p in ctx.preferences if p.polarity == "include" and p.topic.strip()
         ]
         query_preferences = [p for p in include_preferences if p.source == "query"]
         stored_preferences = [p for p in include_preferences if p.source != "query"]
 
-        query_vectors = [
-            (p, self._embedder.encode(p.topic))
-            for p in query_preferences
-        ]
+        query_vectors = [(p, self._embedder.encode(p.topic)) for p in query_preferences]
         preference_vectors = [
-            (p, self._embedder.encode(p.topic))
-            for p in stored_preferences
+            (p, self._embedder.encode(p.topic)) for p in stored_preferences
         ]
 
         newest = max((a.published_at for a in articles), default=None)
@@ -389,10 +391,12 @@ class NewsStore:
             query_score = _weighted_similarity(article_vec, query_vectors)
             preference_score = _weighted_similarity(article_vec, preference_vectors)
             freshness_score = _freshness_score(article.published_at, oldest, newest)
-            scored.append((
-                article,
-                (1.5 * query_score) + preference_score + (0.1 * freshness_score),
-            ))
+            scored.append(
+                (
+                    article,
+                    (1.5 * query_score) + preference_score + (0.1 * freshness_score),
+                )
+            )
         return scored
 
     def _apply_topic_cap(
@@ -424,7 +428,7 @@ class NewsStore:
         relevant_articles = ranked[:n_relevant]
         n_discovery = limit - len(relevant_articles)
         discovery_articles = sorted(
-            ranked[n_relevant:n_relevant + n_discovery],
+            ranked[n_relevant : n_relevant + n_discovery],
             key=lambda a: a.published_at,
             reverse=True,
         )
@@ -447,11 +451,9 @@ class NewsStore:
                 seen.add(key)
                 patterns.append(pattern)
         return [
-            a for a in articles
-            if not any(
-                p.search(a.title) or p.search(a.summary)
-                for p in patterns
-            )
+            a
+            for a in articles
+            if not any(p.search(a.title) or p.search(a.summary) for p in patterns)
         ]
 
     async def prune(self, older_than_days: int) -> int:

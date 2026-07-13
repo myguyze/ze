@@ -182,7 +182,11 @@ class TransactionStore:
         until: datetime,
         account_id: str | None = None,
     ) -> list[SpendingSummary]:
-        conditions = ["settled_at >= $1", "settled_at <= $2", "transaction_type IN ('deposit', 'withdrawal', 'fee')"]
+        conditions = [
+            "settled_at >= $1",
+            "settled_at <= $2",
+            "transaction_type IN ('deposit', 'withdrawal', 'fee')",
+        ]
         params: list = [since, until]
         idx = 3
         if account_id:
@@ -222,7 +226,9 @@ class TransactionStore:
             return row["last_at"]
         return None
 
-    async def update_category(self, external_id: str, account_id: str, category: str, source: str) -> None:
+    async def update_category(
+        self, external_id: str, account_id: str, category: str, source: str
+    ) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 """
@@ -322,7 +328,9 @@ def _row_to_transaction(row: asyncpg.Record) -> Transaction:
         asset = Asset(
             ticker=row["ticker"],
             name=row["asset_name"] or row["ticker"],
-            asset_class=AssetClass(row["asset_class"]) if row["asset_class"] else AssetClass.EQUITY,
+            asset_class=AssetClass(row["asset_class"])
+            if row["asset_class"]
+            else AssetClass.EQUITY,
             currency=row["currency"],
         )
     return Transaction(

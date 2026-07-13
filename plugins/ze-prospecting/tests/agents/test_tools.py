@@ -59,12 +59,14 @@ async def test_browser_extract_tool_returns_text():
     from ze_browser.tool import browser_extract
 
     browser_client = AsyncMock()
-    browser_client.extract = AsyncMock(return_value=BrowserResult(
-        url="https://example.com",
-        title="Test",
-        text="A" * 100,
-        status_code=200,
-    ))
+    browser_client.extract = AsyncMock(
+        return_value=BrowserResult(
+            url="https://example.com",
+            title="Test",
+            text="A" * 100,
+            status_code=200,
+        )
+    )
 
     with patch("ze_browser.tool.asyncio.sleep"):
         tc = await browser_extract(
@@ -83,12 +85,14 @@ async def test_browser_extract_tool_truncates_text():
 
     long_text = "x" * 20_000
     browser_client = AsyncMock()
-    browser_client.extract = AsyncMock(return_value=BrowserResult(
-        url="https://example.com",
-        title="Test",
-        text=long_text,
-        status_code=200,
-    ))
+    browser_client.extract = AsyncMock(
+        return_value=BrowserResult(
+            url="https://example.com",
+            title="Test",
+            text=long_text,
+            status_code=200,
+        )
+    )
 
     with patch("ze_browser.tool.asyncio.sleep"):
         tc = await browser_extract(
@@ -105,12 +109,14 @@ async def test_browser_extract_blocked_returns_skip_msg():
     from ze_browser.tool import browser_extract, _BLOCKED_MSG
 
     browser_client = AsyncMock()
-    browser_client.extract = AsyncMock(return_value=BrowserResult(
-        url="https://example.com",
-        title="Blocked",
-        text="",
-        status_code=403,
-    ))
+    browser_client.extract = AsyncMock(
+        return_value=BrowserResult(
+            url="https://example.com",
+            title="Blocked",
+            text="",
+            status_code=403,
+        )
+    )
 
     with patch("ze_browser.tool.asyncio.sleep"):
         tc = await browser_extract(
@@ -128,12 +134,14 @@ async def test_browser_extract_tool_rate_limit():
     from ze_browser.tool import browser_extract
 
     browser_client = AsyncMock()
-    browser_client.extract = AsyncMock(return_value=BrowserResult(
-        url="https://example.com",
-        title="Test",
-        text="hello",
-        status_code=200,
-    ))
+    browser_client.extract = AsyncMock(
+        return_value=BrowserResult(
+            url="https://example.com",
+            title="Test",
+            text="hello",
+            status_code=200,
+        )
+    )
 
     sleep_calls: list = []
 
@@ -176,6 +184,7 @@ async def test_browser_extract_error_returns_error_string():
 
 
 # ── add_prospect ──────────────────────────────────────────────────────────────
+
 
 async def test_add_prospect_new_person():
     from ze_prospecting.agents.tools import add_prospect
@@ -267,6 +276,7 @@ async def test_add_prospect_stores_enrichment_notes():
 
 # ── draft_outreach ────────────────────────────────────────────────────────────
 
+
 async def test_draft_outreach_tool():
     from ze_prospecting.agents.tools import draft_outreach
 
@@ -276,7 +286,9 @@ async def test_draft_outreach_tool():
     campaign_id = str(uuid4())
 
     client = AsyncMock()
-    client.complete = AsyncMock(return_value="Hi João, reaching out about charter opportunities...")
+    client.complete = AsyncMock(
+        return_value="Hi João, reaching out about charter opportunities..."
+    )
 
     result = await draft_outreach(
         name="João Silva",
@@ -317,6 +329,7 @@ async def test_draft_outreach_no_contact_returns_error():
 
 # ── log_outreach_event ────────────────────────────────────────────────────────
 
+
 async def test_log_outreach_event_sent():
     from ze_prospecting.agents.tools import log_outreach_event
 
@@ -335,7 +348,9 @@ async def test_log_outreach_event_sent():
     )
 
     assert "Maria Santos" in result
-    cs.log_outreach_event.assert_called_once_with(outreach_id, "sent", "Sent intro email", "sent_at")
+    cs.log_outreach_event.assert_called_once_with(
+        outreach_id, "sent", "Sent intro email", "sent_at"
+    )
 
 
 async def test_log_outreach_event_no_campaign_row_returns_not_a_prospect():

@@ -7,6 +7,7 @@ from typing import Any
 @dataclass
 class RawInput:
     """Unprocessed input from any transport layer."""
+
     text: str | None = None
     audio: bytes | None = None
     audio_mime: str | None = None  # e.g. "audio/ogg; codecs=opus"
@@ -17,8 +18,9 @@ class RawInput:
 @dataclass
 class ProcessedInput:
     """Normalised input ready for graph invocation."""
+
     prompt: str
-    input_modality: str = "text"   # "text" | "voice" | "image"
+    input_modality: str = "text"  # "text" | "voice" | "image"
     image_data: bytes | None = None
     image_mime: str | None = None
 
@@ -47,6 +49,7 @@ class ConfirmationResponse:
 @dataclass
 class Action:
     """A labelled button the user can tap in a notification."""
+
     label: str
     payload: str  # opaque string passed back by the transport layer
     row: int = 0  # buttons sharing the same row value appear in the same keyboard row
@@ -55,7 +58,7 @@ class Action:
 @dataclass
 class Notification:
     content: str
-    format: str = "text"    # "text" | "markdown"
+    format: str = "text"  # "text" | "markdown"
     urgency: str = "normal"  # "normal" | "high"
     actions: list[Action] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -64,6 +67,7 @@ class Notification:
 @dataclass
 class InvokeResult:
     """Return value from Container.invoke() and Container.resume()."""
+
     session_id: str
     response: str | None = None
     confirmation_pending: bool = False

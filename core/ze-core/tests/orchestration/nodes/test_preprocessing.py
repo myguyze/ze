@@ -32,7 +32,9 @@ class TestCapabilityKeysBypassResolver:
 
         assert client.transcribe.call_args.kwargs["model"] == "pinned-whisper-model"
 
-    async def test_vision_caption_uses_models_vision_caption_regardless_of_default(self):
+    async def test_vision_caption_uses_models_vision_caption_regardless_of_default(
+        self,
+    ):
         client = AsyncMock()
         client.complete = AsyncMock(return_value="a caption")
         settings = {

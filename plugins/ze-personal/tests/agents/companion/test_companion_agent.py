@@ -10,6 +10,7 @@ from ze_sdk.memory import MemoryContext, Fact
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_settings():
     return Settings(
         openrouter_api_key="test-key",
@@ -29,8 +30,11 @@ def make_client(response: str = "I'm here to help.") -> AsyncMock:
     return client
 
 
-def make_ctx(prompt: str = "how are you?", memory: MemoryContext | None = None) -> AgentContext:
+def make_ctx(
+    prompt: str = "how are you?", memory: MemoryContext | None = None
+) -> AgentContext:
     from ze_personal.persona.identity import build_identity_block
+
     return AgentContext(
         session_id="s1",
         prompt=prompt,
@@ -70,12 +74,15 @@ def make_agent(client=None) -> CompanionAgent:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
+
 def test_companion_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "companion" in _registry
 
 
 # ── run() ─────────────────────────────────────────────────────────────────────
+
 
 async def test_run_returns_agent_result():
     agent = make_agent()
@@ -109,9 +116,11 @@ async def test_run_sends_prompt_as_user_message():
     captured: list[list] = []
 
     client = AsyncMock()
+
     async def _complete(messages, **kwargs):
         captured.append(messages)
         return "ok"
+
     client.complete = _complete
 
     agent = make_agent(client=client)
@@ -126,10 +135,12 @@ async def test_run_injects_memory_facts_into_system_prompt():
     captured_system: list[str] = []
 
     client = AsyncMock()
+
     async def _complete(messages, system=None, **kwargs):
         if system:
             captured_system.append(system)
         return "ok"
+
     client.complete = _complete
 
     agent = make_agent(client=client)
@@ -143,10 +154,12 @@ async def test_run_no_memory_shows_none_placeholder():
     captured_system: list[str] = []
 
     client = AsyncMock()
+
     async def _complete(messages, system=None, **kwargs):
         if system:
             captured_system.append(system)
         return "ok"
+
     client.complete = _complete
 
     agent = make_agent(client=client)
@@ -159,9 +172,11 @@ async def test_run_uses_model_from_settings():
     captured_models: list[str] = []
 
     client = AsyncMock()
+
     async def _complete(messages, model=None, **kwargs):
         captured_models.append(model)
         return "ok"
+
     client.complete = _complete
 
     agent = make_agent(client=client)
@@ -172,6 +187,7 @@ async def test_run_uses_model_from_settings():
 
 
 # ── stream() ─────────────────────────────────────────────────────────────────
+
 
 async def test_stream_yields_tokens():
     client = make_client("hello world friend")
@@ -188,6 +204,7 @@ async def test_stream_reconstructs_response():
 
 
 # ── _detect_outreach_event ────────────────────────────────────────────────────
+
 
 def test_detect_outreach_event_sent():
     result = _detect_outreach_event("I sent an email to Carlos Mendes yesterday")
@@ -212,6 +229,7 @@ def test_detect_outreach_event_no_name():
 
 
 # ── AgentContext ──────────────────────────────────────────────────────────────
+
 
 def test_agent_context_defaults():
     ctx = AgentContext(session_id="x", prompt="hi", intent="reason")

@@ -29,11 +29,11 @@ class CorrelationPushConsumer:
         self,
         engine: CorrelationEngine,
         hypothesis_store: PostgresHypothesisStore,
-        memory_store: Any,    # PostgresMemoryStore — for seed selection
-        notifier: Any,        # ProactiveNotifier
-        push_log: Any,        # PushLogStore
+        memory_store: Any,  # PostgresMemoryStore — for seed selection
+        notifier: Any,  # ProactiveNotifier
+        push_log: Any,  # PushLogStore
         settings: Any,
-        embedder: Any = None, # SentenceTransformer — for novelty gate
+        embedder: Any = None,  # SentenceTransformer — for novelty gate
         nli_client: NLIClient | None = None,
     ) -> None:
         self._engine = engine
@@ -78,7 +78,9 @@ class CorrelationPushConsumer:
     async def _pick_seeds(self) -> list[UUID]:
         since = datetime.now(UTC) - timedelta(hours=self._cfg.seed_lookback_hours)
         try:
-            return await self._memory.list_recent_signal_ids(since, self._cfg.max_seeds_per_run)
+            return await self._memory.list_recent_signal_ids(
+                since, self._cfg.max_seeds_per_run
+            )
         except Exception as exc:
             log.warning("correlation_push_seed_fetch_failed", error=str(exc))
             return []
@@ -131,7 +133,9 @@ class CorrelationPushConsumer:
         try:
             pairs = [(label, hypothesis.summary) for label in labels]
             scores = await self._nli.scores(pairs)
-            grounded = self._nli.grounding_score(hypothesis.summary, labels, scores=scores)
+            grounded = self._nli.grounding_score(
+                hypothesis.summary, labels, scores=scores
+            )
             threshold = float(
                 nli_config(self._settings).get("nli_grounding_threshold", 0.30)
             )
@@ -151,17 +155,20 @@ class CorrelationPushConsumer:
         if self._embedder is None:
             return True
         try:
-            recent_summaries = await self._hypothesis_store.list_recently_surfaced_summaries(
-                _NOVELTY_LOOKBACK_HOURS
+            recent_summaries = (
+                await self._hypothesis_store.list_recently_surfaced_summaries(
+                    _NOVELTY_LOOKBACK_HOURS
+                )
             )
             if not recent_summaries:
                 return True
             new_vec = self._embedder.encode(hypothesis.summary)
             for summary in recent_summaries:
                 existing_vec = self._embedder.encode(summary)
-                similarity = float(np.dot(new_vec, existing_vec) / (
-                    np.linalg.norm(new_vec) * np.linalg.norm(existing_vec) + 1e-9
-                ))
+                similarity = float(
+                    np.dot(new_vec, existing_vec)
+                    / (np.linalg.norm(new_vec) * np.linalg.norm(existing_vec) + 1e-9)
+                )
                 if similarity > self._cfg.novelty_similarity_max:
                     log.info(
                         "correlation_push_novelty_failed",
@@ -184,8 +191,14 @@ class CorrelationPushConsumer:
 
 class _PushConfig:
     __slots__ = (
-        "enabled", "dry_run", "max_seeds_per_run", "seed_lookback_hours",
-        "max_pushes_per_day", "tau_push", "tau_relevance", "novelty_similarity_max",
+        "enabled",
+        "dry_run",
+        "max_seeds_per_run",
+        "seed_lookback_hours",
+        "max_pushes_per_day",
+        "tau_push",
+        "tau_relevance",
+        "novelty_similarity_max",
     )
 
     def __init__(self, **kwargs: object) -> None:
@@ -201,7 +214,9 @@ def _load_config(settings: Any) -> _PushConfig:
         budget = raw.get("correlation", {}).get("salience", {}).get("budget", {})
     elif isinstance(settings, dict):
         push_cfg = settings.get("correlation", {}).get("push", {})
-        surfacing = settings.get("correlation", {}).get("salience", {}).get("surfacing", {})
+        surfacing = (
+            settings.get("correlation", {}).get("salience", {}).get("surfacing", {})
+        )
         budget = settings.get("correlation", {}).get("salience", {}).get("budget", {})
     else:
         push_cfg = surfacing = budget = {}
@@ -211,7 +226,9 @@ def _load_config(settings: Any) -> _PushConfig:
         dry_run=bool(push_cfg.get("dry_run", True)),
         max_seeds_per_run=int(push_cfg.get("max_seeds_per_run", 20)),
         seed_lookback_hours=float(push_cfg.get("seed_lookback_hours", 8.0)),
-        max_pushes_per_day=int(push_cfg.get("max_pushes_per_day", budget.get("max_pushes_per_day", 3))),
+        max_pushes_per_day=int(
+            push_cfg.get("max_pushes_per_day", budget.get("max_pushes_per_day", 3))
+        ),
         tau_push=float(surfacing.get("tau_push", 0.6)),
         tau_relevance=float(surfacing.get("tau_relevance", 0.5)),
         novelty_similarity_max=float(surfacing.get("novelty_similarity_max", 0.85)),

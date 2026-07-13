@@ -41,15 +41,27 @@ class FinancePlugin(ZePlugin):
 
         fin_cfg = settings.config.get("finance", {})
         self._snapshot_cron: str = fin_cfg.get("snapshot_schedule", "0 8 * * *")
-        self._recurring_cron: str = fin_cfg.get("recurring_detection_schedule", "0 9 1 * *")
-        self._recurring_enabled: bool = bool(fin_cfg.get("recurring_detection_enabled", False))
-        large_tx_threshold = Decimal(str(fin_cfg.get("large_transaction_threshold", 500)))
+        self._recurring_cron: str = fin_cfg.get(
+            "recurring_detection_schedule", "0 9 1 * *"
+        )
+        self._recurring_enabled: bool = bool(
+            fin_cfg.get("recurring_detection_enabled", False)
+        )
+        large_tx_threshold = Decimal(
+            str(fin_cfg.get("large_transaction_threshold", 500))
+        )
         llm_cat_enabled: bool = bool(fin_cfg.get("llm_categorization", False))
         staleness_days: int = int(fin_cfg.get("recurring_staleness_days", 35))
         nudge_cooldown_days: int = int(fin_cfg.get("recurring_nudge_cooldown_days", 14))
-        price_change_threshold: float = float(fin_cfg.get("recurring_price_change_threshold", 0.10))
-        nli_merchant_merge_enabled = bool(fin_cfg.get("nli_merchant_merge_enabled", False))
-        nli_merchant_cosine_threshold = float(fin_cfg.get("nli_merchant_cosine_threshold", 0.70))
+        price_change_threshold: float = float(
+            fin_cfg.get("recurring_price_change_threshold", 0.10)
+        )
+        nli_merchant_merge_enabled = bool(
+            fin_cfg.get("nli_merchant_merge_enabled", False)
+        )
+        nli_merchant_cosine_threshold = float(
+            fin_cfg.get("nli_merchant_cosine_threshold", 0.70)
+        )
         nli_merchant_entailment_threshold = float(
             fin_cfg.get("nli_merchant_entailment_threshold", 0.70)
         )
@@ -68,8 +80,12 @@ class FinancePlugin(ZePlugin):
         )
         self._signal_source = FinanceSignalSource(large_tx_threshold=large_tx_threshold)
 
-        ingestion_model = settings.config.get("models", {}).get("finance_ingestion", "anthropic/claude-haiku-4-5")
-        csv_inferrer = CsvSchemaInferrer(client=openrouter_client, mapping_store=self._csv_mapping_store)
+        ingestion_model = settings.config.get("models", {}).get(
+            "finance_ingestion", "anthropic/claude-haiku-4-5"
+        )
+        csv_inferrer = CsvSchemaInferrer(
+            client=openrouter_client, mapping_store=self._csv_mapping_store
+        )
         self._ingestion_extractor = FinanceIngestionExtractor(
             transaction_store=self._transaction_store,
             llm_client=openrouter_client,
@@ -80,6 +96,7 @@ class FinancePlugin(ZePlugin):
         sources = []
         if trading212_client is not None:
             from ze_finance.sources.trading212 import Trading212DataSource
+
             sources.append(Trading212DataSource(client=trading212_client))
         else:
             log.info("finance_trading212_not_configured")
@@ -114,6 +131,7 @@ class FinancePlugin(ZePlugin):
     @classmethod
     def integration_types(cls) -> list[type]:
         from ze_trading212.client import Trading212Client
+
         return [Trading212Client]
 
     def agent_module_paths(self) -> list[str]:
@@ -125,6 +143,7 @@ class FinancePlugin(ZePlugin):
     def agent_deps(self, accumulated: dict) -> dict:
         from ze_finance.store import PortfolioStore, TransactionStore
         from ze_finance.recurring.store import RecurringStore
+
         return {
             PortfolioStore: self._portfolio_store,
             TransactionStore: self._transaction_store,

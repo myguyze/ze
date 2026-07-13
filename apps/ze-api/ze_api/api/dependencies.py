@@ -20,7 +20,9 @@ async def require_api_key(
     expected: str = request.app.state.settings.ze_api_key
     token = credentials.credentials if credentials else ""
     if token != expected:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
 
 
 def get_settings() -> Settings:

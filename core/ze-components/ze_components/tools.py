@@ -29,6 +29,7 @@ log = get_logger(__name__)
 
 # ── Private schema dataclasses (LLM-facing input contracts only) ───────────────
 
+
 @dataclasses.dataclass
 class _MetricSchema:
     label: str
@@ -158,6 +159,7 @@ class _ReviewSchema:
 
 # ── render_tool decorator ─────────────────────────────────────────────────────
 
+
 def render_tool(schema_cls: type, *, description: str) -> Callable:
     """Decorator that registers an async function as a render tool.
 
@@ -204,11 +206,15 @@ def _coerce_dict(val: object) -> dict:
 
 # ── Tool registrations ────────────────────────────────────────────────────────
 
-@render_tool(Table, description=(
-    "Render structured data as a table. Use for 3+ rows. "
-    "headers: list of column names. rows: list of rows, each a list of string cells. "
-    "All values must be pre-formatted strings."
-))
+
+@render_tool(
+    Table,
+    description=(
+        "Render structured data as a table. Use for 3+ rows. "
+        "headers: list of column names. rows: list of rows, each a list of string cells. "
+        "All values must be pre-formatted strings."
+    ),
+)
 async def render_table(
     headers: list,
     rows: list,
@@ -218,10 +224,13 @@ async def render_table(
     return Table(headers=headers, rows=rows, title=title, caption=caption)
 
 
-@render_tool(_MetricSchema, description=(
-    "Render a single highlighted metric. Use for cost summaries, counts, or key numbers. "
-    "value must be a pre-formatted string. trend example: '↓ 12% vs last week'."
-))
+@render_tool(
+    _MetricSchema,
+    description=(
+        "Render a single highlighted metric. Use for cost summaries, counts, or key numbers. "
+        "value must be a pre-formatted string. trend example: '↓ 12% vs last week'."
+    ),
+)
 async def render_metric(
     label: str,
     value: str,
@@ -231,10 +240,13 @@ async def render_metric(
     return metric(label, value, trend, note)
 
 
-@render_tool(_ListSchema, description=(
-    "Render a list of items with optional subtitles and status labels. "
-    "Each item: {text (required), subtext (optional), status (optional: 'done'|'active'|'error')}."
-))
+@render_tool(
+    _ListSchema,
+    description=(
+        "Render a list of items with optional subtitles and status labels. "
+        "Each item: {text (required), subtext (optional), status (optional: 'done'|'active'|'error')}."
+    ),
+)
 async def render_list(
     items: list,
     title: str | None = None,
@@ -242,10 +254,13 @@ async def render_list(
     return list_items([_coerce_dict(i) for i in items], title)
 
 
-@render_tool(_TimelineSchema, description=(
-    "Render events in chronological order. "
-    "Each event: {time (pre-formatted string, required), title (required), description (optional)}."
-))
+@render_tool(
+    _TimelineSchema,
+    description=(
+        "Render events in chronological order. "
+        "Each event: {time (pre-formatted string, required), title (required), description (optional)}."
+    ),
+)
 async def render_timeline(
     events: list,
     title: str | None = None,
@@ -253,10 +268,13 @@ async def render_timeline(
     return timeline([_coerce_dict(e) for e in events], title)
 
 
-@render_tool(_ProgressSchema, description=(
-    "Render a step-by-step progress tracker. "
-    "Each step: {label (required), status: 'done'|'active'|'pending' (required)}."
-))
+@render_tool(
+    _ProgressSchema,
+    description=(
+        "Render a step-by-step progress tracker. "
+        "Each step: {label (required), status: 'done'|'active'|'pending' (required)}."
+    ),
+)
 async def render_progress(
     title: str,
     steps: list,
@@ -264,11 +282,14 @@ async def render_progress(
     return progress_steps(title, [_coerce_dict(s) for s in steps])
 
 
-@render_tool(_ConfirmSchema, description=(
-    "Render a confirmation prompt with action buttons. Cosmetic only — the user's "
-    "tap is returned as a regular message, not a graph resume. "
-    "Each action: {label (required), value (required), style: 'primary'|'secondary'|'danger' (optional)}."
-))
+@render_tool(
+    _ConfirmSchema,
+    description=(
+        "Render a confirmation prompt with action buttons. Cosmetic only — the user's "
+        "tap is returned as a regular message, not a graph resume. "
+        "Each action: {label (required), value (required), style: 'primary'|'secondary'|'danger' (optional)}."
+    ),
+)
 async def render_confirm(
     prompt: str,
     actions: list,
@@ -276,11 +297,14 @@ async def render_confirm(
     return confirm_prompt(prompt, [_coerce_dict(a) for a in actions])
 
 
-@render_tool(Form, description=(
-    "Render a structured input form. "
-    "Each field: {id, label, field_type: 'text'|'number'|'date'|'select', "
-    "placeholder (optional), options (required when field_type='select')}."
-))
+@render_tool(
+    Form,
+    description=(
+        "Render a structured input form. "
+        "Each field: {id, label, field_type: 'text'|'number'|'date'|'select', "
+        "placeholder (optional), options (required when field_type='select')}."
+    ),
+)
 async def render_form(
     id: str,
     title: str,
@@ -303,10 +327,13 @@ async def render_form(
     return Form(id=id, title=title, fields=form_fields)
 
 
-@render_tool(_CardSchema, description=(
-    "Render a highlighted text card for notices, summaries, or callouts. "
-    "style: 'info' (default) | 'warning' | 'success' | 'error'."
-))
+@render_tool(
+    _CardSchema,
+    description=(
+        "Render a highlighted text card for notices, summaries, or callouts. "
+        "style: 'info' (default) | 'warning' | 'success' | 'error'."
+    ),
+)
 async def render_card(
     body: str,
     title: str | None = None,
@@ -315,10 +342,13 @@ async def render_card(
     return card_notice(body, title, style)
 
 
-@render_tool(_ChoiceGroupSchema, description=(
-    "Render a choice group for interactive setup. "
-    "Each option: {id, label, description (optional), recommended (optional)}."
-))
+@render_tool(
+    _ChoiceGroupSchema,
+    description=(
+        "Render a choice group for interactive setup. "
+        "Each option: {id, label, description (optional), recommended (optional)}."
+    ),
+)
 async def render_choice_group(
     id: str,
     title: str,
@@ -327,13 +357,18 @@ async def render_choice_group(
     description: str | None = None,
     submit_label: str = "Continue",
 ) -> object:
-    return choice_group(title, [_coerce_dict(o) for o in options], description, submit_label)
+    return choice_group(
+        title, [_coerce_dict(o) for o in options], description, submit_label
+    )
 
 
-@render_tool(_ConsentSchema, description=(
-    "Render a consent prompt with explicit scopes. "
-    "Each scope: {id, label, description, required}."
-))
+@render_tool(
+    _ConsentSchema,
+    description=(
+        "Render a consent prompt with explicit scopes. "
+        "Each scope: {id, label, description, required}."
+    ),
+)
 async def render_consent(
     id: str,
     title: str,
@@ -342,12 +377,15 @@ async def render_consent(
     accept_label: str = "Allow",
     reject_label: str = "Skip",
 ) -> object:
-    return consent(title, body, [_coerce_dict(s) for s in scopes], accept_label, reject_label)
+    return consent(
+        title, body, [_coerce_dict(s) for s in scopes], accept_label, reject_label
+    )
 
 
-@render_tool(_ConnectAccountSchema, description=(
-    "Render an account connection prompt for onboarding or settings."
-))
+@render_tool(
+    _ConnectAccountSchema,
+    description=("Render an account connection prompt for onboarding or settings."),
+)
 async def render_connect_account(
     id: str,
     provider: str,
@@ -359,10 +397,13 @@ async def render_connect_account(
     return connect_account(id, provider, title, description, status, action_label)
 
 
-@render_tool(_ReviewSchema, description=(
-    "Render a review list before saving durable setup details. "
-    "Each item: {label, value}."
-))
+@render_tool(
+    _ReviewSchema,
+    description=(
+        "Render a review list before saving durable setup details. "
+        "Each item: {label, value}."
+    ),
+)
 async def render_review(
     id: str,
     title: str,
@@ -370,14 +411,19 @@ async def render_review(
     approve_label: str = "Save",
     reject_label: str = "Edit",
 ) -> object:
-    return review(id, title, [_coerce_dict(i) for i in items], approve_label, reject_label)
+    return review(
+        id, title, [_coerce_dict(i) for i in items], approve_label, reject_label
+    )
 
 
-@render_tool(Connections, description=(
-    "Render a set of cross-domain connections found between this conversation and the user's history. "
-    "Each connection: {summary, narrative, relation ('pattern'|'causal_guess'|'tension'|'convergence'), "
-    "confidence (0–1), evidence (optional list of {label, kind, date?, source?})}."
-))
+@render_tool(
+    Connections,
+    description=(
+        "Render a set of cross-domain connections found between this conversation and the user's history. "
+        "Each connection: {summary, narrative, relation ('pattern'|'causal_guess'|'tension'|'convergence'), "
+        "confidence (0–1), evidence (optional list of {label, kind, date?, source?})}."
+    ),
+)
 async def render_connections(
     connections: list,
     title: str | None = None,

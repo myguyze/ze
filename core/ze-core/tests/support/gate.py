@@ -23,7 +23,9 @@ def make_gate(
 
     for name, cfg in agents_config.items():
         caps_raw = cfg.get("capabilities", {})
-        intents = {intent: Intent(Mode(mode_str)) for intent, mode_str in caps_raw.items()}
+        intents = {
+            intent: Intent(Mode(mode_str)) for intent, mode_str in caps_raw.items()
+        }
         gate_cls = type(
             f"GateConfig_{name}",
             (),

@@ -7,6 +7,7 @@ TypeScript InboundFrame union in apps/ze-web/src/ws/protocol.ts.
 E2E tests verify the approve/deny/timeout confirmation paths end-to-end
 using mocked WebSocket + container objects.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ from ze_core.conversation.messages import Message
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _make_ws() -> Any:
     ws = AsyncMock()
@@ -54,6 +56,7 @@ def _frames_sent(ws: Any) -> list[dict]:
 
 
 # ── Protocol conformance: InboundFrame shapes ─────────────────────────────────
+
 
 class TestMessageFrameConformance:
     """message frame: {type, message: {id, role, text, components, read, created_at, thread_id}}"""
@@ -124,7 +127,9 @@ class TestMessageFrameConformance:
         from ze_onboarding import OnboardingView
 
         session_id = uuid4()
-        await send_onboarding_view(mgr, OnboardingView(session_id=session_id, text="Hi", components=[]))
+        await send_onboarding_view(
+            mgr, OnboardingView(session_id=session_id, text="Hi", components=[])
+        )
         frame = _frames_sent(ws)[0]
         assert frame["type"] == "message"
         assert "onboarding" in frame
@@ -236,6 +241,7 @@ class TestRefreshFrameConformance:
 
 # ── Confirmation flow E2E ─────────────────────────────────────────────────────
 
+
 def _make_pending_config(thread_id: str = "t1") -> dict:
     return {"configurable": {"thread_id": thread_id}}
 
@@ -265,8 +271,11 @@ class TestConfirmationApproveFlow:
         pending_config = _make_pending_config()
 
         result = await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
-            container, mgr, pending_config,
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "approve"},
+            container,
+            mgr,
+            pending_config,
             thread_id="t1",
         )
 
@@ -284,8 +293,11 @@ class TestConfirmationApproveFlow:
         pending_config = _make_pending_config()
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
-            container, mgr, pending_config,
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "approve"},
+            container,
+            mgr,
+            pending_config,
             thread_id="t1",
         )
 
@@ -303,8 +315,11 @@ class TestConfirmationApproveFlow:
         confirmation_store.clear = AsyncMock(return_value=True)
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
-            container, mgr, _make_pending_config(),
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "approve"},
+            container,
+            mgr,
+            _make_pending_config(),
             thread_id="t1",
             confirmation_store=confirmation_store,
         )
@@ -322,8 +337,11 @@ class TestConfirmationApproveFlow:
         container.resume_turn = AsyncMock(side_effect=RuntimeError("graph error"))
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "approve"},
-            container, mgr, _make_pending_config(),
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "approve"},
+            container,
+            mgr,
+            _make_pending_config(),
             thread_id="t1",
         )
 
@@ -345,8 +363,11 @@ class TestConfirmationDenyFlow:
         pending_config = _make_pending_config()
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
-            container, mgr, pending_config,
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "deny"},
+            container,
+            mgr,
+            pending_config,
             thread_id="t1",
         )
 
@@ -362,8 +383,11 @@ class TestConfirmationDenyFlow:
         container = _make_container()
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-99", "choice": "deny"},
-            container, mgr, _make_pending_config(),
+            ws,
+            {"type": "confirm", "id": "req-99", "choice": "deny"},
+            container,
+            mgr,
+            _make_pending_config(),
             thread_id="t1",
         )
 
@@ -381,8 +405,11 @@ class TestConfirmationDenyFlow:
         container = _make_container()
 
         result = await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
-            container, mgr, _make_pending_config(),
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "deny"},
+            container,
+            mgr,
+            _make_pending_config(),
             thread_id="t1",
         )
 
@@ -398,8 +425,11 @@ class TestConfirmationDenyFlow:
         container = _make_container()
 
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
-            container, mgr, None,  # no pending config
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "deny"},
+            container,
+            mgr,
+            None,  # no pending config
             thread_id="t1",
         )
 
@@ -414,12 +444,17 @@ class TestConfirmationDenyFlow:
         await mgr.connect(ws, store)
 
         container = _make_container()
-        container.abort_pending_checkpoint = AsyncMock(side_effect=RuntimeError("checkpoint error"))
+        container.abort_pending_checkpoint = AsyncMock(
+            side_effect=RuntimeError("checkpoint error")
+        )
 
         # Should not raise — failure is logged, confirm_cancel still sent
         await handle_confirm(
-            ws, {"type": "confirm", "id": "req-1", "choice": "deny"},
-            container, mgr, _make_pending_config(),
+            ws,
+            {"type": "confirm", "id": "req-1", "choice": "deny"},
+            container,
+            mgr,
+            _make_pending_config(),
             thread_id="t1",
         )
 
@@ -443,8 +478,11 @@ class TestConfirmationTimeoutFlow:
         graph_config = _make_pending_config("thread-timeout")
 
         await confirmation_timeout(
-            confirmation_store, mgr, None,
-            "thread-timeout", 0,
+            confirmation_store,
+            mgr,
+            None,
+            "thread-timeout",
+            0,
             container=container,
             graph_config=graph_config,
         )
@@ -463,8 +501,11 @@ class TestConfirmationTimeoutFlow:
         ws.send_json.reset_mock()
 
         await confirmation_timeout(
-            confirmation_store, mgr, None,
-            "thread-1", 0,
+            confirmation_store,
+            mgr,
+            None,
+            "thread-1",
+            0,
         )
 
         frames = _frames_sent(ws)
@@ -486,8 +527,11 @@ class TestConfirmationTimeoutFlow:
         container = AsyncMock()
 
         await confirmation_timeout(
-            confirmation_store, mgr, None,
-            "thread-1", 0,
+            confirmation_store,
+            mgr,
+            None,
+            "thread-1",
+            0,
             container=container,
             graph_config=_make_pending_config(),
         )
@@ -511,8 +555,11 @@ class TestConfirmationTimeoutFlow:
         container.abort_pending_checkpoint = AsyncMock(side_effect=RuntimeError("boom"))
 
         await confirmation_timeout(
-            confirmation_store, mgr, None,
-            "thread-1", 0,
+            confirmation_store,
+            mgr,
+            None,
+            "thread-1",
+            0,
             container=container,
             graph_config=_make_pending_config(),
         )
@@ -523,6 +570,7 @@ class TestConfirmationTimeoutFlow:
 
 
 # ── Unread replay — multi-conversation ───────────────────────────────────────
+
 
 class TestScopedUnreadReplay:
     """On connect, list_unread(None) replays ALL threads so the client can restore all conversations."""

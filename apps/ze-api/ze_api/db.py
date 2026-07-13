@@ -16,8 +16,12 @@ _CHECKPOINTER_CONN_KWARGS = {
 
 async def _init_conn(conn: asyncpg.Connection) -> None:
     # asyncpg 0.29+ no longer auto-decodes jsonb; register codecs explicitly.
-    await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
-    await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+    await conn.set_type_codec(
+        "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+    )
+    await conn.set_type_codec(
+        "json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+    )
 
 
 async def create_pool(settings: Settings) -> asyncpg.Pool:

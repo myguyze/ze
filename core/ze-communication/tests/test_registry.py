@@ -4,7 +4,13 @@ import pytest
 
 from ze_communication.channel import Channel, InboundChannel
 from ze_communication.registry import ChannelRegistry
-from ze_communication.types import ChannelType, InboundMessage, Message, SentMessage, Thread
+from ze_communication.types import (
+    ChannelType,
+    InboundMessage,
+    Message,
+    SentMessage,
+    Thread,
+)
 from ze_agents.errors import ChannelError, ChannelNotFoundError
 
 
@@ -34,6 +40,7 @@ def _registry(*types: ChannelType) -> ChannelRegistry:
 
 # ── get() ─────────────────────────────────────────────────────────────────────
 
+
 def test_get_registered_channel():
     reg = _registry(ChannelType.EMAIL)
     assert reg.get(ChannelType.EMAIL).channel_type == ChannelType.EMAIL
@@ -59,6 +66,7 @@ def test_last_registered_wins_for_same_type():
 
 # ── available() ───────────────────────────────────────────────────────────────
 
+
 def test_available_returns_registered_types():
     reg = _registry(ChannelType.EMAIL, ChannelType.WHATSAPP)
     assert set(reg.available()) == {ChannelType.EMAIL, ChannelType.WHATSAPP}
@@ -69,6 +77,7 @@ def test_available_empty():
 
 
 # ── get_inbound() ─────────────────────────────────────────────────────────────
+
 
 def test_get_inbound_returns_inbound_channel():
     inbound = _StubInboundChannel(ChannelType.EMAIL)
@@ -88,6 +97,7 @@ def test_get_inbound_returns_none_for_missing():
 
 # ── inbound_channels() ────────────────────────────────────────────────────────
 
+
 def test_inbound_channels_filters_correctly():
     inbound = _StubInboundChannel(ChannelType.EMAIL)
     outbound = _StubChannel(ChannelType.LINKEDIN)
@@ -102,6 +112,7 @@ def test_inbound_channels_empty_when_none():
 
 
 # ── channel_id / get_inbound_by_id() ─────────────────────────────────────────
+
 
 def test_default_channel_id_is_channel_type_value():
     inbound = _StubInboundChannel(ChannelType.EMAIL)

@@ -74,6 +74,7 @@ def _event_start(event: dict) -> datetime | None:
         return datetime.fromisoformat(start["dateTime"]).astimezone(timezone.utc)
     if "date" in start:
         from datetime import date as _date
+
         d = _date.fromisoformat(start["date"])
         return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
     return None
@@ -83,7 +84,9 @@ def _event_updated(event: dict) -> datetime | None:
     updated = event.get("updated")
     if not updated:
         return None
-    return datetime.fromisoformat(updated.replace("Z", "+00:00")).astimezone(timezone.utc)
+    return datetime.fromisoformat(updated.replace("Z", "+00:00")).astimezone(
+        timezone.utc
+    )
 
 
 class CalendarReminderService:
@@ -94,7 +97,7 @@ class CalendarReminderService:
         push_log_store: PushLogStore,
         openrouter_client: LLMClient,
         scheduler: Any,  # WorkflowScheduler — avoids circular import
-        settings: Any,   # ze_api.settings.Settings — not imported to avoid circular dep
+        settings: Any,  # ze_api.settings.Settings — not imported to avoid circular dep
     ) -> None:
         self._notifier = notifier
         self._store = store
@@ -110,7 +113,9 @@ class CalendarReminderService:
             return
 
         days_ahead = int(
-            self._settings.proactive_config.get("calendar", {}).get("sync_days_ahead", 7)
+            self._settings.proactive_config.get("calendar", {}).get(
+                "sync_days_ahead", 7
+            )
         )
         now = datetime.now(timezone.utc)
         time_max = now + timedelta(days=days_ahead)
@@ -118,13 +123,17 @@ class CalendarReminderService:
         try:
             service = credentials.calendar()
             result = await asyncio.to_thread(
-                lambda: service.events().list(
-                    calendarId="primary",
-                    timeMin=now.isoformat(),
-                    timeMax=time_max.isoformat(),
-                    singleEvents=True,
-                    orderBy="startTime",
-                ).execute()
+                lambda: (
+                    service.events()
+                    .list(
+                        calendarId="primary",
+                        timeMin=now.isoformat(),
+                        timeMax=time_max.isoformat(),
+                        singleEvents=True,
+                        orderBy="startTime",
+                    )
+                    .execute()
+                )
             )
             events = result.get("items", [])
         except Exception as exc:
@@ -174,10 +183,14 @@ class CalendarReminderService:
                 deleted_ids = await self._store.delete_unsent_for_event(event_id)
                 for rid in deleted_ids:
                     self._scheduler.remove_job_if_exists(f"reminder:{rid}")
-                await self._schedule_event(event_id, title, start_time, event, now, is_update=True)
+                await self._schedule_event(
+                    event_id, title, start_time, event, now, is_update=True
+                )
             return
 
-        await self._schedule_event(event_id, title, start_time, event, now, is_update=False)
+        await self._schedule_event(
+            event_id, title, start_time, event, now, is_update=False
+        )
 
     async def _schedule_event(
         self,
@@ -221,7 +234,9 @@ class CalendarReminderService:
         start_time: datetime,
         now: datetime,
     ) -> list[tuple[timedelta, datetime]]:
-        model = resolve_model("reminders", "anthropic/claude-haiku-4-5", self._settings.config)
+        model = resolve_model(
+            "reminders", "anthropic/claude-haiku-4-5", self._settings.config
+        )
         end_time = _event_start({"start": event.get("end", {})})
         duration_minutes = (
             int((end_time - start_time).total_seconds() / 60)

@@ -40,7 +40,8 @@ class PostgresCapabilityOverrideStore:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT mode FROM capability_overrides WHERE agent = $1 AND intent = $2",
-                agent, intent,
+                agent,
+                intent,
             )
         if row is None:
             return None
@@ -58,19 +59,24 @@ class PostgresCapabilityOverrideStore:
                 ON CONFLICT (agent, intent) DO UPDATE
                     SET mode = EXCLUDED.mode, updated_at = NOW()
                 """,
-                agent, intent, mode.value,
+                agent,
+                intent,
+                mode.value,
             )
 
     async def clear(self, agent: str, intent: str) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "DELETE FROM capability_overrides WHERE agent = $1 AND intent = $2",
-                agent, intent,
+                agent,
+                intent,
             )
 
     async def get_all(self) -> dict[tuple[str, str], Mode]:
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch("SELECT agent, intent, mode FROM capability_overrides")
+            rows = await conn.fetch(
+                "SELECT agent, intent, mode FROM capability_overrides"
+            )
         result = {}
         for row in rows:
             try:

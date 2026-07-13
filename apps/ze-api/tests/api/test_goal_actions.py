@@ -57,7 +57,9 @@ async def test_goal_plan_yes_approves_and_refreshes():
 
     executor.approve_plan.assert_awaited_once_with(goal_id)
     frames = [call.args[0] for call in ws.send_json.call_args_list]
-    assert any(f.get("type") == "refresh" and f.get("screen") == "goals" for f in frames)
+    assert any(
+        f.get("type") == "refresh" and f.get("screen") == "goals" for f in frames
+    )
 
 
 @pytest.mark.asyncio

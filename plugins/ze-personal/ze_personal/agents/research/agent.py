@@ -60,7 +60,9 @@ class ResearchAgent(BaseAgent):
             system=system,
         )
 
-        search_count = len([tc for tc in loop_tool_calls if tc.tool_name == "openrouter:web_search"])
+        search_count = len(
+            [tc for tc in loop_tool_calls if tc.tool_name == "openrouter:web_search"]
+        )
 
         self._log.info(
             "research_agent_complete",

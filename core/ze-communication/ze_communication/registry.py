@@ -5,11 +5,11 @@ from ze_agents.errors import ChannelNotFoundError
 
 class ChannelRegistry:
     def __init__(self, channels: list[Channel]) -> None:
-        self._channels: dict[ChannelType, Channel] = {c.channel_type: c for c in channels}
+        self._channels: dict[ChannelType, Channel] = {
+            c.channel_type: c for c in channels
+        }
         self._inbound: dict[str, InboundChannel] = {
-            c.channel_id: c
-            for c in channels
-            if isinstance(c, InboundChannel)
+            c.channel_id: c for c in channels if isinstance(c, InboundChannel)
         }
 
     def get(self, channel_type: ChannelType) -> Channel:

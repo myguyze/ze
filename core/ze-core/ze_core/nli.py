@@ -66,7 +66,9 @@ def nli_scores(pairs: list[tuple[str, str]]) -> list[dict[str, float] | None]:
     return [scored_by_index.get(i) for i in range(len(pairs))]
 
 
-async def nli_scores_async(pairs: list[tuple[str, str]]) -> list[dict[str, float] | None]:
+async def nli_scores_async(
+    pairs: list[tuple[str, str]],
+) -> list[dict[str, float] | None]:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, nli_scores, pairs)
 
@@ -82,11 +84,7 @@ def nli_grounding_score(
 
     pairs = [(text, hypothesis) for text in evidence_texts]
     resolved = scores if scores is not None else nli_scores(pairs)
-    entailments = [
-        s["entailment"]
-        for s in resolved
-        if s is not None
-    ]
+    entailments = [s["entailment"] for s in resolved if s is not None]
     if not entailments:
         return 0.0
     return float(sum(entailments) / len(entailments))

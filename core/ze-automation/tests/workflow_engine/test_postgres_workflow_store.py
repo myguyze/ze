@@ -123,7 +123,10 @@ def test_step_to_dict_and_from_dict_round_trip_branches_and_default_next():
         verify="an invoice was found",
         intent="read",
         id="s1",
-        branches=[Branch(condition="invoice found", to="s2"), Branch(condition="no invoice", to="END")],
+        branches=[
+            Branch(condition="invoice found", to="s2"),
+            Branch(condition="no invoice", to="END"),
+        ],
         default_next="s3",
     )
 

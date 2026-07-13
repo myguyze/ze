@@ -13,7 +13,9 @@ def _container(config: dict) -> SimpleNamespace:
 
 class TestTitleGenerator:
     def test_uses_declared_default_when_no_override(self):
-        container = _container({"models": {"default": "fleet-default", "overrides": {}}})
+        container = _container(
+            {"models": {"default": "fleet-default", "overrides": {}}}
+        )
         generator = _title_generator(container)
         assert generator._model == "anthropic/claude-haiku-4-5"
 

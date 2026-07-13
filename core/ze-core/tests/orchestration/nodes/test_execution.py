@@ -47,8 +47,13 @@ def _register_and_wire(name: str, response: str = "ok", timeout: int = 30):
     return instance
 
 
-def _envelope(agent_name: str, intent: str = "read", is_compound: bool = False,
-              is_sequential: bool = False, subtasks: list | None = None) -> RoutingEnvelope:
+def _envelope(
+    agent_name: str,
+    intent: str = "read",
+    is_compound: bool = False,
+    is_sequential: bool = False,
+    subtasks: list | None = None,
+) -> RoutingEnvelope:
     if subtasks is None:
         subtasks = [SubTask(agent=agent_name, intent=intent, prompt="do it")]
     return RoutingEnvelope(
@@ -84,10 +89,12 @@ def _config(gate=None) -> dict:
 
 # ── capability_check ──────────────────────────────────────────────────────────
 
+
 class TestCapabilityCheck:
     async def test_execute_decision(self):
         from ze_agents.types import Intent, Mode
         from ze_core.capability import CapabilityGate
+
         cls = _make_agent_class("alpha")
         cls.intents = {"read": Intent(Mode.AUTONOMOUS)}
         agent(cls)
@@ -99,6 +106,7 @@ class TestCapabilityCheck:
 
     async def test_no_envelope_returns_blocked(self):
         from ze_core.capability import CapabilityGate
+
         gate = CapabilityGate()
         state = {"envelope": None, "session_overrides": {}}
         result = await capability_check(state, _config(gate))
@@ -106,6 +114,7 @@ class TestCapabilityCheck:
 
 
 # ── execute_tool ──────────────────────────────────────────────────────────────
+
 
 class TestExecuteTool:
     async def test_single_agent_result(self):
@@ -121,7 +130,11 @@ class TestExecuteTool:
         assert result["subtask_results"] == []
 
     async def test_missing_context_returns_error(self):
-        state = {"envelope": None, "agent_context": None, "gate_decision": GateDecision.EXECUTE}
+        state = {
+            "envelope": None,
+            "agent_context": None,
+            "gate_decision": GateDecision.EXECUTE,
+        }
         result = await execute_tool(state, {"configurable": {}})
         assert "error" in result
 
@@ -166,7 +179,9 @@ class TestExecuteTool:
             SubTask(agent="alpha", intent="read", prompt="p1"),
             SubTask(agent="beta", intent="read", prompt="p2"),
         ]
-        env = _envelope("alpha", is_compound=True, is_sequential=True, subtasks=subtasks)
+        env = _envelope(
+            "alpha", is_compound=True, is_sequential=True, subtasks=subtasks
+        )
         state = {
             "envelope": env,
             "agent_context": _ctx("alpha"),
@@ -200,6 +215,7 @@ class TestExecuteTool:
 
 
 # ── draft_response ────────────────────────────────────────────────────────────
+
 
 class TestDraftResponse:
     async def test_sets_pending_confirmation(self):
@@ -240,6 +256,7 @@ class TestDraftResponse:
 
 
 # ── await_confirmation ────────────────────────────────────────────────────────
+
 
 class TestAwaitConfirmation:
     async def test_resets_pending_and_sets_execute(self):

@@ -1,4 +1,5 @@
 """Tests for Phase 60 cross-plugin signal contract."""
+
 from __future__ import annotations
 
 import uuid
@@ -42,6 +43,7 @@ def _make_plugin(*source_keys: str):
 
 # ── collect_plugin_signal_sources ─────────────────────────────────────────────
 
+
 def test_no_sources_returns_empty_dict():
     plugins = [_make_plugin(), _make_plugin()]
     assert collect_plugin_signal_sources(plugins) == {}
@@ -83,6 +85,7 @@ def test_returned_sources_are_original_objects():
 
 # ── SignalSource protocol ──────────────────────────────────────────────────────
 
+
 def test_news_signal_source_satisfies_protocol():
     from ze_plugin.signals import SignalSource
     from ze_news.signals import NewsSignalSource
@@ -99,6 +102,7 @@ def test_calendar_signal_source_satisfies_protocol():
 
 
 # ── multi-source admission (gate receives signals from multiple sources) ───────
+
 
 @pytest.mark.asyncio
 async def test_gate_receives_signals_from_multiple_sources():
@@ -144,11 +148,14 @@ async def test_gate_receives_signals_from_multiple_sources():
         await gate.check_and_ingest(sig)
 
     assert gate.check_and_ingest.call_count == 2
-    sources_seen = {call.args[0].source for call in gate.check_and_ingest.call_args_list}
+    sources_seen = {
+        call.args[0].source for call in gate.check_and_ingest.call_args_list
+    }
     assert sources_seen == {"news", "calendar"}
 
 
 # ── cross-domain neighbourhood test ───────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_cross_domain_signals_sharing_entity_both_reach_gate():
@@ -172,14 +179,18 @@ async def test_cross_domain_signals_sharing_entity_both_reach_gate():
     from ze_news.types import Article
 
     ns = NewsSignalSource()
-    ns.push([Article(
-        url="https://example.com/news",
-        source_key="tech",
-        title=f"{shared_entity} raises funding",
-        summary="test",
-        published_at=datetime(2026, 6, 17, 8, 0, tzinfo=timezone.utc),
-        tags=[shared_entity],
-    )])
+    ns.push(
+        [
+            Article(
+                url="https://example.com/news",
+                source_key="tech",
+                title=f"{shared_entity} raises funding",
+                summary="test",
+                published_at=datetime(2026, 6, 17, 8, 0, tzinfo=timezone.utc),
+                tags=[shared_entity],
+            )
+        ]
+    )
     for sig in await ns.poll(_EPOCH):
         await gate.check_and_ingest(sig)
 
@@ -188,15 +199,19 @@ async def test_cross_domain_signals_sharing_entity_both_reach_gate():
     from ze_calendar.reminders.calendar_store import CalendarReminder
 
     store = MagicMock()
-    store.list_unsent = AsyncMock(return_value=[CalendarReminder(
-        id=uuid.uuid4(),
-        event_id="evt-002",
-        event_title=f"Meeting with {shared_entity} team",
-        fire_at=datetime(2026, 6, 18, 10, 0, tzinfo=timezone.utc),
-        label="meeting",
-        sent=False,
-        assessed_at=datetime(2026, 6, 17, 8, 0, tzinfo=timezone.utc),
-    )])
+    store.list_unsent = AsyncMock(
+        return_value=[
+            CalendarReminder(
+                id=uuid.uuid4(),
+                event_id="evt-002",
+                event_title=f"Meeting with {shared_entity} team",
+                fire_at=datetime(2026, 6, 18, 10, 0, tzinfo=timezone.utc),
+                label="meeting",
+                sent=False,
+                assessed_at=datetime(2026, 6, 17, 8, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
     cs = CalendarSignalSource(store=store)
     for sig in await cs.poll(_EPOCH):
         await gate.check_and_ingest(sig)

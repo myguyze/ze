@@ -17,6 +17,7 @@ from ze_core.proactive.push_log_store import PushLogStore
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_settings():
     from tests.support.settings import make_settings as _make
 
@@ -79,7 +80,9 @@ def _future(minutes=60) -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
 
-def _make_event(event_id=None, title="Meeting", start_offset_hours=2, updated_offset_hours=-1):
+def _make_event(
+    event_id=None, title="Meeting", start_offset_hours=2, updated_offset_hours=-1
+):
     start = datetime.now(timezone.utc) + timedelta(hours=start_offset_hours)
     updated = datetime.now(timezone.utc) + timedelta(hours=updated_offset_hours)
     return {
@@ -92,6 +95,7 @@ def _make_event(event_id=None, title="Meeting", start_offset_hours=2, updated_of
 
 
 # ── _parse_interval ───────────────────────────────────────────────────────────
+
 
 def test_parse_interval_hours():
     td = _parse_interval("2 hours")
@@ -119,7 +123,7 @@ def test_parse_interval_singular():
 
 
 def test_parse_interval_rejects_too_short():
-    assert _parse_interval("1 minute") is None   # < 5 min minimum
+    assert _parse_interval("1 minute") is None  # < 5 min minimum
 
 
 def test_parse_interval_rejects_too_long():
@@ -132,6 +136,7 @@ def test_parse_interval_rejects_invalid():
 
 
 # ── _human_offset ─────────────────────────────────────────────────────────────
+
 
 def test_human_offset_minutes():
     assert _human_offset(timedelta(minutes=30)) == "30 minutes"
@@ -150,6 +155,7 @@ def test_human_offset_weeks():
 
 
 # ── _assess_intervals ─────────────────────────────────────────────────────────
+
 
 async def test_assess_intervals_parses_json():
     client = AsyncMock()
@@ -187,7 +193,10 @@ async def test_assess_intervals_uses_models_override_when_set():
     client.complete = AsyncMock(return_value='{"intervals": ["1 hour"]}')
     settings = MagicMock()
     settings.config = {
-        "models": {"default": "fleet-default", "overrides": {"reminders": "pinned-model"}}
+        "models": {
+            "default": "fleet-default",
+            "overrides": {"reminders": "pinned-model"},
+        }
     }
     svc, _ = make_reminder_service(client=client, settings=settings)
 
@@ -215,6 +224,7 @@ async def test_assess_intervals_discards_past():
 
 # ── sync ──────────────────────────────────────────────────────────────────────
 
+
 async def test_sync_skips_when_no_credentials():
     svc, conn = make_reminder_service()
     await svc.sync(credentials=None)
@@ -237,7 +247,9 @@ async def test_sync_schedules_new_event():
     service_mock = MagicMock()
     fake_creds.calendar = MagicMock(return_value=service_mock)
     event = _make_event(start_offset_hours=5)
-    service_mock.events.return_value.list.return_value.execute.return_value = {"items": [event]}
+    service_mock.events.return_value.list.return_value.execute.return_value = {
+        "items": [event]
+    }
 
     svc = CalendarReminderService(
         notifier=notifier,
@@ -256,10 +268,15 @@ async def test_sync_schedules_new_event():
 
 async def test_sync_skips_known_event():
     from ze_calendar.reminders.calendar_store import CalendarReminder
+
     assessed_at = datetime.now(timezone.utc)
     existing = CalendarReminder(
-        id=uuid4(), event_id="evt_001", event_title="Meeting",
-        fire_at=_future(), label="label", sent=False,
+        id=uuid4(),
+        event_id="evt_001",
+        event_title="Meeting",
+        fire_at=_future(),
+        label="label",
+        sent=False,
         assessed_at=assessed_at + timedelta(hours=1),  # assessed AFTER event update
     )
     store = MagicMock(spec=CalendarReminderStore)
@@ -272,7 +289,9 @@ async def test_sync_skips_known_event():
     service_mock = MagicMock()
     fake_creds.calendar = MagicMock(return_value=service_mock)
     event = _make_event(start_offset_hours=5, updated_offset_hours=-2)
-    service_mock.events.return_value.list.return_value.execute.return_value = {"items": [event]}
+    service_mock.events.return_value.list.return_value.execute.return_value = {
+        "items": [event]
+    }
 
     svc = CalendarReminderService(
         notifier=notifier,
@@ -289,6 +308,7 @@ async def test_sync_skips_known_event():
 
 
 # ── fire_reminder ─────────────────────────────────────────────────────────────
+
 
 async def test_fire_reminder_pushes_and_logs():
     rid = uuid4()
@@ -326,14 +346,30 @@ async def test_fire_reminder_noop_when_already_sent_or_missing():
 
 # ── replay_unsent ─────────────────────────────────────────────────────────────
 
+
 async def test_start_replays_unsent_reminders():
     from ze_calendar.reminders.calendar_store import CalendarReminder
+
     fire_at = _future(minutes=60)
     reminders = [
-        CalendarReminder(id=uuid4(), event_id="e1", event_title="A", fire_at=fire_at,
-                         label="Reminder A", sent=False, assessed_at=fire_at),
-        CalendarReminder(id=uuid4(), event_id="e2", event_title="B", fire_at=fire_at,
-                         label="Reminder B", sent=False, assessed_at=fire_at),
+        CalendarReminder(
+            id=uuid4(),
+            event_id="e1",
+            event_title="A",
+            fire_at=fire_at,
+            label="Reminder A",
+            sent=False,
+            assessed_at=fire_at,
+        ),
+        CalendarReminder(
+            id=uuid4(),
+            event_id="e2",
+            event_title="B",
+            fire_at=fire_at,
+            label="Reminder B",
+            sent=False,
+            assessed_at=fire_at,
+        ),
     ]
     store = MagicMock(spec=CalendarReminderStore)
     store.list_unsent = AsyncMock(return_value=reminders)
@@ -348,6 +384,7 @@ async def test_start_replays_unsent_reminders():
 
 
 # ── WorkflowScheduler failure alerts ─────────────────────────────────────────
+
 
 def make_workflow(name="test_wf"):
     wf = MagicMock(spec=Workflow)
@@ -416,7 +453,9 @@ async def test_workflow_failure_alert_disabled():
 
     real_cfg = CONFIG_DIR / "config.yaml"
     cfg = yaml.safe_load(real_cfg.read_text())
-    cfg.setdefault("proactive", {}).setdefault("alerts", {})["workflow_failure_enabled"] = False
+    cfg.setdefault("proactive", {}).setdefault("alerts", {})[
+        "workflow_failure_enabled"
+    ] = False
     (tmp / "config.yaml").write_text(yaml.dump(cfg))
     settings = TestSettings(
         openrouter_api_key="k",
@@ -433,6 +472,7 @@ async def test_workflow_failure_alert_disabled():
 
 # ── schedule_at ───────────────────────────────────────────────────────────────
 
+
 def test_schedule_at_uses_date_trigger():
     from apscheduler.triggers.date import DateTrigger
 
@@ -445,5 +485,8 @@ def test_schedule_at_uses_date_trigger():
     ws.schedule_at(fn=lambda: None, dt=fire_at, job_id="test_job")
 
     ws._scheduler.add_job.assert_called_once()
-    trigger = ws._scheduler.add_job.call_args[1].get("trigger") or ws._scheduler.add_job.call_args[0][1]
+    trigger = (
+        ws._scheduler.add_job.call_args[1].get("trigger")
+        or ws._scheduler.add_job.call_args[0][1]
+    )
     assert isinstance(trigger, DateTrigger)

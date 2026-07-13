@@ -20,7 +20,9 @@ def _make_person(**kwargs) -> Person:
     return Person(**defaults)
 
 
-def _make_source(person_id, raw_context="Met at Lisbon airport conference") -> PersonSource:
+def _make_source(
+    person_id, raw_context="Met at Lisbon airport conference"
+) -> PersonSource:
     return PersonSource(
         id=uuid4(),
         person_id=person_id,
@@ -45,10 +47,12 @@ async def test_run_pushes_one_message_per_pending():
     p1 = _make_person(name="Alice")
     p2 = _make_person(name="Bob")
     store = AsyncMock()
-    store.get_pending = AsyncMock(return_value=[
-        (p1, [_make_source(p1.id)]),
-        (p2, [_make_source(p2.id)]),
-    ])
+    store.get_pending = AsyncMock(
+        return_value=[
+            (p1, [_make_source(p1.id)]),
+            (p2, [_make_source(p2.id)]),
+        ]
+    )
     notifier = AsyncMock()
 
     reviewer = ContactReviewNotifier(person_store=store, notifier=notifier)

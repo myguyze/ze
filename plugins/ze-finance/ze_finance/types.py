@@ -84,6 +84,7 @@ class Transaction:
 @dataclass
 class SpendingSummary:
     """Aggregated output for data-minimised tool responses."""
+
     category: str
     total: Decimal
     currency: str
@@ -93,6 +94,7 @@ class SpendingSummary:
 @dataclass
 class CsvMapping:
     """Persisted column mapping for a specific bank CSV format."""
+
     source_id: str
     date_column: str
     amount_column: str

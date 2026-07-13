@@ -5,6 +5,7 @@ Revises:
 Branch labels: ze_prospecting
 Depends on: zc005
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op

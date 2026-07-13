@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -65,7 +65,9 @@ class ConnectionManager:
         async with self._lock:
             for msg in unread:
                 try:
-                    await self._ws.send_json({"type": "message", "message": message_to_dict(msg)})
+                    await self._ws.send_json(
+                        {"type": "message", "message": message_to_dict(msg)}
+                    )
                 except Exception:
                     self._ws = None
                     break
@@ -78,15 +80,19 @@ class ConnectionManager:
                     async with self._lock:
                         if self._ws is not None:
                             try:
-                                await self._ws.send_json({
-                                    "type": "confirm_request",
-                                    "thread_id": pending["thread_id"],
-                                    "id": pending["request_id"],
-                                    "prompt": pending["prompt"],
-                                    "actions": pending["actions"],
-                                })
+                                await self._ws.send_json(
+                                    {
+                                        "type": "confirm_request",
+                                        "thread_id": pending["thread_id"],
+                                        "id": pending["request_id"],
+                                        "prompt": pending["prompt"],
+                                        "actions": pending["actions"],
+                                    }
+                                )
                             except Exception as exc:
-                                log.warning("ws_confirmation_replay_failed", error=str(exc))
+                                log.warning(
+                                    "ws_confirmation_replay_failed", error=str(exc)
+                                )
             except Exception as exc:
                 log.warning("ws_confirmation_replay_error", error=str(exc))
 
@@ -111,7 +117,9 @@ class ConnectionManager:
             if self._ws is None:
                 return
             try:
-                await self._ws.send_json({"type": "message", "message": message_to_dict(message)})
+                await self._ws.send_json(
+                    {"type": "message", "message": message_to_dict(message)}
+                )
             except Exception as exc:
                 log.warning("ws_push_failed", error=str(exc))
                 self._ws = None

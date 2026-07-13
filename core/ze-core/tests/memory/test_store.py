@@ -6,9 +6,12 @@ returning UserFact/UserProfile). They need updating for the new ze_memory.retrie
 API which uses retrieve(RetrievalRequest) and returns list[ProfileFacet].
 Skipped until updated.
 """
+
 import pytest
 
-pytestmark = pytest.mark.skip(reason="needs update for new ze_memory API (retrieve/Fact/ProfileFacet)")
+pytestmark = pytest.mark.skip(
+    reason="needs update for new ze_memory API (retrieve/Fact/ProfileFacet)"
+)
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
@@ -19,6 +22,7 @@ from ze_memory.types import Fact, MemoryContext
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _conn():
     c = AsyncMock()
@@ -91,6 +95,7 @@ def _episode_row(summary=None, response="resp"):
 
 # ── TestCosineSimilarity ──────────────────────────────────────────────────────
 
+
 class TestCosineSimilarity:
     def test_identical_vectors(self):
         assert abs(_cosine_similarity([1.0, 0.0], [1.0, 0.0]) - 1.0) < 1e-9
@@ -104,6 +109,7 @@ class TestCosineSimilarity:
 
 # ── TestGetContext ────────────────────────────────────────────────────────────
 
+
 class TestGetContext:
     async def test_empty_store_returns_empty_context(self):
         store, _ = _store()
@@ -115,10 +121,12 @@ class TestGetContext:
 
     async def test_facts_built_from_rows(self):
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [_fact_row("name", "Alice")],
-            [],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [_fact_row("name", "Alice")],
+                [],
+            ]
+        )
         store, _ = _store(conn=conn)
         result = await store.get_context([0.1], "a")
         assert len(result.facts) == 1
@@ -128,26 +136,32 @@ class TestGetContext:
     async def test_token_budget_limits_facts(self):
         # Each fact value is 400 chars → 100 tokens; budget is 200 → max 2
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [_fact_row(f"k{i}", "x" * 400) for i in range(5)],
-            [],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [_fact_row(f"k{i}", "x" * 400) for i in range(5)],
+                [],
+            ]
+        )
         store, _ = _store(conn=conn)
-        result = await store.get_context([0.1], "a", token_budget={"facts": 200, "episodes": 500})
+        result = await store.get_context(
+            [0.1], "a", token_budget={"facts": 200, "episodes": 500}
+        )
         assert len(result.facts) == 2
 
     async def test_profile_returned_when_fields_present(self):
         conn = _conn()
         conn.fetch = AsyncMock(return_value=[])
-        conn.fetchrow = AsyncMock(return_value={
-            "preferences": "coffee",
-            "habits": "morning run",
-            "topics": "tech",
-            "relationships": "wife: Ana",
-            "goals": "ship ze-core",
-            "updated_at": _now(),
-            "version": 3,
-        })
+        conn.fetchrow = AsyncMock(
+            return_value={
+                "preferences": "coffee",
+                "habits": "morning run",
+                "topics": "tech",
+                "relationships": "wife: Ana",
+                "goals": "ship ze-core",
+                "updated_at": _now(),
+                "version": 3,
+            }
+        )
         store, _ = _store(conn=conn)
         result = await store.get_context([0.1], "a")
         assert result.profile is not None
@@ -157,11 +171,17 @@ class TestGetContext:
     async def test_profile_none_when_all_empty_strings(self):
         conn = _conn()
         conn.fetch = AsyncMock(return_value=[])
-        conn.fetchrow = AsyncMock(return_value={
-            "preferences": "", "habits": "", "topics": "",
-            "relationships": "", "goals": "",
-            "updated_at": _now(), "version": 0,
-        })
+        conn.fetchrow = AsyncMock(
+            return_value={
+                "preferences": "",
+                "habits": "",
+                "topics": "",
+                "relationships": "",
+                "goals": "",
+                "updated_at": _now(),
+                "version": 0,
+            }
+        )
         store, _ = _store(conn=conn)
         result = await store.get_context([0.1], "a")
         assert result.profile is None
@@ -169,10 +189,12 @@ class TestGetContext:
     async def test_missing_summaries_generated_and_cached(self):
         ep_id = uuid4()
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [],
-            [_episode_row(summary=None)],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [],
+                [_episode_row(summary=None)],
+            ]
+        )
         client = _client(response="generated summary")
         store, _ = _store(conn=conn, client=client)
         result = await store.get_context([0.1], "a")
@@ -182,10 +204,12 @@ class TestGetContext:
 
     async def test_episodes_with_existing_summary_not_regenerated(self):
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [],
-            [_episode_row(summary="existing summary")],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [],
+                [_episode_row(summary="existing summary")],
+            ]
+        )
         client = _client()
         store, _ = _store(conn=conn, client=client)
         await store.get_context([0.1], "a")
@@ -193,16 +217,19 @@ class TestGetContext:
 
     async def test_token_estimate_set(self):
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [_fact_row("k", "hello")],  # 5 chars → 1 token
-            [],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [_fact_row("k", "hello")],  # 5 chars → 1 token
+                [],
+            ]
+        )
         store, _ = _store(conn=conn)
         result = await store.get_context([0.1], "a")
         assert result.token_estimate > 0
 
 
 # ── TestWriteEpisode ──────────────────────────────────────────────────────────
+
 
 class TestWriteEpisode:
     async def test_inserts_row(self):
@@ -229,6 +256,7 @@ class TestWriteEpisode:
 
 
 # ── TestProposeFacts ──────────────────────────────────────────────────────────
+
 
 class TestProposeFacts:
     async def test_inserts_each_fact(self):
@@ -259,18 +287,23 @@ class TestProposeFacts:
     async def test_exact_key_match_marks_contradicted(self):
         existing_id = uuid4()
         conn = _conn()
-        conn.fetch = AsyncMock(side_effect=[
-            [{"id": existing_id}],  # exact key match
-            [],                      # semantic search
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [{"id": existing_id}],  # exact key match
+                [],  # semantic search
+            ]
+        )
         store, _ = _store(conn=conn)
         await store.propose_facts([Fact(predicate="same_key", value="new value")])
         # Verify contradicted = true update was called for the existing fact
-        update_calls = [c for c in conn.execute.await_args_list if "contradicted = true" in str(c)]
+        update_calls = [
+            c for c in conn.execute.await_args_list if "contradicted = true" in str(c)
+        ]
         assert len(update_calls) >= 1
 
 
 # ── TestGetProfile ────────────────────────────────────────────────────────────
+
 
 class TestGetProfile:
     async def test_returns_none_when_no_row(self):
@@ -281,11 +314,17 @@ class TestGetProfile:
 
     async def test_returns_profile_from_row(self):
         conn = _conn()
-        conn.fetchrow = AsyncMock(return_value={
-            "preferences": "p", "habits": "h", "topics": "t",
-            "relationships": "r", "goals": "g",
-            "updated_at": _now(), "version": 1,
-        })
+        conn.fetchrow = AsyncMock(
+            return_value={
+                "preferences": "p",
+                "habits": "h",
+                "topics": "t",
+                "relationships": "r",
+                "goals": "g",
+                "updated_at": _now(),
+                "version": 1,
+            }
+        )
         store, _ = _store(conn=conn)
         result = await store.get_profile()
         assert isinstance(result, UserProfile)
@@ -293,16 +332,23 @@ class TestGetProfile:
 
     async def test_returns_none_when_all_empty(self):
         conn = _conn()
-        conn.fetchrow = AsyncMock(return_value={
-            "preferences": "", "habits": "", "topics": "",
-            "relationships": "", "goals": "",
-            "updated_at": _now(), "version": 0,
-        })
+        conn.fetchrow = AsyncMock(
+            return_value={
+                "preferences": "",
+                "habits": "",
+                "topics": "",
+                "relationships": "",
+                "goals": "",
+                "updated_at": _now(),
+                "version": 0,
+            }
+        )
         store, _ = _store(conn=conn)
         assert await store.get_profile() is None
 
 
 # ── TestSettingsAccess ────────────────────────────────────────────────────────
+
 
 class TestSettingsAccess:
     async def test_dict_settings_used_for_threshold(self):
@@ -319,21 +365,27 @@ class TestSettingsAccess:
         store._embedder = embedder
         await store.propose_facts([Fact(predicate="x", value="orthogonal")])
         # cosine_similarity([1,0],[0,1]) = 0.0 < 0.99 → no contradiction update
-        update_calls = [c for c in conn.execute.await_args_list if "contradicted = true" in str(c)]
+        update_calls = [
+            c for c in conn.execute.await_args_list if "contradicted = true" in str(c)
+        ]
         assert len(update_calls) == 0
 
     def test_synthesis_model_from_dict_settings(self):
         settings = {"models": {"synthesis": "openai/gpt-4"}}
         store = MemoryStore(
-            pool=MagicMock(), embedder=MagicMock(),
-            openrouter_client=MagicMock(), settings=settings,
+            pool=MagicMock(),
+            embedder=MagicMock(),
+            openrouter_client=MagicMock(),
+            settings=settings,
         )
         assert store._synthesis_model() == "openai/gpt-4"
 
     def test_synthesis_model_default_when_no_settings(self):
         store = MemoryStore(
-            pool=MagicMock(), embedder=MagicMock(),
-            openrouter_client=MagicMock(), settings=None,
+            pool=MagicMock(),
+            embedder=MagicMock(),
+            openrouter_client=MagicMock(),
+            settings=None,
         )
         assert store._synthesis_model() == "anthropic/claude-haiku-4-5"
 
@@ -342,4 +394,3 @@ class TestSettingsAccess:
         conn.fetchrow = AsyncMock(return_value={"n": 7})
         store, _ = _store(conn=conn)
         assert await store.count_unreviewed_facts() == 7
-

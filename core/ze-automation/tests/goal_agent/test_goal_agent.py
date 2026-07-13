@@ -5,11 +5,18 @@ from uuid import uuid4
 from ze_automation.agents.goals.agent import GoalAgent
 from ze_agents.types import AgentContext, AgentResult
 from ze_agents.types import GateDecision
-from ze_automation.goals.types import ExecutionTrace, Goal, GoalStatus, Milestone, MilestoneStatus
+from ze_automation.goals.types import (
+    ExecutionTrace,
+    Goal,
+    GoalStatus,
+    Milestone,
+    MilestoneStatus,
+)
 from ze_sdk.memory import MemoryContext
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_client(response: str = "Here are your goals.") -> AsyncMock:
     client = AsyncMock()
@@ -56,12 +63,15 @@ def make_agent(client=None, store=None) -> GoalAgent:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
+
 def test_goal_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "goals" in _registry
 
 
 # ── run() — basic structure ───────────────────────────────────────────────────
+
 
 async def test_run_returns_agent_result():
     result = await make_agent().run(make_ctx())
@@ -77,20 +87,30 @@ async def test_run_returns_response_from_agentic_loop():
 
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
+
 async def test_run_lists_goals_via_tool():
 
     gid = uuid4()
     store = make_store()
-    store.list_all = AsyncMock(return_value=[
-        Goal(id=gid, title="Find leads", objective="Build a list of 20 contacts",
-             success_condition="20 contacts", status=GoalStatus.ACTIVE),
-    ])
+    store.list_all = AsyncMock(
+        return_value=[
+            Goal(
+                id=gid,
+                title="Find leads",
+                objective="Build a list of 20 contacts",
+                success_condition="20 contacts",
+                status=GoalStatus.ACTIVE,
+            ),
+        ]
+    )
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "list_goals", "arguments": {}}]),
-        ("You have 1 active goal: Find leads.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (None, [{"id": "c1", "name": "list_goals", "arguments": {}}]),
+            ("You have 1 active goal: Find leads.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     result = await make_agent(client=client, store=store).run(make_ctx())
@@ -104,22 +124,49 @@ async def test_run_gets_goal_status_via_tool():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
-    goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
+    goal = Goal(
+        id=gid,
+        title="My Goal",
+        objective="o",
+        success_condition="s",
+        status=GoalStatus.ACTIVE,
+    )
     store = make_store()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        Milestone(id=uuid4(), goal_id=gid, title="Step 1", description="d", sequence=1,
-                  status=MilestoneStatus.COMPLETED),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            Milestone(
+                id=uuid4(),
+                goal_id=gid,
+                title="Step 1",
+                description="d",
+                sequence=1,
+                status=MilestoneStatus.COMPLETED,
+            ),
+        ]
+    )
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "get_goal_status", "arguments": {"goal_id": str(gid)}}]),
-        ("My Goal is active — 1/1 milestones done.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "get_goal_status",
+                        "arguments": {"goal_id": str(gid)},
+                    }
+                ],
+            ),
+            ("My Goal is active — 1/1 milestones done.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
-    result = await make_agent(client=client, store=store).run(make_ctx("status of my goal"))
+    result = await make_agent(client=client, store=store).run(
+        make_ctx("status of my goal")
+    )
 
     store.get_goal.assert_called_once_with(gid)
     assert "My Goal" in result.response
@@ -129,8 +176,13 @@ async def test_run_creates_goal_via_tool():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
-    created_goal = Goal(id=gid, title="Find leads", objective="Build a list",
-                        success_condition="20 contacts", status=GoalStatus.PLANNING)
+    created_goal = Goal(
+        id=gid,
+        title="Find leads",
+        objective="Build a list",
+        success_condition="20 contacts",
+        status=GoalStatus.PLANNING,
+    )
 
     planner = AsyncMock()
     m = MagicMock()
@@ -146,16 +198,30 @@ async def test_run_creates_goal_via_tool():
     notifier.push_notification = AsyncMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "create_goal", "arguments": {
-            "goal_title": "Find leads",
-            "objective": "Build a list of 20 contacts",
-            "success_condition": "20 qualified contacts in CRM",
-            "time_horizon": "2 weeks",
-            "goal_type": "outreach",
-        }}]),
-        ("Goal 'Find leads' planned with 1 milestone. Approve in the app to start.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "create_goal",
+                        "arguments": {
+                            "goal_title": "Find leads",
+                            "objective": "Build a list of 20 contacts",
+                            "success_condition": "20 qualified contacts in CRM",
+                            "time_horizon": "2 weeks",
+                            "goal_type": "outreach",
+                        },
+                    }
+                ],
+            ),
+            (
+                "Goal 'Find leads' planned with 1 milestone. Approve in the app to start.",
+                None,
+            ),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = GoalAgent(
@@ -165,7 +231,9 @@ async def test_run_creates_goal_via_tool():
         goal_executor=AsyncMock(),
         notifier=notifier,
     )
-    result = await agent.run(make_ctx("create a goal to find 20 leads in 2 weeks", intent="create"))
+    result = await agent.run(
+        make_ctx("create a goal to find 20 leads in 2 weeks", intent="create")
+    )
 
     store.create_goal.assert_called_once()
     store.create_milestone.assert_called_once()
@@ -177,15 +245,32 @@ async def test_run_pauses_goal_via_tool():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
-    goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
+    goal = Goal(
+        id=gid,
+        title="My Goal",
+        objective="o",
+        success_condition="s",
+        status=GoalStatus.ACTIVE,
+    )
     store = make_store()
     store.get_goal = AsyncMock(return_value=goal)
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "pause_goal", "arguments": {"goal_id": str(gid)}}]),
-        ("Paused goal 'My Goal'.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "pause_goal",
+                        "arguments": {"goal_id": str(gid)},
+                    }
+                ],
+            ),
+            ("Paused goal 'My Goal'.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     result = await make_agent(client=client, store=store).run(
@@ -200,17 +285,34 @@ async def test_run_resumes_goal_via_tool():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
-    goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.PAUSED)
+    goal = Goal(
+        id=gid,
+        title="My Goal",
+        objective="o",
+        success_condition="s",
+        status=GoalStatus.PAUSED,
+    )
     store = make_store()
     store.get_goal = AsyncMock(return_value=goal)
     executor = AsyncMock()
     executor.advance = AsyncMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "resume_goal", "arguments": {"goal_id": str(gid)}}]),
-        ("Resumed goal 'My Goal'.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "resume_goal",
+                        "arguments": {"goal_id": str(gid)},
+                    }
+                ],
+            ),
+            ("Resumed goal 'My Goal'.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = GoalAgent(
@@ -230,15 +332,32 @@ async def test_run_abandons_goal_via_tool():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
-    goal = Goal(id=gid, title="My Goal", objective="o", success_condition="s", status=GoalStatus.ACTIVE)
+    goal = Goal(
+        id=gid,
+        title="My Goal",
+        objective="o",
+        success_condition="s",
+        status=GoalStatus.ACTIVE,
+    )
     store = make_store()
     store.get_goal = AsyncMock(return_value=goal)
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "abandon_goal", "arguments": {"goal_id": str(gid)}}]),
-        ("Abandoned goal 'My Goal'.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "abandon_goal",
+                        "arguments": {"goal_id": str(gid)},
+                    }
+                ],
+            ),
+            ("Abandoned goal 'My Goal'.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     result = await make_agent(client=client, store=store).run(
@@ -256,6 +375,7 @@ async def test_run_no_tool_calls_when_llm_answers_directly():
 
 # ── stream() ─────────────────────────────────────────────────────────────────
 
+
 async def test_stream_yields_response():
     client = make_client("Goals: Find leads.")
     tokens = [t async for t in make_agent(client=client).stream(make_ctx())]
@@ -264,19 +384,26 @@ async def test_stream_yields_response():
 
 # ── get_milestone_trace tool ──────────────────────────────────────────────────
 
+
 async def test_get_milestone_trace_returns_formatted_output():
     import ze_automation.agents.goals.tools  # noqa
 
     gid = uuid4()
     mid = uuid4()
     milestone = Milestone(
-        id=mid, goal_id=gid, title="Research targets",
-        description="Find leads", sequence=2,
+        id=mid,
+        goal_id=gid,
+        title="Research targets",
+        description="Find leads",
+        sequence=2,
         status=MilestoneStatus.COMPLETED,
     )
     trace = ExecutionTrace(
-        id=uuid4(), milestone_id=mid, goal_id=gid,
-        seq=0, tool_name="search_web",
+        id=uuid4(),
+        milestone_id=mid,
+        goal_id=gid,
+        seq=0,
+        tool_name="search_web",
         args={"query": "target companies"},
         result="Found 5 companies",
         duration_ms=300,
@@ -288,11 +415,21 @@ async def test_get_milestone_trace_returns_formatted_output():
     store.list_traces = AsyncMock(return_value=[trace])
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "get_milestone_trace",
-                 "arguments": {"goal_id": str(gid), "milestone_sequence": 2}}]),
-        ("Step 2 used search_web and found 5 companies.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "get_milestone_trace",
+                        "arguments": {"goal_id": str(gid), "milestone_sequence": 2},
+                    }
+                ],
+            ),
+            ("Step 2 used search_web and found 5 companies.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     result = await make_agent(client=client, store=store).run(
@@ -310,7 +447,11 @@ async def test_get_milestone_trace_returns_no_trace_message():
     gid = uuid4()
     mid = uuid4()
     milestone = Milestone(
-        id=mid, goal_id=gid, title="Step 1", description="d", sequence=1,
+        id=mid,
+        goal_id=gid,
+        title="Step 1",
+        description="d",
+        sequence=1,
         status=MilestoneStatus.COMPLETED,
     )
 
@@ -319,17 +460,29 @@ async def test_get_milestone_trace_returns_no_trace_message():
     store.list_traces = AsyncMock(return_value=[])
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "get_milestone_trace",
-                 "arguments": {"goal_id": str(gid), "milestone_sequence": 1}}]),
-        ("No execution trace available.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "get_milestone_trace",
+                        "arguments": {"goal_id": str(gid), "milestone_sequence": 1},
+                    }
+                ],
+            ),
+            ("No execution trace available.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     result = await make_agent(client=client, store=store).run(make_ctx())
 
     # The tool should have returned the "no trace" message
-    tool_call = next(tc for tc in result.tool_calls if tc.tool_name == "get_milestone_trace")
+    tool_call = next(
+        tc for tc in result.tool_calls if tc.tool_name == "get_milestone_trace"
+    )
     assert "No execution trace recorded" in str(tool_call.result)
 
 
@@ -338,7 +491,9 @@ async def test_get_milestone_trace_handles_invalid_goal_id():
     from ze_automation.agents.goals.tools import get_milestone_trace
 
     store = make_store()
-    result = await get_milestone_trace(store=store, goal_id="not-a-uuid", milestone_sequence=1)
+    result = await get_milestone_trace(
+        store=store, goal_id="not-a-uuid", milestone_sequence=1
+    )
     assert "Invalid goal ID" in result
 
 
@@ -349,7 +504,9 @@ async def test_steer_goal_returns_error_for_non_active_goal():
     executor = AsyncMock()
     executor.steer = AsyncMock(return_value=False)
 
-    result = await steer_goal(executor=executor, goal_id=str(uuid4()), instruction="change direction")
+    result = await steer_goal(
+        executor=executor, goal_id=str(uuid4()), instruction="change direction"
+    )
     assert "not currently active" in result
 
 
@@ -360,7 +517,9 @@ async def test_steer_goal_returns_confirmation_for_active_goal():
     executor = AsyncMock()
     executor.steer = AsyncMock(return_value=True)
 
-    result = await steer_goal(executor=executor, goal_id=str(uuid4()), instruction="focus on email")
+    result = await steer_goal(
+        executor=executor, goal_id=str(uuid4()), instruction="focus on email"
+    )
     assert "after the current step" in result.lower() or "applying" in result.lower()
 
 
@@ -369,7 +528,9 @@ async def test_steer_goal_handles_invalid_goal_id():
     from ze_automation.agents.goals.tools import steer_goal
 
     executor = AsyncMock()
-    result = await steer_goal(executor=executor, goal_id="bad-id", instruction="something")
+    result = await steer_goal(
+        executor=executor, goal_id="bad-id", instruction="something"
+    )
     assert "Invalid goal ID" in result
 
 
@@ -381,5 +542,7 @@ async def test_get_milestone_trace_handles_missing_sequence():
     store = make_store()
     store.list_milestones = AsyncMock(return_value=[])
 
-    result = await get_milestone_trace(store=store, goal_id=str(gid), milestone_sequence=99)
+    result = await get_milestone_trace(
+        store=store, goal_id=str(gid), milestone_sequence=99
+    )
     assert "No milestone with sequence 99" in result

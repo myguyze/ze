@@ -11,19 +11,21 @@ async def send_onboarding_view(
     conn_mgr: ConnectionManager,
     view: OnboardingView,
 ) -> None:
-    await conn_mgr.send_frame({
-        "type": "message",
-        "message": {
-            "id": str(uuid4()),
-            "role": "assistant",
-            "text": view.text,
-            "components": view.components,
-            "read": False,
-            "thread_id": f"onboarding:{view.session_id}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        },
-        "onboarding": {
-            "session_id": str(view.session_id),
-            "completed": view.completed,
-        },
-    })
+    await conn_mgr.send_frame(
+        {
+            "type": "message",
+            "message": {
+                "id": str(uuid4()),
+                "role": "assistant",
+                "text": view.text,
+                "components": view.components,
+                "read": False,
+                "thread_id": f"onboarding:{view.session_id}",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            "onboarding": {
+                "session_id": str(view.session_id),
+                "completed": view.completed,
+            },
+        }
+    )

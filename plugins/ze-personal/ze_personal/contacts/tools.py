@@ -10,7 +10,10 @@ from ze_agents.types import ToolCall
 log = get_logger(__name__)
 
 
-@tool(access=ToolAccess.READ, description="Get all known communication channel handles (email, LinkedIn, etc.) for a contact.")
+@tool(
+    access=ToolAccess.READ,
+    description="Get all known communication channel handles (email, LinkedIn, etc.) for a contact.",
+)
 async def get_contact_channels(
     contact_id: str,
     contact_channel_store: ContactChannelStore,
@@ -47,7 +50,10 @@ async def get_contact_channels(
         )
 
 
-@tool(access=ToolAccess.WRITE, description="Add or update a communication channel handle for a contact.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Add or update a communication channel handle for a contact.",
+)
 async def set_contact_channel(
     contact_id: str,
     channel_type: str,

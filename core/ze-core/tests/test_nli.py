@@ -1,4 +1,5 @@
 """Tests for ze_core/nli.py — NLI cross-encoder helpers."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -40,10 +41,12 @@ def test_filter_scorable_pairs_preserves_indices():
 @patch("ze_core.nli.get_nli_model")
 def test_nli_scores_returns_shape(mock_get_model):
     mock_model = MagicMock()
-    mock_model.predict.return_value = np.array([
-        [2.0, 0.5, -1.0],
-        [-1.0, 0.0, 2.0],
-    ])
+    mock_model.predict.return_value = np.array(
+        [
+            [2.0, 0.5, -1.0],
+            [-1.0, 0.0, 2.0],
+        ]
+    )
     mock_get_model.return_value = mock_model
 
     result = nli_scores([("premise one", "hypothesis one"), ("p2", "h2")])
@@ -67,7 +70,9 @@ def test_nli_scores_skips_non_latin_pairs(mock_get_model):
 
 @patch("ze_core.nli.nli_scores")
 async def test_nli_scores_async_delegates(mock_scores):
-    mock_scores.return_value = [{"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}]
+    mock_scores.return_value = [
+        {"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}
+    ]
     result = await nli_scores_async([("a", "b")])
     assert result[0]["entailment"] == 0.7
 
@@ -83,7 +88,9 @@ def test_nli_grounding_score_mean_entailment():
 async def test_local_nli_client_scores():
     client = LocalNLIClient()
     with patch("ze_core.nli.nli_scores_async", new_callable=AsyncMock) as mock_fn:
-        mock_fn.return_value = [{"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}]
+        mock_fn.return_value = [
+            {"contradiction": 0.1, "neutral": 0.2, "entailment": 0.7}
+        ]
         result = await client.scores([("a", "b")])
         assert result[0]["entailment"] == 0.7
 

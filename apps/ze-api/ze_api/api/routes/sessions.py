@@ -26,7 +26,12 @@ def _session_to_schema(session) -> SessionSchema:
 
 
 def _search_hit_to_result(hit: SessionSearchHit) -> SessionSearchResult:
-    data = {**hit.session.__dict__, "match_source": hit.match_source, "snippet": hit.snippet, "rank": hit.rank}
+    data = {
+        **hit.session.__dict__,
+        "match_source": hit.match_source,
+        "snippet": hit.snippet,
+        "rank": hit.rank,
+    }
     return SessionSearchResult.model_validate(data)
 
 
@@ -60,7 +65,9 @@ async def list_sessions(
     description="Full-text search across message content, session metadata, and archived session summaries.",
 )
 async def search_sessions(
-    q: str = Query(min_length=1, description="Search query (min 2 characters for results)"),
+    q: str = Query(
+        min_length=1, description="Search query (min 2 characters for results)"
+    ),
     limit: int = Query(default=20, ge=1, le=50, description="Max results"),
     store: SessionStore = Depends(_get_session_store),
 ) -> list[SessionSearchResult]:

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class WebhookPayload:
-    source: str          # matches ChannelType value or WebhookHandler.source_key
+    source: str  # matches ChannelType value or WebhookHandler.source_key
     raw_body: bytes
     headers: dict[str, str]
 

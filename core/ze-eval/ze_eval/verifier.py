@@ -16,6 +16,7 @@ Scenario YAML format:
 
 Requires DATABASE_URL env var (same as Ze).
 """
+
 from __future__ import annotations
 
 import os
@@ -56,7 +57,9 @@ async def _check(conn: asyncpg.Connection, check: dict) -> VerifyResult:
     expect = check.get("expect", "exists")
     where_sql, params = _build_where(where)
 
-    count = await conn.fetchval(f"SELECT COUNT(*) FROM {table} WHERE {where_sql}", *params)
+    count = await conn.fetchval(
+        f"SELECT COUNT(*) FROM {table} WHERE {where_sql}", *params
+    )
     count = int(count)
 
     if expect == "exists":
@@ -66,7 +69,9 @@ async def _check(conn: asyncpg.Connection, check: dict) -> VerifyResult:
     else:
         passed = False
 
-    return VerifyResult(table=table, where=where, expect=expect, actual_count=count, passed=passed)
+    return VerifyResult(
+        table=table, where=where, expect=expect, actual_count=count, passed=passed
+    )
 
 
 async def _cleanup(conn: asyncpg.Connection, check: dict) -> None:
@@ -78,9 +83,13 @@ async def _cleanup(conn: asyncpg.Connection, check: dict) -> None:
     await conn.execute(f"DELETE FROM {table} WHERE {where_sql}", *params)
 
 
-async def run_verification(checks: list[dict], db_url: str | None = None) -> list[VerifyResult]:
+async def run_verification(
+    checks: list[dict], db_url: str | None = None
+) -> list[VerifyResult]:
     """Run all checks then clean up eval-created rows."""
-    url = db_url or os.environ.get("DATABASE_URL", "postgresql://ze:ze@localhost:5432/ze")
+    url = db_url or os.environ.get(
+        "DATABASE_URL", "postgresql://ze:ze@localhost:5432/ze"
+    )
     results: list[VerifyResult] = []
 
     try:
@@ -106,14 +115,16 @@ async def run_verification(checks: list[dict], db_url: str | None = None) -> lis
                 if check.get("cleanup", True):
                     await _cleanup(conn, check)
             except Exception as exc:
-                results.append(VerifyResult(
-                    table=check.get("table", "?"),
-                    where=check.get("where", {}),
-                    expect=check.get("expect", "exists"),
-                    actual_count=0,
-                    passed=False,
-                    error=str(exc),
-                ))
+                results.append(
+                    VerifyResult(
+                        table=check.get("table", "?"),
+                        where=check.get("where", {}),
+                        expect=check.get("expect", "exists"),
+                        actual_count=0,
+                        passed=False,
+                        error=str(exc),
+                    )
+                )
     finally:
         await conn.close()
 

@@ -94,7 +94,8 @@ class RecurringDetectionJob:
                 return
 
         days_label = (
-            f"{report.days_since_last} days" if report.days_since_last > 0
+            f"{report.days_since_last} days"
+            if report.days_since_last > 0
             else "a while"
         )
         await self._notifier.push(
@@ -150,7 +151,9 @@ def _format_new_summary(candidates: list[RecurringExpense]) -> str:
         )
     lines = [f"I spotted {count} new recurring charges:"]
     for item in candidates[:5]:
-        lines.append(f"  • {item.merchant_display} — {item.currency} {item.amount} ({cadence_label(item.interval_days)})")
+        lines.append(
+            f"  • {item.merchant_display} — {item.currency} {item.amount} ({cadence_label(item.interval_days)})"
+        )
     if count > 5:
         lines.append(f"  … and {count - 5} more")
     lines.append("Want me to categorise these as subscriptions?")

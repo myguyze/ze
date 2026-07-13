@@ -10,19 +10,84 @@ log = get_logger(__name__)
 _ANTHROPIC_MODEL = "anthropic/claude-haiku-4-5"
 
 _KEYWORD_RULES: list[tuple[str, list[str]]] = [
-    ("Food & Dining",   ["uber eats", "deliveroo", "bolt food", "glovo", "continente",
-                         "pingo doce", "lidl", "aldi", "mercadona", "mcdonald",
-                         "starbucks", "nando", "pizza"]),
-    ("Transport",       ["uber", "bolt", "cp comboios", "metro", "carris", "ryanair",
-                         "tap air", "easyjet", "renfe", "shell", "bp ", "galp"]),
-    ("Utilities",       ["edp ", "galp energia", "nos ", "meo ", "vodafone", "epal",
-                         "internet", "electricity", "gas "]),
-    ("Health",          ["farmacia", "pharmacy", "clinica", "hospital", "dr ", "dra "]),
-    ("Entertainment",   ["netflix", "spotify", "steam", "playstation", "xbox",
-                         "youtube", "prime video", "hbo", "disney"]),
-    ("Shopping",        ["amazon", "zara", "h&m", "fnac", "worten", "leroy merlin"]),
-    ("Finance",         ["transferwise", "wise", "revolut", "trading 212", "degiro",
-                         "fee", "commission", "interest"]),
+    (
+        "Food & Dining",
+        [
+            "uber eats",
+            "deliveroo",
+            "bolt food",
+            "glovo",
+            "continente",
+            "pingo doce",
+            "lidl",
+            "aldi",
+            "mercadona",
+            "mcdonald",
+            "starbucks",
+            "nando",
+            "pizza",
+        ],
+    ),
+    (
+        "Transport",
+        [
+            "uber",
+            "bolt",
+            "cp comboios",
+            "metro",
+            "carris",
+            "ryanair",
+            "tap air",
+            "easyjet",
+            "renfe",
+            "shell",
+            "bp ",
+            "galp",
+        ],
+    ),
+    (
+        "Utilities",
+        [
+            "edp ",
+            "galp energia",
+            "nos ",
+            "meo ",
+            "vodafone",
+            "epal",
+            "internet",
+            "electricity",
+            "gas ",
+        ],
+    ),
+    ("Health", ["farmacia", "pharmacy", "clinica", "hospital", "dr ", "dra "]),
+    (
+        "Entertainment",
+        [
+            "netflix",
+            "spotify",
+            "steam",
+            "playstation",
+            "xbox",
+            "youtube",
+            "prime video",
+            "hbo",
+            "disney",
+        ],
+    ),
+    ("Shopping", ["amazon", "zara", "h&m", "fnac", "worten", "leroy merlin"]),
+    (
+        "Finance",
+        [
+            "transferwise",
+            "wise",
+            "revolut",
+            "trading 212",
+            "degiro",
+            "fee",
+            "commission",
+            "interest",
+        ],
+    ),
 ]
 
 _BATCH_PROMPT = """\
@@ -90,6 +155,12 @@ class CategoryInferrer:
                 text = text[4:]
         categories: list[str] = json.loads(text)
         if len(categories) != len(descriptions):
-            log.warning("category_llm_length_mismatch", expected=len(descriptions), got=len(categories))
-            categories = (categories + ["Other"] * len(descriptions))[: len(descriptions)]
+            log.warning(
+                "category_llm_length_mismatch",
+                expected=len(descriptions),
+                got=len(categories),
+            )
+            categories = (categories + ["Other"] * len(descriptions))[
+                : len(descriptions)
+            ]
         return categories

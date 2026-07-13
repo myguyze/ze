@@ -13,6 +13,7 @@ from ze_sdk.memory import MemoryContext
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_settings():
     return Settings(
         openrouter_api_key="test-key",
@@ -30,7 +31,13 @@ def make_campaign_store(campaign_id=None):
 
 
 def make_tool_call():
-    return ToolCall(tool_name="add_prospect", args={}, result={"id": "x"}, duration_ms=5, success=True)
+    return ToolCall(
+        tool_name="add_prospect",
+        args={},
+        result={"id": "x"},
+        duration_ms=5,
+        success=True,
+    )
 
 
 def make_ctx(prompt: str = "find 5 charter operators in Portugal") -> AgentContext:
@@ -53,7 +60,9 @@ def make_agent(
     if client is None:
         client = AsyncMock()
         client.complete = AsyncMock(return_value="Found 2 prospects.")
-        client.complete_with_tools = AsyncMock(return_value=("Found 2 prospects.", None))
+        client.complete_with_tools = AsyncMock(
+            return_value=("Found 2 prospects.", None)
+        )
     if browser_client is None:
         browser_client = AsyncMock()
         browser_client.health = AsyncMock(return_value=True)
@@ -71,12 +80,15 @@ def make_agent(
 
 # ── Registration ──────────────────────────────────────────────────────────────
 
+
 def test_prospecting_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "prospecting" in _registry
 
 
 # ── run() ─────────────────────────────────────────────────────────────────────
+
 
 async def test_prospecting_agent_run_creates_campaign():
     campaign_id = uuid4()
@@ -84,7 +96,9 @@ async def test_prospecting_agent_run_creates_campaign():
 
     agent = make_agent(campaign_store=cs)
 
-    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Found prospects.", []))):
+    with patch.object(
+        agent, "agentic_loop", AsyncMock(return_value=("Found prospects.", []))
+    ):
         result = await agent.run(make_ctx())
 
     assert isinstance(result, AgentResult)
@@ -98,7 +112,11 @@ async def test_prospecting_agent_run_sets_status_complete():
 
     agent = make_agent(campaign_store=cs)
 
-    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Summary here.", [make_tool_call()]))):
+    with patch.object(
+        agent,
+        "agentic_loop",
+        AsyncMock(return_value=("Summary here.", [make_tool_call()])),
+    ):
         await agent.run(make_ctx())
 
     cs.complete.assert_called_once_with(campaign_id, "Summary here.")
@@ -112,8 +130,14 @@ async def test_prospecting_agent_discards_campaign_when_no_tool_calls():
 
     agent = make_agent(campaign_store=cs)
 
-    with patch.object(agent, "agentic_loop", AsyncMock(return_value=("Which campaign do you mean?", []))):
-        result = await agent.run(make_ctx("I meant those ones in specific. How did you get those?"))
+    with patch.object(
+        agent,
+        "agentic_loop",
+        AsyncMock(return_value=("Which campaign do you mean?", [])),
+    ):
+        result = await agent.run(
+            make_ctx("I meant those ones in specific. How did you get those?")
+        )
 
     cs.discard.assert_called_once_with(campaign_id)
     cs.complete.assert_not_called()
@@ -126,7 +150,9 @@ async def test_prospecting_agent_failure_sets_status_failed():
 
     agent = make_agent(campaign_store=cs)
 
-    with patch.object(agent, "agentic_loop", AsyncMock(side_effect=RuntimeError("LLM error"))):
+    with patch.object(
+        agent, "agentic_loop", AsyncMock(side_effect=RuntimeError("LLM error"))
+    ):
         with pytest.raises(RuntimeError, match="LLM error"):
             await agent.run(make_ctx())
 
@@ -139,7 +165,9 @@ async def test_prospecting_agent_browser_unreachable_excludes_browser_extract():
 
     captured_tool_names: list = []
 
-    async def fake_agentic_loop(ctx, *, client, messages, system, deps, tool_names=None, **kwargs):
+    async def fake_agentic_loop(
+        ctx, *, client, messages, system, deps, tool_names=None, **kwargs
+    ):
         captured_tool_names.extend(tool_names or [])
         return "Found prospects.", []
 
@@ -173,10 +201,16 @@ async def test_prospecting_agent_passes_campaign_id_in_deps():
 
 # ── agentic_loop max_history_tokens ──────────────────────────────────────────
 
+
 async def test_agentic_loop_truncates_old_rounds():
     from ze_agents.base_agent import _truncate_messages
 
-    def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
+    def tc(id_):
+        return {
+            "id": id_,
+            "type": "function",
+            "function": {"name": "web_search", "arguments": "{}"},
+        }
 
     messages = [
         {"role": "user", "content": "find prospects"},
@@ -195,14 +229,21 @@ async def test_agentic_loop_truncates_old_rounds():
     for msg in messages:
         if msg.get("role") == "assistant" and msg.get("tool_calls"):
             expected_ids = {tc["id"] for tc in msg["tool_calls"]}
-            result_ids = {m.get("tool_call_id") for m in messages if m.get("role") == "tool"}
+            result_ids = {
+                m.get("tool_call_id") for m in messages if m.get("role") == "tool"
+            }
             assert expected_ids <= result_ids, "truncation left orphaned assistant turn"
 
 
 async def test_agentic_loop_protects_last_4_messages():
     from ze_agents.base_agent import _truncate_messages
 
-    def tc(id_): return {"id": id_, "type": "function", "function": {"name": "web_search", "arguments": "{}"}}
+    def tc(id_):
+        return {
+            "id": id_,
+            "type": "function",
+            "function": {"name": "web_search", "arguments": "{}"},
+        }
 
     tail = [
         {"role": "assistant", "content": None, "tool_calls": [tc("recent-1")]},
@@ -223,6 +264,7 @@ async def test_agentic_loop_protects_last_4_messages():
 
 
 # ── recover_stale_campaigns ───────────────────────────────────────────────────
+
 
 async def test_recover_stale_campaigns():
     from ze_prospecting.jobs.campaigns import recover_stale_campaigns

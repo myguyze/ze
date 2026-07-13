@@ -17,10 +17,10 @@ log = get_logger(__name__)
 
 
 _GATE_RANK: dict[GateDecision, int] = {
-    GateDecision.BLOCKED:            0,
-    GateDecision.DRAFT:              1,
+    GateDecision.BLOCKED: 0,
+    GateDecision.DRAFT: 1,
     GateDecision.AWAIT_CONFIRMATION: 2,
-    GateDecision.EXECUTE:            3,
+    GateDecision.EXECUTE: 3,
 }
 
 
@@ -62,7 +62,10 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
 
     if envelope.is_compound:
         return await _execute_compound(
-            envelope.subtasks, base_ctx, gate_decision, state,
+            envelope.subtasks,
+            base_ctx,
+            gate_decision,
+            state,
             is_sequential=envelope.is_sequential,
             reporter=reporter,
             identity_builder=identity_builder,
@@ -71,7 +74,10 @@ async def execute_tool(state: AgentState, config: RunnableConfig) -> dict:
             embed_fn=embed_fn,
         )
     return await _execute_single(
-        envelope.subtasks[0], base_ctx, gate_decision, state,
+        envelope.subtasks[0],
+        base_ctx,
+        gate_decision,
+        state,
         token_queue=token_queue,
         token_sink=token_sink,
         reporter=reporter,
@@ -126,6 +132,7 @@ async def await_confirmation(state: AgentState, config: RunnableConfig) -> dict:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _embed_fn(config: RunnableConfig) -> Any:
     embedder = config["configurable"].get("embedder")
@@ -260,12 +267,14 @@ async def _run_with_timeout(
     token_queue: asyncio.Queue | None = None,
 ) -> AgentResult:
     from ze_core.telemetry.context import set_agent_context
+
     set_agent_context(agent_name)
 
     instance = get_agent(agent_name)
     timeout = float(getattr(type(instance), "timeout", 30))
 
     if token_queue is not None:
+
         async def _stream_and_collect() -> AgentResult:
             tokens: list[str] = []
             try:

@@ -12,6 +12,7 @@ from ze_agents.interface.validation import validate_interface
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 class _ValidInline:
     confirmation_style = "inline"
 
@@ -31,6 +32,7 @@ class _ValidAsync:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
+
 class TestValidateInterface:
     def test_valid_inline_passes(self):
         validate_interface(_ValidInline())
@@ -49,6 +51,7 @@ class TestValidateInterface:
     def test_invalid_confirmation_style_raises(self):
         class BadStyle:
             confirmation_style = "poll"
+
             async def send(self, m): ...
             async def push(self, n): ...
 
@@ -58,6 +61,7 @@ class TestValidateInterface:
     def test_inline_without_confirm_raises(self):
         class InlineNoConfirm:
             confirmation_style = "inline"
+
             async def send(self, m): ...
             async def push(self, n): ...
 
@@ -67,6 +71,7 @@ class TestValidateInterface:
     def test_async_without_send_confirmation_raises(self):
         class AsyncNoSend:
             confirmation_style = "async"
+
             async def send(self, m): ...
             async def push(self, n): ...
 

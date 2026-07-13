@@ -3,6 +3,7 @@
 Revision ID: zm012
 Revises: zm011
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op
@@ -19,8 +20,7 @@ def upgrade() -> None:
         " ADD COLUMN IF NOT EXISTS agent TEXT NOT NULL DEFAULT 'unknown'"
     )
     op.execute(
-        "CREATE INDEX IF NOT EXISTS memory_facts_agent_idx"
-        " ON memory_facts (agent)"
+        "CREATE INDEX IF NOT EXISTS memory_facts_agent_idx ON memory_facts (agent)"
     )
 
 

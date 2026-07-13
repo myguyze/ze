@@ -181,7 +181,9 @@ def build_automation_stack(shared: Any, settings: Any) -> AutomationStack:
     )
 
 
-def wire_goal_executor_push(stack: AutomationStack, notifier: ProactiveNotifier) -> None:
+def wire_goal_executor_push(
+    stack: AutomationStack, notifier: ProactiveNotifier
+) -> None:
     stack.goal_executor._push = notifier.push_notification
 
 
@@ -327,7 +329,9 @@ def register_proactive_jobs(
             _goal_narrative,
             cron=_narrative_cfg.get("cron", "0 18 * * 0"),
         )
-        log.info("goal_narrative_scheduled", cron=_narrative_cfg.get("cron", "0 18 * * 0"))
+        log.info(
+            "goal_narrative_scheduled", cron=_narrative_cfg.get("cron", "0 18 * * 0")
+        )
 
     _suggestion_cfg = _proactive_cfg.get("goal_suggestion", {})
     if _suggestion_cfg.get("enabled", True):
@@ -335,7 +339,9 @@ def register_proactive_jobs(
             _goal_suggestion,
             cron=_suggestion_cfg.get("cron", "0 19 * * 0"),
         )
-        log.info("goal_suggestion_scheduled", cron=_suggestion_cfg.get("cron", "0 19 * * 0"))
+        log.info(
+            "goal_suggestion_scheduled", cron=_suggestion_cfg.get("cron", "0 19 * * 0")
+        )
 
     _stuck_cfg = _proactive_cfg.get("stuck_goals", {})
     if _stuck_cfg.get("enabled", True):
@@ -361,4 +367,7 @@ def register_proactive_jobs(
             _cost_anomaly,
             cron=_acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"),
         )
-        log.info("cost_anomaly_scheduled", cron=_acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"))
+        log.info(
+            "cost_anomaly_scheduled",
+            cron=_acc_cfg.get("cost_anomaly_schedule", "0 */6 * * *"),
+        )

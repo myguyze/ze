@@ -16,6 +16,7 @@ from ze_automation.jobs.cost_anomaly import CostAnomalyJob
 
 # ── ActivitySummary / build_narrative ─────────────────────────────────────────
 
+
 def _empty_summary(period_days: int = 7) -> ActivitySummary:
     return ActivitySummary(
         period_days=period_days,
@@ -85,7 +86,9 @@ def test_build_narrative_workflow_failure():
 
 def test_build_narrative_anomaly():
     summary = _empty_summary()
-    summary.anomalies = ["prospecting spent $0.31 on one run (5.0× baseline) on 2026-06-09"]
+    summary.anomalies = [
+        "prospecting spent $0.31 on one run (5.0× baseline) on 2026-06-09"
+    ]
     text = build_narrative(summary)
     assert "prospecting" in text
     assert "Anomalies" in text
@@ -98,6 +101,7 @@ def test_build_narrative_no_failures_message():
 
 
 # ── AccountabilityJob ─────────────────────────────────────────────────────────
+
 
 def _make_accountability_job(*, dedup_hit: bool = False) -> AccountabilityJob:
     notifier = AsyncMock()
@@ -145,6 +149,7 @@ async def test_accountability_job_sends_narrative_when_no_dedup():
 
 
 # ── CostAnomalyJob ────────────────────────────────────────────────────────────
+
 
 def _make_cost_anomaly_job(
     *,

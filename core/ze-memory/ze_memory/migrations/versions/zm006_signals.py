@@ -3,6 +3,7 @@
 Revision ID: zm006
 Revises: zm005
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op
@@ -29,9 +30,15 @@ def upgrade() -> None:
             UNIQUE (source, external_ref)
         )
     """)
-    op.execute("CREATE INDEX IF NOT EXISTS idx_memory_signals_source ON memory_signals (source)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_memory_signals_occurred ON memory_signals (occurred_at DESC)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_memory_signals_expires ON memory_signals (expires_at) WHERE expires_at IS NOT NULL")
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memory_signals_source ON memory_signals (source)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memory_signals_occurred ON memory_signals (occurred_at DESC)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memory_signals_expires ON memory_signals (expires_at) WHERE expires_at IS NOT NULL"
+    )
 
 
 def downgrade() -> None:

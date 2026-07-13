@@ -13,6 +13,7 @@ _ROOT = Path(__file__).parent.parent  # apps/ze-api/
 
 class ZeApiSettings(BaseSettings):
     """Ze API shell settings (env + YAML). Domain flags live in package YAML helpers."""
+
     model_config = SettingsConfigDict(
         env_file=_ROOT / ".env",
         env_file_encoding="utf-8",
@@ -130,7 +131,12 @@ class ZeApiSettings(BaseSettings):
                     "traits": ["direct", "warm", "concise"],
                     "verbosity": "concise",
                     "custom_instructions": "",
-                    "dials": {"humor": 0.3, "directness": 0.9, "formality": 0.2, "depth": 0.5},
+                    "dials": {
+                        "humor": 0.3,
+                        "directness": 0.9,
+                        "formality": 0.2,
+                        "depth": 0.5,
+                    },
                 }
             },
         }

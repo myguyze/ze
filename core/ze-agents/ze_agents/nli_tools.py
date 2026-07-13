@@ -1,4 +1,5 @@
 """Shared NLI tools — agents pass nli_client via agentic_loop deps."""
+
 from __future__ import annotations
 
 from ze_agents.nli import NLIClient

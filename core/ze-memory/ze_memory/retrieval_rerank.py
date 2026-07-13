@@ -169,7 +169,9 @@ async def fetch_summaries_by_ids(pool: Any, ids: list[UUID]) -> list[Any]:
     return [by_id[i] for i in ids if i in by_id]
 
 
-def should_build_retrieval_cache(request: RetrievalRequest, cfg: dict[str, Any]) -> bool:
+def should_build_retrieval_cache(
+    request: RetrievalRequest, cfg: dict[str, Any]
+) -> bool:
     if not cfg.get("nli_retrieval_rerank"):
         return False
     if not request.current_session_id or not request.query_text:
@@ -214,7 +216,9 @@ async def build_retrieval_cache(
     summary_ids: list[UUID] = []
     summary_limit = limits["summaries"]
     if summary_limit > 0:
-        summary_rows = await fetch_summary_candidates(pool, emb, summary_limit * multiplier)
+        summary_rows = await fetch_summary_candidates(
+            pool, emb, summary_limit * multiplier
+        )
         if summary_rows:
             summary_ids = await rerank_row_ids(
                 summary_rows,

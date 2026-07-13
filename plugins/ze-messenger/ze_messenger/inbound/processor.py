@@ -34,9 +34,9 @@ log = get_logger(__name__)
 
 class SenderClass(StrEnum):
     KNOWN_CONTACT = "known_contact"
-    REPLIED_TO    = "replied_to"
+    REPLIED_TO = "replied_to"
     UNKNOWN_HUMAN = "unknown_human"
-    AUTOMATED     = "automated"
+    AUTOMATED = "automated"
 
 
 def _is_automated(
@@ -103,11 +103,14 @@ class InboundMessageProcessor:
         if msg.thread_id:
             await self._thread_map.set(msg.thread_id, channel_id)
 
-        prompt = (
-            f"[Inbound {msg.channel_type} from {msg.sender}]"
-            + (f" Subject: {msg.subject}" if msg.subject else "")
+        prompt = f"[Inbound {msg.channel_type} from {msg.sender}]" + (
+            f" Subject: {msg.subject}" if msg.subject else ""
         )
-        embedding = self._embedder.encode(f"{prompt} {msg.body[:500]}") if self._embedder else None
+        embedding = (
+            self._embedder.encode(f"{prompt} {msg.body[:500]}")
+            if self._embedder
+            else None
+        )
 
         await self._memory.write_episode(
             session_id=msg.message_id,
@@ -117,7 +120,10 @@ class InboundMessageProcessor:
             embedding=embedding,
         )
 
-        significant = sender_class in (SenderClass.KNOWN_CONTACT, SenderClass.REPLIED_TO)
+        significant = sender_class in (
+            SenderClass.KNOWN_CONTACT,
+            SenderClass.REPLIED_TO,
+        )
 
         if significant:
             self._signals.push(msg)
@@ -157,9 +163,8 @@ class InboundMessageProcessor:
             return
         from ze_memory.extractor import extract_facts, fact_extraction_model
 
-        prompt = (
-            f"[Inbound {msg.channel_type} from {msg.sender}]"
-            + (f" Subject: {msg.subject}" if msg.subject else "")
+        prompt = f"[Inbound {msg.channel_type} from {msg.sender}]" + (
+            f" Subject: {msg.subject}" if msg.subject else ""
         )
         try:
             facts = await extract_facts(
@@ -171,4 +176,8 @@ class InboundMessageProcessor:
             if facts:
                 await self._memory.propose_facts(facts)
         except Exception as exc:
-            log.warning("inbound_fact_extraction_failed", message_id=msg.message_id, error=str(exc))
+            log.warning(
+                "inbound_fact_extraction_failed",
+                message_id=msg.message_id,
+                error=str(exc),
+            )

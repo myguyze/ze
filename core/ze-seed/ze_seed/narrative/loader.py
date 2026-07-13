@@ -6,7 +6,11 @@ from uuid import UUID
 
 import yaml
 
-from ze_core.conversation.messages.types import MemoryChunkTrace, MessageTrace, ToolCallTrace
+from ze_core.conversation.messages.types import (
+    MemoryChunkTrace,
+    MessageTrace,
+    ToolCallTrace,
+)
 
 
 @dataclass
@@ -135,7 +139,9 @@ def load_persona(path: Path | None = None) -> PersonaNarrative:
             value=item["value"],
             agent=item.get("agent", "companion"),
             confidence=float(item.get("confidence", 1.0)),
-            source_episode_id=UUID(item["source_episode_id"]) if item.get("source_episode_id") else None,
+            source_episode_id=UUID(item["source_episode_id"])
+            if item.get("source_episode_id")
+            else None,
             subject_id=UUID(item["subject_id"]) if item.get("subject_id") else None,
             object_id=UUID(item["object_id"]) if item.get("object_id") else None,
             reviewed=bool(item.get("reviewed", True)),

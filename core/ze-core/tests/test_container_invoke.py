@@ -2,6 +2,7 @@
 Tests for Container.invoke() and Container.resume() — graph is fully mocked.
 These tests verify the confirmation-flow wiring without needing langgraph or asyncpg.
 """
+
 from typing import ClassVar
 from unittest.mock import AsyncMock, MagicMock
 
@@ -17,6 +18,7 @@ from ze_agents.types import AbortToken, AgentResult
 
 
 # ── Fixtures / helpers ────────────────────────────────────────────────────────
+
 
 def _state(
     response: str = "Hello!",
@@ -92,6 +94,7 @@ class _AsyncInterface:
 
 # ── Container.invoke() — no confirmation ─────────────────────────────────────
 
+
 class TestInvokeSimple:
     async def test_returns_final_response(self):
         c = _container([_state("Hi there!")])
@@ -133,6 +136,7 @@ class TestInvokeSimple:
 
 
 # ── Container.invoke() — inline confirmation ─────────────────────────────────
+
 
 class TestInvokeInlineConfirmation:
     async def test_confirm_approved_resumes_graph(self):
@@ -184,6 +188,7 @@ class TestInvokeInlineConfirmation:
 
 # ── Container.invoke() — async confirmation ──────────────────────────────────
 
+
 class TestInvokeAsyncConfirmation:
     async def test_sends_confirmation_and_returns_pending(self):
         iface = _AsyncInterface()
@@ -202,6 +207,7 @@ class TestInvokeAsyncConfirmation:
 
 
 # ── Container.resume() ────────────────────────────────────────────────────────
+
 
 class TestResume:
     async def test_resumes_graph_and_returns_response(self):
@@ -241,6 +247,7 @@ class TestResume:
 
 # ── Container.abort_invocation() ─────────────────────────────────────────────
 
+
 class TestAbortInvocation:
     async def test_abort_token_in_config_during_invoke(self):
         captured_config = {}
@@ -253,9 +260,15 @@ class TestAbortInvocation:
         graph.ainvoke = AsyncMock(side_effect=_capture_and_return)
         c = Container(
             settings=MagicMock(confirm_timeout_seconds=60),
-            pool=None, checkpointer_pool=None, embedder=None,
-            openrouter_client=None, router=None, capability_gate=None,
-            memory_store=None, memory_consolidator=None, graph=graph,
+            pool=None,
+            checkpointer_pool=None,
+            embedder=None,
+            openrouter_client=None,
+            router=None,
+            capability_gate=None,
+            memory_store=None,
+            memory_consolidator=None,
+            graph=graph,
         )
         await c.invoke("q", "s1")
 
@@ -295,6 +308,7 @@ class TestAbortInvocation:
 
 # ── Container.from_config() — interface validation ───────────────────────────
 
+
 class TestFromConfigInterfaceValidation:
     def test_validate_interface_called_on_misconfigured(self):
         from ze_agents.errors import InterfaceConfigError
@@ -304,6 +318,7 @@ class TestFromConfigInterfaceValidation:
 
         with pytest.raises(InterfaceConfigError):
             from ze_agents.interface.validation import validate_interface
+
             validate_interface(BadInterface())
 
     def test_valid_interface_passes_validation(self):

@@ -66,7 +66,9 @@ def make_mock_embedder():
 
 def make_persona_store():
     store = AsyncMock()
-    store.get_active = AsyncMock(return_value={"traits": ["direct"], "verbosity": "concise", "dials": {}})
+    store.get_active = AsyncMock(
+        return_value={"traits": ["direct"], "verbosity": "concise", "dials": {}}
+    )
     return store
 
 
@@ -79,18 +81,21 @@ def make_config(
     embedder=None,
     persona_store=None,
 ) -> dict:
-    return {"configurable": {
-        "router": router or MagicMock(),
-        "memory_store": memory_store or AsyncMock(spec=MemoryStore),
-        "persona_store": persona_store or make_persona_store(),
-        "capability_gate": capability_gate or MagicMock(spec=CapabilityGate),
-        "settings": settings or make_settings(),
-        "openrouter_client": openrouter_client or AsyncMock(),
-        "embedder": embedder or make_mock_embedder(),
-    }}
+    return {
+        "configurable": {
+            "router": router or MagicMock(),
+            "memory_store": memory_store or AsyncMock(spec=MemoryStore),
+            "persona_store": persona_store or make_persona_store(),
+            "capability_gate": capability_gate or MagicMock(spec=CapabilityGate),
+            "settings": settings or make_settings(),
+            "openrouter_client": openrouter_client or AsyncMock(),
+            "embedder": embedder or make_mock_embedder(),
+        }
+    }
 
 
 # ── routing.embed_route ───────────────────────────────────────────────────────
+
 
 async def test_embed_route_sets_envelope():
     mock_router = AsyncMock()
@@ -112,6 +117,7 @@ async def test_embed_route_calls_router_with_prompt_and_session():
 
 # ── context.fetch_context ─────────────────────────────────────────────────────
 
+
 async def test_fetch_context_returns_memory_context():
     store = AsyncMock(spec=MemoryStore)
     store.retrieve = AsyncMock(return_value=MemoryContext())
@@ -131,9 +137,9 @@ async def test_fetch_context_returns_agent_context():
 
 
 async def test_fetch_context_passes_memory_to_agent_context():
-    memory_ctx = MemoryContext(facts=[
-        Fact(predicate="name", object_text=None, object_id=None, value="Alice")
-    ])
+    memory_ctx = MemoryContext(
+        facts=[Fact(predicate="name", object_text=None, object_id=None, value="Alice")]
+    )
     store = AsyncMock(spec=MemoryStore)
     store.retrieve = AsyncMock(return_value=memory_ctx)
     cfg = make_config(memory_store=store)
@@ -142,6 +148,7 @@ async def test_fetch_context_passes_memory_to_agent_context():
 
 
 # ── execution.capability_check ────────────────────────────────────────────────
+
 
 async def test_capability_check_execute():
     gate = MagicMock(spec=CapabilityGate)
@@ -171,15 +178,19 @@ async def test_capability_check_passes_session_overrides():
 
 # ── execution.execute_tool ────────────────────────────────────────────────────
 
+
 async def test_execute_tool_single_agent(monkeypatch):
     mock_result = AgentResult(agent="research", response="found it")
     mock_agent = AsyncMock()
     mock_agent.run = AsyncMock(return_value=mock_result)
 
     import ze_agents.registry as reg
+
     monkeypatch.setitem(reg._instances, "research", mock_agent)
 
-    ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
+    ctx = AgentContext(
+        session_id="s1", prompt="test", intent="read", memory=MemoryContext()
+    )
     state = base_state(agent_context=ctx, gate_decision=GateDecision.EXECUTE)
     result = await execution.execute_tool(state, make_config())
     assert result["agent_result"].response == "found it"
@@ -196,6 +207,7 @@ async def test_execute_tool_compound_accumulates_results(monkeypatch):
     mock_companion.run = AsyncMock(return_value=companion_result)
 
     import ze_agents.registry as reg
+
     monkeypatch.setitem(reg._instances, "research", mock_research)
     monkeypatch.setitem(reg._instances, "companion", mock_companion)
 
@@ -204,7 +216,9 @@ async def test_execute_tool_compound_accumulates_results(monkeypatch):
         SubTask(agent="companion", intent="reason", prompt="reason part"),
     ]
     envelope = make_envelope(is_compound=True, subtasks=subtasks)
-    ctx = AgentContext(session_id="s1", prompt="compound", intent="read", memory=MemoryContext())
+    ctx = AgentContext(
+        session_id="s1", prompt="compound", intent="read", memory=MemoryContext()
+    )
     state = base_state(envelope=envelope, agent_context=ctx)
 
     result = await execution.execute_tool(state, make_config())
@@ -221,9 +235,12 @@ async def test_execute_tool_raises_timeout(monkeypatch):
     type(mock_agent).timeout = 0.01  # ze-core reads timeout from type(instance)
 
     import ze_agents.registry as reg
+
     monkeypatch.setitem(reg._instances, "research", mock_agent)
 
-    ctx = AgentContext(session_id="s1", prompt="test", intent="read", memory=MemoryContext())
+    ctx = AgentContext(
+        session_id="s1", prompt="test", intent="read", memory=MemoryContext()
+    )
     state = base_state(agent_context=ctx)
     with pytest.raises(AgentTimeoutError):
         await execution.execute_tool(state, make_config())
@@ -231,14 +248,17 @@ async def test_execute_tool_raises_timeout(monkeypatch):
 
 # ── confirmation.await_confirmation ──────────────────────────────────────────
 
+
 async def test_await_confirmation_clears_pending_and_sets_execute():
     from ze_agents.types import GateDecision
+
     result = await await_confirmation(base_state(), make_config())
     assert result["pending_confirmation"] is False
     assert result["gate_decision"] == GateDecision.EXECUTE
 
 
 # ── memory.write_memory ───────────────────────────────────────────────────────
+
 
 async def test_write_memory_schedules_tasks_without_blocking():
     store = AsyncMock(spec=MemoryStore)
@@ -249,7 +269,9 @@ async def test_write_memory_schedules_tasks_without_blocking():
     cfg = make_config(memory_store=store, openrouter_client=client)
 
     result_obj = AgentResult(agent="research", response="done")
-    ctx = AgentContext(session_id="s1", prompt="hi", intent="read", memory=MemoryContext())
+    ctx = AgentContext(
+        session_id="s1", prompt="hi", intent="read", memory=MemoryContext()
+    )
     state = base_state(agent_context=ctx, agent_result=result_obj)
 
     result = await memory.write_memory(state, cfg)
@@ -266,6 +288,7 @@ async def test_write_memory_no_crash_if_no_agent_context():
 
 # ── memory._write_contact_proposals ──────────────────────────────────────────
 
+
 async def test_write_contact_proposals_writes_email_to_channel_store():
     from ze_sdk.channels import ChannelType
     from ze_personal.contacts.types import ContactProposal
@@ -281,17 +304,21 @@ async def test_write_contact_proposals_writes_email_to_channel_store():
     channel_store = AsyncMock()
     channel_store.upsert = AsyncMock()
 
-    proposals = [ContactProposal(
-        name="Alice",
-        classification="professional",
-        relationship="email contact",
-        contact_info={"email": "alice@example.com"},
-        confidence=0.7,
-        confirmed=False,
-    )]
+    proposals = [
+        ContactProposal(
+            name="Alice",
+            classification="professional",
+            relationship="email contact",
+            contact_info={"email": "alice@example.com"},
+            confidence=0.7,
+            confirmed=False,
+        )
+    ]
 
     await _write_contact_proposals(
-        person_store, proposals, "test prompt",
+        person_store,
+        proposals,
+        "test prompt",
         contact_channel_store=channel_store,
     )
 
@@ -316,10 +343,14 @@ async def test_write_contact_proposals_skips_channel_write_when_no_email():
     channel_store = AsyncMock()
     channel_store.upsert = AsyncMock()
 
-    proposals = [ContactProposal(name="Bob", contact_info={}, confidence=0.7, confirmed=False)]
+    proposals = [
+        ContactProposal(name="Bob", contact_info={}, confidence=0.7, confirmed=False)
+    ]
 
     await _write_contact_proposals(
-        person_store, proposals, "test prompt",
+        person_store,
+        proposals,
+        "test prompt",
         contact_channel_store=channel_store,
     )
 
@@ -337,7 +368,11 @@ async def test_write_contact_proposals_works_without_channel_store():
     person_store.upsert = AsyncMock(return_value=stored_person)
     person_store.add_source = AsyncMock()
 
-    proposals = [ContactProposal(name="Carol", contact_info={"email": "carol@x.com"}, confidence=0.8)]
+    proposals = [
+        ContactProposal(
+            name="Carol", contact_info={"email": "carol@x.com"}, confidence=0.8
+        )
+    ]
     await _write_contact_proposals(person_store, proposals, "prompt")
 
 
@@ -348,9 +383,13 @@ async def test_write_contact_proposals_writes_channel_for_existing_contact():
     from datetime import datetime, timezone
 
     existing = Person(
-        name="Alice", id="existing-uuid", confirmed=True,
-        first_seen=datetime.now(timezone.utc), last_mentioned=datetime.now(timezone.utc),
-        created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc),
+        name="Alice",
+        id="existing-uuid",
+        confirmed=True,
+        first_seen=datetime.now(timezone.utc),
+        last_mentioned=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     person_store = AsyncMock()
     person_store.get_by_name = AsyncMock(return_value=[existing])
@@ -359,9 +398,15 @@ async def test_write_contact_proposals_writes_channel_for_existing_contact():
     channel_store = AsyncMock()
     channel_store.upsert = AsyncMock()
 
-    proposals = [ContactProposal(name="Alice", contact_info={"email": "alice@example.com"}, confidence=0.7)]
+    proposals = [
+        ContactProposal(
+            name="Alice", contact_info={"email": "alice@example.com"}, confidence=0.7
+        )
+    ]
     await _write_contact_proposals(
-        person_store, proposals, "prompt",
+        person_store,
+        proposals,
+        "prompt",
         contact_channel_store=channel_store,
     )
 
@@ -372,6 +417,7 @@ async def test_write_contact_proposals_writes_channel_for_existing_contact():
 
 
 # ── memory.synthesize ─────────────────────────────────────────────────────────
+
 
 async def test_synthesize_merges_subtask_results():
     client = AsyncMock()
@@ -396,6 +442,7 @@ async def test_synthesize_returns_empty_when_no_subtasks():
 
 # ── routing.plan_sequential ───────────────────────────────────────────────────
 
+
 async def test_plan_sequential_identifies_high_risk_steps():
     from ze_automation.workflow.planner import WorkflowPlanner
     from ze_automation.workflow.types import WorkflowStep
@@ -409,11 +456,13 @@ async def test_plan_sequential_identifies_high_risk_steps():
     planner.plan = AsyncMock(return_value=steps)
 
     gate = MagicMock(spec=CapabilityGate)
-    gate.evaluate = MagicMock(side_effect=[
-        GateDecision.EXECUTE,            # research.read — autonomous
-        GateDecision.DRAFT,              # email.create — high-risk
-        GateDecision.AWAIT_CONFIRMATION, # calendar.create — high-risk
-    ])
+    gate.evaluate = MagicMock(
+        side_effect=[
+            GateDecision.EXECUTE,  # research.read — autonomous
+            GateDecision.DRAFT,  # email.create — high-risk
+            GateDecision.AWAIT_CONFIRMATION,  # calendar.create — high-risk
+        ]
+    )
 
     cfg = make_config(capability_gate=gate)
     cfg["configurable"]["workflow_planner"] = planner
@@ -423,7 +472,9 @@ async def test_plan_sequential_identifies_high_risk_steps():
 
     assert result["dynamic_plan_steps"] == steps
     assert result["dynamic_plan_high_risk"] == [1, 2]
-    planner.plan.assert_awaited_once_with("Research AI news, draft email, schedule meeting")
+    planner.plan.assert_awaited_once_with(
+        "Research AI news, draft email, schedule meeting"
+    )
 
 
 async def test_plan_sequential_empty_high_risk_when_all_autonomous():

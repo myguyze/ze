@@ -8,6 +8,7 @@ from ze_sdk.memory import MemoryContext, Fact
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_settings():
     return Settings(
         openrouter_api_key="test-key",
@@ -31,8 +32,11 @@ def make_client(
     return client
 
 
-def make_ctx(prompt: str = "find AI news", memory: MemoryContext | None = None) -> AgentContext:
+def make_ctx(
+    prompt: str = "find AI news", memory: MemoryContext | None = None
+) -> AgentContext:
     from ze_personal.persona.identity import build_identity_block
+
     return AgentContext(
         session_id="s1",
         prompt=prompt,
@@ -52,12 +56,15 @@ def make_agent(client=None) -> ResearchAgent:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
+
 def test_research_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "research" in _registry
 
 
 # ── run() — basic structure ───────────────────────────────────────────────────
+
 
 async def test_run_returns_agent_result():
     agent = make_agent()
@@ -75,20 +82,34 @@ async def test_run_returns_response_from_agentic_loop():
 
 # ── run() — agentic loop with OpenRouter server tool round-trips ──────────────
 
+
 async def test_run_single_search_iteration():
     """LLM requests one web_search (server tool) then returns text."""
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "openrouter:web_search", "arguments": {"query": "AI news"}}]),
-        ("Here is what I found.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "openrouter:web_search",
+                        "arguments": {"query": "AI news"},
+                    }
+                ],
+            ),
+            ("Here is what I found.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
     agent = make_agent(client=client)
 
     result = await agent.run(make_ctx("AI news"))
 
     assert result.response == "Here is what I found."
-    web_calls = [tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"]
+    web_calls = [
+        tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"
+    ]
     assert len(web_calls) == 1
     assert web_calls[0].success is True
 
@@ -96,18 +117,40 @@ async def test_run_single_search_iteration():
 async def test_run_multiple_search_iterations():
     """LLM requests two searches before producing text."""
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "openrouter:web_search", "arguments": {"query": "AI 2024"}}]),
-        (None, [{"id": "c2", "name": "openrouter:web_search", "arguments": {"query": "AI 2025"}}]),
-        ("Comprehensive answer.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "openrouter:web_search",
+                        "arguments": {"query": "AI 2024"},
+                    }
+                ],
+            ),
+            (
+                None,
+                [
+                    {
+                        "id": "c2",
+                        "name": "openrouter:web_search",
+                        "arguments": {"query": "AI 2025"},
+                    }
+                ],
+            ),
+            ("Comprehensive answer.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="[]")
     agent = make_agent(client=client)
 
     result = await agent.run(make_ctx("AI trends"))
 
     assert result.response == "Comprehensive answer."
-    web_calls = [tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"]
+    web_calls = [
+        tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"
+    ]
     assert len(web_calls) == 2
 
 
@@ -115,7 +158,9 @@ async def test_run_no_search_when_llm_answers_directly():
     """LLM returns text on first call — no web_search is recorded."""
     agent = make_agent()  # make_client returns text immediately
     result = await agent.run(make_ctx())
-    web_calls = [tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"]
+    web_calls = [
+        tc for tc in result.tool_calls if tc.tool_name == "openrouter:web_search"
+    ]
     assert len(web_calls) == 0
 
 
@@ -124,10 +169,12 @@ async def test_run_with_memory_facts_injects_into_system_prompt():
     captured: list[str] = []
 
     client = AsyncMock()
+
     async def _complete_with_tools(messages, model, tools, system=None, **kwargs):
         if system:
             captured.append(system)
         return ("done", None)
+
     client.complete_with_tools = _complete_with_tools
     client.complete = AsyncMock(return_value="[]")
 
@@ -139,6 +186,7 @@ async def test_run_with_memory_facts_injects_into_system_prompt():
 
 
 # ── stream() ─────────────────────────────────────────────────────────────────
+
 
 async def test_stream_yields_tokens():
     client = make_client(loop_response="hello world")
@@ -180,7 +228,9 @@ async def test_stream_does_not_double_online_suffix():
     client.stream = _stream
 
     agent = make_agent(client=client)
-    with patch.object(agent, "_model", return_value="anthropic/claude-sonnet-4-5:online"):
+    with patch.object(
+        agent, "_model", return_value="anthropic/claude-sonnet-4-5:online"
+    ):
         [t async for t in agent.stream(make_ctx())]
 
     assert captured_models[0].count(":online") == 1

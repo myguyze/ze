@@ -3,7 +3,9 @@ from ze_news.types import SourceConfig
 
 
 def _make_config(**kwargs) -> SourceConfig:
-    defaults = dict(key="test", type="rss", url="https://example.com/rss", tags=["global"])
+    defaults = dict(
+        key="test", type="rss", url="https://example.com/rss", tags=["global"]
+    )
     return SourceConfig(**{**defaults, **kwargs})
 
 
@@ -14,6 +16,7 @@ def test_build_registry_rss():
 
 def test_build_registry_unknown_type():
     import pytest
+
     with pytest.raises(ValueError, match="Unknown news source type"):
         build_registry([_make_config(type="unknown")])
 

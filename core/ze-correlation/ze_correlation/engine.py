@@ -37,9 +37,9 @@ class _CorrelationConfig:
 @dataclass
 class _Item:
     kind: str
-    id: str          # UUID as string — matches what the LLM will cite
+    id: str  # UUID as string — matches what the LLM will cite
     label: str
-    text: str        # rendered block for the prompt
+    text: str  # rendered block for the prompt
     external_ref: str | None
     ingested_at: datetime | None
 
@@ -47,9 +47,9 @@ class _Item:
 class CorrelationEngine:
     def __init__(
         self,
-        memory_store: Any,       # PostgresMemoryStore — graph expand + retrieval
-        relevance_model: Any,    # Phase 56 RelevanceModel
-        llm_client: Any,         # ze_agents LLMClient protocol
+        memory_store: Any,  # PostgresMemoryStore — graph expand + retrieval
+        relevance_model: Any,  # Phase 56 RelevanceModel
+        llm_client: Any,  # ze_agents LLMClient protocol
         hypothesis_store: PostgresHypothesisStore,
         settings: Any,
     ) -> None:
@@ -77,18 +77,28 @@ class CorrelationEngine:
         # 1. Limit seeds for inline mode
         working_seeds = list(seeds)
         if mode == "inline" and len(working_seeds) > self._cfg.max_seeds_inline:
-            working_seeds = await self._top_seeds(working_seeds, self._cfg.max_seeds_inline)
+            working_seeds = await self._top_seeds(
+                working_seeds, self._cfg.max_seeds_inline
+            )
 
         # 2. Expand neighbourhood
-        max_hops = self._cfg.max_hops_inline if mode == "inline" else self._cfg.max_hops_proactive
+        max_hops = (
+            self._cfg.max_hops_inline
+            if mode == "inline"
+            else self._cfg.max_hops_proactive
+        )
         limit = (
             self._cfg.neighbourhood_limit_inline
             if mode == "inline"
             else self._cfg.neighbourhood_limit_proactive
         )
-        expansion = await graph_store.expand(working_seeds, max_hops=max_hops, limit=limit)
+        expansion = await graph_store.expand(
+            working_seeds, max_hops=max_hops, limit=limit
+        )
         if expansion.is_empty():
-            log.info("correlation_empty_neighbourhood", seeds=len(working_seeds), mode=mode)
+            log.info(
+                "correlation_empty_neighbourhood", seeds=len(working_seeds), mode=mode
+            )
             return []
 
         # 3. Relevance prefilter (proactive only; inline skips — user asked)
@@ -104,7 +114,9 @@ class CorrelationEngine:
             cached_relevance = 0.0  # computed after LLM call for inline
 
         # 4. Materialize neighbourhood rows
-        neighbourhood = await self._materialize(expansion, set(str(s) for s in working_seeds))
+        neighbourhood = await self._materialize(
+            expansion, set(str(s) for s in working_seeds)
+        )
         if not neighbourhood:
             log.info("correlation_empty_materialised", mode=mode)
             return []
@@ -114,7 +126,9 @@ class CorrelationEngine:
         coro = self._correlation_call(seed_labels, neighbourhood)
         if mode == "inline":
             try:
-                llm_out = await asyncio.wait_for(coro, timeout=self._cfg.timeout_seconds_inline)
+                llm_out = await asyncio.wait_for(
+                    coro, timeout=self._cfg.timeout_seconds_inline
+                )
             except asyncio.TimeoutError:
                 log.info("correlation_inline_timeout", seeds=len(working_seeds))
                 return []
@@ -151,7 +165,9 @@ class CorrelationEngine:
 
         # 8. Recall guarantee: ≥2 distinct graph_recall items from distinct prior signals/events
         if len(evidence) < 2:
-            log.info("correlation_recall_guarantee_failed", evidence_count=len(evidence))
+            log.info(
+                "correlation_recall_guarantee_failed", evidence_count=len(evidence)
+            )
             return []
 
         # 9. Compute relevance for inline (proactive already has it)
@@ -241,66 +257,78 @@ class CorrelationEngine:
                 for f in facts:
                     if f.id is None or str(f.id) in seed_ids_str:
                         continue
-                    items.append(_Item(
-                        kind="fact",
-                        id=str(f.id),
-                        label=f"{f.predicate}: {f.value[:60]}",
-                        text=(
-                            f"[fact:{f.id}]\n"
-                            f"Predicate: {f.predicate}\n"
-                            f"Value: {f.value}\n"
-                            f"Confidence: {f.confidence:.2f}"
-                        ),
-                        external_ref=None,
-                        ingested_at=None,
-                    ))
+                    items.append(
+                        _Item(
+                            kind="fact",
+                            id=str(f.id),
+                            label=f"{f.predicate}: {f.value[:60]}",
+                            text=(
+                                f"[fact:{f.id}]\n"
+                                f"Predicate: {f.predicate}\n"
+                                f"Value: {f.value}\n"
+                                f"Confidence: {f.confidence:.2f}"
+                            ),
+                            external_ref=None,
+                            ingested_at=None,
+                        )
+                    )
             except Exception as exc:
                 log.warning("correlation_materialize_facts_failed", error=str(exc))
 
         if expansion.episode_ids:
             try:
-                episodes = await self._memory.get_episodes_by_ids(list(expansion.episode_ids))
+                episodes = await self._memory.get_episodes_by_ids(
+                    list(expansion.episode_ids)
+                )
                 for ep in episodes:
                     if ep.id is None or str(ep.id) in seed_ids_str:
                         continue
                     date_str = ep.created_at.strftime("%b %d") if ep.created_at else "?"
-                    items.append(_Item(
-                        kind="episode",
-                        id=str(ep.id),
-                        label=f"[{date_str}] {ep.prompt[:60]}",
-                        text=(
-                            f"[episode:{ep.id}]\n"
-                            f"Date: {ep.created_at}\n"
-                            f"User: {ep.prompt[:300]}\n"
-                            f"Assistant: {ep.response[:300]}"
-                        ),
-                        external_ref=None,
-                        ingested_at=ep.created_at,
-                    ))
+                    items.append(
+                        _Item(
+                            kind="episode",
+                            id=str(ep.id),
+                            label=f"[{date_str}] {ep.prompt[:60]}",
+                            text=(
+                                f"[episode:{ep.id}]\n"
+                                f"Date: {ep.created_at}\n"
+                                f"User: {ep.prompt[:300]}\n"
+                                f"Assistant: {ep.response[:300]}"
+                            ),
+                            external_ref=None,
+                            ingested_at=ep.created_at,
+                        )
+                    )
             except Exception as exc:
                 log.warning("correlation_materialize_episodes_failed", error=str(exc))
 
         if expansion.signal_ids:
             try:
-                signals = await self._memory.get_signals_by_ids(list(expansion.signal_ids))
+                signals = await self._memory.get_signals_by_ids(
+                    list(expansion.signal_ids)
+                )
                 for sig, ingested_at in signals:
                     if str(sig.id) in seed_ids_str:
                         continue
-                    date_str = sig.occurred_at.strftime("%b %d") if sig.occurred_at else "?"
-                    items.append(_Item(
-                        kind="signal",
-                        id=str(sig.id),
-                        label=f"{sig.title} ({date_str})",
-                        text=(
-                            f"[signal:{sig.id}]\n"
-                            f"Source: {sig.source}\n"
-                            f"Occurred: {sig.occurred_at}\n"
-                            f"Title: {sig.title}\n"
-                            f"Summary: {sig.summary}"
-                        ),
-                        external_ref=sig.external_ref,
-                        ingested_at=ingested_at,
-                    ))
+                    date_str = (
+                        sig.occurred_at.strftime("%b %d") if sig.occurred_at else "?"
+                    )
+                    items.append(
+                        _Item(
+                            kind="signal",
+                            id=str(sig.id),
+                            label=f"{sig.title} ({date_str})",
+                            text=(
+                                f"[signal:{sig.id}]\n"
+                                f"Source: {sig.source}\n"
+                                f"Occurred: {sig.occurred_at}\n"
+                                f"Title: {sig.title}\n"
+                                f"Summary: {sig.summary}"
+                            ),
+                            external_ref=sig.external_ref,
+                            ingested_at=ingested_at,
+                        )
+                    )
             except Exception as exc:
                 log.warning("correlation_materialize_signals_failed", error=str(exc))
 
@@ -347,7 +375,9 @@ class CorrelationEngine:
             return None
 
         confidence = parsed.get("confidence", 0.0)
-        if not isinstance(confidence, (int, float)) or not (0.0 <= float(confidence) <= 1.0):
+        if not isinstance(confidence, (int, float)) or not (
+            0.0 <= float(confidence) <= 1.0
+        ):
             log.warning("correlation_invalid_confidence", confidence=confidence)
             return None
 

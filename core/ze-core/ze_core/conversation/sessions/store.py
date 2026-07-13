@@ -4,6 +4,7 @@
 ``messages.thread_id``, LangGraph ``configurable.thread_id``, and
 ``AgentState.session_id`` on the same turn.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,7 +12,11 @@ from typing import Protocol
 
 import asyncpg
 
-from ze_core.conversation.sessions.types import Session, SessionListPage, SessionSearchHit
+from ze_core.conversation.sessions.types import (
+    Session,
+    SessionListPage,
+    SessionSearchHit,
+)
 
 _FTS_SEARCH_SQL = """
 WITH q AS (
@@ -217,7 +222,9 @@ class SessionStore(Protocol):
         before: datetime | None = None,
     ) -> SessionListPage: ...
 
-    async def search(self, query: str, *, limit: int = 20) -> list[SessionSearchHit]: ...
+    async def search(
+        self, query: str, *, limit: int = 20
+    ) -> list[SessionSearchHit]: ...
 
     async def get(self, session_id: str) -> Session | None: ...
 
@@ -236,7 +243,11 @@ class PostgresSessionStore:
         update_title: bool = False,
     ) -> None:
         now = datetime.now(timezone.utc)
-        title_expr = "EXCLUDED.title" if update_title else "COALESCE(sessions.title, EXCLUDED.title)"
+        title_expr = (
+            "EXCLUDED.title"
+            if update_title
+            else "COALESCE(sessions.title, EXCLUDED.title)"
+        )
         title_source_expr = (
             "EXCLUDED.title_source"
             if update_title

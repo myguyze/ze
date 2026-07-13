@@ -1,4 +1,5 @@
 """HTTP client for Ze's eval endpoint."""
+
 from __future__ import annotations
 
 import httpx

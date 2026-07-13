@@ -46,14 +46,16 @@ class _KeywordEmbedder:
 
 async def test_preference_builder_includes_explicit_news_facts():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="news_interest",
-            value="AI, economics",
-            confidence=0.9,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="news_interest",
+                value="AI, economics",
+                confidence=0.9,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
@@ -67,14 +69,16 @@ async def test_preference_builder_includes_explicit_news_facts():
 
 async def test_preference_builder_ignores_activity_facts():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="activity_programming",
-            value="programming/coding the AI assistant",
-            confidence=0.9,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="activity_programming",
+                value="programming/coding the AI assistant",
+                confidence=0.9,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
@@ -86,14 +90,16 @@ async def test_preference_builder_ignores_activity_facts():
 
 async def test_preference_builder_extracts_exclusion_from_value():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="preference",
-            value="don't show me bananas",
-            confidence=0.9,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="preference",
+                value="don't show me bananas",
+                confidence=0.9,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
@@ -101,7 +107,9 @@ async def test_preference_builder_extracts_exclusion_from_value():
     ctx = await NewsPreferenceBuilder(memory_store, goals).build("headlines")
 
     assert "bananas" in ctx.exclusions
-    assert any(p.polarity == "exclude" and p.topic == "bananas" for p in ctx.preferences)
+    assert any(
+        p.polarity == "exclude" and p.topic == "bananas" for p in ctx.preferences
+    )
 
 
 async def test_preference_builder_diagnostic_query_is_not_positive_interest():
@@ -115,19 +123,23 @@ async def test_preference_builder_diagnostic_query_is_not_positive_interest():
         "why do you keep suggesting bananas?"
     )
 
-    assert not any(p.source == "query" and "bananas" in p.topic for p in ctx.preferences)
+    assert not any(
+        p.source == "query" and "bananas" in p.topic for p in ctx.preferences
+    )
 
 
 async def test_preference_builder_ignores_low_confidence_facts():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="news_interest",
-            value="AI",
-            confidence=0.4,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="news_interest",
+                value="AI",
+                confidence=0.4,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
@@ -141,14 +153,16 @@ async def test_preference_builder_ignores_low_confidence_facts():
 
 async def test_preference_builder_ignores_contradicted_facts():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="news_interest",
-            value="AI",
-            confidence=0.9,
-            contradicted=True,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="news_interest",
+                value="AI",
+                confidence=0.9,
+                contradicted=True,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
@@ -160,14 +174,16 @@ async def test_preference_builder_ignores_contradicted_facts():
 
 async def test_preference_builder_goal_weight_lower_than_explicit_news():
     memory_store = MagicMock()
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="news_interest",
-            value="AI",
-            confidence=0.9,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="news_interest",
+                value="AI",
+                confidence=0.9,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=["Launch Ze"])
@@ -182,9 +198,11 @@ async def test_preference_builder_goal_weight_lower_than_explicit_news():
 async def test_preference_builder_includes_profile_and_goals():
     memory_store = MagicMock()
     memory_store.list_recent_facts = AsyncMock(return_value=[])
-    memory_store.get_profile = AsyncMock(return_value=[
-        SimpleNamespace(key="topics", value="AI; startups", confidence=0.9),
-    ])
+    memory_store.get_profile = AsyncMock(
+        return_value=[
+            SimpleNamespace(key="topics", value="AI; startups", confidence=0.9),
+        ]
+    )
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=["Launch Ze"])
 
@@ -197,10 +215,12 @@ async def test_preference_builder_includes_profile_and_goals():
 async def test_preference_builder_includes_onboarding_news_facets():
     memory_store = MagicMock()
     memory_store.list_recent_facts = AsyncMock(return_value=[])
-    memory_store.get_profile = AsyncMock(return_value=[
-        SimpleNamespace(key="news_interests", value="AI, Portugal", confidence=0.9),
-        SimpleNamespace(key="news_exclusions", value="football", confidence=0.9),
-    ])
+    memory_store.get_profile = AsyncMock(
+        return_value=[
+            SimpleNamespace(key="news_interests", value="AI, Portugal", confidence=0.9),
+            SimpleNamespace(key="news_exclusions", value="football", confidence=0.9),
+        ]
+    )
     goals = MagicMock()
     goals.list_active_goal_titles = AsyncMock(return_value=[])
 
@@ -208,10 +228,13 @@ async def test_preference_builder_includes_onboarding_news_facets():
 
     assert any(p.source == "profile" and p.topic == "AI" for p in ctx.preferences)
     assert "football" in ctx.exclusions
-    assert any(p.polarity == "exclude" and p.topic == "football" for p in ctx.preferences)
+    assert any(
+        p.polarity == "exclude" and p.topic == "football" for p in ctx.preferences
+    )
 
 
 # ── PersonalizationContext ──────────────────────────────────────────────────
+
 
 def test_personalization_context_defaults():
     ctx = PersonalizationContext(interest_text="tech AI")
@@ -233,6 +256,7 @@ def test_personalization_context_custom():
 
 
 # ── _apply_exclusions ────────────────────────────────────────────────────────
+
 
 def test_apply_exclusions_filters_by_title():
     store, _ = _make_store()
@@ -260,7 +284,9 @@ def test_apply_exclusions_word_boundary():
     store, _ = _make_store()
     articles = [
         _make_article(title="New transport routes announced"),
-        _make_article(title="Sport highlights of the week", url="https://example.com/2"),
+        _make_article(
+            title="Sport highlights of the week", url="https://example.com/2"
+        ),
     ]
     # "sport" should NOT match "transport" due to word boundary, but SHOULD match "Sport highlights"
     result = store._apply_exclusions(articles, ["sport"])
@@ -303,6 +329,7 @@ def test_exclusion_patterns_do_not_match_substrings():
 
 # ── get_personalized fallback ────────────────────────────────────────────────
 
+
 async def test_get_personalized_falls_back_when_empty_interest():
     store, conn = _make_store()
     conn.fetch.return_value = []
@@ -326,6 +353,7 @@ async def test_get_personalized_falls_back_below_min_facts():
 
 
 # ── get_personalized scoring ─────────────────────────────────────────────────
+
 
 async def test_get_personalized_splits_into_buckets():
     store, conn = _make_store()
@@ -376,7 +404,9 @@ async def test_get_personalized_discovery_sorted_by_recency():
 
     conn.fetch.return_value = [_make_row(a) for a in articles]
 
-    ctx = PersonalizationContext(interest_text="AI tech", fact_count=10, explore_ratio=0.5)
+    ctx = PersonalizationContext(
+        interest_text="AI tech", fact_count=10, explore_ratio=0.5
+    )
     relevant, discovery = await store.get_personalized(ctx, limit=4, min_facts=5)
 
     if discovery:
@@ -387,20 +417,22 @@ async def test_get_personalized_discovery_sorted_by_recency():
 async def test_get_personalized_query_relevance_outranks_stored_banana_interest():
     store, _ = _make_store()
     store._embedder = _KeywordEmbedder()
-    store.get_recent = AsyncMock(return_value=[
-        _make_article(
-            url="https://example.com/bananas",
-            title="Banana harvest improves",
-            summary="A fruit industry update.",
-            tags=["food"],
-        ),
-        _make_article(
-            url="https://example.com/tech",
-            title="AI startup launches new model",
-            summary="Technology companies race ahead.",
-            tags=["tech"],
-        ),
-    ])
+    store.get_recent = AsyncMock(
+        return_value=[
+            _make_article(
+                url="https://example.com/bananas",
+                title="Banana harvest improves",
+                summary="A fruit industry update.",
+                tags=["food"],
+            ),
+            _make_article(
+                url="https://example.com/tech",
+                title="AI startup launches new model",
+                summary="Technology companies race ahead.",
+                tags=["tech"],
+            ),
+        ]
+    )
     ctx = PersonalizationContext(
         query_text="tech headlines",
         preferences=[
@@ -429,20 +461,22 @@ async def test_get_personalized_query_relevance_outranks_stored_banana_interest(
 async def test_get_personalized_filters_excluded_banana_topic():
     store, _ = _make_store()
     store._embedder = _KeywordEmbedder()
-    store.get_recent = AsyncMock(return_value=[
-        _make_article(
-            url="https://example.com/bananas",
-            title="Banana import news",
-            summary="Fruit market update.",
-            tags=["food"],
-        ),
-        _make_article(
-            url="https://example.com/economy",
-            title="Economy grows",
-            summary="Economic indicators improved.",
-            tags=["business"],
-        ),
-    ])
+    store.get_recent = AsyncMock(
+        return_value=[
+            _make_article(
+                url="https://example.com/bananas",
+                title="Banana import news",
+                summary="Fruit market update.",
+                tags=["food"],
+            ),
+            _make_article(
+                url="https://example.com/economy",
+                title="Economy grows",
+                summary="Economic indicators improved.",
+                tags=["business"],
+            ),
+        ]
+    )
     ctx = PersonalizationContext(
         query_text="headlines",
         exclusions=["bananas"],
@@ -471,10 +505,12 @@ async def test_get_personalized_filters_excluded_banana_topic():
 
 async def test_get_personalized_exclusion_only_context_filters_recent_fallback():
     store, _ = _make_store()
-    store.get_recent = AsyncMock(return_value=[
-        _make_article(url="https://example.com/1", title="Banana headline"),
-        _make_article(url="https://example.com/2", title="Tech headline"),
-    ])
+    store.get_recent = AsyncMock(
+        return_value=[
+            _make_article(url="https://example.com/1", title="Banana headline"),
+            _make_article(url="https://example.com/2", title="Tech headline"),
+        ]
+    )
     ctx = PersonalizationContext(
         exclusions=["bananas"],
         preferences=[
@@ -497,12 +533,16 @@ async def test_get_personalized_exclusion_only_context_filters_recent_fallback()
 async def test_get_personalized_caps_repeated_topics():
     store, _ = _make_store()
     store._embedder = _KeywordEmbedder()
-    store.get_recent = AsyncMock(return_value=[
-        _make_article(url="https://example.com/1", title="AI one", tags=["tech"]),
-        _make_article(url="https://example.com/2", title="AI two", tags=["tech"]),
-        _make_article(url="https://example.com/3", title="AI three", tags=["tech"]),
-        _make_article(url="https://example.com/4", title="Economy", tags=["business"]),
-    ])
+    store.get_recent = AsyncMock(
+        return_value=[
+            _make_article(url="https://example.com/1", title="AI one", tags=["tech"]),
+            _make_article(url="https://example.com/2", title="AI two", tags=["tech"]),
+            _make_article(url="https://example.com/3", title="AI three", tags=["tech"]),
+            _make_article(
+                url="https://example.com/4", title="Economy", tags=["business"]
+            ),
+        ]
+    )
     ctx = PersonalizationContext(
         query_text="tech headlines",
         max_per_topic=2,
@@ -524,6 +564,7 @@ async def test_get_personalized_caps_repeated_topics():
 
 
 # ── _score_articles ───────────────────────────────────────────────────────────
+
 
 def test_score_articles_zero_vector_gives_zero():
     store, _ = _make_store()

@@ -50,7 +50,9 @@ class OnboardingCoordinator:
         if step is not None:
             return OnboardingView(
                 session_id=session_id,
-                text=step.descriptor.get("description") or step.descriptor.get("title") or "",
+                text=step.descriptor.get("description")
+                or step.descriptor.get("title")
+                or "",
                 components=[_descriptor_to_component(step.descriptor)],
             )
 
@@ -67,12 +69,14 @@ class OnboardingCoordinator:
         return OnboardingView(
             session_id=session_id,
             text="Onboarding is complete. Ze is ready.",
-            components=[{
-                "type": "card",
-                "title": "Setup complete",
-                "body": "Your starting preferences have been saved.",
-                "style": "success",
-            }],
+            components=[
+                {
+                    "type": "card",
+                    "title": "Setup complete",
+                    "body": "Your starting preferences have been saved.",
+                    "style": "success",
+                }
+            ],
             completed=True,
         )
 
@@ -101,7 +105,9 @@ class OnboardingCoordinator:
 
         provider = self._providers_by_name.get(step.plugin)
         if provider is None:
-            raise OnboardingError(f"No onboarding provider registered for {step.plugin}")
+            raise OnboardingError(
+                f"No onboarding provider registered for {step.plugin}"
+            )
 
         submission = OnboardingSubmission(step_id=step.step_key, values=values)
         result = await provider.handle_submission(submission)

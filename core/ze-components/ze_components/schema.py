@@ -79,7 +79,11 @@ def _dataclass_schema(cls: type) -> dict:
             and f.default_factory is dataclasses.MISSING  # type: ignore[misc]
         ):
             required.append(f.name)
-    schema: dict = {"type": "object", "properties": props, "additionalProperties": False}
+    schema: dict = {
+        "type": "object",
+        "properties": props,
+        "additionalProperties": False,
+    }
     if required:
         schema["required"] = required
     return schema
@@ -157,7 +161,11 @@ def _export_dataclass_schema(
             and f.default_factory is dataclasses.MISSING  # type: ignore[misc]
         ) or (include_discriminator and f.name == "type"):
             required.append(f.name)
-    schema: dict = {"type": "object", "properties": props, "additionalProperties": False}
+    schema: dict = {
+        "type": "object",
+        "properties": props,
+        "additionalProperties": False,
+    }
     if required:
         schema["required"] = required
     return schema

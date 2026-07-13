@@ -58,9 +58,11 @@ async def test_apply_skips_clear_when_force_false():
     async def apply(_ctx: SeedContext) -> int:
         return 3
 
-    seeder = DevDataSeeder([
-        SeedDomain("only", seed_order=10, clear=clear, apply=apply),
-    ])
+    seeder = DevDataSeeder(
+        [
+            SeedDomain("only", seed_order=10, clear=clear, apply=apply),
+        ]
+    )
     ctx = SeedContext(
         pool=AsyncMock(),
         memory_store=AsyncMock(),

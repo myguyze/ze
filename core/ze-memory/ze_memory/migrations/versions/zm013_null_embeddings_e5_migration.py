@@ -11,6 +11,7 @@ news_articles embeddings are excluded — the fetch job re-embeds all articles w
 Revision ID: zm013
 Revises: zm012
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

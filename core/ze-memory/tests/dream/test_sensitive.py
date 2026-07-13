@@ -1,4 +1,5 @@
 """Tests for dream/sensitive.py — sensitive entity classification."""
+
 from __future__ import annotations
 
 from ze_memory.dream.sensitive import is_sensitive_entity

@@ -1,4 +1,5 @@
 """Tests for PostgresGraphStore and BoundedExpansionPolicy."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -36,9 +37,9 @@ def _make_pool(rows_by_query=None):
     """Return a mock asyncpg pool whose fetchrow/fetch return canned data."""
     rows_by_query = rows_by_query or {}
     conn = AsyncMock()
-    conn.fetchrow = AsyncMock(side_effect=lambda q, *a, **kw: AsyncMock(
-        return_value={"id": uuid4()}
-    )())
+    conn.fetchrow = AsyncMock(
+        side_effect=lambda q, *a, **kw: AsyncMock(return_value={"id": uuid4()})()
+    )
     conn.fetch = AsyncMock(return_value=[])
 
     @asynccontextmanager
@@ -51,6 +52,7 @@ def _make_pool(rows_by_query=None):
 
 
 # ── upsert_relationship ───────────────────────────────────────────────────────
+
 
 class TestUpsertRelationship:
     async def test_returns_id(self):
@@ -95,6 +97,7 @@ class TestUpsertRelationship:
 
 
 # ── list_relationships ────────────────────────────────────────────────────────
+
 
 class TestListRelationships:
     def _make_row(self, source_id, target_id, predicate=DESCRIBES):
@@ -146,6 +149,7 @@ class TestListRelationships:
 
 # ── expand ────────────────────────────────────────────────────────────────────
 
+
 class TestExpand:
     def _make_row(self, source_id, target_id, target_type="fact", predicate=DESCRIBES):
         return {
@@ -186,7 +190,9 @@ class TestExpand:
         pool, conn = _make_pool()
         seed = uuid4()
         target = uuid4()
-        conn.fetch = AsyncMock(return_value=[self._make_row(seed, target, "entity", MENTIONS)])
+        conn.fetch = AsyncMock(
+            return_value=[self._make_row(seed, target, "entity", MENTIONS)]
+        )
 
         store = PostgresGraphStore(pool=pool)
         expansion = await store.expand([seed])
@@ -225,6 +231,7 @@ class TestExpand:
 
 # ── BoundedExpansionPolicy ────────────────────────────────────────────────────
 
+
 class TestBoundedExpansionPolicy:
     async def test_delegates_to_store(self):
         store = AsyncMock()
@@ -246,6 +253,7 @@ class TestBoundedExpansionPolicy:
 
 # ── _build_traversal (config-driven construction) ─────────────────────────────
 
+
 class TestBuildTraversal:
     def _make_gs(self):
         gs = MagicMock()
@@ -254,11 +262,17 @@ class TestBuildTraversal:
 
     def test_none_graph_store_returns_none(self):
         from ze_memory.retriever import PostgresMemoryStore
+
         assert PostgresMemoryStore._build_traversal(None, None) is None
 
     def test_enabled_true_returns_policy(self):
         from ze_memory.retriever import PostgresMemoryStore
-        settings = {"memory": {"graph": {"enabled": True, "max_hops": 2, "max_relationships": 15}}}
+
+        settings = {
+            "memory": {
+                "graph": {"enabled": True, "max_hops": 2, "max_relationships": 15}
+            }
+        }
         result = PostgresMemoryStore._build_traversal(self._make_gs(), settings)
         assert isinstance(result, BoundedExpansionPolicy)
         assert result._max_hops == 2
@@ -266,12 +280,14 @@ class TestBuildTraversal:
 
     def test_enabled_false_returns_none(self):
         from ze_memory.retriever import PostgresMemoryStore
+
         settings = {"memory": {"graph": {"enabled": False}}}
         result = PostgresMemoryStore._build_traversal(self._make_gs(), settings)
         assert result is None
 
     def test_defaults_when_no_config(self):
         from ze_memory.retriever import PostgresMemoryStore
+
         result = PostgresMemoryStore._build_traversal(self._make_gs(), None)
         assert isinstance(result, BoundedExpansionPolicy)
         assert result._max_hops == 1
@@ -279,8 +295,13 @@ class TestBuildTraversal:
 
     def test_reads_from_settings_object_with_config_attr(self):
         from ze_memory.retriever import PostgresMemoryStore
+
         settings = MagicMock()
-        settings.config = {"memory": {"graph": {"enabled": True, "max_hops": 3, "max_relationships": 10}}}
+        settings.config = {
+            "memory": {
+                "graph": {"enabled": True, "max_hops": 3, "max_relationships": 10}
+            }
+        }
         result = PostgresMemoryStore._build_traversal(self._make_gs(), settings)
         assert result._max_hops == 3
         assert result._limit == 10

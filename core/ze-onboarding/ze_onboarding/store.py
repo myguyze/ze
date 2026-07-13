@@ -312,7 +312,9 @@ def _row_to_step(row: Any) -> StoredOnboardingStep:
         step_key=row["step_key"],
         status=row["status"],
         descriptor=_json_load(row["descriptor"]),
-        submission=_json_load(row["submission"]) if row["submission"] is not None else None,
+        submission=_json_load(row["submission"])
+        if row["submission"] is not None
+        else None,
         completed_at=row["completed_at"],
     )
 

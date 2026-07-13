@@ -11,7 +11,9 @@ def make_client(base_url: str = "http://ze-browser.internal:8080") -> BrowserCli
         return BrowserClient(base_url=base_url, timeout=20)
 
 
-def make_httpx_response(status_code: int = 200, json_data: dict | None = None) -> MagicMock:
+def make_httpx_response(
+    status_code: int = 200, json_data: dict | None = None
+) -> MagicMock:
     resp = MagicMock()
     resp.status_code = status_code
     resp.json.return_value = json_data or {
@@ -26,12 +28,15 @@ def make_httpx_response(status_code: int = 200, json_data: dict | None = None) -
 
 async def test_browser_client_extract_returns_result():
     client = make_client()
-    mock_resp = make_httpx_response(200, {
-        "url": "https://example.com",
-        "title": "Example",
-        "text": "Hello world",
-        "status_code": 200,
-    })
+    mock_resp = make_httpx_response(
+        200,
+        {
+            "url": "https://example.com",
+            "title": "Example",
+            "text": "Hello world",
+            "status_code": 200,
+        },
+    )
 
     client._client = AsyncMock()
     client._client.post = AsyncMock(return_value=mock_resp)
@@ -56,12 +61,15 @@ async def test_browser_client_timeout_raises_browser_error():
 
 async def test_browser_client_403_returns_empty_text_no_exception():
     client = make_client()
-    mock_resp = make_httpx_response(200, {
-        "url": "https://example.com",
-        "title": "Blocked",
-        "text": "",
-        "status_code": 403,
-    })
+    mock_resp = make_httpx_response(
+        200,
+        {
+            "url": "https://example.com",
+            "title": "Blocked",
+            "text": "",
+            "status_code": 403,
+        },
+    )
 
     client._client = AsyncMock()
     client._client.post = AsyncMock(return_value=mock_resp)
@@ -87,7 +95,9 @@ async def test_browser_client_5xx_raises_browser_error():
 async def test_browser_client_connect_error_raises_browser_error():
     client = make_client()
     client._client = AsyncMock()
-    client._client.post = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
+    client._client.post = AsyncMock(
+        side_effect=httpx.ConnectError("connection refused")
+    )
 
     with pytest.raises(BrowserError, match="Cannot reach"):
         await client.extract("https://example.com")

@@ -1,21 +1,31 @@
-from ze_personal.contacts.extractors import extract_calendar_contacts, extract_email_contacts
+from ze_personal.contacts.extractors import (
+    extract_calendar_contacts,
+    extract_email_contacts,
+)
 from ze_personal.contacts.types import SOURCE_WEIGHTS
 from ze_agents.types import ToolCall
 
 
 def _email_tc(result: dict, success: bool = True) -> ToolCall:
-    return ToolCall(tool_name="get_email", args={}, result=result, success=success, duration_ms=0)
+    return ToolCall(
+        tool_name="get_email", args={}, result=result, success=success, duration_ms=0
+    )
 
 
 def _events_tc(result: list, success: bool = True) -> ToolCall:
-    return ToolCall(tool_name="list_events", args={}, result=result, success=success, duration_ms=0)
+    return ToolCall(
+        tool_name="list_events", args={}, result=result, success=success, duration_ms=0
+    )
 
 
 def _create_tc(result: dict, success: bool = True) -> ToolCall:
-    return ToolCall(tool_name="create_event", args={}, result=result, success=success, duration_ms=0)
+    return ToolCall(
+        tool_name="create_event", args={}, result=result, success=success, duration_ms=0
+    )
 
 
 # ── extract_email_contacts ────────────────────────────────────────────────────
+
 
 def test_email_extracts_named_sender():
     tc = _email_tc({"from": "João Silva <joao@example.com>", "subject": "Hello"})
@@ -58,7 +68,13 @@ def test_email_skips_missing_from():
 
 
 def test_email_ignores_non_email_tool_calls():
-    tc = ToolCall(tool_name="list_emails", args={}, result={"from": "ignored@example.com"}, success=True, duration_ms=0)
+    tc = ToolCall(
+        tool_name="list_emails",
+        args={},
+        result={"from": "ignored@example.com"},
+        success=True,
+        duration_ms=0,
+    )
     proposals = extract_email_contacts([tc])
 
     assert proposals == []
@@ -86,6 +102,7 @@ def test_email_relationship_label():
 
 
 # ── extract_calendar_contacts ─────────────────────────────────────────────────
+
 
 def test_calendar_extracts_attendees():
     event = {

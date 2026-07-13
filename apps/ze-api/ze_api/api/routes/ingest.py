@@ -36,7 +36,9 @@ async def ingest(
     if not url and not file:
         raise HTTPException(status_code=422, detail="Provide either 'url' or 'file'")
     if url and file:
-        raise HTTPException(status_code=422, detail="Provide only one of 'url' or 'file'")
+        raise HTTPException(
+            status_code=422, detail="Provide only one of 'url' or 'file'"
+        )
 
     file_bytes: bytes | None = None
     mime_type: str | None = None

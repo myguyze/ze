@@ -52,6 +52,7 @@ def make_store(conn=None):
 
 # ── list_completed_milestone_summaries ────────────────────────────────────────
 
+
 async def test_returns_rows_within_window():
     row = _make_row(completed_days_ago=10)
     store, conn = make_store(make_conn([row]))

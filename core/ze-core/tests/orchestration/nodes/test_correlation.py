@@ -8,7 +8,12 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 
-from ze_core.orchestration.nodes.correlation import correlate, _inline_config, _build_component, _format_text_section
+from ze_core.orchestration.nodes.correlation import (
+    correlate,
+    _inline_config,
+    _build_component,
+    _format_text_section,
+)
 from ze_memory.types import Entity, MemoryContext
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
@@ -16,6 +21,7 @@ from ze_core.routing.types import RoutingEnvelope, SubTask
 UTC = timezone.utc
 
 # ── Minimal Hypothesis / EvidenceRef stubs ────────────────────────────────────
+
 
 @dataclass
 class _EvidenceRef:
@@ -36,13 +42,19 @@ class _Hypothesis:
     relation: str = "pattern"
     confidence: float = 0.8
     relevance: float = 0.6
-    evidence: list = field(default_factory=lambda: [_EvidenceRef(), _EvidenceRef(label="Signal B (Jun 14)")])
+    evidence: list = field(
+        default_factory=lambda: [
+            _EvidenceRef(),
+            _EvidenceRef(label="Signal B (Jun 14)"),
+        ]
+    )
     entities: list = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     surfaced: bool = False
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _envelope(agent: str = "research", is_compound: bool = False) -> RoutingEnvelope:
     st = SubTask(agent=agent, intent="read", prompt="news on Anthropic")
@@ -68,7 +80,9 @@ def _memory_ctx(entity_ids: list[UUID] | None = None) -> MemoryContext:
 
 def _engine(hypotheses: list | None = None) -> MagicMock:
     eng = AsyncMock()
-    eng.correlate = AsyncMock(return_value=[_Hypothesis()] if hypotheses is None else hypotheses)
+    eng.correlate = AsyncMock(
+        return_value=[_Hypothesis()] if hypotheses is None else hypotheses
+    )
     return eng
 
 
@@ -80,9 +94,14 @@ def _config(
     return {
         "configurable": {
             "correlation_engine": engine,
-            "settings": settings or {
+            "settings": settings
+            or {
                 "correlation": {
-                    "inline": {"timeout_ms": 1500, "max_connections_shown": 2, "agents": ["research", "news"]},
+                    "inline": {
+                        "timeout_ms": 1500,
+                        "max_connections_shown": 2,
+                        "agents": ["research", "news"],
+                    },
                     "salience": {"surfacing": {"tau_inline": 0.45}},
                 }
             },
@@ -98,18 +117,21 @@ def _state(
     agent_result: Any = None,
 ) -> dict:
     from ze_agents.types import AgentResult
+
     return {
         "envelope": _envelope(agent),
         "memory_context": memory_ctx or _memory_ctx(),
         "components": components or [],
         "subtask_results": subtask_results or [],
-        "agent_result": agent_result or AgentResult(agent=agent, response="Main answer."),
+        "agent_result": agent_result
+        or AgentResult(agent=agent, response="Main answer."),
         "session_id": "s1",
         "correlations": [],
     }
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 async def test_yields_correlations_and_component_for_qualifying_turn():
     eng = _engine()
@@ -152,7 +174,9 @@ async def test_no_entities_in_memory_context_skips_correlation():
 
 async def test_entities_without_ids_skips_correlation():
     eng = _engine()
-    ctx = MemoryContext(entities=[Entity(id=None, entity_type="org", canonical_name="Anon")])
+    ctx = MemoryContext(
+        entities=[Entity(id=None, entity_type="org", canonical_name="Anon")]
+    )
     result = await correlate(_state(memory_ctx=ctx), _config(engine=eng))
     assert result == {}
 
@@ -185,12 +209,19 @@ async def test_timeout_drops_section_silently():
     eng = MagicMock()
     eng.correlate = _slow
 
-    cfg = _config(engine=eng, settings={
-        "correlation": {
-            "inline": {"timeout_ms": 50, "max_connections_shown": 2, "agents": ["research", "news"]},
-            "salience": {"surfacing": {"tau_inline": 0.45}},
-        }
-    })
+    cfg = _config(
+        engine=eng,
+        settings={
+            "correlation": {
+                "inline": {
+                    "timeout_ms": 50,
+                    "max_connections_shown": 2,
+                    "agents": ["research", "news"],
+                },
+                "salience": {"surfacing": {"tau_inline": 0.45}},
+            }
+        },
+    )
     result = await correlate(_state(), cfg)
     assert result == {}
 
@@ -212,6 +243,7 @@ async def test_existing_components_are_preserved():
 
 async def test_compound_turn_does_not_set_final_response():
     from ze_agents.types import AgentResult
+
     eng = _engine()
     subtask_results = [AgentResult(agent="research", response="data")]
     st1 = SubTask(agent="research", intent="read", prompt="hi")
@@ -241,10 +273,15 @@ async def test_compound_turn_does_not_set_final_response():
 
 # ── Unit tests for helpers ─────────────────────────────────────────────────────
 
+
 def test_inline_config_reads_from_dict_settings():
     settings = {
         "correlation": {
-            "inline": {"timeout_ms": 999, "max_connections_shown": 3, "agents": ["news"]},
+            "inline": {
+                "timeout_ms": 999,
+                "max_connections_shown": 3,
+                "agents": ["news"],
+            },
             "salience": {"surfacing": {"tau_inline": 0.55}},
         }
     }

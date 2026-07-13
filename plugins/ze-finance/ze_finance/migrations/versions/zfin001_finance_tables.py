@@ -5,6 +5,7 @@ Revises:
 Branch labels: ze_finance
 Depends on:
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

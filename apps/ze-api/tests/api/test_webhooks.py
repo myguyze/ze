@@ -1,4 +1,5 @@
 """Tests for WebhookDispatcher and POST /api/v0/webhooks/{source}."""
+
 from __future__ import annotations
 
 import asyncio
@@ -24,6 +25,7 @@ from ze_communication.types import ChannelType, InboundMessage
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_inbound(message_id: str = "msg-1") -> InboundMessage:
     return InboundMessage(
         message_id=message_id,
@@ -36,7 +38,9 @@ def _make_inbound(message_id: str = "msg-1") -> InboundMessage:
     )
 
 
-def _make_push_channel(messages: list[InboundMessage] | None = None, verify_ok: bool = True):
+def _make_push_channel(
+    messages: list[InboundMessage] | None = None, verify_ok: bool = True
+):
     verifier = MagicMock()
     verifier.verify.return_value = verify_ok
     verifier.parse = AsyncMock(return_value=messages or [])
@@ -55,7 +59,9 @@ def _make_registry(channel=None):
     return registry
 
 
-def _make_dispatcher(channel=None, plugin_handlers=None, trigger_spy=None, container=None):
+def _make_dispatcher(
+    channel=None, plugin_handlers=None, trigger_spy=None, container=None
+):
     registry = _make_registry(channel)
     if container is None:
         container = SimpleNamespace(_webhook_processor=None, invoke=AsyncMock())
@@ -71,6 +77,7 @@ def _make_dispatcher(channel=None, plugin_handlers=None, trigger_spy=None, conta
 
 
 # ── EventDeduplicator ─────────────────────────────────────────────────────────
+
 
 def test_deduplicator_not_duplicate_initially():
     d = EventDeduplicator()
@@ -90,6 +97,7 @@ def test_deduplicator_different_sources_independent():
 
 
 # ── WebhookDispatcher — channel path ─────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_dispatch_channel_path_triggers_messenger():
@@ -145,6 +153,7 @@ async def test_dispatch_unknown_source_raises():
 
 # ── WebhookDispatcher — plugin path ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_dispatch_plugin_path_calls_handle():
     handler = MagicMock()
@@ -173,6 +182,7 @@ async def test_dispatch_plugin_path_auth_failure_raises():
 
 
 # ── collect_plugin_webhook_handlers ──────────────────────────────────────────
+
 
 def test_collect_plugin_handlers_deduplicates():
     from ze_agents.errors import AgentConfigError
@@ -241,6 +251,7 @@ async def test_trigger_messenger_skips_invoke_for_automated():
 
 # ── Route integration ─────────────────────────────────────────────────────────
 
+
 def _make_app_with_dispatcher(dispatcher: WebhookDispatcher) -> FastAPI:
     from ze_api.api.routes.webhooks import router
 
@@ -264,8 +275,14 @@ async def test_route_returns_ok_on_success():
     dispatcher = _make_dispatcher(channel=channel, trigger_spy=noop_trigger)
     app = _make_app_with_dispatcher(dispatcher)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/api/v0/webhooks/email", content=b"{}", headers={"Authorization": "Bearer tok"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/api/v0/webhooks/email",
+            content=b"{}",
+            headers={"Authorization": "Bearer tok"},
+        )
     assert resp.status_code == 200
     assert resp.json() == {"ok": True}
 

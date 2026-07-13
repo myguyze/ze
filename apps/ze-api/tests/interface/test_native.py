@@ -25,11 +25,16 @@ def _make_interface(
     store = store or AsyncMock()
     conn = conn or _make_conn(connected=connected)
     notifier = notifier or AsyncMock()
-    return NativeAppInterface(
-        message_store=store,
-        connection_manager=conn,
-        notifier=notifier,
-    ), store, conn, notifier
+    return (
+        NativeAppInterface(
+            message_store=store,
+            connection_manager=conn,
+            notifier=notifier,
+        ),
+        store,
+        conn,
+        notifier,
+    )
 
 
 async def test_send_message_saves_and_pushes():
@@ -123,15 +128,17 @@ async def test_push_with_actions_sends_confirm_request():
     from ze_agents.interface.types import Action, Notification
 
     iface, store, conn, notifier = _make_interface(connected=False)
-    await iface.push(Notification(
-        content="<b>Goal</b> — proposed plan",
-        format="html",
-        urgency="high",
-        actions=[
-            Action(label="Start goal", payload="goal_plan:yes:abc"),
-            Action(label="Cancel", payload="goal_plan:no:abc"),
-        ],
-    ))
+    await iface.push(
+        Notification(
+            content="<b>Goal</b> — proposed plan",
+            format="html",
+            urgency="high",
+            actions=[
+                Action(label="Start goal", payload="goal_plan:yes:abc"),
+                Action(label="Cancel", payload="goal_plan:no:abc"),
+            ],
+        )
+    )
 
     store.save.assert_called_once()
     conn.push.assert_called_once()

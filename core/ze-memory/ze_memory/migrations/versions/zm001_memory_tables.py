@@ -5,6 +5,7 @@ Revises:
 Branch labels: ze_memory
 Depends on: zc001
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op

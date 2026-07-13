@@ -3,6 +3,7 @@
 Revision ID: zm009
 Revises: zm008
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op
@@ -117,13 +118,9 @@ def upgrade() -> None:
         " ADD COLUMN IF NOT EXISTS provenance TEXT NOT NULL DEFAULT 'raw'"
     )
     op.execute(
-        "ALTER TABLE memory_facts"
-        " ADD COLUMN IF NOT EXISTS valid_until TIMESTAMPTZ"
+        "ALTER TABLE memory_facts ADD COLUMN IF NOT EXISTS valid_until TIMESTAMPTZ"
     )
-    op.execute(
-        "ALTER TABLE memory_facts"
-        " ADD COLUMN IF NOT EXISTS dream_run_id UUID"
-    )
+    op.execute("ALTER TABLE memory_facts ADD COLUMN IF NOT EXISTS dream_run_id UUID")
     op.execute(
         "ALTER TABLE memory_facts"
         " ADD COLUMN IF NOT EXISTS derived_from UUID[] NOT NULL DEFAULT '{}'"
@@ -154,8 +151,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute("ALTER TABLE memory_entities DROP COLUMN IF EXISTS sensitive")
-    op.execute("ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS dream_influenced")
-    op.execute("ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS dream_artifact_ids")
+    op.execute(
+        "ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS dream_influenced"
+    )
+    op.execute(
+        "ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS dream_artifact_ids"
+    )
     op.execute("ALTER TABLE memory_facts DROP COLUMN IF EXISTS last_corroborated_at")
     op.execute("ALTER TABLE memory_facts DROP COLUMN IF EXISTS corroborated")
     op.execute("ALTER TABLE memory_facts DROP COLUMN IF EXISTS derived_from")

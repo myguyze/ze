@@ -89,6 +89,7 @@ def client(gate, mock_pool, capabilities_yaml):
 
 # ── GET /capabilities ─────────────────────────────────────────────────────────
 
+
 def test_get_capabilities_returns_config(client):
     c, _ = client
     resp = c.get("/capabilities")
@@ -100,6 +101,7 @@ def test_get_capabilities_returns_config(client):
 
 # ── PUT /capabilities/{agent}/{intent} ────────────────────────────────────────
 
+
 def test_put_capability_updates_mode(client, gate):
     c, _ = client
     resp = c.put("/capabilities/research/read", json={"mode": "confirm"})
@@ -107,6 +109,7 @@ def test_put_capability_updates_mode(client, gate):
     data = resp.json()
     assert data["research"]["read"] == "confirm"
     from ze_agents.types import GateDecision
+
     assert gate.evaluate("research", "read", {}) == GateDecision.AWAIT_CONFIRMATION
 
 
@@ -129,6 +132,7 @@ def test_put_capability_invalid_mode_returns_422(client):
 
 
 # ── GET /routing/log ──────────────────────────────────────────────────────────
+
 
 def test_get_routing_log_returns_list(client):
     c, conn = client
@@ -153,6 +157,7 @@ def test_get_routing_log_invalid_limit(client):
 
 # ── GET /memory/digest ────────────────────────────────────────────────────────
 
+
 def test_memory_digest_returns_structure(client):
     c, conn = client
     conn.fetch = AsyncMock(return_value=[])
@@ -166,6 +171,7 @@ def test_memory_digest_returns_structure(client):
 
 # ── GET /memory/facts ─────────────────────────────────────────────────────────
 
+
 def test_memory_facts_returns_list(client):
     c, conn = client
     conn.fetch = AsyncMock(return_value=[])
@@ -175,6 +181,7 @@ def test_memory_facts_returns_list(client):
 
 
 # ── OpenAPI schema ────────────────────────────────────────────────────────────
+
 
 def test_openapi_includes_rest_paths(client):
     c, _ = client

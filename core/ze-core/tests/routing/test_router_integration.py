@@ -9,12 +9,15 @@ from ze_core.routing.types import RouterConfig, RoutingEnvelope, SubTask
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def unit_vec(size: int = 384) -> np.ndarray:
     v = np.random.randn(size).astype(np.float32)
     return v / np.linalg.norm(v)
 
 
-def make_embedder(agent_vecs: dict[str, np.ndarray], prompt_vec: np.ndarray) -> MagicMock:
+def make_embedder(
+    agent_vecs: dict[str, np.ndarray], prompt_vec: np.ndarray
+) -> MagicMock:
     """
     Returns a mock embedder whose encode() returns:
     - agent_vecs stacked in alphabetical agent-name order (matches ze-core router)
@@ -64,6 +67,7 @@ def make_router(
 
 # ── RoutingEnvelope / SubTask ─────────────────────────────────────────────────
 
+
 def test_subtask_fields():
     st = SubTask(agent="research", intent="read", prompt="hello")
     assert st.agent == "research"
@@ -87,6 +91,7 @@ def test_routing_envelope_defaults():
 
 # ── EmbeddingRouter construction ──────────────────────────────────────────────
 
+
 def test_router_raises_if_no_enabled_agents(settings_factory):
     settings = settings_factory(disable_all=True)
     with pytest.raises(RoutingError, match="No enabled agents"):
@@ -99,6 +104,7 @@ def test_router_loads_enabled_agents_only(two_agent_settings):
 
 
 # ── route() — invalid input ───────────────────────────────────────────────────
+
 
 async def test_route_raises_on_empty_string(two_agent_settings):
     router = make_router(two_agent_settings)
@@ -114,6 +120,7 @@ async def test_route_raises_on_whitespace(two_agent_settings):
 
 # ── route() — single-agent shortcut ──────────────────────────────────────────
 
+
 async def test_single_agent_routes_directly(single_agent_settings):
     router = make_router(single_agent_settings)
     env = await router.route("search for news", session_id="s1")
@@ -125,6 +132,7 @@ async def test_single_agent_routes_directly(single_agent_settings):
 
 
 # ── route() — confident embedding routing ────────────────────────────────────
+
 
 async def test_route_picks_highest_score_agent(two_agent_settings):
     research_vec = unit_vec()
@@ -162,6 +170,7 @@ async def test_route_populates_raw_scores(two_agent_settings):
 
 
 # ── route() — low confidence signals decompose (no inline Haiku) ─────────────
+
 
 async def test_route_signals_decompose_when_score_below_threshold(two_agent_settings):
     low_vec = np.zeros(384, dtype=np.float32)
@@ -203,6 +212,7 @@ async def test_route_signals_decompose_when_gap_too_small(two_agent_settings):
 
 # ── route() — prospecting agent ──────────────────────────────────────────────
 
+
 async def test_route_picks_prospecting_as_single_agent(prospecting_only_settings):
     router = make_router(prospecting_only_settings)
     env = await router.route("find 5 charter operators in Portugal", session_id="s1")
@@ -216,17 +226,27 @@ async def test_route_picks_prospecting_over_research(prospecting_and_research_se
     agent_vecs = {"prospecting": prospecting_vec, "research": unit_vec()}
     embedder = make_embedder(agent_vecs=agent_vecs, prompt_vec=prospecting_vec)
     router = make_router(prospecting_and_research_settings, embedder=embedder)
-    env = await router.route("build a prospect list of aviation CEOs in Europe", session_id="s1")
+    env = await router.route(
+        "build a prospect list of aviation CEOs in Europe", session_id="s1"
+    )
     assert env.primary_agent == "prospecting"
     assert env.confidence > 0.9
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
-_ALL_AGENTS = frozenset({
-    "calendar", "companion", "email", "goals", "prospecting",
-    "reminders", "research", "workflow",
-})
+_ALL_AGENTS = frozenset(
+    {
+        "calendar",
+        "companion",
+        "email",
+        "goals",
+        "prospecting",
+        "reminders",
+        "research",
+        "workflow",
+    }
+)
 
 
 @pytest.fixture(autouse=True)
@@ -237,6 +257,7 @@ def _reset_agent_enabled_flags():
 
     def _enable_all() -> None:
         import importlib
+
         for path in ALL_AGENT_MODULE_PATHS:
             importlib.import_module(path)
         for cls in get_registered_agents().values():
@@ -291,6 +312,7 @@ def settings_factory(tmp_path):
         else:
             _configure_enabled_agents(set(_ALL_AGENTS))
         return _make_settings(tmp_path)
+
     return _factory
 
 

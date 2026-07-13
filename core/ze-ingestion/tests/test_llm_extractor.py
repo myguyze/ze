@@ -27,13 +27,20 @@ def _extractor(client: AsyncMock) -> LLMExtractor:
     return LLMExtractor(llm_client=client, model="test-model")
 
 
-async def test_successful_extraction(client: AsyncMock, content: ProcessedContent) -> None:
-    client.complete.return_value = json.dumps({
-        "summary": "Python overview.",
-        "facts": ["Python was created in 1991.", "Guido van Rossum is the creator."],
-        "entities": ["Python", "Guido van Rossum"],
-        "tags": ["programming", "language"],
-    })
+async def test_successful_extraction(
+    client: AsyncMock, content: ProcessedContent
+) -> None:
+    client.complete.return_value = json.dumps(
+        {
+            "summary": "Python overview.",
+            "facts": [
+                "Python was created in 1991.",
+                "Guido van Rossum is the creator.",
+            ],
+            "entities": ["Python", "Guido van Rossum"],
+            "tags": ["programming", "language"],
+        }
+    )
     result = await _extractor(client).extract(content)
     assert result.summary == "Python overview."
     assert "Python was created in 1991." in result.facts
@@ -46,7 +53,9 @@ async def test_content_types_is_empty_meaning_all(client: AsyncMock) -> None:
     assert ext.content_types == []
 
 
-async def test_llm_failure_returns_empty_result(client: AsyncMock, content: ProcessedContent) -> None:
+async def test_llm_failure_returns_empty_result(
+    client: AsyncMock, content: ProcessedContent
+) -> None:
     client.complete.side_effect = RuntimeError("LLM unavailable")
     result = await _extractor(client).extract(content)
     assert result.summary == ""
@@ -55,15 +64,21 @@ async def test_llm_failure_returns_empty_result(client: AsyncMock, content: Proc
     assert result.tags == []
 
 
-async def test_malformed_json_returns_empty_result(client: AsyncMock, content: ProcessedContent) -> None:
+async def test_malformed_json_returns_empty_result(
+    client: AsyncMock, content: ProcessedContent
+) -> None:
     client.complete.return_value = "not valid json {"
     result = await _extractor(client).extract(content)
     assert result.summary == ""
     assert result.facts == []
 
 
-async def test_partial_json_uses_defaults(client: AsyncMock, content: ProcessedContent) -> None:
-    client.complete.return_value = json.dumps({"summary": "Partial.", "facts": ["One fact."]})
+async def test_partial_json_uses_defaults(
+    client: AsyncMock, content: ProcessedContent
+) -> None:
+    client.complete.return_value = json.dumps(
+        {"summary": "Partial.", "facts": ["One fact."]}
+    )
     result = await _extractor(client).extract(content)
     assert result.summary == "Partial."
     assert result.facts == ["One fact."]
@@ -77,7 +92,9 @@ async def test_truncates_long_content(client: AsyncMock) -> None:
         source_url=None,
         text="x" * 20_000,
     )
-    client.complete.return_value = json.dumps({"summary": "ok", "facts": [], "entities": [], "tags": []})
+    client.complete.return_value = json.dumps(
+        {"summary": "ok", "facts": [], "entities": [], "tags": []}
+    )
     await _extractor(client).extract(long_content)
     call_args = client.complete.call_args
     sent_text = call_args.kwargs["messages"][0]["content"]

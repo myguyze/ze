@@ -1,4 +1,5 @@
 """Tests for retrieval_cache.py — session-scoped NLI retrieval cache."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

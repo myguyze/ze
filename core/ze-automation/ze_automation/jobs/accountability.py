@@ -110,7 +110,9 @@ class AccountabilityJob:
 
         workflow_failures: list[str] = []
         try:
-            failures = await self._push_log.list_workflow_failures_within_hours(period_days * 24)
+            failures = await self._push_log.list_workflow_failures_within_hours(
+                period_days * 24
+            )
             workflow_failures = [e.payload or "unknown" for e in failures]
         except Exception as exc:
             log.warning("accountability_workflow_query_failed", error=str(exc))

@@ -8,6 +8,7 @@ embeddings are NULLed — they will be recomputed on next write.
 Revision ID: zc022
 Revises: zc020
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

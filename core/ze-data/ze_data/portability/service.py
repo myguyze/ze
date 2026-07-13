@@ -83,14 +83,20 @@ class DataPortabilityService:
         domain_data: dict[str, list] = {}
         for domain, result in zip(self._domains, results):
             if isinstance(result, Exception):
-                log.error("export_domain_failed domain=%s error=%s", domain.name, result)
+                log.error(
+                    "export_domain_failed domain=%s error=%s", domain.name, result
+                )
                 domain_data[domain.name] = []
             else:
                 domain_data[domain.name] = result
 
         exported_at = datetime.now(timezone.utc)
         schema_revisions = await self.get_schema_revisions()
-        log.info("export_assembled domains=%s revisions=%s", list(domain_data.keys()), schema_revisions)
+        log.info(
+            "export_assembled domains=%s revisions=%s",
+            list(domain_data.keys()),
+            schema_revisions,
+        )
         return self._export_assembler.build(domain_data, exported_at, schema_revisions)
 
     # ── Import ────────────────────────────────────────────────────────────────
@@ -112,7 +118,9 @@ class DataPortabilityService:
         current_revisions = await self.get_schema_revisions()
         archive_revisions = sorted(manifest.get("schema_revisions", []))
         if archive_revisions != current_revisions:
-            raise SchemaMismatchError(archive=archive_revisions, current=current_revisions)
+            raise SchemaMismatchError(
+                archive=archive_revisions, current=current_revisions
+            )
 
         if not await self.is_empty():
             raise InstanceNotEmptyError(
@@ -138,7 +146,9 @@ class DataPortabilityService:
                     log.info("import_domain_done domain=%s rows=%d", domain.name, count)
 
         log.info("import_complete domains=%s", domains_imported)
-        return ImportResult(domains_imported=domains_imported, rows_imported=rows_imported)
+        return ImportResult(
+            domains_imported=domains_imported, rows_imported=rows_imported
+        )
 
     # ── Delete ────────────────────────────────────────────────────────────────
 
@@ -161,5 +171,9 @@ class DataPortabilityService:
         for order_key, group in groupby(ordered, key=lambda d: d.delete_order):
             batch = list(group)
             await asyncio.gather(*[d.delete(self._pool) for d in batch])
-            log.info("delete_batch_done order=%d domains=%s", order_key, [d.name for d in batch])
+            log.info(
+                "delete_batch_done order=%d domains=%s",
+                order_key,
+                [d.name for d in batch],
+            )
         log.info("data_deletion_complete")

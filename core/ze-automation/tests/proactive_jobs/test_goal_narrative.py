@@ -6,19 +6,36 @@ from uuid import uuid4
 
 
 from ze_automation.jobs.goal_narrative import GoalNarrativeJob
-from ze_automation.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, VerificationGate, GateStatus
+from ze_automation.goals.types import (
+    Goal,
+    GoalStatus,
+    Milestone,
+    MilestoneStatus,
+    VerificationGate,
+    GateStatus,
+)
 
 
 def _goal(title="Test Goal", status=GoalStatus.ACTIVE) -> Goal:
     return Goal(
-        id=uuid4(), title=title, objective="o", success_condition="s", status=status,
+        id=uuid4(),
+        title=title,
+        objective="o",
+        success_condition="s",
+        status=status,
     )
 
 
-def _milestone(seq: int, status=MilestoneStatus.COMPLETED, completed_at=None) -> Milestone:
+def _milestone(
+    seq: int, status=MilestoneStatus.COMPLETED, completed_at=None
+) -> Milestone:
     m = Milestone(
-        id=uuid4(), goal_id=uuid4(), title=f"Step {seq}",
-        description="d", sequence=seq, status=status,
+        id=uuid4(),
+        goal_id=uuid4(),
+        title=f"Step {seq}",
+        description="d",
+        sequence=seq,
+        status=status,
     )
     m.completed_at = completed_at or datetime.now(timezone.utc)
     return m
@@ -26,12 +43,17 @@ def _milestone(seq: int, status=MilestoneStatus.COMPLETED, completed_at=None) ->
 
 def _gate(title="Checkpoint") -> VerificationGate:
     return VerificationGate(
-        id=uuid4(), goal_id=uuid4(), after_sequence=1,
-        title=title, status=GateStatus.AWAITING_APPROVAL,
+        id=uuid4(),
+        goal_id=uuid4(),
+        after_sequence=1,
+        title=title,
+        status=GateStatus.AWAITING_APPROVAL,
     )
 
 
-def _make_job(goals=None, milestones=None, gate=None, dedup=False, paragraph="Progress summary."):
+def _make_job(
+    goals=None, milestones=None, gate=None, dedup=False, paragraph="Progress summary."
+):
     notifier = AsyncMock()
     notifier.push_notification = AsyncMock()
 
@@ -58,6 +80,7 @@ def _make_job(goals=None, milestones=None, gate=None, dedup=False, paragraph="Pr
 
 # ── Deduplication ─────────────────────────────────────────────────────────────
 
+
 async def test_run_skips_when_dedup_within_6_days():
     job, notifier, _, _ = _make_job(dedup=True)
     await job.run()
@@ -66,6 +89,7 @@ async def test_run_skips_when_dedup_within_6_days():
 
 # ── No active goals ───────────────────────────────────────────────────────────
 
+
 async def test_run_skips_when_no_active_goals():
     job, notifier, _, _ = _make_job(goals=[])
     await job.run()
@@ -73,6 +97,7 @@ async def test_run_skips_when_no_active_goals():
 
 
 # ── Happy path ────────────────────────────────────────────────────────────────
+
 
 async def test_run_sends_narrative_for_goals_with_progress():
     goal = _goal("Job search")
@@ -97,6 +122,7 @@ async def test_run_sends_narrative_for_goals_with_progress():
 async def test_run_skips_goals_with_no_progress_this_week():
     now = datetime.now(timezone.utc)
     from datetime import timedelta
+
     old_date = now - timedelta(days=10)
 
     goal = _goal("Stale Goal")
@@ -111,6 +137,7 @@ async def test_run_skips_goals_with_no_progress_this_week():
 
 
 # ── Awaiting gate ─────────────────────────────────────────────────────────────
+
 
 async def test_run_includes_awaiting_gate_even_without_weekly_progress():
     goal = _goal("Spanish learning", status=GoalStatus.AWAITING_GATE)
@@ -131,6 +158,7 @@ async def test_run_includes_awaiting_gate_even_without_weekly_progress():
 
 
 # ── Resilience ────────────────────────────────────────────────────────────────
+
 
 async def test_run_continues_when_one_goal_narrative_fails():
     goal1 = _goal("Goal A")

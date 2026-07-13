@@ -109,8 +109,14 @@ _VAGUE_ATTR_PT = [
 _EMOTIONAL_EN = [
     re.compile(r"\b" + w + r"\b", re.IGNORECASE)
     for w in [
-        "catastrophic", "devastating", "terrifying", "horrifying",
-        "outrageous", "disgusting", "shameful", "unforgivable",
+        "catastrophic",
+        "devastating",
+        "terrifying",
+        "horrifying",
+        "outrageous",
+        "disgusting",
+        "shameful",
+        "unforgivable",
     ]
 ]
 
@@ -152,122 +158,140 @@ def run_heuristics(title: str, summary: str) -> list[CredibilityFlag]:
 
     # betteridge — language-agnostic
     if BETTERIDGE_RE.search(title.strip()):
-        flags.append(CredibilityFlag(
-            type="betteridge",
-            label=_LABELS["betteridge"],
-            detail="Headline ends with '?' — implies a claim the author won't assert as fact.",
-            source="heuristic",
-            confidence=FLAG_CONFIDENCE["betteridge"],
-            lang="any",
-        ))
+        flags.append(
+            CredibilityFlag(
+                type="betteridge",
+                label=_LABELS["betteridge"],
+                detail="Headline ends with '?' — implies a claim the author won't assert as fact.",
+                source="heuristic",
+                confidence=FLAG_CONFIDENCE["betteridge"],
+                lang="any",
+            )
+        )
 
     # clickbait
     for pattern in _CLICKBAIT_EN:
         m = pattern.search(text)
         if m:
-            flags.append(CredibilityFlag(
-                type="clickbait",
-                label=_LABELS["clickbait"],
-                detail=f"Matched phrase: \"{m.group(0)}\"",
-                source="heuristic",
-                confidence=FLAG_CONFIDENCE["clickbait"],
-                lang="en",
-            ))
+            flags.append(
+                CredibilityFlag(
+                    type="clickbait",
+                    label=_LABELS["clickbait"],
+                    detail=f'Matched phrase: "{m.group(0)}"',
+                    source="heuristic",
+                    confidence=FLAG_CONFIDENCE["clickbait"],
+                    lang="en",
+                )
+            )
             break
     else:
         for pattern in _CLICKBAIT_PT:
             m = pattern.search(text)
             if m:
-                flags.append(CredibilityFlag(
-                    type="clickbait",
-                    label=_LABELS["clickbait"],
-                    detail=f"Matched phrase: \"{m.group(0)}\"",
-                    source="heuristic",
-                    confidence=FLAG_CONFIDENCE["clickbait"],
-                    lang="pt",
-                ))
+                flags.append(
+                    CredibilityFlag(
+                        type="clickbait",
+                        label=_LABELS["clickbait"],
+                        detail=f'Matched phrase: "{m.group(0)}"',
+                        source="heuristic",
+                        confidence=FLAG_CONFIDENCE["clickbait"],
+                        lang="pt",
+                    )
+                )
                 break
 
     # vague_attribution
     for pattern in _VAGUE_ATTR_EN:
         m = pattern.search(text)
         if m:
-            flags.append(CredibilityFlag(
-                type="vague_attribution",
-                label=_LABELS["vague_attribution"],
-                detail=f"Matched phrase: \"{m.group(0)}\"",
-                source="heuristic",
-                confidence=FLAG_CONFIDENCE["vague_attribution"],
-                lang="en",
-            ))
+            flags.append(
+                CredibilityFlag(
+                    type="vague_attribution",
+                    label=_LABELS["vague_attribution"],
+                    detail=f'Matched phrase: "{m.group(0)}"',
+                    source="heuristic",
+                    confidence=FLAG_CONFIDENCE["vague_attribution"],
+                    lang="en",
+                )
+            )
             break
     else:
         for pattern in _VAGUE_ATTR_PT:
             m = pattern.search(text)
             if m:
-                flags.append(CredibilityFlag(
-                    type="vague_attribution",
-                    label=_LABELS["vague_attribution"],
-                    detail=f"Matched phrase: \"{m.group(0)}\"",
-                    source="heuristic",
-                    confidence=FLAG_CONFIDENCE["vague_attribution"],
-                    lang="pt",
-                ))
+                flags.append(
+                    CredibilityFlag(
+                        type="vague_attribution",
+                        label=_LABELS["vague_attribution"],
+                        detail=f'Matched phrase: "{m.group(0)}"',
+                        source="heuristic",
+                        confidence=FLAG_CONFIDENCE["vague_attribution"],
+                        lang="pt",
+                    )
+                )
                 break
 
     # weasel_words (low confidence)
     for pattern in _WEASEL_EN:
         m = pattern.search(text)
         if m:
-            flags.append(CredibilityFlag(
-                type="weasel_words",
-                label=_LABELS["weasel_words"],
-                detail=f"Matched phrase: \"{m.group(0)}\"",
-                source="heuristic",
-                confidence=FLAG_CONFIDENCE["weasel_words"],
-                lang="en",
-            ))
+            flags.append(
+                CredibilityFlag(
+                    type="weasel_words",
+                    label=_LABELS["weasel_words"],
+                    detail=f'Matched phrase: "{m.group(0)}"',
+                    source="heuristic",
+                    confidence=FLAG_CONFIDENCE["weasel_words"],
+                    lang="en",
+                )
+            )
             break
     else:
         for pattern in _WEASEL_PT:
             m = pattern.search(text)
             if m:
-                flags.append(CredibilityFlag(
-                    type="weasel_words",
-                    label=_LABELS["weasel_words"],
-                    detail=f"Matched phrase: \"{m.group(0)}\"",
-                    source="heuristic",
-                    confidence=FLAG_CONFIDENCE["weasel_words"],
-                    lang="pt",
-                ))
+                flags.append(
+                    CredibilityFlag(
+                        type="weasel_words",
+                        label=_LABELS["weasel_words"],
+                        detail=f'Matched phrase: "{m.group(0)}"',
+                        source="heuristic",
+                        confidence=FLAG_CONFIDENCE["weasel_words"],
+                        lang="pt",
+                    )
+                )
                 break
 
     # emotional_manipulation (low confidence)
     for pattern in _EMOTIONAL_EN:
         m = pattern.search(text)
         if m:
-            flags.append(CredibilityFlag(
-                type="emotional_manipulation",
-                label=_LABELS["emotional_manipulation"],
-                detail=f"Matched word: \"{m.group(0)}\"",
-                source="heuristic",
-                confidence=FLAG_CONFIDENCE["emotional_manipulation"],
-                lang="en",
-            ))
+            flags.append(
+                CredibilityFlag(
+                    type="emotional_manipulation",
+                    label=_LABELS["emotional_manipulation"],
+                    detail=f'Matched word: "{m.group(0)}"',
+                    source="heuristic",
+                    confidence=FLAG_CONFIDENCE["emotional_manipulation"],
+                    lang="en",
+                )
+            )
             break
 
     # sensationalism (low confidence)
     for pattern in _SENSATIONALISM_EN:
         m = pattern.search(text)
         if m:
-            flags.append(CredibilityFlag(
-                type="sensationalism",
-                label=_LABELS["sensationalism"],
-                detail=f"Matched phrase: \"{m.group(0)}\"",
-                source="heuristic",
-                confidence=FLAG_CONFIDENCE["sensationalism"],
-                lang="en",
-            ))
+            flags.append(
+                CredibilityFlag(
+                    type="sensationalism",
+                    label=_LABELS["sensationalism"],
+                    detail=f'Matched phrase: "{m.group(0)}"',
+                    source="heuristic",
+                    confidence=FLAG_CONFIDENCE["sensationalism"],
+                    lang="en",
+                )
+            )
             break
 
     return flags
@@ -304,8 +328,7 @@ async def run_nli_headline_check(
     if entailment < entailment_threshold:
         detail_parts.append(f"entailment={entailment:.2f}")
     detail = (
-        "Headline claim strength exceeds summary support "
-        f"({', '.join(detail_parts)})."
+        f"Headline claim strength exceeds summary support ({', '.join(detail_parts)})."
     )
     return [
         CredibilityFlag(
@@ -423,13 +446,15 @@ async def run_llm_scoring(
         already_present = any(f.type == flag_type for f in surviving_heuristic)
         if already_present:
             continue
-        llm_flags.append(CredibilityFlag(
-            type=flag_type,
-            label=_LABELS.get(flag_type, flag_type),
-            detail=detail,
-            source="llm",
-            confidence=FLAG_CONFIDENCE[flag_type],
-        ))
+        llm_flags.append(
+            CredibilityFlag(
+                type=flag_type,
+                label=_LABELS.get(flag_type, flag_type),
+                detail=detail,
+                source="llm",
+                confidence=FLAG_CONFIDENCE[flag_type],
+            )
+        )
 
     return surviving_heuristic + llm_flags
 

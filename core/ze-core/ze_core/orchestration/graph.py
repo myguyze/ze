@@ -15,6 +15,7 @@ def _compose_pre_route_nodes(fns: list[Callable]) -> Callable:
     and its returned dict is merged into the running update before the next call.
     The final merged dict is returned as the combined state update.
     """
+
     async def _composed(state: Any, config: RunnableConfig) -> dict:
         accumulated: dict = {}
         current = state
@@ -27,6 +28,7 @@ def _compose_pre_route_nodes(fns: list[Callable]) -> Callable:
 
     def _is_async(f: Callable) -> bool:
         import asyncio
+
         return asyncio.iscoroutinefunction(f)
 
     return _composed
@@ -56,24 +58,33 @@ def graph_builder(
     from langgraph.graph import StateGraph
 
     from ze_core.orchestration import nodes
-    from ze_core.orchestration.edges import after_await_confirmation, after_capability_check, after_correlate, after_execute_tool
+    from ze_core.orchestration.edges import (
+        after_await_confirmation,
+        after_capability_check,
+        after_correlate,
+        after_execute_tool,
+    )
     from ze_core.orchestration.state import AgentState
 
     ov = node_overrides or {}
     builder = StateGraph(state_type or AgentState)
 
-    builder.add_node("preprocess",         ov.get("preprocess",         nodes.preprocess))
-    builder.add_node("embed_route",        ov.get("embed_route",        nodes.embed_route))
-    builder.add_node("decompose",          ov.get("decompose",          nodes.decompose))
-    builder.add_node("fetch_context",      ov.get("fetch_context",      nodes.fetch_context))
-    builder.add_node("capability_check",   ov.get("capability_check",   nodes.capability_check))
-    builder.add_node("execute_tool",       ov.get("execute_tool",       nodes.execute_tool))
-    builder.add_node("correlate",          ov.get("correlate",          nodes.correlate))
-    builder.add_node("draft_response",     ov.get("draft_response",     nodes.draft_response))
-    builder.add_node("await_confirmation", ov.get("await_confirmation", nodes.await_confirmation))
-    builder.add_node("synthesize",         ov.get("synthesize",         nodes.synthesize))
-    builder.add_node("record_trace",       ov.get("record_trace",       nodes.record_trace))
-    builder.add_node("write_memory",       ov.get("write_memory",       nodes.write_memory))
+    builder.add_node("preprocess", ov.get("preprocess", nodes.preprocess))
+    builder.add_node("embed_route", ov.get("embed_route", nodes.embed_route))
+    builder.add_node("decompose", ov.get("decompose", nodes.decompose))
+    builder.add_node("fetch_context", ov.get("fetch_context", nodes.fetch_context))
+    builder.add_node(
+        "capability_check", ov.get("capability_check", nodes.capability_check)
+    )
+    builder.add_node("execute_tool", ov.get("execute_tool", nodes.execute_tool))
+    builder.add_node("correlate", ov.get("correlate", nodes.correlate))
+    builder.add_node("draft_response", ov.get("draft_response", nodes.draft_response))
+    builder.add_node(
+        "await_confirmation", ov.get("await_confirmation", nodes.await_confirmation)
+    )
+    builder.add_node("synthesize", ov.get("synthesize", nodes.synthesize))
+    builder.add_node("record_trace", ov.get("record_trace", nodes.record_trace))
+    builder.add_node("write_memory", ov.get("write_memory", nodes.write_memory))
 
     builder.set_entry_point("preprocess")
     if pre_route_node is not None:
@@ -85,11 +96,15 @@ def graph_builder(
 
     # embed_route and decompose routing conditionals are NOT wired here — see docstring.
 
-    builder.add_edge("fetch_context",  "capability_check")
+    builder.add_edge("fetch_context", "capability_check")
     builder.add_conditional_edges(
         "capability_check",
         after_capability_check,
-        {"execute_tool": "execute_tool", "draft_response": "draft_response", "end_blocked": END},
+        {
+            "execute_tool": "execute_tool",
+            "draft_response": "draft_response",
+            "end_blocked": END,
+        },
     )
     builder.add_conditional_edges(
         "execute_tool",
@@ -107,9 +122,9 @@ def graph_builder(
         after_await_confirmation,
         {"execute_tool": "execute_tool", "record_trace": "record_trace"},
     )
-    builder.add_edge("synthesize",         "record_trace")
-    builder.add_edge("record_trace",       "write_memory")
-    builder.add_edge("write_memory",       END)
+    builder.add_edge("synthesize", "record_trace")
+    builder.add_edge("record_trace", "write_memory")
+    builder.add_edge("write_memory", END)
 
     return builder
 
@@ -123,7 +138,9 @@ def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any
     from ze_core.orchestration.state import build_state_type
 
     state_type = build_state_type(plugins or [])
-    pre_route_fns = [fn for p in (plugins or []) for fn in [p.pre_route_node()] if fn is not None]
+    pre_route_fns = [
+        fn for p in (plugins or []) for fn in [p.pre_route_node()] if fn is not None
+    ]
     pre_route = _compose_pre_route_nodes(pre_route_fns) if pre_route_fns else None
     builder = graph_builder(state_type=state_type, pre_route_node=pre_route)
     builder.add_node("plan_sequential", nodes.plan_sequential)
@@ -140,7 +157,7 @@ def build_graph(checkpointer: Any, plugins: list[ZePlugin] | None = None) -> Any
     )
     builder.add_edge("plan_sequential", END)
 
-    for plugin in (plugins or []):
+    for plugin in plugins or []:
         for name, fn in plugin.graph_nodes().items():
             builder.add_node(name, fn)
         plugin.graph_edges(builder)

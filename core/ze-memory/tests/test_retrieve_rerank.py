@@ -1,4 +1,5 @@
 """Tests for retrieve() session-cached NLI re-ranking."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -84,12 +85,32 @@ async def test_retrieve_applies_cached_fact_order(mock_fetch_facts, mock_ff):
     store._registry.for_module = MagicMock(return_value=policy)
 
     mock_fetch_facts.return_value = [
-        {"id": id_first, "subject_id": None, "predicate": "a", "object_text": None,
-         "object_id": None, "value": "first", "confidence": 1.0, "reviewed": False,
-         "contradicted": False, "source_episode_id": None, "source_refs": []},
-        {"id": id_second, "subject_id": None, "predicate": "b", "object_text": None,
-         "object_id": None, "value": "second", "confidence": 1.0, "reviewed": False,
-         "contradicted": False, "source_episode_id": None, "source_refs": []},
+        {
+            "id": id_first,
+            "subject_id": None,
+            "predicate": "a",
+            "object_text": None,
+            "object_id": None,
+            "value": "first",
+            "confidence": 1.0,
+            "reviewed": False,
+            "contradicted": False,
+            "source_episode_id": None,
+            "source_refs": [],
+        },
+        {
+            "id": id_second,
+            "subject_id": None,
+            "predicate": "b",
+            "object_text": None,
+            "object_id": None,
+            "value": "second",
+            "confidence": 1.0,
+            "reviewed": False,
+            "contradicted": False,
+            "source_episode_id": None,
+            "source_refs": [],
+        },
     ]
 
     result = await store.retrieve(_request())

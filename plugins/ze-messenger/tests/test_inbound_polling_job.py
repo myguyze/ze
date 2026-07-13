@@ -1,4 +1,5 @@
 """Tests for InboundPollingJob."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -41,7 +42,9 @@ def _inbound(message_id: str = "msg-1") -> InboundMessage:
     )
 
 
-def _make_channel(channel_id: str = "gmail:ze@example.com", supports_push: bool = False, messages=None):
+def _make_channel(
+    channel_id: str = "gmail:ze@example.com", supports_push: bool = False, messages=None
+):
     ch = MagicMock()
     ch.channel_id = channel_id
     ch.channel_type = ChannelType.EMAIL

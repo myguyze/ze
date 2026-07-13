@@ -3,6 +3,7 @@
 Revision ID: zm002
 Revises: zm001
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op

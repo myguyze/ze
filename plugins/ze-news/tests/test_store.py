@@ -97,16 +97,20 @@ async def test_news_cluster_dedup():
         summary="Leaders agreed on a ceasefire after overnight talks.",
     )
 
-    conn.fetch.return_value = [{
-        "url": canonical.url,
-        "summary": canonical.summary,
-        "embedding": [0.1] * 384,
-    }]
+    conn.fetch.return_value = [
+        {
+            "url": canonical.url,
+            "summary": canonical.summary,
+            "embedding": [0.1] * 384,
+        }
+    ]
     nli_client = MagicMock()
-    nli_client.scores = AsyncMock(return_value=[
-        {"entailment": 0.90, "contradiction": 0.05, "neutral": 0.05},
-        {"entailment": 0.88, "contradiction": 0.07, "neutral": 0.05},
-    ])
+    nli_client.scores = AsyncMock(
+        return_value=[
+            {"entailment": 0.90, "contradiction": 0.05, "neutral": 0.05},
+            {"entailment": 0.88, "contradiction": 0.07, "neutral": 0.05},
+        ]
+    )
 
     kept = await store.dedup_new_articles(
         [duplicate],
@@ -117,7 +121,8 @@ async def test_news_cluster_dedup():
 
     assert kept == []
     delete_calls = [
-        call for call in conn.execute.call_args_list
+        call
+        for call in conn.execute.call_args_list
         if "DELETE FROM news_articles" in str(call)
     ]
     assert len(delete_calls) == 1

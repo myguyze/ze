@@ -13,6 +13,7 @@ def clear_embedder_cache():
 @pytest.mark.slow
 def test_embedder_returns_sentence_transformer():
     from sentence_transformers import SentenceTransformer
+
     embedder = get_embedder()
     assert isinstance(embedder, SentenceTransformer)
 

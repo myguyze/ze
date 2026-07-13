@@ -5,6 +5,7 @@ Revises:
 Branch labels: ze_proactive
 Depends on:
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op

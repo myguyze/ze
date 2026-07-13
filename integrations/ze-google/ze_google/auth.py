@@ -48,11 +48,13 @@ class GoogleCredentials:
         """Return None if any required credential env var is unset."""
         _ = settings  # ZeIntegration protocol; credentials come from ze-google env.
         gs = get_google_settings()
-        if not all([
-            gs.google_client_id,
-            gs.google_client_secret,
-            gs.google_refresh_token,
-        ]):
+        if not all(
+            [
+                gs.google_client_id,
+                gs.google_client_secret,
+                gs.google_refresh_token,
+            ]
+        ):
             return None
         return cls(
             client_id=gs.google_client_id,

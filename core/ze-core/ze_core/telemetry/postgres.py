@@ -50,9 +50,7 @@ class PostgresCostStore:
         except Exception as exc:
             log.warning("cost_write_failed", error=str(exc))
 
-    async def fetch_pending(
-        self, batch_size: int, min_age_seconds: int
-    ) -> list[dict]:
+    async def fetch_pending(self, batch_size: int, min_age_seconds: int) -> list[dict]:
         async with self._pool.acquire() as conn:
             return await conn.fetch(
                 """

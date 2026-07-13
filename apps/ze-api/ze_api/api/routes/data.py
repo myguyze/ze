@@ -7,9 +7,19 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
 from ze_api.api.dependencies import require_api_key
-from ze_api.api.schemas import DataDomainItem, DataDomainsResponse, DeleteIntentResponse, DeleteRequest, ImportResponse
+from ze_api.api.schemas import (
+    DataDomainItem,
+    DataDomainsResponse,
+    DeleteIntentResponse,
+    DeleteRequest,
+    ImportResponse,
+)
 from ze_logging import get_logger
-from ze_data.portability.service import DataPortabilityService, InstanceNotEmptyError, SchemaMismatchError
+from ze_data.portability.service import (
+    DataPortabilityService,
+    InstanceNotEmptyError,
+    SchemaMismatchError,
+)
 
 log = get_logger(__name__)
 
@@ -97,7 +107,9 @@ async def import_data(
     try:
         result = await _service(request).import_archive(archive_bytes)
     except SchemaMismatchError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     except InstanceNotEmptyError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     return ImportResponse(

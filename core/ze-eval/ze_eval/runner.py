@@ -12,6 +12,7 @@ Environment variables:
   ZE_API_KEY         Ze API key
   OPENROUTER_API_KEY Required only when --judge is set
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,6 +37,7 @@ _DEFAULT_RESULTS_DIR = Path(__file__).parent.parent.parent.parent / "eval" / "re
 
 # ── Ze chat ───────────────────────────────────────────────────────────────────
 
+
 async def _chat(prompt: str, session_id: str, ze_url: str, ze_key: str) -> dict:
     async with httpx.AsyncClient(timeout=90.0) as client:
         resp = await client.post(
@@ -53,10 +55,20 @@ async def _run_turns(scenario: dict, session_id: str, ze_url: str, ze_key: str) 
         turn_results = []
         for i, turn in enumerate(turns):
             result = await _chat(turn["prompt"], session_id, ze_url, ze_key)
-            turn_results.append({"turn": i + 1, "prompt": turn["prompt"], "result": result})
-        final_agent = turn_results[-1]["result"].get("agent_used") if turn_results else None
-        final_response = turn_results[-1]["result"].get("response", "") if turn_results else ""
-        return {"turns": turn_results, "agent_used": final_agent, "response": final_response}
+            turn_results.append(
+                {"turn": i + 1, "prompt": turn["prompt"], "result": result}
+            )
+        final_agent = (
+            turn_results[-1]["result"].get("agent_used") if turn_results else None
+        )
+        final_response = (
+            turn_results[-1]["result"].get("response", "") if turn_results else ""
+        )
+        return {
+            "turns": turn_results,
+            "agent_used": final_agent,
+            "response": final_response,
+        }
     return await _chat(scenario["prompt"], session_id, ze_url, ze_key)
 
 
@@ -111,7 +123,9 @@ def _print_row(
     lat = _fmt_latency(latency_ms)
 
     if error:
-        print(f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {'ERR':6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}  {error[:35]}")
+        print(
+            f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {'ERR':6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}  {error[:35]}"
+        )
         return
 
     if judge_score:
@@ -119,9 +133,13 @@ def _print_row(
         t = _fmt_score(judge_score.get("tone"))
         tu = _fmt_score(judge_score.get("tool_use"))
         p = _TICK if judge_score.get("pass") else _CROSS
-        print(f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {_sym(routing):6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}  {q:5}  {t:5}  {tu:5}  {p}")
+        print(
+            f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {_sym(routing):6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}  {q:5}  {t:5}  {tu:5}  {p}"
+        )
     else:
-        print(f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {_sym(routing):6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}")
+        print(
+            f"{sid:<{_W_ID}}  {agent:<{_W_AGENT}}  {_sym(routing):6}  {_sym(tools):6}  {_sym(outcome):8}  {lat:8}"
+        )
 
 
 def _print_summary(run: dict) -> None:
@@ -135,18 +153,24 @@ def _print_summary(run: dict) -> None:
     if t["total"] - t["errors"] > 0:
         rt_total = t["routing_correct"] + t["routing_wrong"]
         if rt_total > 0:
-            print(f"  Routing correct:     {t['routing_correct']}/{rt_total} ({100*t['routing_correct']//rt_total}%)")
+            print(
+                f"  Routing correct:     {t['routing_correct']}/{rt_total} ({100 * t['routing_correct'] // rt_total}%)"
+            )
         print(f"  Routing unchecked:   {t['routing_unchecked']}")
 
         tl_total = t["tools_correct"] + t["tools_wrong"]
         if tl_total > 0:
-            print(f"  Tools correct:       {t['tools_correct']}/{tl_total} ({100*t['tools_correct']//tl_total}%)")
+            print(
+                f"  Tools correct:       {t['tools_correct']}/{tl_total} ({100 * t['tools_correct'] // tl_total}%)"
+            )
         if t.get("tools_unchecked", 0) > 0:
             print(f"  Tools unchecked:     {t['tools_unchecked']}")
 
         oc_total = t.get("outcome_correct", 0) + t.get("outcome_wrong", 0)
         if oc_total > 0:
-            print(f"  Outcome correct:     {t['outcome_correct']}/{oc_total} ({100*t['outcome_correct']//oc_total}%)")
+            print(
+                f"  Outcome correct:     {t['outcome_correct']}/{oc_total} ({100 * t['outcome_correct'] // oc_total}%)"
+            )
         if t.get("outcome_unchecked", 0) > 0:
             print(f"  Outcome unchecked:   {t['outcome_unchecked']}")
 
@@ -168,16 +192,22 @@ def _print_summary(run: dict) -> None:
         p95_lat = lats_s[int(len(lats_s) * 0.95)]
         print()
         print("  Latency (wall-clock)")
-        print(f"    avg: {avg_lat/1000:.1f}s   p95: {p95_lat/1000:.1f}s   max: {lats_s[-1]/1000:.1f}s")
+        print(
+            f"    avg: {avg_lat / 1000:.1f}s   p95: {p95_lat / 1000:.1f}s   max: {lats_s[-1] / 1000:.1f}s"
+        )
 
     tok = run.get("totals", {})
     if tok.get("total_tokens", 0) > 0:
         n = tok.get("total", 1)
         print()
         print("  Tokens (from llm_cost_log)")
-        print(f"    total: {tok['total_tokens']:,}   avg/scenario: {tok['total_tokens']//n:,}")
+        print(
+            f"    total: {tok['total_tokens']:,}   avg/scenario: {tok['total_tokens'] // n:,}"
+        )
         if tok.get("prompt_tokens") and tok.get("completion_tokens"):
-            print(f"    prompt: {tok['prompt_tokens']:,}   completion: {tok['completion_tokens']:,}")
+            print(
+                f"    prompt: {tok['prompt_tokens']:,}   completion: {tok['completion_tokens']:,}"
+            )
 
     by_agent = run.get("by_agent", {})
     if by_agent:
@@ -202,11 +232,14 @@ def _print_summary(run: dict) -> None:
             q = stats.get("avg_quality")
             q_str = f"  quality {q:.1f}" if q else ""
             avg_lat_a = stats.get("avg_latency_ms")
-            lat_str = f"  avg {avg_lat_a/1000:.1f}s" if avg_lat_a else ""
-            print(f"    {agent:<14} {stats['total']:3} scenarios{rt_str}{tl_str}{oc_str}{judge_str}{q_str}{lat_str}")
+            lat_str = f"  avg {avg_lat_a / 1000:.1f}s" if avg_lat_a else ""
+            print(
+                f"    {agent:<14} {stats['total']:3} scenarios{rt_str}{tl_str}{oc_str}{judge_str}{q_str}{lat_str}"
+            )
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict:
     ze_url = args.ze_url or os.environ.get("ZE_EVAL_URL", "http://localhost:8000")
@@ -216,12 +249,18 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
     out_dir = results_dir or _DEFAULT_RESULTS_DIR
 
     if use_judge and not or_key:
-        print("ERROR: --judge requires OPENROUTER_API_KEY env var or --or-key", file=sys.stderr)
+        print(
+            "ERROR: --judge requires OPENROUTER_API_KEY env var or --or-key",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     scenarios = load_scenarios(args.tag)
     if not scenarios:
-        print(f"No scenarios found{' for tag: ' + args.tag if args.tag else ''}.", file=sys.stderr)
+        print(
+            f"No scenarios found{' for tag: ' + args.tag if args.tag else ''}.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     ts = datetime.now(UTC)
@@ -269,8 +308,14 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
             if scenario.get("verify"):
                 vr = await run_verification(scenario["verify"])
                 verify_results = [
-                    {"table": r.table, "where": r.where, "expect": r.expect,
-                     "actual_count": r.actual_count, "passed": r.passed, "error": r.error}
+                    {
+                        "table": r.table,
+                        "where": r.where,
+                        "expect": r.expect,
+                        "actual_count": r.actual_count,
+                        "passed": r.passed,
+                        "error": r.error,
+                    }
                     for r in vr
                 ]
                 outcome = outcome_correct(vr)
@@ -311,7 +356,12 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
                     judge_score = {"error": str(exc)}
 
         _print_row(
-            sid, agent_used, routing, tools, outcome, latency_ms,
+            sid,
+            agent_used,
+            routing,
+            tools,
+            outcome,
+            latency_ms,
             judge_score if judge_score and "error" not in judge_score else None,
             error,
         )
@@ -320,11 +370,17 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
         if agent_key not in by_agent:
             by_agent[agent_key] = {
                 "total": 0,
-                "routing_correct": 0, "routing_wrong": 0,
-                "tools_correct": 0, "tools_wrong": 0,
-                "outcome_correct": 0, "outcome_wrong": 0,
-                "judged": 0, "passed": 0, "quality_sum": 0,
-                "latency_sum_ms": 0, "total_tokens": 0,
+                "routing_correct": 0,
+                "routing_wrong": 0,
+                "tools_correct": 0,
+                "tools_wrong": 0,
+                "outcome_correct": 0,
+                "outcome_wrong": 0,
+                "judged": 0,
+                "passed": 0,
+                "quality_sum": 0,
+                "latency_sum_ms": 0,
+                "total_tokens": 0,
             }
         by_agent[agent_key]["total"] += 1
         if routing is True:
@@ -348,25 +404,33 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
                 by_agent[agent_key]["passed"] += 1
             by_agent[agent_key]["quality_sum"] += judge_score.get("quality", 0)
 
-        results.append({
-            "scenario_id": sid,
-            "scenario": scenario,
-            "ze_result": ze_result,
-            "agent_used": agent_used,
-            "routing_correct": routing,
-            "tools_correct": tools,
-            "outcome_correct": outcome,
-            "verify_results": verify_results,
-            "latency_ms": latency_ms,
-            "metrics": scenario_metrics,
-            "judge": judge_score,
-            "error": error,
-        })
+        results.append(
+            {
+                "scenario_id": sid,
+                "scenario": scenario,
+                "ze_result": ze_result,
+                "agent_used": agent_used,
+                "routing_correct": routing,
+                "tools_correct": tools,
+                "outcome_correct": outcome,
+                "verify_results": verify_results,
+                "latency_ms": latency_ms,
+                "metrics": scenario_metrics,
+                "judge": judge_score,
+                "error": error,
+            }
+        )
 
     judged_results = [r for r in results if r["judge"] and "error" not in r["judge"]]
-    quality_vals = [r["judge"]["quality"] for r in judged_results if r["judge"].get("quality")]
+    quality_vals = [
+        r["judge"]["quality"] for r in judged_results if r["judge"].get("quality")
+    ]
     tone_vals = [r["judge"]["tone"] for r in judged_results if r["judge"].get("tone")]
-    tool_vals = [r["judge"]["tool_use"] for r in judged_results if r["judge"] and r["judge"].get("tool_use") is not None]
+    tool_vals = [
+        r["judge"]["tool_use"]
+        for r in judged_results
+        if r["judge"] and r["judge"].get("tool_use") is not None
+    ]
 
     for agent_key, stats in by_agent.items():
         if stats["judged"] > 0:
@@ -388,22 +452,34 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
             "errors": sum(1 for r in results if r["error"]),
             "routing_correct": sum(1 for r in results if r["routing_correct"] is True),
             "routing_wrong": sum(1 for r in results if r["routing_correct"] is False),
-            "routing_unchecked": sum(1 for r in results if r["routing_correct"] is None),
+            "routing_unchecked": sum(
+                1 for r in results if r["routing_correct"] is None
+            ),
             "tools_correct": sum(1 for r in results if r["tools_correct"] is True),
             "tools_wrong": sum(1 for r in results if r["tools_correct"] is False),
             "tools_unchecked": sum(1 for r in results if r["tools_correct"] is None),
             "outcome_correct": sum(1 for r in results if r["outcome_correct"] is True),
             "outcome_wrong": sum(1 for r in results if r["outcome_correct"] is False),
-            "outcome_unchecked": sum(1 for r in results if r["outcome_correct"] is None),
+            "outcome_unchecked": sum(
+                1 for r in results if r["outcome_correct"] is None
+            ),
             "judged": len(judged_results),
             "passed": sum(1 for r in judged_results if r["judge"].get("pass")),
-            "avg_quality": sum(quality_vals) / len(quality_vals) if quality_vals else None,
+            "avg_quality": sum(quality_vals) / len(quality_vals)
+            if quality_vals
+            else None,
             "avg_tone": sum(tone_vals) / len(tone_vals) if tone_vals else None,
             "avg_tool_use": sum(tool_vals) / len(tool_vals) if tool_vals else None,
             "latency_values": latency_vals,
-            "total_tokens": sum(r.get("metrics", {}).get("total_tokens", 0) for r in results),
-            "prompt_tokens": sum(r.get("metrics", {}).get("prompt_tokens", 0) for r in results),
-            "completion_tokens": sum(r.get("metrics", {}).get("completion_tokens", 0) for r in results),
+            "total_tokens": sum(
+                r.get("metrics", {}).get("total_tokens", 0) for r in results
+            ),
+            "prompt_tokens": sum(
+                r.get("metrics", {}).get("prompt_tokens", 0) for r in results
+            ),
+            "completion_tokens": sum(
+                r.get("metrics", {}).get("completion_tokens", 0) for r in results
+            ),
         },
         "by_agent": by_agent,
         "results": results,
@@ -422,11 +498,21 @@ async def run(args: argparse.Namespace, results_dir: Path | None = None) -> dict
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Ze eval runner")
     p.add_argument("--tag", default="", help="Filter scenarios by tag")
-    p.add_argument("--judge", action="store_true", help="Run LLM quality judge (costs tokens)")
-    p.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL, help="Model to use for judging")
-    p.add_argument("--ze-url", default="", help="Ze server URL (default: $ZE_EVAL_URL or http://localhost:8000)")
+    p.add_argument(
+        "--judge", action="store_true", help="Run LLM quality judge (costs tokens)"
+    )
+    p.add_argument(
+        "--judge-model", default=DEFAULT_JUDGE_MODEL, help="Model to use for judging"
+    )
+    p.add_argument(
+        "--ze-url",
+        default="",
+        help="Ze server URL (default: $ZE_EVAL_URL or http://localhost:8000)",
+    )
     p.add_argument("--ze-key", default="", help="Ze API key (default: $ZE_API_KEY)")
-    p.add_argument("--or-key", default="", help="OpenRouter API key (default: $OPENROUTER_API_KEY)")
+    p.add_argument(
+        "--or-key", default="", help="OpenRouter API key (default: $OPENROUTER_API_KEY)"
+    )
     return p.parse_args()
 
 

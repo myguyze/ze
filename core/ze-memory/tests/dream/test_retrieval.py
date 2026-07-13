@@ -1,4 +1,5 @@
 """Tests for dream/retrieval.py — episode retrievability SQL helper."""
+
 from __future__ import annotations
 
 from ze_memory.dream.retrieval import episode_retrievable_sql

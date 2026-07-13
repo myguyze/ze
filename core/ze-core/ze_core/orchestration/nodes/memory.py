@@ -36,7 +36,11 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
         agent_name = envelope.primary_agent if envelope else "unknown"
         if final_response:
             all_proposals = [p for sr in subtask_results for p in sr.memory_proposals]
-            result = AgentResult(agent=agent_name, response=final_response, memory_proposals=all_proposals)
+            result = AgentResult(
+                agent=agent_name,
+                response=final_response,
+                memory_proposals=all_proposals,
+            )
         else:
             error_msg = state.get("error") or "unknown error"
             result = AgentResult(agent=agent_name, response=f"[ERROR] {error_msg}")
@@ -114,6 +118,7 @@ async def write_memory(state: AgentState, config: RunnableConfig) -> dict:
 
 async def synthesize(state: AgentState, config: RunnableConfig) -> dict:
     from ze_core.telemetry.context import set_agent_context
+
     set_agent_context("synthesis")
 
     client: Any = config["configurable"]["openrouter_client"]
@@ -150,5 +155,3 @@ async def synthesize(state: AgentState, config: RunnableConfig) -> dict:
         subtask_count=len(subtask_results),
     )
     return {"final_response": response}
-
-

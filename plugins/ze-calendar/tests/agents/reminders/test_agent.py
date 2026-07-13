@@ -11,6 +11,7 @@ from ze_memory.types import MemoryContext
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_settings():
     from tests.support.settings import make_settings as _make
 
@@ -45,15 +46,17 @@ def make_agent(client=None) -> RemindersAgent:
     )
 
 
-
 # ── Registry ──────────────────────────────────────────────────────────────────
+
 
 def test_reminders_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "reminders" in _registry
 
 
 # ── run() — basic structure ───────────────────────────────────────────────────
+
 
 async def test_run_returns_agent_result():
     result = await make_agent().run(make_ctx())
@@ -62,12 +65,15 @@ async def test_run_returns_agent_result():
 
 
 async def test_run_returns_response_from_agentic_loop():
-    client = make_client("⏰ Reminder set: Take medication. I'll remind you in 2 hours.")
+    client = make_client(
+        "⏰ Reminder set: Take medication. I'll remind you in 2 hours."
+    )
     result = await make_agent(client=client).run(make_ctx())
     assert "Take medication" in result.response
 
 
 # ── run() — tool call round-trips ────────────────────────────────────────────
+
 
 async def test_run_sets_reminder_via_tool():
 
@@ -79,13 +85,24 @@ async def test_run_sets_reminder_via_tool():
     scheduler = MagicMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "set_reminder", "arguments": {
-            "label": "Take medication",
-            "fire_at": fire_at,
-        }}]),
-        ("⏰ Reminder set: Take medication in 2 hours.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "set_reminder",
+                        "arguments": {
+                            "label": "Take medication",
+                            "fire_at": fire_at,
+                        },
+                    }
+                ],
+            ),
+            ("⏰ Reminder set: Take medication in 2 hours.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = RemindersAgent(
@@ -113,13 +130,24 @@ async def test_run_rejects_past_fire_at_via_tool():
     scheduler = MagicMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "set_reminder", "arguments": {
-            "label": "Old thing",
-            "fire_at": past,
-        }}]),
-        ("That time is in the past. Please give me a future time.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "set_reminder",
+                        "arguments": {
+                            "label": "Old thing",
+                            "fire_at": past,
+                        },
+                    }
+                ],
+            ),
+            ("That time is in the past. Please give me a future time.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = RemindersAgent(
@@ -143,15 +171,26 @@ async def test_run_lists_reminders_via_tool():
     rid = uuid4()
     fire_at = datetime.now(timezone.utc) + timedelta(hours=1)
     store = AsyncMock()
-    store.list_pending = AsyncMock(return_value=[
-        Reminder(id=rid, label="Call João", fire_at=fire_at, created_at=datetime.now(timezone.utc), sent=False, sent_at=None),
-    ])
+    store.list_pending = AsyncMock(
+        return_value=[
+            Reminder(
+                id=rid,
+                label="Call João",
+                fire_at=fire_at,
+                created_at=datetime.now(timezone.utc),
+                sent=False,
+                sent_at=None,
+            ),
+        ]
+    )
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "list_reminders", "arguments": {}}]),
-        ("⏰ Pending reminders (1): Call João.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (None, [{"id": "c1", "name": "list_reminders", "arguments": {}}]),
+            ("⏰ Pending reminders (1): Call João.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = RemindersAgent(
@@ -174,7 +213,14 @@ async def test_run_cancel_reminder_via_tool():
 
     rid = uuid4()
     fire_at = datetime.now(timezone.utc) + timedelta(hours=1)
-    reminder = Reminder(id=rid, label="Take medication", fire_at=fire_at, created_at=datetime.now(timezone.utc), sent=False, sent_at=None)
+    reminder = Reminder(
+        id=rid,
+        label="Take medication",
+        fire_at=fire_at,
+        created_at=datetime.now(timezone.utc),
+        sent=False,
+        sent_at=None,
+    )
 
     store = AsyncMock()
     store.list_pending = AsyncMock(return_value=[reminder])
@@ -183,11 +229,22 @@ async def test_run_cancel_reminder_via_tool():
     scheduler = MagicMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "list_reminders", "arguments": {}}]),
-        (None, [{"id": "c2", "name": "cancel_reminder", "arguments": {"reminder_id": str(rid)}}]),
-        ("✅ Cancelled: Take medication.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (None, [{"id": "c1", "name": "list_reminders", "arguments": {}}]),
+            (
+                None,
+                [
+                    {
+                        "id": "c2",
+                        "name": "cancel_reminder",
+                        "arguments": {"reminder_id": str(rid)},
+                    }
+                ],
+            ),
+            ("✅ Cancelled: Take medication.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = RemindersAgent(
@@ -211,6 +268,7 @@ async def test_run_no_tool_calls_when_llm_answers_directly():
 
 # ── stream() ─────────────────────────────────────────────────────────────────
 
+
 async def test_stream_yields_response():
     client = make_client("⏰ Reminder set.")
     tokens = [t async for t in make_agent(client=client).stream(make_ctx())]
@@ -218,7 +276,6 @@ async def test_stream_yields_response():
 
 
 # ── _human_delta helper (standalone, no agent needed) ─────────────────────────
-
 
 
 def _human_delta(delta: timedelta) -> str:

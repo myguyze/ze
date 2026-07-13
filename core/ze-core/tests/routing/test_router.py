@@ -2,6 +2,7 @@
 Router tests use a fake embedder that returns pre-canned vectors, avoiding
 any dependency on sentence_transformers or numpy.
 """
+
 import asyncio
 from unittest.mock import AsyncMock
 
@@ -22,7 +23,12 @@ def clean_registry():
     clear_registry()
 
 
-def _register(name: str, model: str = "m", model_simple: str | None = None, intent_map: dict | None = None) -> None:
+def _register(
+    name: str,
+    model: str = "m",
+    model_simple: str | None = None,
+    intent_map: dict | None = None,
+) -> None:
     class _A:
         async def run(self, ctx: AgentContext) -> AgentResult:
             return AgentResult(agent=name, response="")
@@ -60,7 +66,9 @@ class _FakeArray:
 class _FakeEmbedder:
     """Returns pre-canned unit vectors."""
 
-    def __init__(self, agent_vecs: dict[str, list[float]], prompt_vec: list[float]) -> None:
+    def __init__(
+        self, agent_vecs: dict[str, list[float]], prompt_vec: list[float]
+    ) -> None:
         self._agent_vecs = agent_vecs  # name → vector
         self._prompt_vec = prompt_vec
 
@@ -119,11 +127,15 @@ class TestSingleAgentShortCircuit:
 
     async def test_no_enabled_agents_raises_at_construction(self):
         with pytest.raises(RoutingError, match="No enabled agents"):
-            EmbeddingRouter(_FakeEmbedder({}, []), _make_client(), _make_routing_store())
+            EmbeddingRouter(
+                _FakeEmbedder({}, []), _make_client(), _make_routing_store()
+            )
 
 
 class TestEmbeddingRouting:
-    def _two_agent_router(self, top_score: float, second_score: float, cfg: RouterConfig | None = None):
+    def _two_agent_router(
+        self, top_score: float, second_score: float, cfg: RouterConfig | None = None
+    ):
         _register("alpha", intent_map={"read": "Read"})
         _register("beta", intent_map={"create": "Create"})
         # sorted names: alpha, beta
@@ -131,7 +143,9 @@ class TestEmbeddingRouting:
             {"alpha": [top_score, 0.0], "beta": [second_score, 0.0]},
             [1.0, 0.0],
         )
-        return EmbeddingRouter(embedder, _make_client(), _make_routing_store(), config=cfg)
+        return EmbeddingRouter(
+            embedder, _make_client(), _make_routing_store(), config=cfg
+        )
 
     async def test_high_confidence_routes_by_embedding(self):
         r = self._two_agent_router(0.9, 0.3)
@@ -164,7 +178,12 @@ class TestEmbeddingRouting:
             [1.0, 0.0],
         )
         client = _make_client()
-        r = EmbeddingRouter(embedder, client, _make_routing_store(), config=RouterConfig(gap_threshold=0.10))
+        r = EmbeddingRouter(
+            embedder,
+            client,
+            _make_routing_store(),
+            config=RouterConfig(gap_threshold=0.10),
+        )
         env = await r.route("hello", "s1")
         assert env.routing_method == "embedding"
         assert env.is_compound is True
@@ -173,7 +192,12 @@ class TestEmbeddingRouting:
 
 class TestModelResolution:
     async def test_uses_model_simple_for_simple_prompt(self):
-        _register("a", model="big-model", model_simple="small-model", intent_map={"read": "Read"})
+        _register(
+            "a",
+            model="big-model",
+            model_simple="small-model",
+            intent_map={"read": "Read"},
+        )
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
         r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
         # Short simple prompt → should be "simple" complexity
@@ -181,10 +205,18 @@ class TestModelResolution:
         assert env.subtasks[0].model == "small-model"
 
     async def test_uses_primary_model_for_complex_prompt(self):
-        _register("a", model="big-model", model_simple="small-model", intent_map={"reason": "Reason"})
+        _register(
+            "a",
+            model="big-model",
+            model_simple="small-model",
+            intent_map={"reason": "Reason"},
+        )
         embedder = _FakeEmbedder({"a": [1.0]}, [1.0])
         r = EmbeddingRouter(embedder, _make_client(), _make_routing_store())
-        long_complex = "analyze and explain in depth the trade-offs between " + " ".join(["word"] * 30)
+        long_complex = (
+            "analyze and explain in depth the trade-offs between "
+            + " ".join(["word"] * 30)
+        )
         env = await r.route(long_complex, "s1")
         assert env.subtasks[0].model == "big-model"
 

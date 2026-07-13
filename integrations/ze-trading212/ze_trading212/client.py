@@ -122,9 +122,7 @@ class Trading212Client:
             timeout=30.0,
         )
 
-    async def _get(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> Any:
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         async with self._session() as client:
             r = await client.get(path, params=params)
             r.raise_for_status()

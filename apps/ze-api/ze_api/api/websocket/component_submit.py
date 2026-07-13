@@ -29,10 +29,12 @@ async def handle_component_submit(
     step_id = str(data.get("step_id") or data.get("component_id") or "")
     values = data.get("values") or {}
     if not step_id or not isinstance(values, dict):
-        await conn_mgr.send_frame({
-            "type": "error",
-            "detail": "component_submit requires step_id and object values",
-        })
+        await conn_mgr.send_frame(
+            {
+                "type": "error",
+                "detail": "component_submit requires step_id and object values",
+            }
+        )
         return pending_config
 
     session_id_raw = data.get("session_id")
@@ -52,7 +54,9 @@ async def handle_component_submit(
             pass
         except Exception as exc:
             log.warning("ws_component_submit_onboarding_failed", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Could not submit component."})
+            await conn_mgr.send_frame(
+                {"type": "error", "detail": "Could not submit component."}
+            )
             return pending_config
 
     thread_id = data.get("thread_id") or ""

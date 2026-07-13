@@ -68,7 +68,9 @@ async def correlate(state: AgentState, config: RunnableConfig) -> dict:
         "components": existing_components + [component],
     }
     if not is_compound and result is not None:
-        updates["final_response"] = result.response + "\n\n" + _format_text_section(qualifying)
+        updates["final_response"] = (
+            result.response + "\n\n" + _format_text_section(qualifying)
+        )
 
     log.info(
         "inline_correlation_complete",
@@ -80,6 +82,7 @@ async def correlate(state: AgentState, config: RunnableConfig) -> dict:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _extract_seeds(memory_context: Any) -> list:
     if memory_context is None:
@@ -110,7 +113,9 @@ def _inline_config(settings: Any) -> dict:
     return {
         "tau_inline": float(raw.get("tau_inline", _DEFAULT_TAU_INLINE)),
         "timeout_ms": float(inline_raw.get("timeout_ms", _DEFAULT_TIMEOUT_MS)),
-        "max_connections_shown": int(inline_raw.get("max_connections_shown", _DEFAULT_MAX_SHOWN)),
+        "max_connections_shown": int(
+            inline_raw.get("max_connections_shown", _DEFAULT_MAX_SHOWN)
+        ),
         "agents": list(inline_raw.get("agents", _DEFAULT_AGENTS)),
     }
 
@@ -125,19 +130,23 @@ def _build_component(hypotheses: list) -> dict:
             if ingested is not None:
                 if isinstance(ingested, datetime):
                     date_str = ingested.strftime("%b %d")
-            evidence.append({
-                "label": ev.label,
-                "kind": ev.kind,
-                "date": date_str,
-                "source": ev.external_ref,
-            })
-        connections.append({
-            "summary": h.summary,
-            "narrative": h.narrative,
-            "relation": h.relation,
-            "confidence": h.confidence,
-            "evidence": evidence,
-        })
+            evidence.append(
+                {
+                    "label": ev.label,
+                    "kind": ev.kind,
+                    "date": date_str,
+                    "source": ev.external_ref,
+                }
+            )
+        connections.append(
+            {
+                "summary": h.summary,
+                "narrative": h.narrative,
+                "relation": h.relation,
+                "confidence": h.confidence,
+                "evidence": evidence,
+            }
+        )
     return {
         "type": "connections",
         "title": "Connected to your history",

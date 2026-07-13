@@ -13,12 +13,16 @@ from ze_finance.types import (
 
 
 def test_asset_frozen():
-    a = Asset(ticker="NVDA", name="NVIDIA", asset_class=AssetClass.EQUITY, currency="USD")
+    a = Asset(
+        ticker="NVDA", name="NVIDIA", asset_class=AssetClass.EQUITY, currency="USD"
+    )
     assert a.ticker == "NVDA"
 
 
 def test_position_notional():
-    asset = Asset(ticker="AAPL", name="Apple", asset_class=AssetClass.EQUITY, currency="USD")
+    asset = Asset(
+        ticker="AAPL", name="Apple", asset_class=AssetClass.EQUITY, currency="USD"
+    )
     pos = Position(
         account_id="acc1",
         asset=asset,

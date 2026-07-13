@@ -33,7 +33,10 @@ def validate_interface(iface: object) -> None:
 
     if style == "async":
         send_confirmation = getattr(type(iface), "send_confirmation", None)
-        if send_confirmation is None or send_confirmation is AppInterface.send_confirmation:
+        if (
+            send_confirmation is None
+            or send_confirmation is AppInterface.send_confirmation
+        ):
             raise InterfaceConfigError(
                 f"{type(iface).__name__} declares confirmation_style='async' "
                 "but does not override send_confirmation()"

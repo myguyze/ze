@@ -61,7 +61,9 @@ class NewsFetchJob:
         self._signal_watermark: datetime = _EPOCH
         self._nli_client = nli_client
         self._nli_credibility_enabled = nli_credibility_enabled
-        self._nli_headline_contradiction_threshold = nli_headline_contradiction_threshold
+        self._nli_headline_contradiction_threshold = (
+            nli_headline_contradiction_threshold
+        )
         self._nli_headline_entailment_threshold = nli_headline_entailment_threshold
         self._nli_dedup_enabled = nli_dedup_enabled
         self._nli_dedup_cosine_threshold = nli_dedup_cosine_threshold
@@ -99,9 +101,17 @@ class NewsFetchJob:
             if new_articles and self._credibility_enabled and self._client is not None:
                 asyncio.create_task(self._score_new_articles(new_articles))
 
-            if new_articles and source.key in self._force_ingest_sources and self._memory_store is not None:
+            if (
+                new_articles
+                and source.key in self._force_ingest_sources
+                and self._memory_store is not None
+            ):
                 asyncio.create_task(self._direct_ingest(new_articles))
-            elif new_articles and self._signal_source is not None and self._admission_gate is not None:
+            elif (
+                new_articles
+                and self._signal_source is not None
+                and self._admission_gate is not None
+            ):
                 asyncio.create_task(self._emit_via_source(new_articles))
 
         pruned = await self._store.prune(older_than_days=self._retention_days)
@@ -151,7 +161,9 @@ class NewsFetchJob:
                 )
                 await self._store.update_credibility(article.url, report)
             except Exception as exc:
-                log.warning("credibility_scoring_failed", url=article.url, error=str(exc))
+                log.warning(
+                    "credibility_scoring_failed", url=article.url, error=str(exc)
+                )
 
     async def _direct_ingest(self, articles: list[Article]) -> None:
         """Bypass gate: force-ingest directly into memory (force_ingest_sources path)."""
@@ -162,7 +174,9 @@ class NewsFetchJob:
             try:
                 await self._memory_store.ingest_signal(adapter.to_signal(article))
             except Exception as exc:
-                log.warning("news_direct_ingest_failed", url=article.url, error=str(exc))
+                log.warning(
+                    "news_direct_ingest_failed", url=article.url, error=str(exc)
+                )
 
     async def _emit_via_source(self, articles: list[Article]) -> None:
         """Push articles through the SignalSource buffer then gate them."""
@@ -174,4 +188,6 @@ class NewsFetchJob:
             try:
                 await self._admission_gate.check_and_ingest(signal)
             except Exception as exc:
-                log.warning("news_signal_emit_failed", url=signal.external_ref, error=str(exc))
+                log.warning(
+                    "news_signal_emit_failed", url=signal.external_ref, error=str(exc)
+                )

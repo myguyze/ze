@@ -22,7 +22,9 @@ log = structlog.get_logger(__name__)
 
 
 class GmailChannel(InboundChannel):
-    def __init__(self, credentials: GoogleCredentials, public_url: str | None = None) -> None:
+    def __init__(
+        self, credentials: GoogleCredentials, public_url: str | None = None
+    ) -> None:
         self._creds = credentials
         self._public_url = public_url
         self._user_email: str | None = None
@@ -48,16 +50,21 @@ class GmailChannel(InboundChannel):
         if self._public_url is None:
             return None
         from ze_google.webhook import GmailWebhookVerifier
+
         return GmailWebhookVerifier(self._creds, self._public_url)
 
     async def register_push(self, topic_name: str) -> None:
         """One-time call to activate Gmail watch via Pub/Sub. Expires after 7 days."""
         service = self._creds.gmail()
         await asyncio.to_thread(
-            lambda: service.users().watch(
-                userId="me",
-                body={"topicName": topic_name, "labelIds": ["INBOX"]},
-            ).execute()
+            lambda: (
+                service.users()
+                .watch(
+                    userId="me",
+                    body={"topicName": topic_name, "labelIds": ["INBOX"]},
+                )
+                .execute()
+            )
         )
 
     async def send(self, message: Message) -> SentMessage:
@@ -68,15 +75,22 @@ class GmailChannel(InboundChannel):
             if message.thread_id:
                 body["threadId"] = message.thread_id
             result = await asyncio.to_thread(
-                lambda: service.users().messages().send(userId="me", body=body).execute()
+                lambda: (
+                    service.users().messages().send(userId="me", body=body).execute()
+                )
             )
             sent_msg = await asyncio.to_thread(
-                lambda: service.users().messages().get(
-                    userId="me",
-                    id=result["id"],
-                    format="metadata",
-                    metadataHeaders=["Date"],
-                ).execute()
+                lambda: (
+                    service.users()
+                    .messages()
+                    .get(
+                        userId="me",
+                        id=result["id"],
+                        format="metadata",
+                        metadataHeaders=["Date"],
+                    )
+                    .execute()
+                )
             )
             return SentMessage(
                 message_id=result["id"],
@@ -94,16 +108,20 @@ class GmailChannel(InboundChannel):
         user_email = await self._resolve_user_email()
         service = self._creds.gmail()
         raw = await asyncio.to_thread(
-            lambda: service.users().threads().get(
-                userId="me", id=thread_id, format="full"
-            ).execute()
+            lambda: (
+                service.users()
+                .threads()
+                .get(userId="me", id=thread_id, format="full")
+                .execute()
+            )
         )
         messages = [
-            _parse_thread_message(m, user_email)
-            for m in raw.get("messages", [])
+            _parse_thread_message(m, user_email) for m in raw.get("messages", [])
         ]
         messages.sort(key=lambda m: m.sent_at)
-        return Thread(thread_id=thread_id, channel_type=ChannelType.EMAIL, messages=messages)
+        return Thread(
+            thread_id=thread_id, channel_type=ChannelType.EMAIL, messages=messages
+        )
 
     async def poll_new_messages(self, since: datetime) -> list[InboundMessage]:
         """Return all inbox messages received after `since`.
@@ -113,23 +131,33 @@ class GmailChannel(InboundChannel):
         service = self._creds.gmail()
         since_ts = int(since.timestamp())
         result = await asyncio.to_thread(
-            lambda: service.users().messages().list(
-                userId="me",
-                q=f"is:inbox after:{since_ts}",
-            ).execute()
+            lambda: (
+                service.users()
+                .messages()
+                .list(
+                    userId="me",
+                    q=f"is:inbox after:{since_ts}",
+                )
+                .execute()
+            )
         )
         msg_stubs = result.get("messages", [])
         inbound: list[InboundMessage] = []
         for stub in msg_stubs:
             try:
                 full = await asyncio.to_thread(
-                    lambda mid=stub["id"]: service.users().messages().get(
-                        userId="me", id=mid, format="full"
-                    ).execute()
+                    lambda mid=stub["id"]: (
+                        service.users()
+                        .messages()
+                        .get(userId="me", id=mid, format="full")
+                        .execute()
+                    )
                 )
                 inbound.append(_parse_inbound_message(full))
             except Exception as exc:
-                log.warning("gmail_poll_message_failed", message_id=stub["id"], error=str(exc))
+                log.warning(
+                    "gmail_poll_message_failed", message_id=stub["id"], error=str(exc)
+                )
         return inbound
 
     async def poll_replies(
@@ -189,7 +217,8 @@ def _parse_thread_message(msg: dict, user_email: str) -> ThreadMessage:
 def _parse_inbound_message(msg: dict) -> InboundMessage:
     headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
     transport_headers = {
-        k: v for k, v in headers.items()
+        k: v
+        for k, v in headers.items()
         if k in ("List-Unsubscribe", "Precedence", "X-Mailer", "List-Id", "Sender")
     }
     return InboundMessage(

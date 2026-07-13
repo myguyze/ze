@@ -48,6 +48,7 @@ class CalendarPlugin(ZePlugin):
     @classmethod
     def integration_types(cls) -> list[type]:
         from ze_google.auth import GoogleCredentials
+
         return [GoogleCredentials]
 
     def data_domains(self):

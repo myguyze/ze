@@ -4,6 +4,7 @@ Revision ID: zc002
 Revises: zc001
 Create Date: 2025-05-27
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

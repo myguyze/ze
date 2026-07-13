@@ -32,6 +32,7 @@ Return [] if there is truly nothing worth surfacing this week.\
 @proactive_job
 class InsightEngine:
     job_id = "insight_generation"
+
     def __init__(
         self,
         notifier: ProactiveNotifier,
@@ -53,9 +54,13 @@ class InsightEngine:
         max_per_run = int(insight_mem_cfg.get("max_per_run", 3))
 
         cooldown_days = int(
-            self._settings.config.get("proactive", {}).get("insights", {}).get("category_cooldown_days", 7)
+            self._settings.config.get("proactive", {})
+            .get("insights", {})
+            .get("category_cooldown_days", 7)
         )
-        model = resolve_model("insights", "anthropic/claude-haiku-4-5", self._settings.config)
+        model = resolve_model(
+            "insights", "anthropic/claude-haiku-4-5", self._settings.config
+        )
 
         week_of = date.today() - timedelta(days=date.today().weekday())
 
@@ -79,8 +84,7 @@ class InsightEngine:
                 "FROM user_profile WHERE id = 1"
             )
             recent_insight_rows = await conn.fetch(
-                "SELECT text, category FROM insights "
-                "ORDER BY created_at DESC LIMIT 20"
+                "SELECT text, category FROM insights ORDER BY created_at DESC LIMIT 20"
             )
             pushed_category_rows = await conn.fetch(
                 "SELECT DISTINCT category FROM insights "
@@ -90,7 +94,11 @@ class InsightEngine:
             )
 
         if len(fact_rows) + len(episode_rows) < min_evidence:
-            self._log.info("insights_skipped_sparse", facts=len(fact_rows), episodes=len(episode_rows))
+            self._log.info(
+                "insights_skipped_sparse",
+                facts=len(fact_rows),
+                episodes=len(episode_rows),
+            )
             return
 
         recently_pushed_categories = {r["category"] for r in pushed_category_rows}

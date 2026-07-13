@@ -15,7 +15,11 @@ from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_news.jobs.fetch import NewsFetchJob
 from ze_news.preferences import NewsPreferenceBuilder, is_diagnostic_query
 from ze_news.store import NewsStore
-from ze_news.types import GoalTitleProvider, PersonalizationContext, PersonalizationSettings
+from ze_news.types import (
+    GoalTitleProvider,
+    PersonalizationContext,
+    PersonalizationSettings,
+)
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's news capability. You answer questions about current events and headlines
@@ -123,7 +127,10 @@ class NewsAgent(BaseAgent):
     timeout = 30
     tools = ["refresh_news", "get_headlines", "search_news"]
     intents = {
-        "read": Intent(Mode.AUTONOMOUS, "Retrieve and summarise news headlines or articles from the local store."),
+        "read": Intent(
+            Mode.AUTONOMOUS,
+            "Retrieve and summarise news headlines or articles from the local store.",
+        ),
     }
 
     def __init__(
@@ -206,5 +213,7 @@ class NewsAgent(BaseAgent):
             self._log.warning("news_candidate_prefetch_failed", error=str(exc))
             return []
 
-    async def _build_personalization_ctx(self, query_text: str) -> PersonalizationContext:
+    async def _build_personalization_ctx(
+        self, query_text: str
+    ) -> PersonalizationContext:
         return await self._preference_builder.build(query_text)

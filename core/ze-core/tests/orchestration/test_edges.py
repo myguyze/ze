@@ -1,4 +1,3 @@
-
 from ze_agents.types import GateDecision
 from ze_core.orchestration.edges import (
     after_capability_check,
@@ -10,7 +9,9 @@ from ze_core.orchestration.edges import (
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
-def make_envelope(is_compound: bool = False, agents=("research",), is_sequential: bool = False) -> RoutingEnvelope:
+def make_envelope(
+    is_compound: bool = False, agents=("research",), is_sequential: bool = False
+) -> RoutingEnvelope:
     subtasks = [SubTask(agent=a, intent="read", prompt="hi") for a in agents]
     return RoutingEnvelope(
         primary_agent=subtasks[0].agent,
@@ -45,13 +46,16 @@ def base_state(**overrides) -> dict:
 
 # ── after_embed_route ─────────────────────────────────────────────────────────
 
+
 def test_after_embed_route_single_goes_to_fetch_context():
     state = base_state(envelope=make_envelope(is_compound=False))
     assert after_embed_route(state) == "fetch_context"
 
 
 def test_after_embed_route_compound_goes_to_decompose():
-    state = base_state(envelope=make_envelope(is_compound=True, agents=("research", "companion")))
+    state = base_state(
+        envelope=make_envelope(is_compound=True, agents=("research", "companion"))
+    )
     assert after_embed_route(state) == "decompose"
 
 
@@ -62,24 +66,31 @@ def test_after_embed_route_none_envelope_goes_to_fetch_context():
 
 def test_after_embed_route_sequential_compound_still_goes_to_decompose():
     state = base_state(
-        envelope=make_envelope(is_compound=True, agents=("research", "email"), is_sequential=True)
+        envelope=make_envelope(
+            is_compound=True, agents=("research", "email"), is_sequential=True
+        )
     )
     assert after_embed_route(state) == "decompose"
 
 
 def test_after_decompose_sequential_goes_to_plan_sequential():
     state = base_state(
-        envelope=make_envelope(is_compound=True, agents=("research", "email"), is_sequential=True)
+        envelope=make_envelope(
+            is_compound=True, agents=("research", "email"), is_sequential=True
+        )
     )
     assert after_decompose(state) == "plan_sequential"
 
 
 def test_after_decompose_non_sequential_goes_to_fetch_context():
-    state = base_state(envelope=make_envelope(is_compound=True, agents=("research", "email")))
+    state = base_state(
+        envelope=make_envelope(is_compound=True, agents=("research", "email"))
+    )
     assert after_decompose(state) == "fetch_context"
 
 
 # ── after_capability_check ────────────────────────────────────────────────────
+
 
 def test_after_capability_check_execute():
     state = base_state(gate_decision=GateDecision.EXECUTE)
@@ -108,6 +119,7 @@ def test_after_capability_check_none_goes_to_end_blocked():
 
 # ── after_execute_tool ────────────────────────────────────────────────────────
 
+
 def test_after_execute_tool_always_goes_to_correlate():
     state = base_state(subtask_results=[])
     assert after_execute_tool(state) == "correlate"
@@ -115,6 +127,7 @@ def test_after_execute_tool_always_goes_to_correlate():
 
 def test_after_execute_tool_compound_also_goes_to_correlate():
     from ze_agents.types import AgentResult
+
     results = [AgentResult(agent="research", response="data")]
     state = base_state(
         subtask_results=results,
@@ -125,6 +138,7 @@ def test_after_execute_tool_compound_also_goes_to_correlate():
 
 # ── after_correlate ───────────────────────────────────────────────────────────
 
+
 def test_after_correlate_single_goes_to_record_trace():
     state = base_state(subtask_results=[])
     assert after_correlate(state) == "record_trace"
@@ -132,6 +146,7 @@ def test_after_correlate_single_goes_to_record_trace():
 
 def test_after_correlate_compound_goes_to_synthesize():
     from ze_agents.types import AgentResult
+
     results = [AgentResult(agent="research", response="data")]
     state = base_state(
         subtask_results=results,

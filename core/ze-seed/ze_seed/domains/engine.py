@@ -79,5 +79,7 @@ async def _apply_engine(ctx: SeedContext) -> int:
 
 def engine_seed_domains() -> list[SeedDomain]:
     return [
-        SeedDomain("engine.dev", seed_order=25, clear=_clear_engine, apply=_apply_engine),
+        SeedDomain(
+            "engine.dev", seed_order=25, clear=_clear_engine, apply=_apply_engine
+        ),
     ]

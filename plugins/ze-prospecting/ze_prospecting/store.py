@@ -64,7 +64,11 @@ class ProspectCampaignStore:
         parts = tag.split() if isinstance(tag, str) else []
         count = int(parts[-1]) if parts else 0
         if count:
-            log.info("stale_campaigns_recovered", count=count, timeout_minutes=timeout_minutes)
+            log.info(
+                "stale_campaigns_recovered",
+                count=count,
+                timeout_minutes=timeout_minutes,
+            )
         return count
 
     async def increment_found(self, campaign_id: UUID) -> None:
@@ -74,7 +78,9 @@ class ProspectCampaignStore:
                 campaign_id,
             )
 
-    async def add_outreach(self, campaign_id: UUID, contact_id: UUID, channel: str) -> UUID | None:
+    async def add_outreach(
+        self, campaign_id: UUID, contact_id: UUID, channel: str
+    ) -> UUID | None:
         """Insert an outreach record; returns the new row id, or None on conflict."""
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(

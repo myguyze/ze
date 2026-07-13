@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from ze_components.atoms import caption, divider, label, primary, secondary, subheading, text
+from ze_components.atoms import (
+    caption,
+    divider,
+    label,
+    primary,
+    secondary,
+    subheading,
+    text,
+)
 from ze_components.molecules import card, col, row
 from ze_components.molecules.col import Col
 
@@ -14,8 +22,7 @@ def consent(
 ) -> Col:
     """Consent card with explicit scope list and accept/reject buttons."""
     scope_items: list = [
-        col([label(s["label"]), caption(s["description"])], gap="none")
-        for s in scopes
+        col([label(s["label"]), caption(s["description"])], gap="none") for s in scopes
     ]
     return card(
         [

@@ -5,7 +5,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from ze_agents.errors import AgentConfigError
-from ze_plugin.ui import UiContribution, collect_ui_contributions, filter_ui_manifest_by_openapi
+from ze_plugin.ui import (
+    UiContribution,
+    collect_ui_contributions,
+    filter_ui_manifest_by_openapi,
+)
 
 
 def _nav(

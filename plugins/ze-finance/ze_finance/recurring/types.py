@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class RecurringStatus(str, Enum):
-    DETECTED  = "detected"
+    DETECTED = "detected"
     CONFIRMED = "confirmed"
     DISMISSED = "dismissed"
 
@@ -16,15 +16,15 @@ class RecurringStatus(str, Enum):
 _NATURAL_INTERVALS: list[int] = [1, 7, 14, 21, 28, 30, 42, 60, 90, 120, 180, 365]
 
 _CADENCE_LABELS: dict[int, str] = {
-    1:   "daily",
-    7:   "weekly",
-    14:  "every 2 weeks",
-    21:  "every 3 weeks",
-    28:  "every 4 weeks",
-    30:  "monthly",
-    42:  "every 6 weeks",
-    60:  "every 2 months",
-    90:  "quarterly",
+    1: "daily",
+    7: "weekly",
+    14: "every 2 weeks",
+    21: "every 3 weeks",
+    28: "every 4 weeks",
+    30: "monthly",
+    42: "every 6 weeks",
+    60: "every 2 months",
+    90: "quarterly",
     120: "every 4 months",
     180: "every 6 months",
     365: "yearly",
@@ -44,29 +44,29 @@ def snap_interval(days: int) -> int:
 
 @dataclass
 class RecurringExpense:
-    normalised_key:   str
-    account_id:       str
+    normalised_key: str
+    account_id: str
     merchant_display: str
-    amount:           Decimal
-    currency:         str
-    interval_days:    int       # snapped to nearest natural interval
-    category:         str
-    status:           RecurringStatus
-    first_seen_at:    datetime
-    last_seen_at:     datetime
+    amount: Decimal
+    currency: str
+    interval_days: int  # snapped to nearest natural interval
+    category: str
+    status: RecurringStatus
+    first_seen_at: datetime
+    last_seen_at: datetime
     occurrence_count: int
-    previous_amount:  Decimal | None = None  # set on price-change resurfaces
+    previous_amount: Decimal | None = None  # set on price-change resurfaces
 
 
 @dataclass
 class StalenessReport:
-    account_id:          str
-    is_stale:            bool
-    days_since_last:     int
+    account_id: str
+    is_stale: bool
+    days_since_last: int
     last_transaction_at: datetime | None
 
 
 @dataclass
 class UpsertResult:
     new_candidates: list[RecurringExpense]
-    price_changed:  list[RecurringExpense]
+    price_changed: list[RecurringExpense]

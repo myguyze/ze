@@ -5,7 +5,9 @@ from typing import Any
 
 _FINANCIAL_ENTITY_TYPES = frozenset({"account", "bank", "card", "financial"})
 _HEALTH_ENTITY_TYPES = frozenset({"health", "medical", "condition", "medication"})
-_CREDENTIAL_ENTITY_TYPES = frozenset({"credential", "password", "secret", "token", "api_key"})
+_CREDENTIAL_ENTITY_TYPES = frozenset(
+    {"credential", "password", "secret", "token", "api_key"}
+)
 
 _FINANCIAL_KEYWORDS = re.compile(
     r"\b(bank|iban|swift|credit\s*card|debit\s*card|account\s*number|routing\s*number|"

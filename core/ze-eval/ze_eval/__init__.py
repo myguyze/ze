@@ -6,6 +6,7 @@ Public surface for use by entrypoints and tests:
   - load_scenarios: load YAML scenario definitions
   - load_scenario_by_id: look up a single scenario
 """
+
 from ze_eval.client import ZeEvalClient
 from ze_eval.scenario import load_scenario_by_id, load_scenarios
 

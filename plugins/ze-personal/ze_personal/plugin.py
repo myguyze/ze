@@ -117,6 +117,7 @@ class PersonalPlugin(ZePlugin):
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(f"SELECT * FROM {tbl}")
                     return [dict(r) for r in rows]
+
             return _fn
 
         def _delete(*tables: str):
@@ -124,11 +125,13 @@ class PersonalPlugin(ZePlugin):
                 async with pool.acquire() as conn:
                     for tbl in tables:
                         await conn.execute(f"DELETE FROM {tbl}")
+
             return _fn
 
         def _import(tbl: str):
             async def _fn(conn, rows: list[dict]) -> int:
                 return await bulk_insert(conn, tbl, rows)
+
             return _fn
 
         def _count(tbl: str):
@@ -136,6 +139,7 @@ class PersonalPlugin(ZePlugin):
                 async with pool.acquire() as conn:
                     row = await conn.fetchrow(f"SELECT COUNT(*) AS n FROM {tbl}")
                     return row["n"]
+
             return _fn
 
         def _size(tbl: str):
@@ -145,6 +149,7 @@ class PersonalPlugin(ZePlugin):
                         "SELECT pg_total_relation_size($1::regclass) AS n", tbl
                     )
                     return row["n"]
+
             return _fn
 
         def _domain(name: str, tbl: str, order: int) -> DataDomain:
@@ -245,6 +250,7 @@ class PersonalPlugin(ZePlugin):
     def configurable_services(self) -> dict[str, Any]:
         from ze_personal.persona.identity import build_identity_block
         from ze_personal.graph.memory_hooks import contact_proposal_hook
+
         return {
             "identity_builder": build_identity_block,
             "memory_hooks": [contact_proposal_hook],
@@ -256,6 +262,7 @@ class PersonalPlugin(ZePlugin):
 
     def state_extensions(self) -> type | None:
         from ze_personal.graph.workflow import WorkflowAgentState
+
         return WorkflowAgentState
 
     def checkpoint_serde_modules(self) -> tuple[str, ...]:
@@ -283,6 +290,7 @@ class PersonalPlugin(ZePlugin):
 
     def pre_route_node(self) -> Callable | None:
         from ze_automation.graph.routing_context import inject_goal_routing_context
+
         return inject_goal_routing_context
 
     def agent_module_paths(self) -> list[str]:
@@ -320,7 +328,9 @@ class PersonalPlugin(ZePlugin):
         # Register contacts consolidation cron job.
         if consolidation_enabled(container.settings):
             contacts_cfg = self._settings.config.get("contacts", {})
-            contacts_cron = contacts_cfg.get("consolidation", {}).get("nightly_cron", "0 3 * * *")
+            contacts_cron = contacts_cfg.get("consolidation", {}).get(
+                "nightly_cron", "0 3 * * *"
+            )
             container.proactive_scheduler.add_cron_job(
                 fn=self.contacts_consolidator.run,
                 cron=contacts_cron,
@@ -359,7 +369,8 @@ class PersonalPlugin(ZePlugin):
             log.info("insights_scheduled")
 
         if consolidation_enabled:
-            review_cron = contacts_cfg.get("consolidation", {}).get("review_cron", "30 8 * * *")
+            review_cron = contacts_cfg.get("consolidation", {}).get(
+                "review_cron", "30 8 * * *"
+            )
             scheduler.register(self.contact_review, cron=review_cron)
             log.info("contact_review_scheduled", cron=review_cron)
-

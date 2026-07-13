@@ -20,6 +20,7 @@ from ze_ingestion.types import (
 # _merge_results unit tests
 # ---------------------------------------------------------------------------
 
+
 def test_merge_joins_summaries_with_double_newline() -> None:
     results = [
         ExtractionResult(summary="First.", facts=[], entities=[], tags=[]),
@@ -59,8 +60,12 @@ def test_merge_deduplicates_entities_and_tags() -> None:
 
 def test_merge_metadata_later_overwrites_earlier() -> None:
     results = [
-        ExtractionResult(summary="", facts=[], entities=[], tags=[], metadata={"a": 1, "b": 2}),
-        ExtractionResult(summary="", facts=[], entities=[], tags=[], metadata={"b": 99, "c": 3}),
+        ExtractionResult(
+            summary="", facts=[], entities=[], tags=[], metadata={"a": 1, "b": 2}
+        ),
+        ExtractionResult(
+            summary="", facts=[], entities=[], tags=[], metadata={"b": 99, "c": 3}
+        ),
     ]
     merged = _merge_results(results)
     assert merged.metadata == {"a": 1, "b": 99, "c": 3}
@@ -70,26 +75,31 @@ def test_merge_metadata_later_overwrites_earlier() -> None:
 # Pipeline fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_fetcher(content_type: ContentType = ContentType.WEB_PAGE) -> MagicMock:
     fetcher = MagicMock()
     fetcher.url_patterns = [r".*"]
-    fetcher.fetch = AsyncMock(return_value=RawContent(
-        content_type=content_type,
-        source_url="https://example.com",
-        data=b"<html><body>Hello</body></html>",
-        mime_type="text/html",
-    ))
+    fetcher.fetch = AsyncMock(
+        return_value=RawContent(
+            content_type=content_type,
+            source_url="https://example.com",
+            data=b"<html><body>Hello</body></html>",
+            mime_type="text/html",
+        )
+    )
     return fetcher
 
 
 def _make_processor(content_type: ContentType = ContentType.WEB_PAGE) -> MagicMock:
     proc = MagicMock()
     proc.content_types = [content_type, ContentType.UNKNOWN]
-    proc.process = AsyncMock(return_value=ProcessedContent(
-        content_type=content_type,
-        source_url="https://example.com",
-        text="Hello",
-    ))
+    proc.process = AsyncMock(
+        return_value=ProcessedContent(
+            content_type=content_type,
+            source_url="https://example.com",
+            text="Hello",
+        )
+    )
     return proc
 
 
@@ -103,12 +113,14 @@ def _make_extractor(
     if side_effect:
         ext.extract = AsyncMock(side_effect=side_effect)
     else:
-        ext.extract = AsyncMock(return_value=ExtractionResult(
-            summary=summary,
-            facts=["fact"],
-            entities=["entity"],
-            tags=["tag"],
-        ))
+        ext.extract = AsyncMock(
+            return_value=ExtractionResult(
+                summary=summary,
+                facts=["fact"],
+                entities=["entity"],
+                tags=["tag"],
+            )
+        )
     return ext
 
 
@@ -140,6 +152,7 @@ def _pipeline(
 # ---------------------------------------------------------------------------
 # Pipeline.ingest — URL path
 # ---------------------------------------------------------------------------
+
 
 async def test_ingest_url_returns_result() -> None:
     pipeline = _pipeline()
@@ -173,19 +186,24 @@ async def test_ingest_url_sink_receives_ingestion_id_and_facts() -> None:
 # Pipeline.ingest — file_bytes path (no fetch)
 # ---------------------------------------------------------------------------
 
+
 async def test_ingest_file_bytes_skips_fetch() -> None:
     fetcher = _make_fetcher()
     pipeline = _pipeline(fetcher=fetcher)
-    await pipeline.ingest(IngestionRequest(
-        file_bytes=b"Hello plain text",
-        mime_type="text/plain",
-    ))
+    await pipeline.ingest(
+        IngestionRequest(
+            file_bytes=b"Hello plain text",
+            mime_type="text/plain",
+        )
+    )
     fetcher.fetch.assert_not_called()
 
 
 async def test_ingest_file_bytes_source_url_is_none() -> None:
     pipeline = _pipeline()
-    result = await pipeline.ingest(IngestionRequest(file_bytes=b"text", mime_type="text/plain"))
+    result = await pipeline.ingest(
+        IngestionRequest(file_bytes=b"text", mime_type="text/plain")
+    )
     assert result.source_url is None
 
 
@@ -193,10 +211,13 @@ async def test_ingest_file_bytes_source_url_is_none() -> None:
 # Reporter emissions
 # ---------------------------------------------------------------------------
 
+
 async def test_reporter_receives_classifying_and_extracting_keys() -> None:
     reporter = AsyncMock()
     pipeline = _pipeline()
-    await pipeline.ingest(IngestionRequest(url="https://example.com"), reporter=reporter)
+    await pipeline.ingest(
+        IngestionRequest(url="https://example.com"), reporter=reporter
+    )
     emitted = [call.args[0] for call in reporter.emit.call_args_list]
     assert "ingestion.classifying" in emitted
     assert "ingestion.fetching" in emitted
@@ -212,6 +233,7 @@ async def test_no_reporter_does_not_raise() -> None:
 # ---------------------------------------------------------------------------
 # Extractor resilience
 # ---------------------------------------------------------------------------
+
 
 async def test_failing_extractor_skipped_others_still_run() -> None:
     failing = _make_extractor(side_effect=RuntimeError("boom"))
@@ -236,6 +258,7 @@ async def test_all_extractors_run_for_matching_content_type() -> None:
 # No fetcher match
 # ---------------------------------------------------------------------------
 
+
 async def test_no_matching_fetcher_raises() -> None:
     fetcher = _make_fetcher()
     fetcher.url_patterns = [r"^https://specific\.com"]
@@ -247,6 +270,7 @@ async def test_no_matching_fetcher_raises() -> None:
 # ---------------------------------------------------------------------------
 # No processor match
 # ---------------------------------------------------------------------------
+
 
 async def test_no_matching_processor_raises() -> None:
     processor = _make_processor()

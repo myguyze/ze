@@ -2,6 +2,7 @@
 
 All I/O is mocked: no real DB, no real LLM, no real relevance model.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,6 +19,7 @@ UTC = timezone.utc
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 def _make_settings(**engine_overrides: object) -> MagicMock:
     engine_cfg = {
@@ -82,13 +84,15 @@ def _make_llm_response(
 ) -> str:
     if no_connection:
         return json.dumps({"no_connection": True})
-    return json.dumps({
-        "summary": summary,
-        "narrative": narrative,
-        "relation": relation,
-        "confidence": confidence,
-        "evidence_ids": evidence_ids or [],
-    })
+    return json.dumps(
+        {
+            "summary": summary,
+            "narrative": narrative,
+            "relation": relation,
+            "confidence": confidence,
+            "evidence_ids": evidence_ids or [],
+        }
+    )
 
 
 def _make_engine(
@@ -109,7 +113,9 @@ def _make_engine(
     memory_store = MagicMock()
     memory_store.graph_store = graph_store
     memory_store.get_entities_by_ids = AsyncMock(
-        return_value=[MagicMock(canonical_name=n) for n in (entity_names or ["TestEntity"])]
+        return_value=[
+            MagicMock(canonical_name=n) for n in (entity_names or ["TestEntity"])
+        ]
     )
     memory_store.get_facts_by_ids = AsyncMock(return_value=facts or [])
     memory_store.get_episodes_by_ids = AsyncMock(return_value=episodes or [])
@@ -140,6 +146,7 @@ def _make_engine(
 
 
 # ── tests ─────────────────────────────────────────────────────────────────────
+
 
 async def test_neighbourhood_expansion_uses_prior_signal():
     """Neighbourhood expansion must reach a previously ingested prior signal sharing an entity.
@@ -190,7 +197,10 @@ async def test_hallucinated_id_rejected():
     sig, ingested_at = _make_signal(sig_id)
     expansion = _make_expansion(signal_ids=[sig_id])
     llm_resp = _make_llm_response(
-        evidence_ids=[str(sig_id), str(hallucinated_id)],  # hallucinated_id not in neighbourhood
+        evidence_ids=[
+            str(sig_id),
+            str(hallucinated_id),
+        ],  # hallucinated_id not in neighbourhood
     )
 
     engine, _, hyp_store = _make_engine(
@@ -227,7 +237,10 @@ async def test_no_web_search_tool_in_correlation_call():
     llm_client = engine._llm
     llm_client.complete.assert_called_once()
     # complete_with_tools must NOT have been called
-    assert not hasattr(llm_client, "complete_with_tools") or not llm_client.complete_with_tools.called
+    assert (
+        not hasattr(llm_client, "complete_with_tools")
+        or not llm_client.complete_with_tools.called
+    )
 
 
 async def test_all_cited_evidence_tagged_graph_recall():

@@ -1,4 +1,5 @@
 """Three pre-gates that every staged dream artifact must pass before the LLM critic."""
+
 from __future__ import annotations
 
 import re
@@ -59,22 +60,25 @@ class ScoringGates:
 
         # Non-English fallback: use LLM groundedness check
         if self._nli is None or not _all_latin(content):
-            return await self._gate1_llm_fallback(sentences, source_texts, synthesis_model)
+            return await self._gate1_llm_fallback(
+                sentences, source_texts, synthesis_model
+            )
 
         pairs = [(src, sent) for sent in sentences for src in source_texts]
         try:
             scores = await self._nli.scores(pairs)
         except Exception as exc:
             log.warning("gate1_nli_error", error=str(exc))
-            return await self._gate1_llm_fallback(sentences, source_texts, synthesis_model)
+            return await self._gate1_llm_fallback(
+                sentences, source_texts, synthesis_model
+            )
 
         n_sources = len(source_texts)
         supported = 0
         for i, sent in enumerate(sentences):
             sent_scores = scores[i * n_sources : (i + 1) * n_sources]
             if any(
-                s is not None and s.get("entailment", 0.0) >= 0.50
-                for s in sent_scores
+                s is not None and s.get("entailment", 0.0) >= 0.50 for s in sent_scores
             ):
                 supported += 1
 

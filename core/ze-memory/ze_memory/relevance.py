@@ -10,6 +10,7 @@ The RelevanceSet is computed on demand (cached, short TTL) from:
 The score() method is pure math — no LLM, no DB — so it can run on every
 ingested signal cheaply as part of the admission gate (Phase 56).
 """
+
 from __future__ import annotations
 
 import re
@@ -186,7 +187,9 @@ class RelevanceModel:
                 _merge_entry(
                     entries,
                     nk,
-                    RelevanceEntry(key=topic, kind="topic", weight=0.8, sources=["profile"]),
+                    RelevanceEntry(
+                        key=topic, kind="topic", weight=0.8, sources=["profile"]
+                    ),
                 )
 
     async def _add_fact_entries(
@@ -246,7 +249,9 @@ class RelevanceModel:
             _merge_entry(
                 entries,
                 nk,
-                RelevanceEntry(key=title, kind="topic", weight=0.6, sources=["active_goal"]),
+                RelevanceEntry(
+                    key=title, kind="topic", weight=0.6, sources=["active_goal"]
+                ),
             )
 
     async def _add_episode_entity_entries(

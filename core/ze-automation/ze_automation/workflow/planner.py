@@ -27,11 +27,14 @@ def validate_step_targets(steps: list[WorkflowStep]) -> None:
     for step in steps:
         for branch in step.branches:
             if branch.to not in valid_targets:
-                raise WorkflowPlanError(f"step '{step.id}' branches to unknown step '{branch.to}'")
+                raise WorkflowPlanError(
+                    f"step '{step.id}' branches to unknown step '{branch.to}'"
+                )
         if step.default_next is not None and step.default_next not in valid_targets:
             raise WorkflowPlanError(
                 f"step '{step.id}' default_next refers to unknown step '{step.default_next}'"
             )
+
 
 _PLAN_SYSTEM = """\
 You decompose a workflow description into an ordered list of steps.
@@ -198,7 +201,9 @@ class WorkflowPlanner:
                 success_criteria=data.get("success_criteria", []),
             )
         except Exception as exc:
-            log.warning("workflow_procedure_extraction_failed", workflow=name, error=str(exc))
+            log.warning(
+                "workflow_procedure_extraction_failed", workflow=name, error=str(exc)
+            )
             return None
 
     async def extract_schedule(self, description: str) -> str | None:

@@ -25,7 +25,11 @@ async def websocket_endpoint(
     api_key: str = settings.ze_api_key
 
     auth_header = ws.headers.get("Authorization", "")
-    bearer = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
+    bearer = (
+        auth_header.removeprefix("Bearer ").strip()
+        if auth_header.startswith("Bearer ")
+        else ""
+    )
 
     if bearer != api_key and token != api_key:
         await ws.close(code=4001)
@@ -94,10 +98,14 @@ async def websocket_endpoint(
             elif frame_type == "component_submit":
                 thread_id = data.get("thread_id") or ""
                 if not thread_id:
-                    await ws.send_json({"type": "error", "detail": "thread_id required"})
+                    await ws.send_json(
+                        {"type": "error", "detail": "thread_id required"}
+                    )
                     continue
                 if not conn_mgr.try_set_busy(thread_id):
-                    await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
+                    await conn_mgr.send_frame(
+                        {"type": "error", "detail": "busy"}, thread_id
+                    )
                     continue
                 try:
                     result = await handle_component_submit(
@@ -120,7 +128,9 @@ async def websocket_endpoint(
             elif frame_type == "confirm":
                 thread_id = data.get("thread_id") or ""
                 if not thread_id:
-                    await ws.send_json({"type": "error", "detail": "thread_id required in confirm"})
+                    await ws.send_json(
+                        {"type": "error", "detail": "thread_id required in confirm"}
+                    )
                     continue
                 result = await handle_confirm(
                     ws,
@@ -144,17 +154,26 @@ async def websocket_endpoint(
             elif frame_type == "message":
                 thread_id = data.get("thread_id") or ""
                 if not thread_id:
-                    await ws.send_json({"type": "error", "detail": "thread_id required"})
+                    await ws.send_json(
+                        {"type": "error", "detail": "thread_id required"}
+                    )
                     continue
                 if not conn_mgr.try_set_busy(thread_id):
-                    await conn_mgr.send_frame({"type": "error", "detail": "busy"}, thread_id)
+                    await conn_mgr.send_frame(
+                        {"type": "error", "detail": "busy"}, thread_id
+                    )
                     continue
 
                 # Spawn a background task so the WS loop can immediately accept
                 # messages for other threads while this LLM call is in progress.
                 asyncio.create_task(
                     _run_message_task(
-                        ws, data, container, msg_store, conn_mgr, pending_configs,
+                        ws,
+                        data,
+                        container,
+                        msg_store,
+                        conn_mgr,
+                        pending_configs,
                         thread_id,
                         confirmation_store=confirmation_store,
                         session_store=session_store,
@@ -198,6 +217,8 @@ async def _run_message_task(
             pending_configs.pop(thread_id, None)
     except Exception as exc:
         log.exception("ws_message_task_error", thread_id=thread_id, error=str(exc))
-        await conn_mgr.send_frame({"type": "error", "detail": "Something went wrong."}, thread_id)
+        await conn_mgr.send_frame(
+            {"type": "error", "detail": "Something went wrong."}, thread_id
+        )
     finally:
         conn_mgr.clear_busy(thread_id)

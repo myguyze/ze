@@ -75,7 +75,8 @@ class IngestionPipeline:
 
     def _matching_extractors(self, content_type: ContentType) -> list[Extractor]:
         matched = [
-            e for e in self._extractors
+            e
+            for e in self._extractors
             if not e.content_types or content_type in e.content_types
         ]
         return matched or self._extractors[:1]
@@ -103,12 +104,18 @@ class IngestionPipeline:
             await emit("ingestion.fetching")
             fetcher = self._pick_fetcher(request.url)
             raw = await fetcher.fetch(request.url)
-            if raw.content_type == ContentType.UNKNOWN or content_type == ContentType.UNKNOWN:
-                content_type = self._classifier.classify(
-                    url=request.url,
-                    mime_type=raw.mime_type,
-                    data=raw.data[:512],
-                ) or ContentType.UNKNOWN
+            if (
+                raw.content_type == ContentType.UNKNOWN
+                or content_type == ContentType.UNKNOWN
+            ):
+                content_type = (
+                    self._classifier.classify(
+                        url=request.url,
+                        mime_type=raw.mime_type,
+                        data=raw.data[:512],
+                    )
+                    or ContentType.UNKNOWN
+                )
             raw.content_type = content_type
         else:
             raw = RawContent(
@@ -131,13 +138,19 @@ class IngestionPipeline:
             try:
                 return await extractor.extract(processed)
             except Exception as exc:
-                log.warning("extractor_failed", extractor=type(extractor).__name__, error=str(exc))
+                log.warning(
+                    "extractor_failed",
+                    extractor=type(extractor).__name__,
+                    error=str(exc),
+                )
                 return None
 
         raw_results = await asyncio.gather(*[_safe_extract(e) for e in matched])
         valid = [r for r in raw_results if r is not None]
-        merged = _merge_results(valid) if valid else ExtractionResult(
-            summary="", facts=[], entities=[], tags=[]
+        merged = (
+            _merge_results(valid)
+            if valid
+            else ExtractionResult(summary="", facts=[], entities=[], tags=[])
         )
 
         # 5. Store

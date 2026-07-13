@@ -37,5 +37,7 @@ async def _apply_calendar(ctx: SeedContext) -> int:
 
 def calendar_seed_domains() -> list[SeedDomain]:
     return [
-        SeedDomain("calendar.dev", seed_order=28, clear=_clear_calendar, apply=_apply_calendar),
+        SeedDomain(
+            "calendar.dev", seed_order=28, clear=_clear_calendar, apply=_apply_calendar
+        ),
     ]

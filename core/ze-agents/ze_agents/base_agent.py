@@ -18,7 +18,15 @@ from ze_agents.hooks import (
     get_hooks,
 )
 from ze_logging import get_logger
-from ze_agents.types import AgentContext, AgentResult, GateDecision, Intent, Mode, RetrievalRequest, ToolCall
+from ze_agents.types import (
+    AgentContext,
+    AgentResult,
+    GateDecision,
+    Intent,
+    Mode,
+    RetrievalRequest,
+    ToolCall,
+)
 
 # Schemas for OpenRouter server-side tools (executed by OpenRouter, not the client).
 _OPENROUTER_TOOL_SCHEMAS: dict[str, dict] = {
@@ -102,7 +110,9 @@ class BaseAgent(ABC):
             predicate = getattr(f, "predicate", getattr(f, "key", "?"))
             value = f.value
             if getattr(f, "provenance", "raw") == "synthesized":
-                lines.append(f"- {predicate}: {value} (Ze inferred this from a pattern — treat as approximate)")
+                lines.append(
+                    f"- {predicate}: {value} (Ze inferred this from a pattern — treat as approximate)"
+                )
             else:
                 lines.append(f"- {predicate}: {value}")
         return "\n".join(lines) if lines else "(none)"
@@ -126,9 +136,11 @@ class BaseAgent(ABC):
     ) -> str:
         try:
             from zoneinfo import ZoneInfo
+
             tz = ZoneInfo(ctx.timezone)
         except Exception:
             from datetime import timezone as _tz
+
             tz = _tz.utc
         now = datetime.now(tz).strftime("%Y-%m-%d %H:%M %Z")
         datetime_line = f"Current date and time: {now}\n\n"
@@ -138,7 +150,9 @@ class BaseAgent(ABC):
             identity = identity_builder(
                 ctx.persona,
                 self._format_memory(ctx),
-                profile=getattr(ctx.memory, "profile", None) if ctx.memory is not None else None,
+                profile=getattr(ctx.memory, "profile", None)
+                if ctx.memory is not None
+                else None,
                 contacts_context=self._format_contacts(ctx),
             )
             prefix = f"{identity}\n\n"
@@ -197,7 +211,9 @@ class BaseAgent(ABC):
                 if modified is not None:
                     args = modified
             except HookAbort as e:
-                log.info("tool_skipped_by_hook", tool=name, agent=self.name, reason=e.reason)
+                log.info(
+                    "tool_skipped_by_hook", tool=name, agent=self.name, reason=e.reason
+                )
                 return ToolCall(
                     tool_name=name,
                     args=stored_args,
@@ -207,7 +223,12 @@ class BaseAgent(ABC):
                     error=f"skipped: {e.reason}",
                 )
             except Exception as exc:
-                log.warning("hook_error_on_tool_start", tool=name, agent=self.name, error=str(exc))
+                log.warning(
+                    "hook_error_on_tool_start",
+                    tool=name,
+                    agent=self.name,
+                    error=str(exc),
+                )
 
         # ── Execute ───────────────────────────────────────────────────────────
         log.debug("tool_start", tool=name, agent=self.name, access=spec.access.value)
@@ -266,8 +287,10 @@ class BaseAgent(ABC):
 
         names = tool_names if tool_names is not None else self.tools
         tool_schemas = [
-            _OPENROUTER_TOOL_SCHEMAS[n] if n in _OPENROUTER_TOOL_SCHEMAS
-            else DELEGATE_TOOL_SCHEMA if n == DELEGATE_TOOL_NAME
+            _OPENROUTER_TOOL_SCHEMAS[n]
+            if n in _OPENROUTER_TOOL_SCHEMAS
+            else DELEGATE_TOOL_SCHEMA
+            if n == DELEGATE_TOOL_NAME
             else get_tool(n).llm_schema()
             for n in names
         ]
@@ -275,7 +298,9 @@ class BaseAgent(ABC):
         _deps = deps or {}
         hooks = get_hooks()
 
-        await _dispatch_loop_hooks(hooks, "on_loop_start", LoopStartEvent(self.name, ctx))
+        await _dispatch_loop_hooks(
+            hooks, "on_loop_start", LoopStartEvent(self.name, ctx)
+        )
 
         # Fetch tool-executor memory context for direct invocations (e.g. from GoalExecutor)
         # that bypass the fetch_context graph node. Prepend as a context block to system.
@@ -291,7 +316,9 @@ class BaseAgent(ABC):
                 _truncate_messages(messages, max_history_tokens)
 
             _token_sink = getattr(ctx, "token_sink", None)
-            if _token_sink is not None and hasattr(client, "stream_complete_with_tools"):
+            if _token_sink is not None and hasattr(
+                client, "stream_complete_with_tools"
+            ):
                 text, tool_calls = await client.stream_complete_with_tools(
                     messages=messages,
                     model=ctx.model or self.model,
@@ -317,8 +344,11 @@ class BaseAgent(ABC):
                     tool_calls=len(accumulated),
                 )
                 await _dispatch_loop_hooks(
-                    hooks, "on_loop_end",
-                    LoopEndEvent(self.name, ctx, accumulated, iterations_used=iteration + 1),
+                    hooks,
+                    "on_loop_end",
+                    LoopEndEvent(
+                        self.name, ctx, accumulated, iterations_used=iteration + 1
+                    ),
                 )
                 return text, accumulated
 
@@ -328,21 +358,23 @@ class BaseAgent(ABC):
                     f"(iteration {iteration + 1})"
                 )
 
-            messages.append({
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": tc["id"],
-                        "type": "function",
-                        "function": {
-                            "name": tc["name"],
-                            "arguments": json.dumps(tc["arguments"]),
-                        },
-                    }
-                    for tc in tool_calls
-                ],
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": tc["id"],
+                            "type": "function",
+                            "function": {
+                                "name": tc["name"],
+                                "arguments": json.dumps(tc["arguments"]),
+                            },
+                        }
+                        for tc in tool_calls
+                    ],
+                }
+            )
 
             for tc in tool_calls:
                 if _is_openrouter_server_tool(tc["name"]):
@@ -355,35 +387,49 @@ class BaseAgent(ABC):
                         success=True,
                     )
                     accumulated.append(tool_call)
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": "[search complete]",
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": "[search complete]",
+                        }
+                    )
                 elif tc["name"] == DELEGATE_TOOL_NAME:
                     tool_call = await run_delegate(tc["arguments"], ctx, iteration)
                     accumulated.append(tool_call)
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": _serialise_result(tool_call),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": _serialise_result(tool_call),
+                        }
+                    )
                 else:
                     merged = _merge_deps(tc["name"], tc["arguments"], _deps)
                     tool_call = await self.call_tool(
-                        tc["name"], ctx, _iteration=iteration,
-                        _lm_args=tc["arguments"], **merged,
+                        tc["name"],
+                        ctx,
+                        _iteration=iteration,
+                        _lm_args=tc["arguments"],
+                        **merged,
                     )
                     accumulated.append(tool_call)
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": _serialise_result(tool_call),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": _serialise_result(tool_call),
+                        }
+                    )
 
-        log.warning("agentic_loop_max_iterations", agent=self.name, max_iterations=max_iterations)
+        log.warning(
+            "agentic_loop_max_iterations",
+            agent=self.name,
+            max_iterations=max_iterations,
+        )
         await _dispatch_loop_hooks(
-            hooks, "on_loop_end",
+            hooks,
+            "on_loop_end",
             LoopEndEvent(self.name, ctx, accumulated, iterations_used=max_iterations),
         )
         text = await client.complete(
@@ -396,6 +442,7 @@ class BaseAgent(ABC):
 
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
+
 
 async def _dispatch_loop_hooks(hooks: list, method: str, event: Any) -> None:
     """Dispatch a loop lifecycle hook to all registered hooks."""
@@ -420,6 +467,7 @@ async def _dispatch_tool_end(
             await hook.on_tool_end(ToolEndEvent(name, tool_call, ctx, iteration))
         except Exception as exc:
             log.warning("hook_error_on_tool_end", tool=name, error=str(exc))
+
 
 def _merge_deps(tool_name: str, llm_args: dict, deps: dict[str, Any]) -> dict:
     """Inject internal deps into tool kwargs for params the LLM cannot provide."""
@@ -530,7 +578,10 @@ def _truncate_messages(messages: list[dict], max_tokens: int) -> None:
         tool_call_ids = {tc["id"] for tc in messages[round_start]["tool_calls"]}
         indices_to_remove = [round_start]
         for j in range(round_start + 1, len(messages)):
-            if messages[j].get("role") == "tool" and messages[j].get("tool_call_id") in tool_call_ids:
+            if (
+                messages[j].get("role") == "tool"
+                and messages[j].get("tool_call_id") in tool_call_ids
+            ):
                 indices_to_remove.append(j)
             elif messages[j].get("role") != "tool":
                 break

@@ -36,8 +36,8 @@ class Container:
     preprocessor: Any = None  # InputPreprocessor | None
     plugins: list = field(default_factory=list)  # list[ZePlugin]
     _abort_tokens: dict = field(default_factory=dict)  # thread_id → AbortToken
-    _fact_extractor: Any = None    # ze_memory.extractor.gather_fact_proposals or None
-    _event_extractor: Any = None   # ze_memory.extractor.gather_event_proposals or None
+    _fact_extractor: Any = None  # ze_memory.extractor.gather_fact_proposals or None
+    _event_extractor: Any = None  # ze_memory.extractor.gather_event_proposals or None
     _entity_extractor: Any = None  # ze_memory.extractor.gather_entity_proposals or None
 
     def _build_config(self, thread_id: str, **extra: Any) -> dict:
@@ -85,7 +85,11 @@ class Container:
         If no interface is configured, the graph is invoked once and
         final_response is returned directly without any delivery call.
         """
-        from ze_agents.interface.types import ConfirmationRequest, InvokeResult, OutboundMessage
+        from ze_agents.interface.types import (
+            ConfirmationRequest,
+            InvokeResult,
+            OutboundMessage,
+        )
 
         graph_input = make_graph_input(
             RawInput(
@@ -118,7 +122,9 @@ class Container:
                 request = ConfirmationRequest(
                     content=draft or "",
                     options=["Approve", "Cancel"],
-                    timeout_seconds=getattr(self.settings, "confirm_timeout_seconds", None),
+                    timeout_seconds=getattr(
+                        self.settings, "confirm_timeout_seconds", None
+                    ),
                 )
 
                 if self.interface is None:
@@ -169,7 +175,11 @@ class Container:
                 return
             await self.graph.update_state(
                 config,
-                {"pending_confirmation": False, "agent_result": None, "agent_context": None},
+                {
+                    "pending_confirmation": False,
+                    "agent_result": None,
+                    "agent_context": None,
+                },
                 as_node="write_memory",
             )
             await self.graph.ainvoke(None, config)
@@ -237,6 +247,7 @@ class Container:
         aclose = getattr(self.memory_store, "aclose", None)
         if callable(aclose):
             import asyncio
+
             if asyncio.iscoroutinefunction(aclose):
                 await aclose()
         await _dispose_pool(self.checkpointer_pool)
@@ -257,6 +268,7 @@ class Container:
         # 0. Validate interface early so misconfiguration fails fast
         if interface is not None:
             from ze_agents.interface.validation import validate_interface
+
             validate_interface(interface)
 
         # 1. Load Settings
@@ -279,6 +291,7 @@ class Container:
             # 2a. Optionally apply pending migrations (ZC_AUTO_MIGRATE=true)
             if settings.auto_migrate:
                 from ze_core.migrate import upgrade
+
                 log.info("container_auto_migrate_start")
                 upgrade(settings.database_url_sync)
                 log.info("container_auto_migrate_done")
@@ -287,7 +300,9 @@ class Container:
         from ze_core.embeddings import get_embedder
 
         _embedding_model = settings.config.get("models", {}).get("embedding")
-        embedder = get_embedder(_embedding_model) if _embedding_model else get_embedder()
+        embedder = (
+            get_embedder(_embedding_model) if _embedding_model else get_embedder()
+        )
         from ze_core.nli import LocalNLIClient
 
         nli_client = LocalNLIClient()
@@ -340,7 +355,9 @@ class Container:
         router_config = RouterConfig(
             threshold=routing_cfg.get("threshold", _defaults.threshold),
             gap_threshold=routing_cfg.get("gap_threshold", _defaults.gap_threshold),
-            fallback_model=resolve_model("router_fallback", MODEL_ROUTER_FALLBACK, settings.config),
+            fallback_model=resolve_model(
+                "router_fallback", MODEL_ROUTER_FALLBACK, settings.config
+            ),
         )
         from ze_core.routing.store import PostgresRoutingStore
 
@@ -359,7 +376,11 @@ class Container:
         capability_gate = CapabilityGate()
 
         # 11. Build MemoryStore and MemoryConsolidator
-        from ze_memory.extractor import gather_entity_proposals, gather_event_proposals, gather_fact_proposals
+        from ze_memory.extractor import (
+            gather_entity_proposals,
+            gather_event_proposals,
+            gather_fact_proposals,
+        )
         from ze_memory.retriever import PostgresMemoryStore
 
         if is_sqlite:
@@ -429,6 +450,7 @@ class Container:
 
 
 # ── private helpers ───────────────────────────────────────────────────────────
+
 
 def _discover_agents(app_root: Path, package: str) -> None:
     agents_dir = app_root / "agents"
@@ -538,9 +560,9 @@ def _sqlite_db_path(url: str) -> str:
     """
     # Strip the sqlite:// or sqlite:/// prefix
     if url.startswith("sqlite:///"):
-        return url[len("sqlite:///"):]
+        return url[len("sqlite:///") :]
     if url.startswith("sqlite://"):
-        return url[len("sqlite://"):]
+        return url[len("sqlite://") :]
     return url
 
 

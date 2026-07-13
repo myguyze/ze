@@ -68,7 +68,7 @@ class TestAgentDecorator:
     def test_intents_with_mixed_modes_registers(self):
         cls = _make_agent("goodmap")
         cls.intents = {
-            "read":  Intent(Mode.AUTONOMOUS, "Read something."),
+            "read": Intent(Mode.AUTONOMOUS, "Read something."),
             "write": Intent(Mode.CONFIRM, "Write something."),
         }
         result = agent(cls)
@@ -77,7 +77,7 @@ class TestAgentDecorator:
     def test_intents_secondary_entries_without_description_register(self):
         cls = _make_agent("secondary")
         cls.intents = {
-            "read":   Intent(Mode.AUTONOMOUS, "Primary routing intent."),
+            "read": Intent(Mode.AUTONOMOUS, "Primary routing intent."),
             "reason": Intent(Mode.AUTONOMOUS),
         }
         result = agent(cls)
@@ -122,7 +122,9 @@ class TestToolNormalisation:
     def test_invalid_tool_entry_raises(self):
         cls = _make_agent("bad_tools")
         cls.tools = [42]  # type: ignore[list-item]
-        with pytest.raises(AgentConfigError, match="must be a string name or a callable"):
+        with pytest.raises(
+            AgentConfigError, match="must be a string name or a callable"
+        ):
             agent(cls)
 
     def test_callable_without_name_raises(self):

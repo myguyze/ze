@@ -81,7 +81,12 @@ class FinanceIngestionExtractor:
     async def extract(self, content: ProcessedContent) -> ExtractionResult:
         transactions = await self._parse(content)
         if not transactions:
-            return ExtractionResult(summary="No transactions found.", facts=[], entities=[], tags=["finance"])
+            return ExtractionResult(
+                summary="No transactions found.",
+                facts=[],
+                entities=[],
+                tags=["finance"],
+            )
 
         inserted = await self._store.append(transactions)
 
@@ -101,7 +106,10 @@ class FinanceIngestionExtractor:
             facts=facts,
             entities=[],
             tags=["finance", "transactions"],
-            metadata={"transactions_total": len(transactions), "transactions_inserted": inserted},
+            metadata={
+                "transactions_total": len(transactions),
+                "transactions_inserted": inserted,
+            },
         )
 
     async def _parse(self, content: ProcessedContent) -> list[Transaction]:
@@ -168,18 +176,24 @@ class FinanceIngestionExtractor:
         return transactions
 
 
-def _item_to_transaction(item: dict[str, Any], account_id: str, index: int) -> Transaction:
+def _item_to_transaction(
+    item: dict[str, Any], account_id: str, index: int
+) -> Transaction:
     date_str = item["date"]
     settled_at = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     amount = Decimal(str(item["amount"]))
     currency = item.get("currency", "GBP")
     description = item.get("description", "")
     tx_type_str = item.get("type", "deposit" if amount >= 0 else "withdrawal")
-    tx_type = TransactionType(tx_type_str) if tx_type_str in TransactionType._value2member_map_ else (
-        TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
+    tx_type = (
+        TransactionType(tx_type_str)
+        if tx_type_str in TransactionType._value2member_map_
+        else (TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL)
     )
 
-    digest = hashlib.sha256(f"{date_str}:{amount}:{description}:{index}".encode()).hexdigest()[:16]
+    digest = hashlib.sha256(
+        f"{date_str}:{amount}:{description}:{index}".encode()
+    ).hexdigest()[:16]
     return Transaction(
         id=f"{account_id}:{digest}",
         account_id=account_id,
@@ -195,7 +209,11 @@ def _item_to_transaction(item: dict[str, Any], account_id: str, index: int) -> T
 
 
 def _tx_to_fact(tx: Transaction) -> str:
-    sign = "+" if tx.transaction_type in (TransactionType.DEPOSIT, TransactionType.INTEREST) else "-"
+    sign = (
+        "+"
+        if tx.transaction_type in (TransactionType.DEPOSIT, TransactionType.INTEREST)
+        else "-"
+    )
     return (
         f"{sign}{tx.currency} {tx.quantity:.2f} "
         f"on {tx.settled_at.date()} — {tx.notes or tx.transaction_type.value}"

@@ -11,7 +11,9 @@ def effective_capabilities(gate: CapabilityGate) -> dict[str, dict]:
     for name, cls in get_registered_agents().items():
         if not getattr(cls, "enabled", True):
             continue
-        caps = {intent: v.mode.value for intent, v in getattr(cls, "intents", {}).items()}
+        caps = {
+            intent: v.mode.value for intent, v in getattr(cls, "intents", {}).items()
+        }
         for (a, intent), mode in cache.items():
             if a == name:
                 caps[intent] = mode.value

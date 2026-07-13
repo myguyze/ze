@@ -12,12 +12,12 @@ from ze_agents.nli import NLIClient
 from ze_finance.recurring.types import RecurringExpense, RecurringStatus, snap_interval
 from ze_finance.types import Transaction, TransactionType
 
-_MIN_OCCURRENCES     = 2   # minimum number of transactions to consider
-_AMOUNT_TOLERANCE    = 0.10  # max coefficient of variation on amounts
-_GAP_TOLERANCE       = 0.40  # gaps must be within ±40% of the median gap
-                              # (billing dates drift; months differ in length)
-_MIN_SPAN_FACTOR     = 1.5   # total date span must be ≥ 1.5× detected interval
-_MIN_ABSOLUTE_SPAN   = 14    # span must be at least 14 days regardless of interval
+_MIN_OCCURRENCES = 2  # minimum number of transactions to consider
+_AMOUNT_TOLERANCE = 0.10  # max coefficient of variation on amounts
+_GAP_TOLERANCE = 0.40  # gaps must be within ±40% of the median gap
+# (billing dates drift; months differ in length)
+_MIN_SPAN_FACTOR = 1.5  # total date span must be ≥ 1.5× detected interval
+_MIN_ABSOLUTE_SPAN = 14  # span must be at least 14 days regardless of interval
 
 
 class TextEmbedder(Protocol):
@@ -200,7 +200,8 @@ class RecurringDetector:
         merge_maps: dict[tuple[str, str], dict[str, str]] | None = None,
     ) -> list[RecurringExpense]:
         spending = [
-            tx for tx in transactions
+            tx
+            for tx in transactions
             if tx.transaction_type in self._SPENDING_TYPES and tx.notes
         ]
 

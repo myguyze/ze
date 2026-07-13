@@ -9,6 +9,7 @@ round-trip with the same serde configuration used in production.
 A failure here means the app will crash at checkpoint time, not at startup,
 which makes it hard to catch without exercising the full flow in dev.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,11 +24,16 @@ from ze_agents.types import GateDecision
 from ze_memory.types import Episode, Fact, MemoryContext, ProfileFacet
 from ze_agents.types import AgentContext, AgentResult, ToolCall
 from ze_core.checkpoint_serde import build_checkpoint_serde
-from ze_core.conversation.messages.types import MemoryChunkTrace, MessageTrace, ToolCallTrace
+from ze_core.conversation.messages.types import (
+    MemoryChunkTrace,
+    MessageTrace,
+    ToolCallTrace,
+)
 from ze_core.routing.types import RoutingEnvelope, SubTask
 
 
 # ── Serde fixture ─────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def serde() -> JsonPlusSerializer:
@@ -35,6 +41,7 @@ def serde() -> JsonPlusSerializer:
 
 
 # ── Builders for realistic domain objects ─────────────────────────────────────
+
 
 def _make_memory_context() -> MemoryContext:
     return MemoryContext(
@@ -97,8 +104,8 @@ def _make_agent_context() -> AgentContext:
         messages=[{"role": "user", "content": "what is on my calendar today?"}],
         persona={"humor": 5, "verbosity": 3},
         model="openai/gpt-4o-mini",
-        reporter=None,       # never serialized; must stay None in stored state
-        extensions={},       # functions must never be stored here
+        reporter=None,  # never serialized; must stay None in stored state
+        extensions={},  # functions must never be stored here
     )
 
 
@@ -109,7 +116,11 @@ def _make_envelope() -> RoutingEnvelope:
         score_gap=0.3,
         routing_method="embedding",
         is_compound=False,
-        subtasks=[SubTask(agent="calendar", intent="read", prompt="what is on my calendar today?")],
+        subtasks=[
+            SubTask(
+                agent="calendar", intent="read", prompt="what is on my calendar today?"
+            )
+        ],
         requires_synthesis=False,
         raw_scores={"calendar": 0.92, "research": 0.62},
     )
@@ -134,12 +145,14 @@ def _make_agent_result() -> AgentResult:
 
 # ── Round-trip helpers ────────────────────────────────────────────────────────
 
+
 def round_trip(serde: JsonPlusSerializer, obj: object) -> object:
     type_, data = serde.dumps_typed(obj)
     return serde.loads_typed((type_, data))
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 def test_memory_context_round_trips(serde: JsonPlusSerializer) -> None:
     original = _make_memory_context()
@@ -216,8 +229,17 @@ def test_full_agent_state_dict_round_trips(serde: JsonPlusSerializer) -> None:
             score_gap=0.30,
             is_compound=False,
             subtasks=["calendar"],
-            memory_chunks=[MemoryChunkTrace(text="name: João", score=0.9, source="fact")],
-            tool_calls=[ToolCallTrace(name="get_events", result_snippet="standup", duration_ms=85, success=True)],
+            memory_chunks=[
+                MemoryChunkTrace(text="name: João", score=0.9, source="fact")
+            ],
+            tool_calls=[
+                ToolCallTrace(
+                    name="get_events",
+                    result_snippet="standup",
+                    duration_ms=85,
+                    success=True,
+                )
+            ],
             total_duration_ms=85,
         ),
     }
@@ -251,7 +273,10 @@ def test_non_serializable_identity_builder_raises(serde: JsonPlusSerializer) -> 
     as None. If someone accidentally checkpoints a context with it set, the serde
     must fail loudly here in CI rather than at runtime in production.
     """
-    def _some_builder(persona: dict, memory_context: str, *, profile: Any, contacts_context: str) -> str:
+
+    def _some_builder(
+        persona: dict, memory_context: str, *, profile: Any, contacts_context: str
+    ) -> str:
         return "identity"
 
     ctx = AgentContext(

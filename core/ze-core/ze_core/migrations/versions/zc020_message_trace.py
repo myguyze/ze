@@ -3,6 +3,7 @@
 Revision ID: zc020
 Revises: zc019
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

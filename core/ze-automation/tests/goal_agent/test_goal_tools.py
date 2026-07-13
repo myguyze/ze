@@ -36,7 +36,12 @@ def _make_deps(
     milestones=None,
     gates=None,
 ):
-    from ze_automation.goals.types import Milestone, MilestoneStatus, VerificationGate, GateStatus
+    from ze_automation.goals.types import (
+        Milestone,
+        MilestoneStatus,
+        VerificationGate,
+        GateStatus,
+    )
 
     store = AsyncMock()
     store.list_completed_milestone_summaries = (
@@ -50,21 +55,27 @@ def _make_deps(
     store.create_gate = AsyncMock()
 
     from ze_agents.errors import GoalPlanError
+
     planner = AsyncMock()
     if plan_raises:
         planner.plan = AsyncMock(side_effect=GoalPlanError("LLM failed"))
     else:
         ms = milestones or [
             Milestone(
-                id=uuid4(), goal_id=created_goal.id,
-                title="Step 1", description="Do it",
-                sequence=1, status=MilestoneStatus.PENDING,
+                id=uuid4(),
+                goal_id=created_goal.id,
+                title="Step 1",
+                description="Do it",
+                sequence=1,
+                status=MilestoneStatus.PENDING,
             )
         ]
         gs = gates or [
             VerificationGate(
-                id=uuid4(), goal_id=created_goal.id,
-                after_sequence=1, title="Review",
+                id=uuid4(),
+                goal_id=created_goal.id,
+                after_sequence=1,
+                title="Review",
                 status=GateStatus.PENDING,
             )
         ]
@@ -77,6 +88,7 @@ def _make_deps(
 
 
 # ── create_goal: prior work query ─────────────────────────────────────────────
+
 
 async def test_create_goal_queries_prior_work_before_planning():
     from ze_automation.agents.goals.tools import create_goal

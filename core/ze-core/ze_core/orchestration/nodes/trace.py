@@ -4,7 +4,11 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from ze_core.conversation.messages.types import MemoryChunkTrace, MessageTrace, ToolCallTrace
+from ze_core.conversation.messages.types import (
+    MemoryChunkTrace,
+    MessageTrace,
+    ToolCallTrace,
+)
 from ze_core.orchestration.state import AgentState
 
 
@@ -22,9 +26,11 @@ async def record_trace(state: AgentState, config: RunnableConfig) -> dict:
     tool_calls = _extract_tool_calls(agent_result)
     total_duration_ms = sum(t.duration_ms for t in tool_calls)
 
-    subtask_agents = [envelope.primary_agent] if not envelope.is_compound else [
-        s.agent for s in envelope.subtasks
-    ]
+    subtask_agents = (
+        [envelope.primary_agent]
+        if not envelope.is_compound
+        else [s.agent for s in envelope.subtasks]
+    )
 
     trace = MessageTrace(
         agent=envelope.primary_agent,
@@ -49,20 +55,26 @@ def _extract_memory_chunks(memory_context: Any) -> list[MemoryChunkTrace]:
     facts = getattr(memory_context, "facts", []) or []
     for fact in facts[:5]:
         text = f"{fact.predicate}: {fact.value}"
-        chunks.append(MemoryChunkTrace(
-            text=text[:300],
-            score=getattr(fact, "confidence", 1.0),
-            source="fact",
-        ))
+        chunks.append(
+            MemoryChunkTrace(
+                text=text[:300],
+                score=getattr(fact, "confidence", 1.0),
+                source="fact",
+            )
+        )
 
     episodes = getattr(memory_context, "episodes", []) or []
     for ep in episodes[:5]:
-        text = getattr(ep, "summary", None) or (ep.response[:300] if hasattr(ep, "response") else "")
-        chunks.append(MemoryChunkTrace(
-            text=text[:300],
-            score=getattr(ep, "relevance", 0.0),
-            source="episode",
-        ))
+        text = getattr(ep, "summary", None) or (
+            ep.response[:300] if hasattr(ep, "response") else ""
+        )
+        chunks.append(
+            MemoryChunkTrace(
+                text=text[:300],
+                score=getattr(ep, "relevance", 0.0),
+                source="episode",
+            )
+        )
 
     return chunks[:_MAX_MEMORY_CHUNKS]
 
@@ -75,10 +87,12 @@ def _extract_tool_calls(agent_result: Any) -> list[ToolCallTrace]:
     for tc in raw_calls:
         raw_result = getattr(tc, "result", "") or ""
         snippet = str(raw_result)[:200] if raw_result else ""
-        result.append(ToolCallTrace(
-            name=getattr(tc, "tool_name", "unknown"),
-            result_snippet=snippet,
-            duration_ms=getattr(tc, "duration_ms", 0),
-            success=getattr(tc, "success", True),
-        ))
+        result.append(
+            ToolCallTrace(
+                name=getattr(tc, "tool_name", "unknown"),
+                result_snippet=snippet,
+                duration_ms=getattr(tc, "duration_ms", 0),
+                success=getattr(tc, "success", True),
+            )
+        )
     return result

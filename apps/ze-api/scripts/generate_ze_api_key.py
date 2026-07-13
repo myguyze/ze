@@ -59,7 +59,9 @@ def resolve_token(existing: str, override: str | None) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate or update ZE_API_KEY in .env")
+    parser = argparse.ArgumentParser(
+        description="Generate or update ZE_API_KEY in .env"
+    )
     parser.add_argument("--token", help="Use this token instead of generating one")
     args = parser.parse_args()
 

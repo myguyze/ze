@@ -6,14 +6,14 @@ from typing import Any
 
 
 class ContentType(str, Enum):
-    WEB_PAGE   = "web_page"
-    VIDEO      = "video"
-    AUDIO      = "audio"
-    PDF        = "pdf"
-    IMAGE      = "image"
+    WEB_PAGE = "web_page"
+    VIDEO = "video"
+    AUDIO = "audio"
+    PDF = "pdf"
+    IMAGE = "image"
     PLAIN_TEXT = "plain_text"
-    DOCUMENT   = "document"
-    UNKNOWN    = "unknown"
+    DOCUMENT = "document"
+    UNKNOWN = "unknown"
 
 
 @dataclass

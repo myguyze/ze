@@ -249,7 +249,9 @@ def _extract_json_object(raw: str) -> str:
     return text
 
 
-def _parse_plan(raw: str, goal_id: UUID) -> tuple[list[Milestone], list[VerificationGate]]:
+def _parse_plan(
+    raw: str, goal_id: UUID
+) -> tuple[list[Milestone], list[VerificationGate]]:
     try:
         data = json.loads(_extract_json_object(raw))
         if not isinstance(data, dict):
@@ -324,7 +326,7 @@ class GoalPlanner:
             prompt += "\n\nREUSABLE PROCEDURES FROM PAST GOALS:\n" + "\n".join(lines)
         if prior_work:
             lines = [
-                f"  - \"{p.goal_title}\" → \"{p.milestone_title}\" "
+                f'  - "{p.goal_title}" → "{p.milestone_title}" '
                 f"({p.completed_days_ago}d ago): {p.output_snippet}"
                 for p in prior_work
             ]
@@ -352,9 +354,13 @@ class GoalPlanner:
         local_procedures: list[Procedure] | None = None,
     ) -> tuple[list[Milestone], list[VerificationGate]]:
         """Re-plan remaining milestones after a redirect gate, incorporating user feedback."""
-        completed_summary = "\n".join(
-            f"  {m.sequence}. {m.title}: {m.output[:200]}" for m in completed_milestones
-        ) or "  None yet."
+        completed_summary = (
+            "\n".join(
+                f"  {m.sequence}. {m.title}: {m.output[:200]}"
+                for m in completed_milestones
+            )
+            or "  None yet."
+        )
 
         prompt = (
             f"Goal: {goal.title}\n"
@@ -368,8 +374,10 @@ class GoalPlanner:
 
         global_procs = await self._fetch_procedures(goal.title)
         merged = {p.name: p for p in global_procs}
-        for p in (local_procedures or []):
-            merged[p.name] = p  # goal-local version wins — newer and more context-specific
+        for p in local_procedures or []:
+            merged[p.name] = (
+                p  # goal-local version wins — newer and more context-specific
+            )
         if merged:
             lines = [
                 f"  - [{p.name}] {p.trigger}\n    Steps: {'; '.join(p.steps[:3])}"
@@ -379,7 +387,7 @@ class GoalPlanner:
 
         if prior_work:
             lines = [
-                f"  - \"{p.goal_title}\" → \"{p.milestone_title}\" "
+                f'  - "{p.goal_title}" → "{p.milestone_title}" '
                 f"({p.completed_days_ago}d ago): {p.output_snippet}"
                 for p in prior_work
             ]
@@ -394,7 +402,9 @@ class GoalPlanner:
 
         milestones, gates = _parse_plan(raw, _SENTINEL_GOAL_ID)
         milestones, gates = _normalize_and_validate(
-            milestones, gates, min_sequence=next_sequence,
+            milestones,
+            gates,
+            min_sequence=next_sequence,
         )
         return milestones, gates
 
@@ -405,13 +415,16 @@ class GoalPlanner:
         learnings: list[GoalLearning],
     ) -> str:
         """Produce a goal completion retrospective."""
-        milestone_lines = "\n".join(
-            f"  {m.sequence}. {m.title}: {(m.output or '')[:300]}"
-            for m in milestones
-        ) or "  (none)"
-        learnings_text = "\n".join(
-            f"  - {lr.content}" for lr in learnings[-5:]
-        ) or "  (none)"
+        milestone_lines = (
+            "\n".join(
+                f"  {m.sequence}. {m.title}: {(m.output or '')[:300]}"
+                for m in milestones
+            )
+            or "  (none)"
+        )
+        learnings_text = (
+            "\n".join(f"  - {lr.content}" for lr in learnings[-5:]) or "  (none)"
+        )
         prompt = (
             f"Goal: {goal.title}\n"
             f"Objective: {goal.objective}\n"
@@ -433,12 +446,16 @@ class GoalPlanner:
         next_milestones: list[Milestone],
     ) -> str:
         """One paragraph: what Ze did this week on this goal, and what comes next."""
-        completed_text = "\n".join(
-            f"  - {m.title}: {(m.output or '')[:200]}"
-            for m in completed_this_week
-        ) or "  (none this week)"
+        completed_text = (
+            "\n".join(
+                f"  - {m.title}: {(m.output or '')[:200]}" for m in completed_this_week
+            )
+            or "  (none this week)"
+        )
         gate_text = f"\nAwaiting gate: {pending_gate.title}" if pending_gate else ""
-        next_text = "\n".join(f"  - {m.title}" for m in next_milestones[:3]) or "  (none)"
+        next_text = (
+            "\n".join(f"  - {m.title}" for m in next_milestones[:3]) or "  (none)"
+        )
         prompt = (
             f"Goal: {goal.title}\n"
             f"Objective: {goal.objective}\n\n"
@@ -459,10 +476,13 @@ class GoalPlanner:
         gate_title: str,
     ) -> str:
         """Synthesize a 2-4 sentence narrative for a gate notification."""
-        milestone_lines = "\n".join(
-            f"  {m.sequence}. {m.title}: {(m.output or '')[:300]}"
-            for m in completed
-        ) or "  (none)"
+        milestone_lines = (
+            "\n".join(
+                f"  {m.sequence}. {m.title}: {(m.output or '')[:300]}"
+                for m in completed
+            )
+            or "  (none)"
+        )
         prompt = (
             f"Goal: {goal.title}\n"
             f"Success condition: {goal.success_condition}\n"
@@ -545,7 +565,9 @@ class GoalPlanner:
                 success_criteria=data.get("success_criteria", []),
             )
         except Exception as exc:
-            log.warning("goal_procedure_extraction_failed", goal_id=str(goal.id), error=str(exc))
+            log.warning(
+                "goal_procedure_extraction_failed", goal_id=str(goal.id), error=str(exc)
+            )
             return None
 
     async def _fetch_procedures(self, query: str) -> list[Procedure]:
@@ -626,17 +648,26 @@ class GoalPlanner:
         Synthesise signal into a goal suggestion. Returns None if signal is insufficient
         or the confidence gate rejects the LLM output.
         """
-        facts_text = "\n".join(f"  - [{f.predicate}] {f.value}" for f in memory_facts) or "  (none)"
-        episodes_text = "\n".join(
-            f"  - [{e.created_at.strftime('%Y-%m-%d') if e.created_at else '?'}] "
-            f"{(e.summary or e.response[:200])}"
-            for e in episodes
-        ) or "  (none)"
-        retros_text = "\n".join(
-            f"  - Goal '{g.title}': {(g.retrospective_text or '')[:400]}"
-            for g in retrospectives
-            if g.retrospective_text
-        ) or "  (none)"
+        facts_text = (
+            "\n".join(f"  - [{f.predicate}] {f.value}" for f in memory_facts)
+            or "  (none)"
+        )
+        episodes_text = (
+            "\n".join(
+                f"  - [{e.created_at.strftime('%Y-%m-%d') if e.created_at else '?'}] "
+                f"{(e.summary or e.response[:200])}"
+                for e in episodes
+            )
+            or "  (none)"
+        )
+        retros_text = (
+            "\n".join(
+                f"  - Goal '{g.title}': {(g.retrospective_text or '')[:400]}"
+                for g in retrospectives
+                if g.retrospective_text
+            )
+            or "  (none)"
+        )
         active_text = "\n".join(f"  - {t}" for t in active_goal_titles) or "  (none)"
 
         prompt = (
@@ -678,7 +709,10 @@ class GoalPlanner:
             log.info("goal_suggestion_gate_rejected", reason="objective_too_short")
             return None
         title_lower = title.lower()
-        if any(title_lower in t.lower() or t.lower() in title_lower for t in active_goal_titles):
+        if any(
+            title_lower in t.lower() or t.lower() in title_lower
+            for t in active_goal_titles
+        ):
             log.info("goal_suggestion_gate_rejected", reason="duplicates_active_goal")
             return None
 

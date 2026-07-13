@@ -80,7 +80,9 @@ async def add_prospect(
             ),
         )
 
-    outreach_id = await campaign_store.add_outreach(UUID(campaign_id), person.id, channel)
+    outreach_id = await campaign_store.add_outreach(
+        UUID(campaign_id), person.id, channel
+    )
     if outreach_id is not None:
         await campaign_store.increment_found(UUID(campaign_id))
 
@@ -162,7 +164,9 @@ async def log_outreach_event(
     if outreach_id is None:
         raise ValueError(f"{contact_name} is not in any outreach campaign")
 
-    await campaign_store.log_outreach_event(outreach_id, event_type, notes, _ts_column(event_type))
+    await campaign_store.log_outreach_event(
+        outreach_id, event_type, notes, _ts_column(event_type)
+    )
 
     return f"Logged {event_type} for {person.name}"
 

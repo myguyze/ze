@@ -1,4 +1,5 @@
 """Helpers for building MemoryContext projections from database rows."""
+
 from __future__ import annotations
 
 import json
@@ -87,7 +88,9 @@ def events_from_rows(rows: list[Any]) -> list[Event]:
     return [_event_from_row(row) for row in rows]
 
 
-def session_summaries_from_rows(rows: list[Any], budget_tokens: int) -> list[SessionSummary]:
+def session_summaries_from_rows(
+    rows: list[Any], budget_tokens: int
+) -> list[SessionSummary]:
     summaries: list[SessionSummary] = []
     used = 0
     for row in rows:
@@ -110,7 +113,14 @@ def token_estimate(ctx: MemoryContext) -> int:
     profile_tokens = sum(len(p.value) // 4 for p in ctx.profile)
     proc_tokens = sum(sum(len(s) // 4 for s in p.steps) for p in ctx.procedures)
     event_tokens = sum(len(e.title) // 4 for e in ctx.events)
-    return fact_tokens + episode_tokens + session_summary_tokens + profile_tokens + proc_tokens + event_tokens
+    return (
+        fact_tokens
+        + episode_tokens
+        + session_summary_tokens
+        + profile_tokens
+        + proc_tokens
+        + event_tokens
+    )
 
 
 def _fact_from_row(row: Any) -> Fact:

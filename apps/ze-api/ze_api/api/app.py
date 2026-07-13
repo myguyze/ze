@@ -4,7 +4,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ze_api.api.openapi import OPENAPI_TAGS
-from ze_api.api.routes import activity, capabilities, channels, costs, data, dream, eval, goals, health, ingest, memory, routing, sessions, ui, version, webhooks, workflows, ws_schema
+from ze_api.api.routes import (
+    activity,
+    capabilities,
+    channels,
+    costs,
+    data,
+    dream,
+    eval,
+    goals,
+    health,
+    ingest,
+    memory,
+    routing,
+    sessions,
+    ui,
+    version,
+    webhooks,
+    workflows,
+    ws_schema,
+)
 from ze_api.api.ws import router as ws_router
 from ze_api.api.messages import router as messages_router
 from ze_api.container import build_container

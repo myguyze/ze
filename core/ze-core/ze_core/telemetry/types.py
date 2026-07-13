@@ -21,6 +21,7 @@ class CostRecord:
 @dataclass
 class UsageInfo:
     """Usage metadata returned alongside a completion response."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int

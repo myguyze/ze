@@ -61,7 +61,12 @@ async def test_get_portfolio_calls_correct_path() -> None:
 async def test_get_cash_calls_correct_path() -> None:
     client = Trading212Client(api_key="key", base_url=_LIVE_BASE)
     mock_response = MagicMock()
-    mock_response.json.return_value = {"blocked": 0, "free": 1000, "invested": 5000, "total": 6000}
+    mock_response.json.return_value = {
+        "blocked": 0,
+        "free": 1000,
+        "invested": 5000,
+        "total": 6000,
+    }
     mock_response.raise_for_status = MagicMock()
 
     mock_http = AsyncMock()

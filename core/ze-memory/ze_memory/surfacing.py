@@ -10,6 +10,7 @@ The feedback path (useful / not_relevant / mute_topic) nudges thresholds
 within [tau_min, tau_max] clamps.  Global thresholds in v1; per-topic
 overrides are a Phase 60+ concern.
 """
+
 from __future__ import annotations
 
 import re
@@ -127,9 +128,7 @@ class SurfacingGate:
                 f"relevance too low: {relevance:.2f} < {self._cfg.tau_relevance}"
             )
         if not is_novel:
-            reasons.append(
-                "not novel: embedding similarity too high to a recent push"
-            )
+            reasons.append("not novel: embedding similarity too high to a recent push")
         if not within_budget:
             reasons.append(
                 f"push budget exceeded: max {self._cfg.max_pushes_per_day}/day"
@@ -197,12 +196,16 @@ class SurfacingGate:
             else:
                 return  # already demoted — no duplicate write
 
-            await self._memory_store.upsert_profile_facets([{
-                "key": "topic_relevance_demotions",
-                "value": ", ".join(existing),
-                "stability": "dynamic",
-                "confidence": 1.0,
-            }])
+            await self._memory_store.upsert_profile_facets(
+                [
+                    {
+                        "key": "topic_relevance_demotions",
+                        "value": ", ".join(existing),
+                        "stability": "dynamic",
+                        "confidence": 1.0,
+                    }
+                ]
+            )
             log.info("surfacing_topic_demoted", topic=normalized_topic)
             if self._relevance_model is not None:
                 self._relevance_model.invalidate_cache()
@@ -225,12 +228,16 @@ class SurfacingGate:
             else:
                 return  # already excluded — no duplicate write
 
-            await self._memory_store.upsert_profile_facets([{
-                "key": "news_exclusions",
-                "value": ", ".join(existing),
-                "stability": "durable",
-                "confidence": 1.0,
-            }])
+            await self._memory_store.upsert_profile_facets(
+                [
+                    {
+                        "key": "news_exclusions",
+                        "value": ", ".join(existing),
+                        "stability": "durable",
+                        "confidence": 1.0,
+                    }
+                ]
+            )
             log.info("surfacing_topic_muted", topic=normalized_topic)
             if self._relevance_model is not None:
                 self._relevance_model.invalidate_cache()

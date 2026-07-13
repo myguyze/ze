@@ -20,7 +20,11 @@ class FakeStore:
         self.completed = False
 
     async def get_active_session(self) -> OnboardingSession | None:
-        return self.session if self.session is not None and self.session.status == "active" else None
+        return (
+            self.session
+            if self.session is not None and self.session.status == "active"
+            else None
+        )
 
     async def has_completed_session(self) -> bool:
         return self.session is not None and self.session.status == "completed"
@@ -77,7 +81,9 @@ class FakeStore:
     async def get_current_step(self, session_id) -> StoredOnboardingStep | None:
         return next((s for s in self.steps if s.status == "active"), None)
 
-    async def get_step_by_key(self, session_id, step_key) -> StoredOnboardingStep | None:
+    async def get_step_by_key(
+        self, session_id, step_key
+    ) -> StoredOnboardingStep | None:
         return next((s for s in self.steps if s.step_key == step_key), None)
 
     async def complete_step(self, step, submission) -> None:
@@ -90,7 +96,9 @@ class FakeStore:
                 status="completed" if s.id == step.id else s.status,
                 descriptor=s.descriptor,
                 submission=submission if s.id == step.id else s.submission,
-                completed_at=datetime.now(timezone.utc) if s.id == step.id else s.completed_at,
+                completed_at=datetime.now(timezone.utc)
+                if s.id == step.id
+                else s.completed_at,
             )
             for s in self.steps
         ]
@@ -128,7 +136,9 @@ class FakeStore:
                 key=s.key,
                 value=s.value,
                 confidence=s.confidence,
-                review_status="approved" if s.review_status == "pending" else s.review_status,
+                review_status="approved"
+                if s.review_status == "pending"
+                else s.review_status,
             )
             for s in self.seeds
         ]
@@ -144,7 +154,9 @@ class FakeStore:
                 key=s.key,
                 value=s.value,
                 confidence=s.confidence,
-                review_status="rejected" if s.review_status == "pending" else s.review_status,
+                review_status="rejected"
+                if s.review_status == "pending"
+                else s.review_status,
             )
             for s in self.seeds
         ]

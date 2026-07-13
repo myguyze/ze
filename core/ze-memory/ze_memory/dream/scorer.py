@@ -9,17 +9,37 @@ from ze_memory.consolidation_store import _cosine_similarity
 
 log = get_logger(__name__)
 
-_SIGNAL_ORIGIN_AGENTS = frozenset({
-    "email", "calendar", "workflow", "reminders", "news",
-    "prospecting", "finance", "goal", "automation",
-})
-_TOOL_RESULT_MARKERS = ("tool_result", "tool_use", '"type": "tool"', "ToolResult", "<tool_response>")
+_SIGNAL_ORIGIN_AGENTS = frozenset(
+    {
+        "email",
+        "calendar",
+        "workflow",
+        "reminders",
+        "news",
+        "prospecting",
+        "finance",
+        "goal",
+        "automation",
+    }
+)
+_TOOL_RESULT_MARKERS = (
+    "tool_result",
+    "tool_use",
+    '"type": "tool"',
+    "ToolResult",
+    "<tool_response>",
+)
 # Weak secondary signal: phrases that indicate Ze retrieved external data rather than
 # recording something the user stated. Conservative list — only phrases that are
 # nearly never user-authored in conversation.
 _ZE_OBSERVED_RESPONSE_PHRASES = (
-    "i found", "search results", "according to", "retrieved",
-    "i looked up", "based on the data", "from the api",
+    "i found",
+    "search results",
+    "according to",
+    "retrieved",
+    "i looked up",
+    "based on the data",
+    "from the api",
 )
 
 
@@ -35,7 +55,9 @@ def _classify_source(agent: str, prompt: str, response: str) -> str:
     return "user_asserted"
 
 
-def _novelty_score(episode_embedding: Any, existing_fact_embeddings: list[Any]) -> float:
+def _novelty_score(
+    episode_embedding: Any, existing_fact_embeddings: list[Any]
+) -> float:
     if not existing_fact_embeddings or episode_embedding is None:
         return 1.0
     max_sim = max(
@@ -73,7 +95,9 @@ def replay_score(
 
     episode_embedding = getattr(episode, "embedding", None)
     fact_embeddings = [getattr(f, "embedding", None) for f in existing_facts]
-    novelty = _novelty_score(episode_embedding, [e for e in fact_embeddings if e is not None])
+    novelty = _novelty_score(
+        episode_embedding, [e for e in fact_embeddings if e is not None]
+    )
 
     source = getattr(episode, "source", "ze_observed")
     source_weight = 0.5 if source == "user_asserted" else 1.0
@@ -112,7 +136,9 @@ async def tag_episode_metadata(
                 source,
             )
     except Exception as exc:
-        log.warning("tag_episode_metadata_failed", episode_id=str(episode_id), error=str(exc))
+        log.warning(
+            "tag_episode_metadata_failed", episode_id=str(episode_id), error=str(exc)
+        )
 
 
 async def refresh_episode_sensitive_flag(pool: Any, episode_id: UUID) -> bool:

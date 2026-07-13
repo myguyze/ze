@@ -33,6 +33,7 @@ def _make_notifier() -> AsyncMock:
 
 # ── _check_convergence ────────────────────────────────────────────────────────
 
+
 async def test_check_convergence_pushes_notification_when_overlap_found():
     active = _goal(title="Research SaaS market")
     new_goal = _goal(title="Survey SaaS competitors")
@@ -62,7 +63,9 @@ async def test_check_convergence_does_not_push_when_no_overlap():
     planner = _make_planner(convergence=None)
     notifier = _make_notifier()
 
-    await _check_convergence(AsyncMock(), planner, notifier, _goal(), [_goal(title="Unrelated goal")])
+    await _check_convergence(
+        AsyncMock(), planner, notifier, _goal(), [_goal(title="Unrelated goal")]
+    )
 
     notifier.push_notification.assert_not_called()
 
@@ -83,7 +86,9 @@ async def test_check_convergence_filters_out_new_goal_from_candidates():
     planner = _make_planner(convergence=None)
     notifier = _make_notifier()
 
-    await _check_convergence(AsyncMock(), planner, notifier, new_goal, [new_goal, *active_others])
+    await _check_convergence(
+        AsyncMock(), planner, notifier, new_goal, [new_goal, *active_others]
+    )
 
     _, call_args, _ = planner.detect_convergence.mock_calls[0]
     passed_goals = call_args[1]
@@ -97,6 +102,8 @@ async def test_check_convergence_swallows_detect_exception():
     notifier = _make_notifier()
 
     # Should not raise
-    await _check_convergence(AsyncMock(), planner, notifier, _goal(), [_goal(title="Other")])
+    await _check_convergence(
+        AsyncMock(), planner, notifier, _goal(), [_goal(title="Other")]
+    )
 
     notifier.push_notification.assert_not_called()

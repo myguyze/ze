@@ -34,27 +34,34 @@ async def decompose(prompt, raw_scores, client, settings):
 
 
 def single_subtask_response(agent="research", intent="read", prompt="find it") -> str:
-    return json.dumps({
-        "subtasks": [{"agent": agent, "intent": intent, "prompt": prompt}]
-    })
+    return json.dumps(
+        {"subtasks": [{"agent": agent, "intent": intent, "prompt": prompt}]}
+    )
 
 
 def compound_response() -> str:
-    return json.dumps({
-        "subtasks": [
-            {"agent": "research", "intent": "read", "prompt": "search part"},
-            {"agent": "companion", "intent": "reason", "prompt": "reasoning part"},
-        ]
-    })
+    return json.dumps(
+        {
+            "subtasks": [
+                {"agent": "research", "intent": "read", "prompt": "search part"},
+                {"agent": "companion", "intent": "reason", "prompt": "reasoning part"},
+            ]
+        }
+    )
 
 
 # ── Single-agent ──────────────────────────────────────────────────────────────
 
+
 async def test_decompose_single_subtask(settings):
     client = make_client(single_subtask_response())
-    env = await decompose("find AI news", raw_scores={}, client=client, settings=settings)
+    env = await decompose(
+        "find AI news", raw_scores={}, client=client, settings=settings
+    )
 
-    assert client.complete.await_args.kwargs["response_format"] == {"type": "json_object"}
+    assert client.complete.await_args.kwargs["response_format"] == {
+        "type": "json_object"
+    }
     assert isinstance(env, RoutingEnvelope)
     assert env.routing_method == "haiku"
     assert env.is_compound is False
@@ -98,12 +105,15 @@ async def test_decompose_sets_confidence_from_raw_scores(settings):
 
 # ── Retry on bad JSON ─────────────────────────────────────────────────────────
 
+
 async def test_decompose_retries_once_on_invalid_json(settings):
     client = AsyncMock()
-    client.complete = AsyncMock(side_effect=[
-        "not json at all {{{{",
-        single_subtask_response(),
-    ])
+    client.complete = AsyncMock(
+        side_effect=[
+            "not json at all {{{{",
+            single_subtask_response(),
+        ]
+    )
     env = await decompose("hi", raw_scores={}, client=client, settings=settings)
 
     assert env.primary_agent == "research"
@@ -121,10 +131,12 @@ async def test_decompose_hard_fallback_after_two_bad_responses(settings):
 
 async def test_decompose_retries_on_missing_subtasks_key(settings):
     client = AsyncMock()
-    client.complete = AsyncMock(side_effect=[
-        json.dumps({"result": []}),
-        single_subtask_response(),
-    ])
+    client.complete = AsyncMock(
+        side_effect=[
+            json.dumps({"result": []}),
+            single_subtask_response(),
+        ]
+    )
     env = await decompose("hi", raw_scores={}, client=client, settings=settings)
 
     assert env.primary_agent == "research"
@@ -133,16 +145,18 @@ async def test_decompose_retries_on_missing_subtasks_key(settings):
 
 # ── Unknown agent guard ───────────────────────────────────────────────────────
 
+
 async def test_decompose_raises_on_unknown_agent(settings):
-    bad_response = json.dumps({
-        "subtasks": [{"agent": "ghost_agent", "intent": "read", "prompt": "hi"}]
-    })
+    bad_response = json.dumps(
+        {"subtasks": [{"agent": "ghost_agent", "intent": "read", "prompt": "hi"}]}
+    )
     client = make_client(bad_response)
     with pytest.raises(RoutingError, match="unknown agent"):
         await decompose("hi", raw_scores={}, client=client, settings=settings)
 
 
 # ── Score gap = 0.0 for haiku routes ─────────────────────────────────────────
+
 
 async def test_decompose_score_gap_is_zero(settings):
     client = make_client(single_subtask_response())

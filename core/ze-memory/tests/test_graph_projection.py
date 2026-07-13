@@ -1,4 +1,5 @@
 """Tests for graph projection (enrich_context) and BoundedExpansionPolicy wiring."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -47,6 +48,7 @@ def _make_fact_row(fid=None, confidence=0.9):
 
 def _make_entity_row(eid=None, name="Alice"):
     import json
+
     return {
         "id": eid or uuid4(),
         "entity_type": "person",
@@ -157,7 +159,12 @@ class TestEnrichContext:
         """When all discovered IDs are already in ctx, enrich_context returns ctx unchanged."""
         fid = uuid4()
         existing_fact = Fact(
-            id=fid, subject_id=None, predicate="knows", value="python", object_text="python", confidence=1.0
+            id=fid,
+            subject_id=None,
+            predicate="knows",
+            value="python",
+            object_text="python",
+            confidence=1.0,
         )
         pool, conn = _make_pool(fact_rows=[])
         expansion = GraphExpansion(fact_ids=[fid])

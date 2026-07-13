@@ -37,7 +37,9 @@ class DailySnapshotJob:
             try:
                 await self._sync_source(source)
             except Exception as exc:
-                log.error("finance_snapshot_failed", source=source.source_id, error=str(exc))
+                log.error(
+                    "finance_snapshot_failed", source=source.source_id, error=str(exc)
+                )
 
         positions = await self._portfolio.get_positions()
         total_pnl = sum(p.unrealised_pnl for p in positions)
@@ -63,7 +65,9 @@ class DailySnapshotJob:
                 if tx.notes:
                     external_id = tx.id.split(":", 1)[-1] if ":" in tx.id else tx.id
                     source_label = "keyword" if category != "Other" else "keyword"
-                    await self._transactions.update_category(external_id, tx.account_id, category, source_label)
+                    await self._transactions.update_category(
+                        external_id, tx.account_id, category, source_label
+                    )
 
         self._signals.check_large_transactions(new_txs)
         log.info(

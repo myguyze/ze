@@ -3,6 +3,7 @@
 Transitional location — will move to ze_personal/graph/workflow.py in the
 ze-personal package once that package is created (arch-package-reorg step 4).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,22 +34,28 @@ class WorkflowAgentState(AgentState, total=False):
     Declared with total=False so checkpoints that predate this extension
     (plain conversation turns) remain valid without these keys.
     """
+
     workflow_id: UUID | None
     workflow_execution_id: UUID | None
-    workflow_steps: list | None          # list[WorkflowStep]
+    workflow_steps: list | None  # list[WorkflowStep]
     current_step_id: str
     steps_by_id: dict[str, WorkflowStep]
     visit_counts: dict[str, int]
-    workflow_step_results: list          # list[StepResult]
+    workflow_step_results: list  # list[StepResult]
 
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
 
+
 async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     """Set prompt to the current step's task and reset all per-step state."""
     steps: list[WorkflowStep] = state["workflow_steps"]
-    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {s.id: s for s in steps}
-    current_step_id: str = state.get("current_step_id") or (steps[0].id if steps else "")
+    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {
+        s.id: s for s in steps
+    }
+    current_step_id: str = state.get("current_step_id") or (
+        steps[0].id if steps else ""
+    )
     step = steps_by_id[current_step_id]
 
     visit_counts = dict(state.get("visit_counts") or {})
@@ -99,31 +106,64 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
             tool_calls.extend(subtask_result.tool_calls)
 
     if tool_calls:
-        failed = [tc for tc in tool_calls if not tc.success and not getattr(tc, "is_draft", False)]
+        failed = [
+            tc
+            for tc in tool_calls
+            if not tc.success and not getattr(tc, "is_draft", False)
+        ]
         if failed:
-            return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, "", f"Tool {failed[0].tool_name} failed: {failed[0].error}")
+            return await _fail_step(
+                store,
+                execution_id,
+                state,
+                exec_index,
+                step_id,
+                step.task,
+                "",
+                f"Tool {failed[0].tool_name} failed: {failed[0].error}",
+            )
 
     output = _resolve_step_output(state)
     if not output.strip():
-        return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, "", "Step produced empty output")
+        return await _fail_step(
+            store,
+            execution_id,
+            state,
+            exec_index,
+            step_id,
+            step.task,
+            "",
+            "Step produced empty output",
+        )
 
     if step.verify:
         try:
             raw = await client.complete(
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"Step output:\n{output}\n\n"
-                        f"Verification criteria: {step.verify}\n\n"
-                        'Does the output meet the criteria? Reply with JSON only: {"pass": true, "reason": "..."}'
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Step output:\n{output}\n\n"
+                            f"Verification criteria: {step.verify}\n\n"
+                            'Does the output meet the criteria? Reply with JSON only: {"pass": true, "reason": "..."}'
+                        ),
+                    }
+                ],
                 model=model,
             )
             verdict = json.loads(raw)
             if not verdict.get("pass", True):
                 reason = verdict.get("reason", "Verification failed")
-                return await _fail_step(store, execution_id, state, exec_index, step_id, step.task, output, reason)
+                return await _fail_step(
+                    store,
+                    execution_id,
+                    state,
+                    exec_index,
+                    step_id,
+                    step.task,
+                    output,
+                    reason,
+                )
         except Exception as exc:
             log.warning("workflow_verify_error", step_id=step_id, error=str(exc))
 
@@ -166,7 +206,9 @@ async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
     branch_taken: str | None = None
     target: str | None = None
     if step.branches:
-        target, branch_taken = await _classify_branch(client, model, step, last_result.output)
+        target, branch_taken = await _classify_branch(
+            client, model, step, last_result.output
+        )
     if target is None:
         target = step.default_next
     if target is None:
@@ -180,7 +222,10 @@ async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
         await store.record_step(execution_id, last_result)
 
     visit_counts = dict(state.get("visit_counts") or {})
-    if target not in _TERMINAL_TARGETS and visit_counts.get(target, 0) >= _MAX_STEP_VISITS:
+    if (
+        target not in _TERMINAL_TARGETS
+        and visit_counts.get(target, 0) >= _MAX_STEP_VISITS
+    ):
         target_step = steps_by_id.get(target)
         task_label = target_step.task if target_step else target
         error_msg = (
@@ -200,12 +245,19 @@ async def route_branch(state: dict[str, Any], config: RunnableConfig) -> dict:
             "error": error_msg,
         }
 
-    log.info("workflow_branch_routed", step_id=step.id, target=target, branch_taken=branch_taken)
+    log.info(
+        "workflow_branch_routed",
+        step_id=step.id,
+        target=target,
+        branch_taken=branch_taken,
+    )
 
     if target not in _TERMINAL_TARGETS:
         executed_ids = {r.step_id for r in step_results}
         asyncio.create_task(
-            _sync_workflow_task_state(config, state, steps, executed_ids, step.task, "in_progress")
+            _sync_workflow_task_state(
+                config, state, steps, executed_ids, step.task, "in_progress"
+            )
         )
 
     return {
@@ -232,10 +284,12 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
 
     if parts:
         response = await client.complete(
-            messages=[{
-                "role": "user",
-                "content": f"Summarize the following workflow results concisely:\n\n{parts}",
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Summarize the following workflow results concisely:\n\n{parts}",
+                }
+            ],
             model=model,
         )
     else:
@@ -247,9 +301,17 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
     steps = state.get("workflow_steps") or []
     executed_ids = {r.step_id for r in step_results}
     last_task = step_results[-1].task if step_results else None
-    asyncio.create_task(_sync_workflow_task_state(config, state, steps, executed_ids, last_task, "completed"))
-    asyncio.create_task(_extract_and_store_workflow_procedure(config, state, step_results))
-    log.info("workflow_complete", execution_id=str(execution_id), steps=len(step_results))
+    asyncio.create_task(
+        _sync_workflow_task_state(
+            config, state, steps, executed_ids, last_task, "completed"
+        )
+    )
+    asyncio.create_task(
+        _extract_and_store_workflow_procedure(config, state, step_results)
+    )
+    log.info(
+        "workflow_complete", execution_id=str(execution_id), steps=len(step_results)
+    )
     return {"final_response": response}
 
 
@@ -274,13 +336,22 @@ async def workflow_failed(state: dict[str, Any], config: RunnableConfig) -> dict
     executed_ids = {r.step_id for r in step_results}
     last_task = step_results[-1].task if step_results else None
     asyncio.create_task(
-        _sync_workflow_task_state(config, state, steps, executed_ids, last_task, "blocked", blocked_by=[error_msg])
+        _sync_workflow_task_state(
+            config,
+            state,
+            steps,
+            executed_ids,
+            last_task,
+            "blocked",
+            blocked_by=[error_msg],
+        )
     )
     log.warning("workflow_failed", execution_id=str(execution_id), error=error_msg)
     return {"final_response": f"Workflow failed: {error_msg}"}
 
 
 # ── Edge functions ────────────────────────────────────────────────────────────
+
 
 def after_capability_check_workflow(state: dict[str, Any]) -> str:
     """In workflow mode all steps execute directly — workflow creation was the gate."""
@@ -308,6 +379,7 @@ def after_route_branch(state: dict[str, Any]) -> str:
 
 # ── Graph builder ─────────────────────────────────────────────────────────────
 
+
 def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     """Build and compile the workflow execution graph."""
     from langgraph.constants import END
@@ -320,10 +392,10 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     builder = graph_builder(state_type=state_type)
 
     builder.add_node("load_workflow_step", load_workflow_step)
-    builder.add_node("verify_step",        verify_step)
-    builder.add_node("route_branch",       route_branch)
+    builder.add_node("verify_step", verify_step)
+    builder.add_node("route_branch", route_branch)
     builder.add_node("workflow_synthesize", workflow_synthesize)
-    builder.add_node("workflow_failed",    workflow_failed)
+    builder.add_node("workflow_failed", workflow_failed)
 
     builder.set_entry_point("load_workflow_step")
 
@@ -334,7 +406,7 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
         {"decompose": "decompose", "fetch_context": "fetch_context"},
     )
     builder.add_edge("decompose", "fetch_context")
-    builder.add_edge("fetch_context",      "capability_check")
+    builder.add_edge("fetch_context", "capability_check")
     builder.add_conditional_edges(
         "capability_check",
         after_capability_check_workflow,
@@ -345,28 +417,28 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     # creates a fan-out: both correlate AND write_memory fire after execute_tool,
     # causing verify_step to run twice per step — the early invocation sees the
     # next step index but no output, marking it as failed.
-    builder.add_edge("write_memory",  "verify_step")
+    builder.add_edge("write_memory", "verify_step")
     builder.add_conditional_edges(
         "verify_step",
         after_verify_step,
         {
-            "route_branch":        "route_branch",
-            "workflow_failed":     "workflow_failed",
+            "route_branch": "route_branch",
+            "workflow_failed": "workflow_failed",
         },
     )
     builder.add_conditional_edges(
         "route_branch",
         after_route_branch,
         {
-            "load_workflow_step":  "load_workflow_step",
+            "load_workflow_step": "load_workflow_step",
             "workflow_synthesize": "workflow_synthesize",
-            "workflow_failed":     "workflow_failed",
+            "workflow_failed": "workflow_failed",
         },
     )
     builder.add_edge("workflow_synthesize", END)
-    builder.add_edge("workflow_failed",     END)
+    builder.add_edge("workflow_failed", END)
 
-    for plugin in (plugins or []):
+    for plugin in plugins or []:
         for name, fn in plugin.graph_nodes().items():
             builder.add_node(name, fn)
         plugin.graph_edges(builder)
@@ -375,6 +447,7 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+
 
 def _resolve_step_output(state: dict[str, Any]) -> str:
     """Collect step text from whichever execution path populated state."""
@@ -388,9 +461,7 @@ def _resolve_step_output(state: dict[str, Any]) -> str:
 
     subtask_results = state.get("subtask_results") or []
     parts = [
-        r.response.strip()
-        for r in subtask_results
-        if r.response and r.response.strip()
+        r.response.strip() for r in subtask_results if r.response and r.response.strip()
     ]
     if parts:
         return "\n\n".join(parts)
@@ -419,9 +490,15 @@ async def _extract_and_store_workflow_procedure(
     workflow_id = state.get("workflow_id")
     workflow_name = state.get("prompt") or "Unnamed workflow"
     try:
-        procedure = await workflow_planner.extract_procedure(workflow_name, step_results)
+        procedure = await workflow_planner.extract_procedure(
+            workflow_name, step_results
+        )
     except Exception as exc:
-        log.warning("workflow_procedure_extraction_failed", workflow_id=str(workflow_id), error=str(exc))
+        log.warning(
+            "workflow_procedure_extraction_failed",
+            workflow_id=str(workflow_id),
+            error=str(exc),
+        )
         return
     if procedure is None:
         return
@@ -431,9 +508,17 @@ async def _extract_and_store_workflow_procedure(
             linked_task_id=workflow_id,
             linked_task_type="workflow",
         )
-        log.info("workflow_procedure_stored", workflow_id=str(workflow_id), name=procedure.name)
+        log.info(
+            "workflow_procedure_stored",
+            workflow_id=str(workflow_id),
+            name=procedure.name,
+        )
     except Exception as exc:
-        log.warning("workflow_procedure_store_failed", workflow_id=str(workflow_id), error=str(exc))
+        log.warning(
+            "workflow_procedure_store_failed",
+            workflow_id=str(workflow_id),
+            error=str(exc),
+        )
 
 
 async def _sync_workflow_task_state(
@@ -454,21 +539,30 @@ async def _sync_workflow_task_state(
         return
     from ze_sdk.memory import TaskState
     from uuid import UUID
+
     try:
         open_steps = [s.task for s in steps if s.id not in executed_step_ids]
         next_action = open_steps[0] if open_steps else None
-        await memory_store.upsert_task_state(TaskState(
-            id=None,
-            task_id=UUID(str(workflow_id)) if not isinstance(workflow_id, UUID) else workflow_id,
-            goal_id=None,
-            status=status,
-            open_steps=open_steps,
-            blocked_by=blocked_by or [],
-            last_action=last_action,
-            next_action=next_action,
-        ))
+        await memory_store.upsert_task_state(
+            TaskState(
+                id=None,
+                task_id=UUID(str(workflow_id))
+                if not isinstance(workflow_id, UUID)
+                else workflow_id,
+                goal_id=None,
+                status=status,
+                open_steps=open_steps,
+                blocked_by=blocked_by or [],
+                last_action=last_action,
+                next_action=next_action,
+            )
+        )
     except Exception as exc:
-        log.warning("workflow_task_state_sync_failed", workflow_id=str(workflow_id), error=str(exc))
+        log.warning(
+            "workflow_task_state_sync_failed",
+            workflow_id=str(workflow_id),
+            error=str(exc),
+        )
 
 
 def _next_step_id_in_list(steps: list[WorkflowStep], step_id: str) -> str | None:
@@ -494,15 +588,17 @@ async def _classify_branch(
     conditions = "\n".join(f"{i}. {b.condition}" for i, b in enumerate(step.branches))
     try:
         raw = await client.complete(
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Step output:\n{output}\n\n"
-                    "Which of these conditions best matches the output? Reply with JSON only: "
-                    '{"index": <int or null>}\n\n'
-                    f"Conditions:\n{conditions}"
-                ),
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"Step output:\n{output}\n\n"
+                        "Which of these conditions best matches the output? Reply with JSON only: "
+                        '{"index": <int or null>}\n\n'
+                        f"Conditions:\n{conditions}"
+                    ),
+                }
+            ],
             model=model,
         )
         verdict = json.loads(raw)

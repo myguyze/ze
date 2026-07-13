@@ -1,4 +1,5 @@
 """Morning Integration: support validation, auto-promote, forgetting, rollback, confidence decay."""
+
 from __future__ import annotations
 
 import time
@@ -37,13 +38,28 @@ class DreamPromoter:
         cfg = self._config()
 
         min_support = int(cfg.get("auto_promote_min_support", _DEFAULT_MIN_SUPPORT))
-        min_sessions = int(cfg.get("auto_promote_min_distinct_sessions", _DEFAULT_MIN_DISTINCT_SESSIONS))
-        min_spread = int(cfg.get("auto_promote_min_temporal_spread_days", _DEFAULT_MIN_TEMPORAL_SPREAD_DAYS))
-        max_user_asserted = int(cfg.get("auto_promote_max_user_asserted", _DEFAULT_MAX_USER_ASSERTED))
-        valid_days = int(cfg.get("synthetic_fact_valid_days", _DEFAULT_SYNTHETIC_FACT_VALID_DAYS))
+        min_sessions = int(
+            cfg.get(
+                "auto_promote_min_distinct_sessions", _DEFAULT_MIN_DISTINCT_SESSIONS
+            )
+        )
+        min_spread = int(
+            cfg.get(
+                "auto_promote_min_temporal_spread_days",
+                _DEFAULT_MIN_TEMPORAL_SPREAD_DAYS,
+            )
+        )
+        max_user_asserted = int(
+            cfg.get("auto_promote_max_user_asserted", _DEFAULT_MAX_USER_ASSERTED)
+        )
+        valid_days = int(
+            cfg.get("synthetic_fact_valid_days", _DEFAULT_SYNTHETIC_FACT_VALID_DAYS)
+        )
         decay_rate = float(cfg.get("decay_rate", _DEFAULT_DECAY_RATE))
 
-        pending_artifacts = await self._dream_store.get_pending_artifacts_for_run(run_id)
+        pending_artifacts = await self._dream_store.get_pending_artifacts_for_run(
+            run_id
+        )
 
         promoted = 0
         needs_review = 0
@@ -60,7 +76,9 @@ class DreamPromoter:
 
             # hindsight_fact always goes to needs_review
             if artifact_type == ArtifactType.HINDSIGHT_FACT.value:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.NEEDS_REVIEW.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.NEEDS_REVIEW.value
+                )
                 needs_review += 1
                 continue
 
@@ -79,8 +97,12 @@ class DreamPromoter:
             )
 
             if not critic_passed:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.REJECTED.value)
-                await self._decay_source_episodes(row.get("source_episode_ids") or [], decay_rate)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.REJECTED.value
+                )
+                await self._decay_source_episodes(
+                    row.get("source_episode_ids") or [], decay_rate
+                )
                 rejected += 1
                 continue
 
@@ -88,7 +110,9 @@ class DreamPromoter:
                 await self._promote(row, run_id, valid_days)
                 promoted += 1
             else:
-                await self._dream_store.update_artifact_status(artifact_id, ArtifactStatus.NEEDS_REVIEW.value)
+                await self._dream_store.update_artifact_status(
+                    artifact_id, ArtifactStatus.NEEDS_REVIEW.value
+                )
                 needs_review += 1
 
         # Synthetic fact confidence decay + hard expiry at valid_until
@@ -268,8 +292,9 @@ class DreamPromoter:
                 rolled_back += 1
 
             # Clear contaminated session summaries
-            resummary = await conn.fetchval(
-                """
+            resummary = (
+                await conn.fetchval(
+                    """
                 UPDATE memory_session_summaries SET
                     needs_resummary = true
                 WHERE dream_artifact_ids && (
@@ -277,8 +302,10 @@ class DreamPromoter:
                 )
                 RETURNING count(*)
                 """,
-                run_id,
-            ) or 0
+                    run_id,
+                )
+                or 0
+            )
 
         log.info("dream_rollback_complete", run_id=str(run_id), rolled_back=rolled_back)
         return {"rolled_back": rolled_back, "summaries_flagged": int(resummary)}
@@ -324,7 +351,9 @@ class DreamPromoter:
         if expired:
             log.info("synthetic_facts_expired", count=expired)
 
-    async def _decay_source_episodes(self, episode_ids: list[Any], rate: float = _DEFAULT_DECAY_RATE) -> None:
+    async def _decay_source_episodes(
+        self, episode_ids: list[Any], rate: float = _DEFAULT_DECAY_RATE
+    ) -> None:
         if not episode_ids:
             return
         async with self._pool.acquire() as conn:

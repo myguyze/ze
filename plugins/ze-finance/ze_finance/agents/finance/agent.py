@@ -42,8 +42,13 @@ class FinanceAgent(BaseAgent):
     # Pinned to Anthropic — financial data must not reach other providers.
     model = "anthropic/claude-haiku-4-5"
     intents = {
-        "read": Intent(Mode.AUTONOMOUS, "Retrieve portfolio, positions, spending, and transaction data."),
-        "confirm": Intent(Mode.CONFIRM, "Confirm or dismiss detected recurring expenses."),
+        "read": Intent(
+            Mode.AUTONOMOUS,
+            "Retrieve portfolio, positions, spending, and transaction data.",
+        ),
+        "confirm": Intent(
+            Mode.CONFIRM, "Confirm or dismiss detected recurring expenses."
+        ),
     }
     default_mode = Mode.AUTONOMOUS
     tools = [

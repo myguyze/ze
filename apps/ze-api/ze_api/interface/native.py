@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from uuid import uuid4
 
-from ze_agents.interface.types import Action, ConfirmationRequest, Notification, OutboundMessage
+from ze_agents.interface.types import (
+    Action,
+    ConfirmationRequest,
+    Notification,
+    OutboundMessage,
+)
 from ze_core.conversation.messages import Message
 from ze_logging import get_logger
 
@@ -82,6 +87,7 @@ class NativeAppInterface:
         message_id: str | None = None,
     ) -> None:
         from uuid import UUID
+
         msg = Message(
             id=UUID(message_id) if message_id else uuid4(),
             role="assistant",
@@ -103,6 +109,7 @@ class NativeAppInterface:
                 log.warning("native_interface_save_trace_failed", error=str(exc))
             try:
                 from dataclasses import asdict
+
                 await self._conn.send_frame(
                     {
                         "type": "trace_update",
@@ -124,6 +131,7 @@ class NativeAppInterface:
         # would be redundant noise.
         if self._notifier is not None and not self._conn.connected:
             from ze_notifications.types import Notification as PushNotification
+
             try:
                 await self._notifier.push(
                     PushNotification(
@@ -144,17 +152,25 @@ class NativeAppInterface:
         message_id: str | None = None,
     ) -> None:
         """Called by the WS handler after graph invocation to attach the thread_id."""
-        await self._send_message(text, thread_id=thread_id, components=components, trace=trace, message_id=message_id)
+        await self._send_message(
+            text,
+            thread_id=thread_id,
+            components=components,
+            trace=trace,
+            message_id=message_id,
+        )
 
     async def send_confirmation(self, request: ConfirmationRequest) -> None:
         """Deliver a confirmation UI frame over WebSocket (and ntfy if backgrounded)."""
         actions = _confirmation_actions(request.options)
-        await self._conn.send_frame({
-            "type": "confirm_request",
-            "id": str(uuid4()),
-            "prompt": request.content,
-            "actions": actions,
-        })
+        await self._conn.send_frame(
+            {
+                "type": "confirm_request",
+                "id": str(uuid4()),
+                "prompt": request.content,
+                "actions": actions,
+            }
+        )
 
         if self._notifier is not None and not self._conn.connected:
             from ze_notifications.types import Notification as PushNotification
@@ -177,12 +193,16 @@ class NativeAppInterface:
             if notification.format == "html"
             else notification.content
         )
-        await self._conn.send_frame({
-            "type": "confirm_request",
-            "id": str(uuid4()),
-            "prompt": prompt,
-            "actions": [_action_to_frame(action) for action in notification.actions],
-        })
+        await self._conn.send_frame(
+            {
+                "type": "confirm_request",
+                "id": str(uuid4()),
+                "prompt": prompt,
+                "actions": [
+                    _action_to_frame(action) for action in notification.actions
+                ],
+            }
+        )
 
 
 def _strip_html(text: str) -> str:

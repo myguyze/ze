@@ -1,4 +1,5 @@
 """Tests for OpenRouterClient — SDK calls are mocked via MagicMock."""
+
 import httpx
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -29,6 +30,7 @@ from ze_core.openrouter.client import OpenRouterClient, _build_messages
 
 # ── _build_messages ───────────────────────────────────────────────────────────
 
+
 class TestBuildMessages:
     def test_no_system_returns_messages_unchanged(self):
         msgs = [{"role": "user", "content": "hi"}]
@@ -47,6 +49,7 @@ class TestBuildMessages:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def mock_sdk():
     sdk = MagicMock()
@@ -57,7 +60,9 @@ def mock_sdk():
 @pytest.fixture
 def client(mock_sdk):
     with patch("ze_core.openrouter.client.OpenRouter", return_value=mock_sdk):
-        yield OpenRouterClient(api_key="test-key", base_url="https://openrouter.ai/api/v1")
+        yield OpenRouterClient(
+            api_key="test-key", base_url="https://openrouter.ai/api/v1"
+        )
 
 
 def make_result(content: str, usage: ChatUsage | None = None) -> ChatResult:
@@ -74,12 +79,15 @@ def make_result(content: str, usage: ChatUsage | None = None) -> ChatResult:
         model="test-model",
         object="chat.completion",
         system_fingerprint=None,
-        usage=usage or ChatUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        usage=usage
+        or ChatUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
 
 
 def make_chunk(content: str | None) -> ChatStreamChunk:
-    delta = ChatStreamDelta(content=content) if content is not None else ChatStreamDelta()
+    delta = (
+        ChatStreamDelta(content=content) if content is not None else ChatStreamDelta()
+    )
     return ChatStreamChunk(
         choices=[ChatStreamChoice(delta=delta, finish_reason=None, index=0)],
         created=0,
@@ -117,7 +125,9 @@ def sdk_429(retry_after: str | None = None) -> TooManyRequestsResponseError:
         headers=headers,
         request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
     )
-    data = TooManyRequestsResponseErrorData(error=ErrorBody(code=429, message="rate limited"))
+    data = TooManyRequestsResponseErrorData(
+        error=ErrorBody(code=429, message="rate limited")
+    )
     return TooManyRequestsResponseError(data=data, raw_response=response)
 
 
@@ -131,7 +141,9 @@ def sdk_502() -> BadGatewayResponseError:
         502,
         request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
     )
-    data = BadGatewayResponseErrorData(error=GatewayBody(code=502, message="bad gateway"))
+    data = BadGatewayResponseErrorData(
+        error=GatewayBody(code=502, message="bad gateway")
+    )
     return BadGatewayResponseError(data=data, raw_response=response)
 
 
@@ -145,15 +157,20 @@ def sdk_403() -> ForbiddenResponseError:
         403,
         request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
     )
-    data = ForbiddenResponseErrorData(error=ForbiddenBody(code=403, message="forbidden"))
+    data = ForbiddenResponseErrorData(
+        error=ForbiddenBody(code=403, message="forbidden")
+    )
     return ForbiddenResponseError(data=data, raw_response=response)
 
 
 # ── complete() ────────────────────────────────────────────────────────────────
 
+
 async def test_complete_returns_content(client, mock_sdk):
     mock_sdk.chat.send_async.return_value = make_result("Paris")
-    result = await client.complete([{"role": "user", "content": "Capital of France?"}], model="m")
+    result = await client.complete(
+        [{"role": "user", "content": "Capital of France?"}], model="m"
+    )
     assert result == "Paris"
 
 
@@ -206,7 +223,9 @@ async def test_complete_falls_back_to_reasoning_when_content_empty(client, mock_
 
 async def test_complete_prepends_system_prompt(client, mock_sdk):
     mock_sdk.chat.send_async.return_value = make_result("ok")
-    await client.complete([{"role": "user", "content": "hi"}], model="m", system="You are Ze.")
+    await client.complete(
+        [{"role": "user", "content": "hi"}], model="m", system="You are Ze."
+    )
     messages = mock_sdk.chat.send_async.call_args.kwargs["messages"]
     assert messages[0] == {"role": "system", "content": "You are Ze."}
     assert messages[1] == {"role": "user", "content": "hi"}
@@ -221,7 +240,9 @@ async def test_complete_raises_on_4xx(client, mock_sdk):
 
 async def test_complete_retries_on_429_then_succeeds(client, mock_sdk):
     mock_sdk.chat.send_async.side_effect = [sdk_429(), make_result("ok")]
-    with patch("ze_core.openrouter.client.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch(
+        "ze_core.openrouter.client.asyncio.sleep", new_callable=AsyncMock
+    ) as mock_sleep:
         result = await client.complete([{"role": "user", "content": "hi"}], model="m")
     assert result == "ok"
     assert mock_sdk.chat.send_async.call_count == 2
@@ -245,8 +266,13 @@ async def test_complete_raises_openrouter_error_after_5xx_retries(client, mock_s
 
 
 async def test_complete_respects_retry_after_header(client, mock_sdk):
-    mock_sdk.chat.send_async.side_effect = [sdk_429(retry_after="10"), make_result("ok")]
-    with patch("ze_core.openrouter.client.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    mock_sdk.chat.send_async.side_effect = [
+        sdk_429(retry_after="10"),
+        make_result("ok"),
+    ]
+    with patch(
+        "ze_core.openrouter.client.asyncio.sleep", new_callable=AsyncMock
+    ) as mock_sleep:
         await client.complete([{"role": "user", "content": "hi"}], model="m")
     mock_sleep.assert_awaited_once_with(10.0)
 
@@ -260,16 +286,30 @@ async def test_complete_raises_on_network_error_after_retries(client, mock_sdk):
 
 # ── stream() ──────────────────────────────────────────────────────────────────
 
+
 async def test_stream_yields_tokens(client, mock_sdk):
-    mock_sdk.chat.send_async.return_value = FakeEventStream([make_chunk("Hello"), make_chunk(" world")])
-    tokens = [chunk async for chunk in client.stream([{"role": "user", "content": "hi"}], model="m")]
+    mock_sdk.chat.send_async.return_value = FakeEventStream(
+        [make_chunk("Hello"), make_chunk(" world")]
+    )
+    tokens = [
+        chunk
+        async for chunk in client.stream([{"role": "user", "content": "hi"}], model="m")
+    ]
     assert tokens == ["Hello", " world"]
 
 
 async def test_stream_retries_on_429(client, mock_sdk):
-    mock_sdk.chat.send_async.side_effect = [sdk_429(), FakeEventStream([make_chunk("ok")])]
+    mock_sdk.chat.send_async.side_effect = [
+        sdk_429(),
+        FakeEventStream([make_chunk("ok")]),
+    ]
     with patch("ze_core.openrouter.client.asyncio.sleep", new_callable=AsyncMock):
-        tokens = [chunk async for chunk in client.stream([{"role": "user", "content": "hi"}], model="m")]
+        tokens = [
+            chunk
+            async for chunk in client.stream(
+                [{"role": "user", "content": "hi"}], model="m"
+            )
+        ]
     assert tokens == ["ok"]
     assert mock_sdk.chat.send_async.call_count == 2
 
@@ -283,6 +323,7 @@ async def test_stream_raises_on_4xx(client, mock_sdk):
 
 
 # ── complete_with_tools() ─────────────────────────────────────────────────────
+
 
 def make_tool_result(
     content: str | None,
@@ -306,7 +347,8 @@ def make_tool_result(
         model="test-model",
         object="chat.completion",
         system_fingerprint=None,
-        usage=usage or ChatUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        usage=usage
+        or ChatUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
 
 
@@ -318,7 +360,12 @@ def make_tool_call(name: str, args: str, call_id: str = "c1") -> ChatToolCall:
     )
 
 
-_TOOLS = [{"type": "function", "function": {"name": "web_search", "description": "search", "parameters": {}}}]
+_TOOLS = [
+    {
+        "type": "function",
+        "function": {"name": "web_search", "description": "search", "parameters": {}},
+    }
+]
 
 
 async def test_complete_with_tools_returns_text_when_no_tool_calls(client, mock_sdk):

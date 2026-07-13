@@ -23,7 +23,7 @@ class RoutingEnvelope:
     primary_agent: str
     confidence: float
     score_gap: float
-    routing_method: str        # "embedding" | "haiku" | "fallback"
+    routing_method: str  # "embedding" | "haiku" | "fallback"
     is_compound: bool
     subtasks: list[SubTask]
     requires_synthesis: bool

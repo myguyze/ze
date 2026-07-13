@@ -60,7 +60,9 @@ class RSSSource(NewsSource):
 
     async def fetch(self, limit: int = 20) -> list[Article]:
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=_FETCH_TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                follow_redirects=True, timeout=_FETCH_TIMEOUT
+            ) as client:
                 response = await client.get(self._url)
                 response.raise_for_status()
                 text = response.text
@@ -88,13 +90,15 @@ class RSSSource(NewsSource):
             )
             summary = _strip_html(raw_summary)[:_SUMMARY_MAX]
 
-            articles.append(Article(
-                url=url,
-                source_key=self.key,
-                title=_strip_html(title),
-                summary=summary,
-                published_at=_parse_date(entry),
-                tags=list(self._tags),
-            ))
+            articles.append(
+                Article(
+                    url=url,
+                    source_key=self.key,
+                    title=_strip_html(title),
+                    summary=summary,
+                    published_at=_parse_date(entry),
+                    tags=list(self._tags),
+                )
+            )
 
         return articles

@@ -1,5 +1,7 @@
 from ze_onboarding.coordinator import OnboardingCoordinator, OnboardingError
-from ze_onboarding.persistence import OnboardingPersistence as PostgresOnboardingPersistence
+from ze_onboarding.persistence import (
+    OnboardingPersistence as PostgresOnboardingPersistence,
+)
 from ze_onboarding.providers import CoreOnboardingProvider
 from ze_onboarding.reset import ResetService
 from ze_onboarding.store import OnboardingStore as PostgresOnboardingStore

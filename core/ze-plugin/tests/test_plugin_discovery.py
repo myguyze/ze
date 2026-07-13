@@ -1,4 +1,5 @@
 """Tests for plugin discovery topological sort in bootstrap.py."""
+
 from __future__ import annotations
 
 import pytest
@@ -11,6 +12,7 @@ from ze_plugin.bootstrap import topological_sort as _topological_sort
 # ---------------------------------------------------------------------------
 # Minimal stub plugins — no __init__ needed, just class-level depends_on
 # ---------------------------------------------------------------------------
+
 
 class _Alpha(ZePlugin):
     depends_on: tuple = ()
@@ -31,6 +33,7 @@ class _Delta(ZePlugin):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 def test_no_deps_any_order_preserved():
     # When there are no deps the output should equal the input order.

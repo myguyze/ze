@@ -163,7 +163,9 @@ def register_harness_hooks(settings: Any) -> ComponentCollectionHook:
     log.info("component_collection_hook_registered")
 
     register_hook(ToolCallCapHook(max_tool_calls=settings.max_tool_calls_per_turn))
-    log.info("tool_call_cap_hook_registered", max_tool_calls=settings.max_tool_calls_per_turn)
+    log.info(
+        "tool_call_cap_hook_registered", max_tool_calls=settings.max_tool_calls_per_turn
+    )
     return component_hook
 
 
@@ -247,7 +249,9 @@ def engine_data_domains(pool: asyncpg.Pool) -> list[DataDomain]:
             delete_order=10,
             importer=_mk_import("onboarding_sessions"),
             count=_mk_count("onboarding_sessions"),
-            size_bytes=_mk_size("onboarding_steps", "onboarding_sessions", "onboarding_seeds"),
+            size_bytes=_mk_size(
+                "onboarding_steps", "onboarding_sessions", "onboarding_seeds"
+            ),
         ),
         DataDomain(
             "graph.checkpoints",

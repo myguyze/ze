@@ -8,6 +8,7 @@ from ze_personal.contacts.tools import get_contact_channels, set_contact_channel
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_store(handles: list[ChannelHandle] | None = None):
     store = AsyncMock()
     store.get_handles = AsyncMock(return_value=handles or [])
@@ -17,10 +18,13 @@ def make_store(handles: list[ChannelHandle] | None = None):
 
 # ── get_contact_channels ──────────────────────────────────────────────────────
 
+
 async def test_get_contact_channels_returns_handles():
     contact_id = str(uuid4())
     handles = [
-        ChannelHandle(ChannelType.EMAIL, "alice@example.com", preferred=True, verified=True),
+        ChannelHandle(
+            ChannelType.EMAIL, "alice@example.com", preferred=True, verified=True
+        ),
         ChannelHandle(ChannelType.LINKEDIN, "https://linkedin.com/in/alice"),
     ]
     store = make_store(handles)
@@ -64,6 +68,7 @@ async def test_get_contact_channels_fails_on_invalid_uuid():
 
 
 # ── set_contact_channel ───────────────────────────────────────────────────────
+
 
 async def test_set_contact_channel_upserts_handle():
     contact_id = str(uuid4())

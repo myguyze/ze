@@ -1,4 +1,5 @@
 """Two-call adversarial LLM critic for dream artifacts."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -40,7 +41,9 @@ class DreamCritic:
         Returns (a_verdict, a_reason, b_verdict, b_reason).
         b_* are None if A fails — skip B on early failure.
         """
-        source_block = "\n---\n".join(source_texts[:5]) if source_texts else "(no sources)"
+        source_block = (
+            "\n---\n".join(source_texts[:5]) if source_texts else "(no sources)"
+        )
 
         a_verdict, a_reason = await self._call(
             system=_CALL_A_SYSTEM,
@@ -71,10 +74,7 @@ class DreamCritic:
         temperature: float,
         label: str,
     ) -> tuple[str, str | None]:
-        prompt = (
-            f"SOURCE MATERIAL:\n{source_block}\n\n"
-            f"CLAIM TO EVALUATE:\n{content}"
-        )
+        prompt = f"SOURCE MATERIAL:\n{source_block}\n\nCLAIM TO EVALUATE:\n{content}"
         try:
             raw = await self._client.complete(
                 messages=[{"role": "user", "content": prompt}],

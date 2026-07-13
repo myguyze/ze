@@ -56,7 +56,10 @@ class CalendarReminderStore:
                 INSERT INTO calendar_reminders (event_id, event_title, fire_at, label)
                 VALUES ($1, $2, $3, $4) RETURNING id
                 """,
-                event_id, event_title, fire_at, label,
+                event_id,
+                event_title,
+                fire_at,
+                label,
             )
         return row["id"]
 

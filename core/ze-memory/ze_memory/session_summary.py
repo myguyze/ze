@@ -65,11 +65,17 @@ class SessionSummariser:
 
         inactivity_minutes = self._inactivity_minutes()
         min_episodes = int(cfg.get("min_episodes", SESSION_SUMMARY_MIN_EPISODES))
-        max_sessions = int(cfg.get("max_sessions_per_run", SESSION_SUMMARY_MAX_SESSIONS_PER_RUN))
-        max_tokens = int(cfg.get("max_transcript_tokens", SESSION_SUMMARY_MAX_TRANSCRIPT_TOKENS))
+        max_sessions = int(
+            cfg.get("max_sessions_per_run", SESSION_SUMMARY_MAX_SESSIONS_PER_RUN)
+        )
+        max_tokens = int(
+            cfg.get("max_transcript_tokens", SESSION_SUMMARY_MAX_TRANSCRIPT_TOKENS)
+        )
         model = cfg.get("model", self._synthesis_model())
 
-        candidates = await self._fetch_candidates(inactivity_minutes, min_episodes, max_sessions)
+        candidates = await self._fetch_candidates(
+            inactivity_minutes, min_episodes, max_sessions
+        )
         summarised = 0
 
         for row in candidates:
@@ -93,9 +99,15 @@ class SessionSummariser:
                     embedding=embedding,
                 )
                 summarised += 1
-                log.info("session_summary_written", session_id=session_id, episodes=len(episodes))
+                log.info(
+                    "session_summary_written",
+                    session_id=session_id,
+                    episodes=len(episodes),
+                )
             except Exception as exc:
-                log.warning("session_summary_failed", session_id=session_id, error=str(exc))
+                log.warning(
+                    "session_summary_failed", session_id=session_id, error=str(exc)
+                )
 
         if summarised:
             log.info("session_summary_job_complete", summarised=summarised)
@@ -154,10 +166,7 @@ class SessionSummariser:
 
     def _build_transcript(self, episodes: list, max_tokens: int) -> str:
         """Build transcript text, dropping oldest turns first when over the token limit."""
-        turns = [
-            f"User: {ep['prompt']}\nZe: {ep['response']}"
-            for ep in episodes
-        ]
+        turns = [f"User: {ep['prompt']}\nZe: {ep['response']}" for ep in episodes]
         while turns:
             text = "\n---\n".join(turns)
             if len(text) // 4 <= max_tokens:
@@ -165,20 +174,27 @@ class SessionSummariser:
             turns.pop(0)
         return ""
 
-    async def _generate_summary(self, session_id: str, transcript: str, model: str) -> str | None:
+    async def _generate_summary(
+        self, session_id: str, transcript: str, model: str
+    ) -> str | None:
         if not transcript:
             return None
         try:
             return await self._client.complete(
                 messages=[
                     {"role": "system", "content": _SUMMARY_SYSTEM},
-                    {"role": "user", "content": f"Session: {session_id}\n\n{transcript}"},
+                    {
+                        "role": "user",
+                        "content": f"Session: {session_id}\n\n{transcript}",
+                    },
                 ],
                 model=model,
                 max_tokens=400,
             )
         except Exception as exc:
-            log.warning("session_summary_llm_failed", session_id=session_id, error=str(exc))
+            log.warning(
+                "session_summary_llm_failed", session_id=session_id, error=str(exc)
+            )
             return None
 
     async def _upsert(
@@ -225,9 +241,15 @@ class SessionSummariser:
             return _DEFAULT_INACTIVITY_MINUTES
         cfg = getattr(self._settings, "config", None)
         if isinstance(cfg, dict):
-            return int(cfg.get("session_inactivity_minutes", _DEFAULT_INACTIVITY_MINUTES))
+            return int(
+                cfg.get("session_inactivity_minutes", _DEFAULT_INACTIVITY_MINUTES)
+            )
         if isinstance(self._settings, dict):
-            return int(self._settings.get("session_inactivity_minutes", _DEFAULT_INACTIVITY_MINUTES))
+            return int(
+                self._settings.get(
+                    "session_inactivity_minutes", _DEFAULT_INACTIVITY_MINUTES
+                )
+            )
         return _DEFAULT_INACTIVITY_MINUTES
 
     def _synthesis_model(self) -> str:

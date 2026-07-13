@@ -12,9 +12,9 @@ log = get_logger(__name__)
 
 _MODE_TO_DECISION: dict[Mode, GateDecision] = {
     Mode.AUTONOMOUS: GateDecision.EXECUTE,
-    Mode.CONFIRM:    GateDecision.AWAIT_CONFIRMATION,  # → draft_response node → graph pause → await_confirmation
+    Mode.CONFIRM: GateDecision.AWAIT_CONFIRMATION,  # → draft_response node → graph pause → await_confirmation
     Mode.DRAFT_ONLY: GateDecision.DRAFT,
-    Mode.DISABLED:   GateDecision.BLOCKED,
+    Mode.DISABLED: GateDecision.BLOCKED,
 }
 # DRAFT/EXECUTE boundary: Mode.CONFIRM produces AWAIT_CONFIRMATION which routes the graph
 # through draft_response (agent runs in DRAFT mode) then pauses at await_confirmation.
@@ -27,16 +27,16 @@ _MODE_TO_DECISION: dict[Mode, GateDecision] = {
 # DISABLED is handled before this table is consulted.
 _MODE_CEILING: dict[Mode, GateDecision] = {
     Mode.AUTONOMOUS: GateDecision.EXECUTE,
-    Mode.CONFIRM:    GateDecision.EXECUTE,
+    Mode.CONFIRM: GateDecision.EXECUTE,
     Mode.DRAFT_ONLY: GateDecision.DRAFT,
 }
 
 # Higher rank = more permissive. Override is allowed only if its rank ≤ ceiling rank.
 _DECISION_RANK: dict[GateDecision, int] = {
-    GateDecision.BLOCKED:            0,
-    GateDecision.DRAFT:              1,
+    GateDecision.BLOCKED: 0,
+    GateDecision.DRAFT: 1,
     GateDecision.AWAIT_CONFIRMATION: 2,
-    GateDecision.EXECUTE:            3,
+    GateDecision.EXECUTE: 3,
 }
 
 
@@ -110,7 +110,9 @@ class CapabilityGate:
         class_mode: Mode | None = intent_def.mode if intent_def is not None else None
         if class_mode is None:
             class_mode = getattr(agent_cls, "default_mode", Mode.CONFIRM)
-            log.debug("capability_default_mode", agent=agent, intent=intent, mode=class_mode)
+            log.debug(
+                "capability_default_mode", agent=agent, intent=intent, mode=class_mode
+            )
         persistent_mode: Mode | None = (
             self._persistent_cache.get((agent, intent))
             if self._persistent_cache is not None
@@ -137,7 +139,9 @@ class CapabilityGate:
             return base
 
         if override_mode == Mode.DISABLED:
-            log.warning("capability_disabled_override_ignored", agent=agent, intent=intent)
+            log.warning(
+                "capability_disabled_override_ignored", agent=agent, intent=intent
+            )
             return base
 
         requested = _MODE_TO_DECISION[override_mode]

@@ -1,4 +1,5 @@
 """Tests for OpenRouterClient.transcribe()."""
+
 import base64
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,7 +11,9 @@ from ze_core.openrouter.client import OpenRouterClient
 @pytest.fixture
 def client():
     with patch("ze_core.openrouter.client.OpenRouter", return_value=MagicMock()):
-        c = OpenRouterClient(api_key="test-key", base_url="https://openrouter.ai/api/v1")
+        c = OpenRouterClient(
+            api_key="test-key", base_url="https://openrouter.ai/api/v1"
+        )
         c.complete = AsyncMock(return_value="transcribed text")
         return c
 
@@ -49,7 +52,9 @@ async def test_transcribe_passes_duration_as_audio_seconds(client):
         return "ok"
 
     client.complete = _complete
-    await client.transcribe(b"audio", "ogg", model="openai/whisper-1", duration_seconds=12.5)
+    await client.transcribe(
+        b"audio", "ogg", model="openai/whisper-1", duration_seconds=12.5
+    )
 
     assert captured[0]["audio_seconds"] == 12.5
 
@@ -76,7 +81,9 @@ async def test_transcribe_normalises_mime_format(client):
         return "ok"
 
     client.complete = _complete
-    await client.transcribe(b"audio", "audio/ogg; codecs=opus", model="openai/whisper-1")
+    await client.transcribe(
+        b"audio", "audio/ogg; codecs=opus", model="openai/whisper-1"
+    )
 
     block = captured[0][0]["content"][0]
     assert block["input_audio"]["format"] == "ogg"

@@ -36,7 +36,9 @@ async def get_portfolio_summary(
             "notional": Decimal("0"),
             "unrealised_pnl": Decimal("0"),
             "position_count": 0,
-            "updated_at": account.updated_at.isoformat() if account.updated_at else None,
+            "updated_at": account.updated_at.isoformat()
+            if account.updated_at
+            else None,
         }
 
     for pos in all_positions:
@@ -78,7 +80,9 @@ async def get_portfolio_summary(
                 "quantity": str(p.quantity),
                 "notional": str(p.notional.quantize(Decimal("0.01"))),
                 "unrealised_pnl": f"{'+' if p.unrealised_pnl >= 0 else ''}{p.unrealised_pnl.quantize(Decimal('0.01'))}",
-                "unrealised_pnl_pct": _pnl_pct(p.unrealised_pnl, p.notional - p.unrealised_pnl),
+                "unrealised_pnl_pct": _pnl_pct(
+                    p.unrealised_pnl, p.notional - p.unrealised_pnl
+                ),
             }
             for p in all_positions
         ]
@@ -103,7 +107,9 @@ async def get_positions(
             "quantity": str(p.quantity),
             "notional": str(p.notional.quantize(Decimal("0.01"))),
             "unrealised_pnl": f"{'+' if p.unrealised_pnl >= 0 else ''}{p.unrealised_pnl.quantize(Decimal('0.01'))}",
-            "unrealised_pnl_pct": _pnl_pct(p.unrealised_pnl, p.notional - p.unrealised_pnl),
+            "unrealised_pnl_pct": _pnl_pct(
+                p.unrealised_pnl, p.notional - p.unrealised_pnl
+            ),
         }
         for p in positions
     ]
@@ -123,7 +129,9 @@ async def get_spending_summary(
     until: str | None = None,
 ) -> dict:
     now = datetime.now(timezone.utc)
-    since_dt = _parse_or_default(since, now.replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+    since_dt = _parse_or_default(
+        since, now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    )
     until_dt = _parse_or_default(until, now)
 
     summaries = await transaction_store.spending_by_category(

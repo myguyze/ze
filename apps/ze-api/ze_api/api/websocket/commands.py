@@ -17,7 +17,9 @@ def build_capabilities_summary() -> str:
 
     agents = get_registered_agents()
     lines: list[str] = ["Here's what I can help you with:\n"]
-    for cls in sorted(agents.values(), key=lambda c: getattr(c, "display_name", "") or c.name):
+    for cls in sorted(
+        agents.values(), key=lambda c: getattr(c, "display_name", "") or c.name
+    ):
         if not getattr(cls, "enabled", True):
             continue
         label = getattr(cls, "display_name", "") or cls.name.capitalize()
@@ -51,25 +53,31 @@ async def handle_command(
 
     if name == "costs":
         from ze_core.telemetry.rest import build_cost_summary
+
         try:
             summary = await build_cost_summary(container)
-            await conn_mgr.send_frame({
-                "type": "message",
-                "message": ephemeral_assistant_message(summary),
-            })
+            await conn_mgr.send_frame(
+                {
+                    "type": "message",
+                    "message": ephemeral_assistant_message(summary),
+                }
+            )
         except Exception as exc:
             log.warning("ws_costs_command_failed", error=str(exc))
         return pending_config
 
     if name == "status":
         from ze_automation.rest import build_status_summary
+
         period_days = int(data.get("period_days", 1))
         try:
             summary = await build_status_summary(container, period_days=period_days)
-            await conn_mgr.send_frame({
-                "type": "message",
-                "message": ephemeral_assistant_message(summary),
-            })
+            await conn_mgr.send_frame(
+                {
+                    "type": "message",
+                    "message": ephemeral_assistant_message(summary),
+                }
+            )
         except Exception as exc:
             log.warning("ws_status_command_failed", error=str(exc))
         return pending_config
@@ -80,7 +88,9 @@ async def handle_command(
             await send_onboarding_view(conn_mgr, view)
         except Exception as exc:
             log.warning("ws_onboarding_command_failed", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Could not start onboarding."})
+            await conn_mgr.send_frame(
+                {"type": "error", "detail": "Could not start onboarding."}
+            )
         return pending_config
 
     if name == "reset_preview":
@@ -88,14 +98,20 @@ async def handle_command(
         try:
             preview = await container.reset_service.preview(scope)
             lines = [f"{table}: {count}" for table, count in preview.counts.items()]
-            text = "Reset preview:\n" + ("\n".join(lines) if lines else "Nothing to delete.")
-            await conn_mgr.send_frame({
-                "type": "message",
-                "message": ephemeral_assistant_message(text),
-            })
+            text = "Reset preview:\n" + (
+                "\n".join(lines) if lines else "Nothing to delete."
+            )
+            await conn_mgr.send_frame(
+                {
+                    "type": "message",
+                    "message": ephemeral_assistant_message(text),
+                }
+            )
         except Exception as exc:
             log.warning("ws_reset_preview_failed", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Could not preview reset."})
+            await conn_mgr.send_frame(
+                {"type": "error", "detail": "Could not preview reset."}
+            )
         return pending_config
 
     if name == "reset":
@@ -104,23 +120,31 @@ async def handle_command(
         try:
             result = await container.reset_service.reset(scope, confirm=confirm)
             lines = [f"{table}: {count}" for table, count in result.deleted.items()]
-            text = "Reset complete:\n" + ("\n".join(lines) if lines else "Nothing was deleted.")
-            await conn_mgr.send_frame({
-                "type": "message",
-                "message": ephemeral_assistant_message(text),
-            })
+            text = "Reset complete:\n" + (
+                "\n".join(lines) if lines else "Nothing was deleted."
+            )
+            await conn_mgr.send_frame(
+                {
+                    "type": "message",
+                    "message": ephemeral_assistant_message(text),
+                }
+            )
         except Exception as exc:
             log.warning("ws_reset_failed", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Could not reset state."})
+            await conn_mgr.send_frame(
+                {"type": "error", "detail": "Could not reset state."}
+            )
         return pending_config
 
     if name == "capabilities":
         try:
             summary = build_capabilities_summary()
-            await conn_mgr.send_frame({
-                "type": "message",
-                "message": ephemeral_assistant_message(summary),
-            })
+            await conn_mgr.send_frame(
+                {
+                    "type": "message",
+                    "message": ephemeral_assistant_message(summary),
+                }
+            )
         except Exception as exc:
             log.warning("ws_capabilities_command_failed", error=str(exc))
         return pending_config

@@ -1,4 +1,5 @@
 """Tests for retrieval_rerank.py — NLI row reranking helpers."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -10,7 +11,9 @@ from ze_memory.retrieval_rerank import nli_rank_score, rerank_row_ids, rerank_ro
 
 
 def test_nli_rank_score():
-    assert nli_rank_score({"entailment": 0.8, "neutral": 0.1, "contradiction": 0.1}) == pytest.approx(0.85)
+    assert nli_rank_score(
+        {"entailment": 0.8, "neutral": 0.1, "contradiction": 0.1}
+    ) == pytest.approx(0.85)
     assert nli_rank_score(None) == 0.0
 
 
@@ -20,10 +23,12 @@ async def test_rerank_rows_orders_by_nli_score():
         {"id": uuid4(), "value": "high relevance"},
     ]
     nli = AsyncMock()
-    nli.scores = AsyncMock(return_value=[
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
-        {"contradiction": 0.05, "neutral": 0.05, "entailment": 0.9},
-    ])
+    nli.scores = AsyncMock(
+        return_value=[
+            {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
+            {"contradiction": 0.05, "neutral": 0.05, "entailment": 0.9},
+        ]
+    )
 
     ordered = await rerank_rows(
         rows, "value", "user query", min_candidates=2, nli_client=nli
@@ -46,10 +51,12 @@ async def test_rerank_row_ids_returns_ordered_uuids():
         {"id": id_b, "value": "b"},
     ]
     nli = AsyncMock()
-    nli.scores = AsyncMock(return_value=[
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.1},
-    ])
+    nli.scores = AsyncMock(
+        return_value=[
+            {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
+            {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.1},
+        ]
+    )
 
     ids = await rerank_row_ids(rows, "value", "query", min_candidates=2, nli_client=nli)
 

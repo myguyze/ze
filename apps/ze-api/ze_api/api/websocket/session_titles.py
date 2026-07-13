@@ -38,7 +38,9 @@ async def _generate_and_save(
 
     try:
         generator = _title_generator(container)
-        title = await generator.generate(user_text=user_text, assistant_text=assistant_text)
+        title = await generator.generate(
+            user_text=user_text, assistant_text=assistant_text
+        )
         if not title:
             return
         await session_store.upsert(
@@ -48,7 +50,9 @@ async def _generate_and_save(
             update_title=True,
         )
     except Exception as exc:
-        log.warning("session_title_generation_failed", thread_id=thread_id, error=str(exc))
+        log.warning(
+            "session_title_generation_failed", thread_id=thread_id, error=str(exc)
+        )
 
 
 def schedule_session_title(
@@ -63,7 +67,9 @@ def schedule_session_title(
         return
 
     fire_and_forget(
-        _generate_and_save(container, session_store, thread_id, user_text, assistant_text),
+        _generate_and_save(
+            container, session_store, thread_id, user_text, assistant_text
+        ),
         label="session_title_generation",
     )
 

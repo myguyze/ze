@@ -12,17 +12,22 @@ async def list_events(
     query: str = "",
 ) -> list:
     from datetime import datetime, timezone
+
     now = datetime.now(timezone.utc).isoformat()
     service = credentials.calendar()
     result = await asyncio.to_thread(
-        lambda: service.events().list(
-            calendarId=calendar_id,
-            timeMin=now,
-            maxResults=max_results,
-            singleEvents=True,
-            orderBy="startTime",
-            **({"q": query} if query else {}),
-        ).execute()
+        lambda: (
+            service.events()
+            .list(
+                calendarId=calendar_id,
+                timeMin=now,
+                maxResults=max_results,
+                singleEvents=True,
+                orderBy="startTime",
+                **({"q": query} if query else {}),
+            )
+            .execute()
+        )
     )
     return result.get("items", [])
 
@@ -78,9 +83,11 @@ async def update_event(
         existing["description"] = description
 
     result = await asyncio.to_thread(
-        lambda: service.events().update(
-            calendarId=calendar_id, eventId=event_id, body=existing
-        ).execute()
+        lambda: (
+            service.events()
+            .update(calendarId=calendar_id, eventId=event_id, body=existing)
+            .execute()
+        )
     )
     return {"id": result.get("id"), "htmlLink": result.get("htmlLink")}
 
@@ -93,7 +100,7 @@ async def delete_event(
 ) -> None:
     service = credentials.calendar()
     await asyncio.to_thread(
-        lambda: service.events().delete(
-            calendarId=calendar_id, eventId=event_id
-        ).execute()
+        lambda: (
+            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+        )
     )

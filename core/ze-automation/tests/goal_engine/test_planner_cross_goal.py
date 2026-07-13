@@ -37,21 +37,21 @@ def _prior(
 
 
 def _plan_json(reuse_hint: str = "") -> str:
-    return json.dumps({
-        "milestones": [
-            {
-                "title": "Research market",
-                "description": "Survey the market landscape.",
-                "agent_hint": "research",
-                "intent": "read",
-                "sequence": 1,
-                "reuse_hint": reuse_hint,
-            }
-        ],
-        "gates": [
-            {"after_sequence": 1, "title": "Review research"}
-        ],
-    })
+    return json.dumps(
+        {
+            "milestones": [
+                {
+                    "title": "Research market",
+                    "description": "Survey the market landscape.",
+                    "agent_hint": "research",
+                    "intent": "read",
+                    "sequence": 1,
+                    "reuse_hint": reuse_hint,
+                }
+            ],
+            "gates": [{"after_sequence": 1, "title": "Review research"}],
+        }
+    )
 
 
 def _make_planner(response: str) -> GoalPlanner:
@@ -62,18 +62,21 @@ def _make_planner(response: str) -> GoalPlanner:
 
 # ── _parse_plan ───────────────────────────────────────────────────────────────
 
+
 def test_parse_plan_reads_reuse_hint():
-    milestones, _ = _parse_plan(_plan_json(reuse_hint="Prior goal 'X' did this 5 days ago."), uuid4())
+    milestones, _ = _parse_plan(
+        _plan_json(reuse_hint="Prior goal 'X' did this 5 days ago."), uuid4()
+    )
     assert milestones[0].reuse_hint == "Prior goal 'X' did this 5 days ago."
 
 
 def test_parse_plan_defaults_reuse_hint_to_empty_when_absent():
-    raw = json.dumps({
-        "milestones": [
-            {"title": "Step", "description": "Do it", "sequence": 1}
-        ],
-        "gates": [{"after_sequence": 1, "title": "Check"}],
-    })
+    raw = json.dumps(
+        {
+            "milestones": [{"title": "Step", "description": "Do it", "sequence": 1}],
+            "gates": [{"after_sequence": 1, "title": "Check"}],
+        }
+    )
     milestones, _ = _parse_plan(raw, uuid4())
     assert milestones[0].reuse_hint == ""
 
@@ -85,17 +88,25 @@ def test_parse_plan_truncates_reuse_hint_at_300_chars():
 
 
 def test_parse_plan_handles_null_reuse_hint():
-    raw = json.dumps({
-        "milestones": [
-            {"title": "Step", "description": "Do it", "sequence": 1, "reuse_hint": None}
-        ],
-        "gates": [{"after_sequence": 1, "title": "Check"}],
-    })
+    raw = json.dumps(
+        {
+            "milestones": [
+                {
+                    "title": "Step",
+                    "description": "Do it",
+                    "sequence": 1,
+                    "reuse_hint": None,
+                }
+            ],
+            "gates": [{"after_sequence": 1, "title": "Check"}],
+        }
+    )
     milestones, _ = _parse_plan(raw, uuid4())
     assert milestones[0].reuse_hint == ""
 
 
 # ── GoalPlanner.plan() ────────────────────────────────────────────────────────
+
 
 async def test_plan_with_empty_prior_work_sends_unchanged_prompt():
     planner = _make_planner(_plan_json())
@@ -144,19 +155,28 @@ async def test_plan_returns_milestones_with_reuse_hint():
 
 # ── GoalPlanner.replan_remaining() ───────────────────────────────────────────
 
+
 async def test_replan_with_prior_work_appends_prior_work_block():
     planner = _make_planner(_plan_json())
     goal = _goal()
     completed = [
         Milestone(
-            id=uuid4(), goal_id=goal.id, title="Done step", description="d",
-            sequence=1, status=__import__("ze_automation.goals.types", fromlist=["MilestoneStatus"]).MilestoneStatus.COMPLETED,
+            id=uuid4(),
+            goal_id=goal.id,
+            title="Done step",
+            description="d",
+            sequence=1,
+            status=__import__(
+                "ze_automation.goals.types", fromlist=["MilestoneStatus"]
+            ).MilestoneStatus.COMPLETED,
             output="Some output",
         )
     ]
     pw = _prior()
 
-    await planner.replan_remaining(goal, completed, "New direction", next_sequence=2, prior_work=[pw])
+    await planner.replan_remaining(
+        goal, completed, "New direction", next_sequence=2, prior_work=[pw]
+    )
 
     prompt = planner._client.complete.call_args.kwargs["messages"][0]["content"]
     assert "PRIOR WORK FROM OTHER GOALS" in prompt
@@ -167,7 +187,9 @@ async def test_replan_with_empty_prior_work_omits_prior_work_block():
     planner = _make_planner(_plan_json())
     goal = _goal()
 
-    await planner.replan_remaining(goal, [], "New direction", next_sequence=1, prior_work=[])
+    await planner.replan_remaining(
+        goal, [], "New direction", next_sequence=1, prior_work=[]
+    )
 
     prompt = planner._client.complete.call_args.kwargs["messages"][0]["content"]
     assert "PRIOR WORK" not in prompt
@@ -180,12 +202,16 @@ import json as _json  # noqa: E402
 from ze_automation.goals.types import GoalLearning  # noqa: E402
 
 
-def _learning(content="User prefers bullet-point summaries.", source="milestone") -> GoalLearning:
+def _learning(
+    content="User prefers bullet-point summaries.", source="milestone"
+) -> GoalLearning:
     return GoalLearning(goal_id=uuid4(), content=content, source=source)
 
 
 async def test_promote_learnings_returns_generalizable_facts():
-    response = _json.dumps({"facts": [{"key": "output_style", "value": "prefers bullet-point summaries"}]})
+    response = _json.dumps(
+        {"facts": [{"key": "output_style", "value": "prefers bullet-point summaries"}]}
+    )
     planner = _make_planner(response)
     facts = await planner.promote_learnings(_goal(), [_learning()])
     assert len(facts) == 1
@@ -222,7 +248,9 @@ async def test_promote_learnings_caps_at_five_facts():
 async def test_promote_learnings_includes_goal_context_in_prompt():
     planner = _make_planner(_json.dumps({"facts": []}))
     goal = _goal()
-    await planner.promote_learnings(goal, [_learning(content="Learned X", source="milestone")])
+    await planner.promote_learnings(
+        goal, [_learning(content="Learned X", source="milestone")]
+    )
     prompt = planner._client.complete.call_args.kwargs["messages"][0]["content"]
     assert goal.title in prompt
     assert goal.objective in prompt

@@ -17,7 +17,10 @@ from ze_sdk.proactive import ProactiveNotifier
 log = get_logger(__name__)
 
 
-@tool(access=ToolAccess.WRITE, description="Redirect a running goal with new instructions. Ze will finish its current step and then replan the remaining milestones incorporating your direction.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Redirect a running goal with new instructions. Ze will finish its current step and then replan the remaining milestones incorporating your direction.",
+)
 async def steer_goal(executor: GoalExecutor, goal_id: str, instruction: str) -> str:
     try:
         uid = UUID(goal_id)
@@ -44,7 +47,10 @@ async def list_goals(store: GoalStore) -> list:
     ]
 
 
-@tool(access=ToolAccess.READ, description="Get full status of a goal by its ID, including milestones and pending gate.")
+@tool(
+    access=ToolAccess.READ,
+    description="Get full status of a goal by its ID, including milestones and pending gate.",
+)
 async def get_goal_status(store: GoalStore, goal_id: str) -> dict:
     try:
         uid = UUID(goal_id)
@@ -67,7 +73,8 @@ async def get_goal_status(store: GoalStore, goal_id: str) -> dict:
         "title": goal.title,
         "status": goal.status.value,
         "objective": goal.objective,
-        "progress": f"{completed}/{total} milestones done" + (f" ({skipped} skipped)" if skipped else ""),
+        "progress": f"{completed}/{total} milestones done"
+        + (f" ({skipped} skipped)" if skipped else ""),
         "milestones": [
             {"sequence": m.sequence, "title": m.title, "status": m.status.value}
             for m in milestones
@@ -101,22 +108,27 @@ async def _check_convergence(
         new_goal_id=str(new_goal.id),
         overlapping_goal_id=str(conv.overlapping_goal_id),
     )
-    await notifier.push_notification(Notification(
-        content=(
-            f"<b>Goal overlap detected</b>\n\n"
-            f"<b>{_html.escape(new_goal.title)}</b> and "
-            f"<b>{_html.escape(conv.overlapping_goal_title)}</b> share scope: "
-            f"{_html.escape(conv.overlap_description)}\n\n"
-            f"Suggested approach: <i>{_html.escape(conv.suggestion)}</i>. "
-            f"Let me know if you'd like to share outputs between them, sequence one "
-            f"after the other, or keep them running independently."
-        ),
-        format="html",
-        urgency="normal",
-    ))
+    await notifier.push_notification(
+        Notification(
+            content=(
+                f"<b>Goal overlap detected</b>\n\n"
+                f"<b>{_html.escape(new_goal.title)}</b> and "
+                f"<b>{_html.escape(conv.overlapping_goal_title)}</b> share scope: "
+                f"{_html.escape(conv.overlap_description)}\n\n"
+                f"Suggested approach: <i>{_html.escape(conv.suggestion)}</i>. "
+                f"Let me know if you'd like to share outputs between them, sequence one "
+                f"after the other, or keep them running independently."
+            ),
+            format="html",
+            urgency="normal",
+        )
+    )
 
 
-@tool(access=ToolAccess.WRITE, description="Create a new goal and propose a milestone plan for user approval.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Create a new goal and propose a milestone plan for user approval.",
+)
 async def create_goal(
     store: GoalStore,
     planner: GoalPlanner,
@@ -189,7 +201,9 @@ async def create_goal(
         )
     )
 
-    asyncio.create_task(_check_convergence(store, planner, notifier, goal, active_goals))
+    asyncio.create_task(
+        _check_convergence(store, planner, notifier, goal, active_goals)
+    )
 
     return {
         "id": str(goal.id),
@@ -212,7 +226,10 @@ async def pause_goal(store: GoalStore, goal_id: str) -> dict:
     return {"title": goal.title, "status": "paused"}
 
 
-@tool(access=ToolAccess.WRITE, description="Resume a paused goal by its ID and continue execution.")
+@tool(
+    access=ToolAccess.WRITE,
+    description="Resume a paused goal by its ID and continue execution.",
+)
 async def resume_goal(store: GoalStore, executor: GoalExecutor, goal_id: str) -> dict:
     try:
         uid = UUID(goal_id)
@@ -222,14 +239,21 @@ async def resume_goal(store: GoalStore, executor: GoalExecutor, goal_id: str) ->
     if not goal:
         return {"error": f"Goal not found: {goal_id}"}
     if goal.status != GoalStatus.PAUSED:
-        return {"error": f"Goal '{goal.title}' is not paused (status: {goal.status.value})."}
+        return {
+            "error": f"Goal '{goal.title}' is not paused (status: {goal.status.value})."
+        }
     await store.update_status(uid, GoalStatus.ACTIVE)
     asyncio.create_task(executor.advance(uid))
     return {"title": goal.title, "status": "active"}
 
 
-@tool(access=ToolAccess.READ, description="Return the execution trace for a specific milestone — what tools Ze called and what they returned.")
-async def get_milestone_trace(store: GoalStore, goal_id: str, milestone_sequence: int) -> str:
+@tool(
+    access=ToolAccess.READ,
+    description="Return the execution trace for a specific milestone — what tools Ze called and what they returned.",
+)
+async def get_milestone_trace(
+    store: GoalStore, goal_id: str, milestone_sequence: int
+) -> str:
     try:
         uid = UUID(goal_id)
     except ValueError:
@@ -238,7 +262,9 @@ async def get_milestone_trace(store: GoalStore, goal_id: str, milestone_sequence
     milestones = await store.list_milestones(uid)
     target = next((m for m in milestones if m.sequence == milestone_sequence), None)
     if target is None:
-        return f"No milestone with sequence {milestone_sequence} found for goal {goal_id}."
+        return (
+            f"No milestone with sequence {milestone_sequence} found for goal {goal_id}."
+        )
 
     traces = await store.list_traces(goal_id=uid, milestone_id=target.id)
     if not traces:
@@ -250,6 +276,7 @@ async def get_milestone_trace(store: GoalStore, goal_id: str, milestone_sequence
         lines.append(f"  [{t.seq}] {t.tool_name} ({t.duration_ms}ms) — {status}")
         if t.args:
             import json as _json
+
             lines.append(f"       args: {_json.dumps(t.args)[:200]}")
         lines.append(f"       result: {t.result[:300]}")
     return "\n".join(lines)

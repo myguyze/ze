@@ -14,15 +14,17 @@ class AgentState(TypedDict):
     # ── Input ──────────────────────────────────────────────────────────────
     prompt: str
     session_id: str
-    session_overrides: dict[str, str]   # "agent.intent" → mode string
+    session_overrides: dict[str, str]  # "agent.intent" → mode string
 
     # ── Multimodal ─────────────────────────────────────────────────────────
-    input_modality: str         # "text" | "voice" | "image" — default "text"
-    audio_data: bytes | None    # raw audio bytes; cleared after preprocess transcribes them
-    audio_mime: str | None      # e.g. "audio/ogg; codecs=opus"
-    image_data: bytes | None    # raw image bytes; None for text/voice turns
-    image_mime: str | None      # "image/jpeg" | "image/png" | None
-    image_caption: str | None   # caption generated at preprocess; None until set
+    input_modality: str  # "text" | "voice" | "image" — default "text"
+    audio_data: (
+        bytes | None
+    )  # raw audio bytes; cleared after preprocess transcribes them
+    audio_mime: str | None  # e.g. "audio/ogg; codecs=opus"
+    image_data: bytes | None  # raw image bytes; None for text/voice turns
+    image_mime: str | None  # "image/jpeg" | "image/png" | None
+    image_caption: str | None  # caption generated at preprocess; None until set
 
     # ── Routing ────────────────────────────────────────────────────────────
     envelope: RoutingEnvelope | None
@@ -49,17 +51,17 @@ class AgentState(TypedDict):
     components: list[dict]
 
     # ── Dynamic plan (plan_sequential node) ────────────────────────────────
-    dynamic_plan_steps: list | None      # list[WorkflowStep]
-    dynamic_plan_high_risk: list         # indices requiring approval
+    dynamic_plan_steps: list | None  # list[WorkflowStep]
+    dynamic_plan_high_risk: list  # indices requiring approval
 
     # ── Correlation (Phase 58 — populated by correlate node) ──────────────────
-    correlations: list                   # list[Hypothesis]; qualifying inline hypotheses
+    correlations: list  # list[Hypothesis]; qualifying inline hypotheses
 
     # ── Routing context (populated by pre-route plugin nodes) ────────────────
-    routing_hints: str | None            # injected by inject_goal_routing_context
+    routing_hints: str | None  # injected by inject_goal_routing_context
 
     # ── Trace (Phase 89 — populated by record_trace node) ────────────────────
-    message_trace: Any | None            # MessageTrace; saved to DB after message is persisted
+    message_trace: Any | None  # MessageTrace; saved to DB after message is persisted
 
 
 def build_state_type(plugins: list[ZePlugin]) -> type:
@@ -71,7 +73,9 @@ def build_state_type(plugins: list[ZePlugin]) -> type:
 
     Returns AgentState unchanged when no plugins contribute state extensions.
     """
-    extensions = [p.state_extensions() for p in plugins if p.state_extensions() is not None]
+    extensions = [
+        p.state_extensions() for p in plugins if p.state_extensions() is not None
+    ]
     if not extensions:
         return AgentState
     # TypedDict supports multiple inheritance; Python resolves the metaclass from bases.

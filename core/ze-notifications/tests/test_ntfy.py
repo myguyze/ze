@@ -25,13 +25,16 @@ def make_config(token: str | None = "tok") -> NtfyConfig:
     return NtfyConfig(base_url="https://ntfy.sh", topic="ze-test-abc123", token=token)
 
 
-def make_notifier(token: str | None = "tok", status: int = 200) -> tuple[NtfyNotifier, MagicMock]:
+def make_notifier(
+    token: str | None = "tok", status: int = 200
+) -> tuple[NtfyNotifier, MagicMock]:
     session = make_session(status)
     notifier = NtfyNotifier(config=make_config(token), session=session)
     return notifier, session
 
 
 # ── Header tests ──────────────────────────────────────────────────────────────
+
 
 async def test_push_sends_title_and_priority(caplog):
     posted_headers = {}
@@ -85,7 +88,9 @@ async def test_push_omits_authorization_when_no_token():
 
     session = MagicMock()
     session.post = _post
-    config = NtfyConfig(base_url="https://self-hosted.example.com", topic="ze", token=None)
+    config = NtfyConfig(
+        base_url="https://self-hosted.example.com", topic="ze", token=None
+    )
     notifier = NtfyNotifier(config=config, session=session)
 
     await notifier.push(Notification(title="T", body="B"))
@@ -152,6 +157,7 @@ async def test_push_omits_click_header_when_data_none():
 
 # ── Error swallowing ──────────────────────────────────────────────────────────
 
+
 async def test_push_swallows_http_4xx(caplog):
     session = make_session(status=403)
     notifier = NtfyNotifier(config=make_config(), session=session)
@@ -179,6 +185,7 @@ async def test_push_swallows_connection_error(caplog):
 
 # ── Startup validation ────────────────────────────────────────────────────────
 
+
 def test_init_raises_when_ntfy_sh_and_no_token():
     session = MagicMock()
     config = NtfyConfig(base_url="https://ntfy.sh", topic="ze-test", token=None)
@@ -193,6 +200,7 @@ def test_init_ok_when_self_hosted_and_no_token():
 
 
 # ── Deep link encoding ────────────────────────────────────────────────────────
+
 
 def test_encode_deep_link_simple():
     url = _encode_deep_link({"screen": "chat"})

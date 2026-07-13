@@ -8,6 +8,7 @@ Covers:
   - SurfacingGate.check_inline() / check_push() — surfacing bars
   - SurfacingGate.apply_feedback() — threshold tuning with clamps
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -21,7 +22,13 @@ import pytest
 from ze_memory.admission import AdmissionGate
 from ze_memory.relevance import RelevanceModel
 from ze_memory.surfacing import SurfacingConfig, SurfacingGate
-from ze_memory.types import EntityRef, ProfileFacet, RelevanceEntry, RelevanceSet, Signal
+from ze_memory.types import (
+    EntityRef,
+    ProfileFacet,
+    RelevanceEntry,
+    RelevanceSet,
+    Signal,
+)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -97,9 +104,7 @@ def _rset_with_entries(*pairs: tuple[str, float]) -> RelevanceSet:
 
 
 async def test_relevance_set_includes_profile_topics():
-    model = _make_relevance_model(
-        profile=[_make_facet("topics", "AI, robotics")]
-    )
+    model = _make_relevance_model(profile=[_make_facet("topics", "AI, robotics")])
     rset = await model.build()
     assert "ai" in rset.entries
     assert "robotics" in rset.entries
@@ -639,11 +644,14 @@ def _make_surfacing_gate_with_store(
     **cfg_overrides,
 ) -> tuple[SurfacingGate, Any, Any]:
     from ze_memory.relevance import RelevanceModel
+
     memory_store = _make_memory_store(profile=profile)
     relevance_model = MagicMock(spec=RelevanceModel)
     relevance_model.invalidate_cache = MagicMock()
     cfg = SurfacingConfig(**cfg_overrides) if cfg_overrides else SurfacingConfig()
-    gate = SurfacingGate(config=cfg, memory_store=memory_store, relevance_model=relevance_model)
+    gate = SurfacingGate(
+        config=cfg, memory_store=memory_store, relevance_model=relevance_model
+    )
     return gate, memory_store, relevance_model
 
 

@@ -5,9 +5,9 @@ from ze_components.molecules import center, col
 from ze_components.molecules.col import Col
 
 _STATUS_BADGE: dict[str, object] = {
-    "done":    success,
-    "active":  info,
-    "error":   error,
+    "done": success,
+    "active": info,
+    "error": error,
 }
 
 

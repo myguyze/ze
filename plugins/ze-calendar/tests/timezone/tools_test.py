@@ -9,7 +9,9 @@ def svc():
 
 
 async def test_world_time_known_locations(svc):
-    results = await world_time(timezone_service=svc, locations=["London", "Tokyo", "UTC"])
+    results = await world_time(
+        timezone_service=svc, locations=["London", "Tokyo", "UTC"]
+    )
     assert len(results) == 3
     for r in results:
         assert "error" not in r

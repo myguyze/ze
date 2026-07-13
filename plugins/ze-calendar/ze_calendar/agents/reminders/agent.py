@@ -86,7 +86,9 @@ class RemindersAgent(BaseAgent):
             session_id=ctx.session_id,
             tool_calls=len(loop_tool_calls),
         )
-        return AgentResult(agent=self.name, response=response, tool_calls=loop_tool_calls)
+        return AgentResult(
+            agent=self.name, response=response, tool_calls=loop_tool_calls
+        )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
         result = await self.run(ctx)

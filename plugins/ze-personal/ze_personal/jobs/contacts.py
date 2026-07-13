@@ -8,6 +8,7 @@ from ze_agents.interface.types import Action, Notification
 @proactive_job
 class ContactReviewNotifier:
     job_id = "contact_review"
+
     def __init__(
         self,
         person_store: PersonStore,

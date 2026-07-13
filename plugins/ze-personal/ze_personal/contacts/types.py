@@ -16,14 +16,14 @@ SOURCE_WEIGHTS: dict[str, float] = {
 class Person:
     name: str
     aliases: list[str] = field(default_factory=list)
-    classification: str = "unknown"          # "personal" | "professional" | "unknown"
+    classification: str = "unknown"  # "personal" | "professional" | "unknown"
     classification_confidence: float = 0.0
     relationship_to_user: str = ""
     contact_info: dict[str, str] = field(default_factory=dict)
     notes: str = ""
     confirmed: bool = False
     dismissed: bool = False
-    confidence: float = 0.0                  # max(source.weight) across all sources
+    confidence: float = 0.0  # max(source.weight) across all sources
     id: UUID | None = None
     first_seen: datetime | None = None
     last_mentioned: datetime | None = None
@@ -34,7 +34,7 @@ class Person:
 @dataclass
 class PersonSource:
     person_id: UUID
-    source_type: str                         # "conversation" | "manual" | "email" | "calendar" | "research"
+    source_type: str  # "conversation" | "manual" | "email" | "calendar" | "research"
     weight: float
     raw_context: str = ""
     id: UUID | None = None
@@ -55,6 +55,7 @@ class PersonRelationship:
 @dataclass
 class PersonCandidate:
     """Intermediate type produced by extraction — not yet stored as a Person."""
+
     name: str
     inferred_classification: str = "unknown"
     inferred_relationship: str = ""
@@ -77,8 +78,9 @@ class StaleFollowUpNudge:
 @dataclass
 class ContactProposal:
     """Typed output of any contact extraction step (extractors, consolidator, agents)."""
+
     name: str
-    classification: str = "unknown"        # "personal" | "professional" | "unknown"
+    classification: str = "unknown"  # "personal" | "professional" | "unknown"
     relationship: str = ""
     contact_info: dict[str, str] = field(default_factory=dict)
     confidence: float = 0.5

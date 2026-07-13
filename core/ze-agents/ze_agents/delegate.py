@@ -4,6 +4,7 @@ Not registered via @tool — handled specially in agentic_loop alongside
 _OPENROUTER_TOOL_SCHEMAS, which keeps it out of the tool registry and avoids
 conflicts with clear_tool_registry() in tests.
 """
+
 from __future__ import annotations
 
 import time

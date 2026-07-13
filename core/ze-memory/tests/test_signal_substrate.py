@@ -1,4 +1,5 @@
 """Tests for Phase 55 signal substrate: ingest_signal, entity resolution, graph traversal."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -14,6 +15,7 @@ from ze_memory.types import EntityRef, Signal, SignalIngestResult
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 class _async_ctx:
     def __init__(self, conn):
@@ -77,6 +79,7 @@ def _make_signal(entities=None, **kwargs) -> Signal:
 
 # ── ingest_signal: basic write path ──────────────────────────────────────────
 
+
 async def test_ingest_signal_inserts_row_and_returns_created_true():
     signal_id = uuid4()
     conn = _make_conn()
@@ -125,6 +128,7 @@ async def test_ingest_signal_expires_at_is_none_on_ingest():
 
 # ── ingest_signal: deduplication ─────────────────────────────────────────────
 
+
 async def test_ingest_signal_dedupes_on_source_and_external_ref():
     existing_id = uuid4()
     conn = _make_conn()
@@ -155,6 +159,7 @@ async def test_ingest_signal_deduped_does_not_insert():
 
 # ── ingest_signal: entity resolution and MENTIONS edges ──────────────────────
 
+
 async def test_ingest_signal_creates_mentions_edges_for_each_entity():
     signal_id = uuid4()
     entity_id = uuid4()
@@ -182,11 +187,15 @@ async def test_ingest_signal_creates_mentions_edge_for_topic_entity():
     signal_id = uuid4()
     topic_entity_id = uuid4()
     conn = _make_conn()
-    conn.fetchrow = AsyncMock(side_effect=[None, {"id": signal_id}, {"id": topic_entity_id}])
+    conn.fetchrow = AsyncMock(
+        side_effect=[None, {"id": signal_id}, {"id": topic_entity_id}]
+    )
     gs = _make_graph_store()
     store, _ = _make_store(conn, graph_store=gs)
 
-    signal = _make_signal(entities=[EntityRef(name="artificial-intelligence", entity_type="topic")])
+    signal = _make_signal(
+        entities=[EntityRef(name="artificial-intelligence", entity_type="topic")]
+    )
     result = await store.ingest_signal(signal)
 
     assert result is not None
@@ -206,10 +215,12 @@ async def test_ingest_signal_multiple_entities_produces_multiple_edges():
     gs = _make_graph_store()
     store, _ = _make_store(conn, graph_store=gs)
 
-    signal = _make_signal(entities=[
-        EntityRef(name="Anthropic", entity_type="org"),
-        EntityRef(name="machine-learning", entity_type="topic"),
-    ])
+    signal = _make_signal(
+        entities=[
+            EntityRef(name="Anthropic", entity_type="org"),
+            EntityRef(name="machine-learning", entity_type="topic"),
+        ]
+    )
     result = await store.ingest_signal(signal)
 
     assert result is not None
@@ -259,6 +270,7 @@ async def test_ingest_signal_swallows_db_error():
 
 # ── entity resolution: non-person types ──────────────────────────────────────
 
+
 async def test_resolve_entity_ref_creates_org_entity():
     org_id = uuid4()
     conn = _make_conn()
@@ -266,7 +278,9 @@ async def test_resolve_entity_ref_creates_org_entity():
     store, _ = _make_store(conn)
 
     existing: dict = {}
-    result = await store._resolve_entity_ref(EntityRef(name="OpenAI", entity_type="org"), existing)
+    result = await store._resolve_entity_ref(
+        EntityRef(name="OpenAI", entity_type="org"), existing
+    )
 
     assert result == org_id
     assert existing["openai"] == org_id
@@ -281,7 +295,9 @@ async def test_resolve_entity_ref_creates_topic_entity():
     store, _ = _make_store(conn)
 
     existing: dict = {}
-    result = await store._resolve_entity_ref(EntityRef(name="machine-learning", entity_type="topic"), existing)
+    result = await store._resolve_entity_ref(
+        EntityRef(name="machine-learning", entity_type="topic"), existing
+    )
 
     assert result == topic_id
     insert_args = conn.fetchrow.call_args[0]
@@ -295,7 +311,9 @@ async def test_resolve_entity_ref_creates_ticker_entity():
     store, _ = _make_store(conn)
 
     existing: dict = {}
-    result = await store._resolve_entity_ref(EntityRef(name="NVDA", entity_type="ticker"), existing)
+    result = await store._resolve_entity_ref(
+        EntityRef(name="NVDA", entity_type="ticker"), existing
+    )
 
     assert result == ticker_id
     insert_args = conn.fetchrow.call_args[0]
@@ -309,8 +327,12 @@ async def test_resolve_entity_ref_uses_cache_on_second_call():
     store, _ = _make_store(conn)
 
     existing: dict = {}
-    first = await store._resolve_entity_ref(EntityRef(name="Anthropic", entity_type="org"), existing)
-    second = await store._resolve_entity_ref(EntityRef(name="Anthropic", entity_type="org"), existing)
+    first = await store._resolve_entity_ref(
+        EntityRef(name="Anthropic", entity_type="org"), existing
+    )
+    second = await store._resolve_entity_ref(
+        EntityRef(name="Anthropic", entity_type="org"), existing
+    )
 
     assert first == second == entity_id
     # DB only called once — second call hits the cache
@@ -321,7 +343,9 @@ async def test_resolve_entity_ref_returns_none_for_empty_name():
     conn = _make_conn()
     store, _ = _make_store(conn)
     existing: dict = {}
-    result = await store._resolve_entity_ref(EntityRef(name="", entity_type="topic"), existing)
+    result = await store._resolve_entity_ref(
+        EntityRef(name="", entity_type="topic"), existing
+    )
     assert result is None
     conn.fetchrow.assert_not_awaited()
 
@@ -331,7 +355,9 @@ async def test_resolve_entity_ref_returns_none_on_db_error():
     conn.fetchrow = AsyncMock(side_effect=RuntimeError("constraint"))
     store, _ = _make_store(conn)
     existing: dict = {}
-    result = await store._resolve_entity_ref(EntityRef(name="BadCo", entity_type="org"), existing)
+    result = await store._resolve_entity_ref(
+        EntityRef(name="BadCo", entity_type="org"), existing
+    )
     assert result is None
 
 
@@ -351,6 +377,7 @@ async def test_resolve_participant_names_delegates_to_entity_ref_as_person():
 
 
 # ── graph traversal: signal_ids bucketed correctly ────────────────────────────
+
 
 class TestExpandSignalBucketing:
     def _make_row(self, source_id, target_id, target_type, predicate=MENTIONS):

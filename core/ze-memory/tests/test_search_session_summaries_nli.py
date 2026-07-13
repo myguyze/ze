@@ -1,4 +1,5 @@
 """Tests for NLI re-ranking in search_session_summaries."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -35,10 +36,12 @@ async def test_search_session_summaries_reranks_by_nli():
     conn.fetch = AsyncMock(return_value=rows)
 
     nli = AsyncMock()
-    nli.scores = AsyncMock(return_value=[
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
-        {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
-    ])
+    nli.scores = AsyncMock(
+        return_value=[
+            {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.2},
+            {"contradiction": 0.1, "neutral": 0.1, "entailment": 0.9},
+        ]
+    )
 
     store = PostgresMemoryStore.__new__(PostgresMemoryStore)
     store._pool = MagicMock()

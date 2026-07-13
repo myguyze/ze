@@ -86,8 +86,12 @@ class MemoryConsolidator:
         silent_threshold = cfg.get("merge_silent_threshold", MERGE_SILENT_THRESHOLD)
         llm_threshold = cfg.get("merge_llm_threshold", MERGE_LLM_THRESHOLD)
         nli_lower = float(nli_cfg.get("nli_lower_cosine_bound", NLI_LOWER_COSINE_BOUND))
-        nli_contra = float(nli_cfg.get("nli_contradiction_threshold", NLI_CONTRADICTION_THRESHOLD))
-        nli_entail = float(nli_cfg.get("nli_entailment_threshold", NLI_ENTAILMENT_THRESHOLD))
+        nli_contra = float(
+            nli_cfg.get("nli_contradiction_threshold", NLI_CONTRADICTION_THRESHOLD)
+        )
+        nli_entail = float(
+            nli_cfg.get("nli_entailment_threshold", NLI_ENTAILMENT_THRESHOLD)
+        )
 
         rows = await self._store.fetch_active_facts()
         if len(rows) < 2:
@@ -132,7 +136,10 @@ class MemoryConsolidator:
 
             scores = await nli.scores(nli_batch_pairs)
             for j_idx, sim, score in zip(nli_batch_j, nli_batch_sims, scores):
-                if rows[i]["id"] in contradicted_ids or rows[j_idx]["id"] in contradicted_ids:
+                if (
+                    rows[i]["id"] in contradicted_ids
+                    or rows[j_idx]["id"] in contradicted_ids
+                ):
                     continue
                 if score is None:
                     continue
@@ -180,7 +187,9 @@ class MemoryConsolidator:
         contradicted_ttl = cfg.get("contradicted_ttl_days", CONTRADICTED_TTL_DAYS)
         hard = await self._store.delete_expired_facts()
         hard += await self._store.delete_contradicted_facts(contradicted_ttl)
-        soft = await self._store.soft_expire_unreviewed_facts(unreviewed_ttl, grace_days)
+        soft = await self._store.soft_expire_unreviewed_facts(
+            unreviewed_ttl, grace_days
+        )
         return soft, hard
 
     async def archive_episodes(self) -> tuple[int, int]:
@@ -204,13 +213,15 @@ class MemoryConsolidator:
         )
         try:
             archive_text = await self._client.complete(
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"Create a concise archival summary of these"
-                        f" {len(candidates)} conversations:\n\n{parts}"
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Create a concise archival summary of these"
+                            f" {len(candidates)} conversations:\n\n{parts}"
+                        ),
+                    }
+                ],
                 model=self._synthesis_model(),
             )
         except Exception as exc:
@@ -245,7 +256,9 @@ class MemoryConsolidator:
             session_id = session["session_id"]
 
             if await self._store.session_has_eager_summary(session_id):
-                deleted = await self._store.delete_raw_session_episodes(session_id, recency_days)
+                deleted = await self._store.delete_raw_session_episodes(
+                    session_id, recency_days
+                )
                 if deleted:
                     archived += 1
                     log.info(
@@ -255,7 +268,9 @@ class MemoryConsolidator:
                     )
                 continue
 
-            episodes = await self._store.fetch_raw_session_episodes(session_id, recency_days)
+            episodes = await self._store.fetch_raw_session_episodes(
+                session_id, recency_days
+            )
             if len(episodes) < min_session_episodes:
                 continue
 
@@ -291,14 +306,16 @@ class MemoryConsolidator:
     async def _llm_merge(self, value_a: str, value_b: str) -> str | None:
         try:
             return await self._client.complete(
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"Merge these two similar facts into one concise fact:\n"
-                        f"Fact 1: {value_a}\nFact 2: {value_b}\n"
-                        "Return only the merged fact text, nothing else."
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Merge these two similar facts into one concise fact:\n"
+                            f"Fact 1: {value_a}\nFact 2: {value_b}\n"
+                            "Return only the merged fact text, nothing else."
+                        ),
+                    }
+                ],
                 model=self._synthesis_model(),
             )
         except Exception as exc:

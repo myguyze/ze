@@ -46,7 +46,9 @@ def build_news_page(articles: list[Article]) -> list[dict[str, Any]]:
     if not articles:
         children: list[object] = [
             text("No articles yet."),
-            muted("Articles are fetched from your configured RSS sources every 30 minutes."),
+            muted(
+                "Articles are fetched from your configured RSS sources every 30 minutes."
+            ),
         ]
     else:
         children = [_article_card(article) for article in articles]

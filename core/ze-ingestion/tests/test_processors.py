@@ -7,11 +7,21 @@ from ze_ingestion.processors.text import TextProcessor
 from ze_ingestion.types import ContentType, RawContent
 
 
-def _raw(data: bytes, content_type: ContentType = ContentType.WEB_PAGE, mime: str = "text/html") -> RawContent:
-    return RawContent(content_type=content_type, source_url="https://example.com", data=data, mime_type=mime)
+def _raw(
+    data: bytes,
+    content_type: ContentType = ContentType.WEB_PAGE,
+    mime: str = "text/html",
+) -> RawContent:
+    return RawContent(
+        content_type=content_type,
+        source_url="https://example.com",
+        data=data,
+        mime_type=mime,
+    )
 
 
 # --- TextProcessor ---
+
 
 class TestTextProcessor:
     @pytest.fixture
@@ -25,7 +35,9 @@ class TestTextProcessor:
         assert result.content_type == ContentType.PLAIN_TEXT
         assert result.source_url == "https://example.com"
 
-    async def test_handles_invalid_utf8_with_replacement(self, proc: TextProcessor) -> None:
+    async def test_handles_invalid_utf8_with_replacement(
+        self, proc: TextProcessor
+    ) -> None:
         raw = _raw(b"Hello \xff world", ContentType.PLAIN_TEXT, "text/plain")
         result = await proc.process(raw)
         assert "Hello" in result.text
@@ -42,6 +54,7 @@ class TestTextProcessor:
 
 
 # --- HtmlProcessor ---
+
 
 class TestHtmlProcessor:
     @pytest.fixture

@@ -2,7 +2,10 @@ import asyncio
 import random
 import re
 
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_playwright
+from playwright.async_api import (
+    TimeoutError as PlaywrightTimeoutError,
+    async_playwright,
+)
 
 _USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -31,16 +34,21 @@ async def extract(url: str, timeout_ms: int = 15000) -> dict:
 
             try:
                 from playwright_stealth import stealth_async
+
                 await stealth_async(page)
             except Exception:
                 pass
 
             resp = None
             try:
-                resp = await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+                resp = await page.goto(
+                    url, wait_until="networkidle", timeout=timeout_ms
+                )
             except PlaywrightTimeoutError:
                 try:
-                    resp = await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                    resp = await page.goto(
+                        url, wait_until="domcontentloaded", timeout=timeout_ms
+                    )
                 except PlaywrightTimeoutError:
                     return {"url": url, "title": "", "text": "", "status_code": 504}
 
@@ -63,6 +71,11 @@ async def extract(url: str, timeout_ms: int = 15000) -> dict:
             if len(text) < _MIN_TEXT_LEN:
                 return {"url": url, "title": title, "text": "", "status_code": 403}
 
-            return {"url": url, "title": title, "text": text, "status_code": status_code}
+            return {
+                "url": url,
+                "title": title,
+                "text": text,
+                "status_code": status_code,
+            }
         finally:
             await browser.close()

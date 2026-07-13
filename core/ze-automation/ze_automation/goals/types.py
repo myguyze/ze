@@ -8,10 +8,10 @@ from uuid import UUID
 
 
 class SuggestionStatus(StrEnum):
-    PENDING   = "pending"
-    ACCEPTED  = "accepted"
+    PENDING = "pending"
+    ACCEPTED = "accepted"
     DISMISSED = "dismissed"
-    EXPIRED   = "expired"
+    EXPIRED = "expired"
 
 
 @dataclass
@@ -29,27 +29,27 @@ class GoalSuggestion:
 
 
 class GoalStatus(StrEnum):
-    PLANNING      = "planning"
-    ACTIVE        = "active"
+    PLANNING = "planning"
+    ACTIVE = "active"
     AWAITING_GATE = "awaiting_gate"
-    PAUSED        = "paused"
-    COMPLETED     = "completed"
-    ABANDONED     = "abandoned"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
 
 
 class MilestoneStatus(StrEnum):
-    PENDING     = "pending"
+    PENDING = "pending"
     IN_PROGRESS = "in_progress"
-    COMPLETED   = "completed"
-    SKIPPED     = "skipped"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
 
 
 class GateStatus(StrEnum):
-    PENDING           = "pending"
+    PENDING = "pending"
     AWAITING_APPROVAL = "awaiting_approval"
-    APPROVED          = "approved"
-    STOPPED           = "stopped"
-    REDIRECTED        = "redirected"
+    APPROVED = "approved"
+    STOPPED = "stopped"
+    REDIRECTED = "redirected"
 
 
 @dataclass
@@ -74,7 +74,7 @@ class PriorMilestoneOutput:
     goal_title: str
     milestone_id: UUID
     milestone_title: str
-    output_snippet: str      # first 200 chars of milestone output
+    output_snippet: str  # first 200 chars of milestone output
     completed_days_ago: int
 
 

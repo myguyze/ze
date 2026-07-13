@@ -126,9 +126,7 @@ class NewsPreferenceBuilder:
 
         exclusions = _dedupe_terms(exclusions)
         include_preferences = [p for p in preferences if p.polarity == "include"]
-        interest_text = " | ".join(
-            f"{p.source}:{p.topic}" for p in include_preferences
-        )
+        interest_text = " | ".join(f"{p.source}:{p.topic}" for p in include_preferences)
 
         return PersonalizationContext(
             interest_text=interest_text,
@@ -225,14 +223,18 @@ def _extract_exclusion(text: str) -> str | None:
         idx = lowered.find(pattern)
         if idx == -1:
             continue
-        topic = text[idx + len(pattern):].strip(" :.-?!\"'")
+        topic = text[idx + len(pattern) :].strip(" :.-?!\"'")
         return _clean_topic(topic)
 
-    no_match = re.search(r"\bno\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9 -]{1,60})", text, re.IGNORECASE)
+    no_match = re.search(
+        r"\bno\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9 -]{1,60})", text, re.IGNORECASE
+    )
     if no_match:
         return _clean_topic(no_match.group(1))
 
-    less_match = re.search(r"\bless\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9 -]{1,60})", text, re.IGNORECASE)
+    less_match = re.search(
+        r"\bless\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9 -]{1,60})", text, re.IGNORECASE
+    )
     if less_match:
         return _clean_topic(less_match.group(1))
 
@@ -240,7 +242,12 @@ def _extract_exclusion(text: str) -> str | None:
 
 
 def _clean_topic(text: str) -> str | None:
-    topic = re.split(r"\b(?:news|articles|headlines|please|again|from now on)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    topic = re.split(
+        r"\b(?:news|articles|headlines|please|again|from now on)\b",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
     topic = topic.strip(" :.-?!\"'")
     topic = re.sub(r"^(?:me|about|on|more|any)\s+", "", topic, flags=re.IGNORECASE)
     return topic if topic else None
@@ -248,8 +255,7 @@ def _clean_topic(text: str) -> str | None:
 
 def _split_topics(value: str) -> list[str]:
     topics = [
-        part.strip(" :.-")
-        for part in re.split(r"\s*(?:,|;|\||/|\band\b)\s*", value)
+        part.strip(" :.-") for part in re.split(r"\s*(?:,|;|\||/|\band\b)\s*", value)
     ]
     return [topic for topic in topics if topic]
 

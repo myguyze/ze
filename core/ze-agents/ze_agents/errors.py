@@ -8,6 +8,7 @@ ZeError = ZeCoreError
 
 # ── Routing ───────────────────────────────────────────────────────────────────
 
+
 class RoutingError(ZeCoreError):
     """Routing failed after all attempts."""
 
@@ -17,6 +18,7 @@ class InvalidPromptError(RoutingError):
 
 
 # ── Agents ────────────────────────────────────────────────────────────────────
+
 
 class AgentError(ZeCoreError):
     """An agent failed during execution."""
@@ -36,6 +38,7 @@ class AgentConfigError(AgentError):
 
 # ── Interface ─────────────────────────────────────────────────────────────────
 
+
 class InterfaceError(ZeCoreError):
     """Base class for interface errors."""
 
@@ -46,17 +49,20 @@ class InterfaceConfigError(InterfaceError):
 
 # ── Capability ────────────────────────────────────────────────────────────────
 
+
 class CapabilityError(ZeCoreError):
     """Capability gate error."""
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────
 
+
 class MemoryError(ZeCoreError):
     """Memory store operation failed."""
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
+
 
 class UnknownToolError(AgentError):
     """No tool registered for the requested name."""
@@ -67,6 +73,7 @@ class ToolBlockedError(AgentError):
 
 
 # ── Workflow ──────────────────────────────────────────────────────────────────
+
 
 class WorkflowError(ZeCoreError):
     """Base class for workflow errors."""
@@ -82,6 +89,7 @@ class WorkflowExecutionError(WorkflowError):
 
 # ── Goals ─────────────────────────────────────────────────────────────────────
 
+
 class GoalError(ZeCoreError):
     """Base class for goal errors."""
 
@@ -95,6 +103,7 @@ class GoalExecutionError(GoalError):
 
 
 # ── Persona ───────────────────────────────────────────────────────────────────
+
 
 class PersonaError(ZeCoreError):
     """Base class for persona errors."""
@@ -110,6 +119,7 @@ class UnknownDialError(PersonaError):
 
 # ── OpenRouter ────────────────────────────────────────────────────────────────
 
+
 class OpenRouterError(ZeCoreError):
     """OpenRouter API call failed."""
 
@@ -123,6 +133,7 @@ class RateLimitError(OpenRouterError):
 
 
 # ── Harness ───────────────────────────────────────────────────────────────────
+
 
 class AgentAbortedError(AgentError):
     """Raised inside agentic_loop when an AbortToken fires or on_loop_start aborts."""
@@ -146,11 +157,13 @@ class HookAbort(AgentError):
 
 # ── Onboarding ────────────────────────────────────────────────────────────────
 
+
 class OnboardingError(ZeCoreError):
     """Onboarding flow failed or received an invalid submission."""
 
 
 # ── Channels ──────────────────────────────────────────────────────────────────
+
 
 class ChannelError(ZeCoreError):
     """Base class for channel errors."""

@@ -43,7 +43,9 @@ def mock_pool():
 def client(container, mock_pool):
     pool, conn = mock_pool
     conn.fetch = AsyncMock(return_value=[])
-    conn.fetchrow = AsyncMock(return_value={"total_tokens": 0, "total_cost_usd": 0, "total_calls": 0})
+    conn.fetchrow = AsyncMock(
+        return_value={"total_tokens": 0, "total_cost_usd": 0, "total_calls": 0}
+    )
 
     container.pool = pool
 

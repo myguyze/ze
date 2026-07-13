@@ -9,6 +9,7 @@ from ze_sdk.memory import MemoryContext
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_client(response: str = "Here are your workflows.") -> AsyncMock:
     client = AsyncMock()
     client.complete_with_tools = AsyncMock(return_value=(response, None))
@@ -38,12 +39,15 @@ def make_agent(client=None) -> WorkflowManagerAgent:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
+
 def test_workflow_agent_is_registered():
     from ze_agents.registry import _registry
+
     assert "workflow" in _registry
 
 
 # ── run() — basic structure ───────────────────────────────────────────────────
+
 
 async def test_run_returns_agent_result():
     result = await make_agent().run(make_ctx())
@@ -59,6 +63,7 @@ async def test_run_returns_response_from_agentic_loop():
 
 # ── run() — tool call round-trips ────────────────────────────────────────────
 
+
 async def test_run_lists_workflows_via_tool():
 
     from ze_automation.workflow.types import Workflow, WorkflowStep
@@ -66,20 +71,30 @@ async def test_run_lists_workflows_via_tool():
     from datetime import datetime
 
     store = AsyncMock()
-    store.list_all = AsyncMock(return_value=[
-        Workflow(
-            id=uuid4(), name="daily-digest", description="Send a daily summary",
-            steps=[WorkflowStep(task="Fetch news")], schedule="0 8 * * *",
-            enabled=True, last_run_at=None, next_run_at=None,
-            created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
-        )
-    ])
+    store.list_all = AsyncMock(
+        return_value=[
+            Workflow(
+                id=uuid4(),
+                name="daily-digest",
+                description="Send a daily summary",
+                steps=[WorkflowStep(task="Fetch news")],
+                schedule="0 8 * * *",
+                enabled=True,
+                last_run_at=None,
+                next_run_at=None,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+        ]
+    )
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "list_workflows", "arguments": {}}]),
-        ("You have 1 workflow: daily-digest.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (None, [{"id": "c1", "name": "list_workflows", "arguments": {}}]),
+            ("You have 1 workflow: daily-digest.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = WorkflowManagerAgent(
@@ -92,7 +107,9 @@ async def test_run_lists_workflows_via_tool():
 
     store.list_all.assert_called_once()
     assert result.response == "You have 1 workflow: daily-digest."
-    assert len([tc for tc in result.tool_calls if tc.tool_name == "list_workflows"]) == 1
+    assert (
+        len([tc for tc in result.tool_calls if tc.tool_name == "list_workflows"]) == 1
+    )
 
 
 async def test_run_creates_workflow_via_tool():
@@ -105,6 +122,7 @@ async def test_run_creates_workflow_via_tool():
     store.get_by_name = AsyncMock(return_value=None)
 
     from ze_automation.workflow.types import WorkflowStep
+
     planner = AsyncMock()
     planner.plan = AsyncMock(return_value=[WorkflowStep(task="Fetch headlines")])
     planner.extract_schedule = AsyncMock(return_value="0 8 * * *")
@@ -113,14 +131,25 @@ async def test_run_creates_workflow_via_tool():
     scheduler.add_workflow = AsyncMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "create_workflow", "arguments": {
-            "workflow_name": "morning-digest",
-            "description": "Fetch headlines and email a summary",
-            "schedule_description": "every day at 8am",
-        }}]),
-        ("Created workflow morning-digest with 1 step, runs daily at 8am.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "create_workflow",
+                        "arguments": {
+                            "workflow_name": "morning-digest",
+                            "description": "Fetch headlines and email a summary",
+                            "schedule_description": "every day at 8am",
+                        },
+                    }
+                ],
+            ),
+            ("Created workflow morning-digest with 1 step, runs daily at 8am.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = WorkflowManagerAgent(
@@ -129,7 +158,9 @@ async def test_run_creates_workflow_via_tool():
         workflow_planner=planner,
         workflow_scheduler=scheduler,
     )
-    result = await agent.run(make_ctx("create a morning digest workflow", intent="manage"))
+    result = await agent.run(
+        make_ctx("create a morning digest workflow", intent="manage")
+    )
 
     store.create.assert_called_once()
     scheduler.add_workflow.assert_called_once()
@@ -144,10 +175,16 @@ async def test_run_updates_workflow_schedule_via_tool():
     from ze_automation.workflow.types import Workflow, WorkflowStep
 
     wf = Workflow(
-        id=uuid4(), name="daily-digest", description="desc",
-        steps=[WorkflowStep(task="Fetch news")], schedule="0 8 * * *", enabled=True,
-        last_run_at=None, next_run_at=None,
-        created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
+        id=uuid4(),
+        name="daily-digest",
+        description="desc",
+        steps=[WorkflowStep(task="Fetch news")],
+        schedule="0 8 * * *",
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     store = AsyncMock()
     store.get_by_name = AsyncMock(return_value=wf)
@@ -161,13 +198,24 @@ async def test_run_updates_workflow_schedule_via_tool():
     scheduler.add_workflow = AsyncMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "update_workflow", "arguments": {
-            "workflow_name": "daily-digest",
-            "schedule_description": "every Monday at 9am",
-        }}]),
-        ("Updated daily-digest to run every Monday at 9am.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "update_workflow",
+                        "arguments": {
+                            "workflow_name": "daily-digest",
+                            "schedule_description": "every Monday at 9am",
+                        },
+                    }
+                ],
+            ),
+            ("Updated daily-digest to run every Monday at 9am.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = WorkflowManagerAgent(
@@ -176,7 +224,9 @@ async def test_run_updates_workflow_schedule_via_tool():
         workflow_planner=planner,
         workflow_scheduler=scheduler,
     )
-    result = await agent.run(make_ctx("change daily-digest to Monday 9am", intent="manage"))
+    result = await agent.run(
+        make_ctx("change daily-digest to Monday 9am", intent="manage")
+    )
 
     planner.extract_schedule.assert_called_once_with("every Monday at 9am")
     store.update_schedule.assert_called_once()
@@ -193,10 +243,16 @@ async def test_run_trigger_workflow_via_tool():
     from ze_automation.workflow.types import Workflow
 
     wf = Workflow(
-        id=uuid4(), name="daily-digest", description="desc",
-        steps=[], schedule=None, enabled=True,
-        last_run_at=None, next_run_at=None,
-        created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
+        id=uuid4(),
+        name="daily-digest",
+        description="desc",
+        steps=[],
+        schedule=None,
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     store = AsyncMock()
     store.get_by_name = AsyncMock(return_value=wf)
@@ -204,10 +260,21 @@ async def test_run_trigger_workflow_via_tool():
     scheduler.trigger_now = AsyncMock()
 
     client = AsyncMock()
-    client.complete_with_tools = AsyncMock(side_effect=[
-        (None, [{"id": "c1", "name": "trigger_workflow", "arguments": {"workflow_name": "daily-digest"}}]),
-        ("Triggered daily-digest.", None),
-    ])
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "trigger_workflow",
+                        "arguments": {"workflow_name": "daily-digest"},
+                    }
+                ],
+            ),
+            ("Triggered daily-digest.", None),
+        ]
+    )
     client.complete = AsyncMock(return_value="ok")
 
     agent = WorkflowManagerAgent(
@@ -228,6 +295,7 @@ async def test_run_no_tool_calls_when_llm_answers_directly():
 
 
 # ── stream() ─────────────────────────────────────────────────────────────────
+
 
 async def test_stream_yields_response():
     client = make_client("Workflows: daily-digest.")

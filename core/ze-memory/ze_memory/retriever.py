@@ -113,7 +113,9 @@ class PostgresMemoryStore:
         if not request.module:
             raise InvalidRetrievalRequestError("RetrievalRequest.module is required")
         if request.query_embedding is None:
-            raise InvalidRetrievalRequestError("RetrievalRequest.query_embedding is required")
+            raise InvalidRetrievalRequestError(
+                "RetrievalRequest.query_embedding is required"
+            )
 
         policy = self._registry.for_module(request.module)
         cfg = nli_config(self._settings)
@@ -142,7 +144,8 @@ class PostgresMemoryStore:
         session_id = request.current_session_id
         if session_id and ctx.facts:
             synthesized_ids = [
-                f.id for f in ctx.facts
+                f.id
+                for f in ctx.facts
                 if getattr(f, "provenance", None) == "synthesized" and f.id is not None
             ]
             if synthesized_ids:
@@ -166,7 +169,9 @@ class PostgresMemoryStore:
             ctx.facts = budget_facts(fact_rows, DEFAULT_FACT_BUDGET_TOKENS)
 
         if cached.summary_ranked_ids:
-            summary_rows = await fetch_summaries_by_ids(self._pool, cached.summary_ranked_ids)
+            summary_rows = await fetch_summaries_by_ids(
+                self._pool, cached.summary_ranked_ids
+            )
             ctx.session_summaries = session_summaries_from_rows(
                 summary_rows,
                 DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS,
@@ -226,7 +231,9 @@ class PostgresMemoryStore:
             )
             if embedding is not None:
                 fire_and_forget(
-                    self._check_synthetic_corroboration(episode_id, _to_list(embedding)),
+                    self._check_synthetic_corroboration(
+                        episode_id, _to_list(embedding)
+                    ),
                     label="check_synthetic_corroboration",
                 )
             if self._graph_store is not None:
@@ -275,7 +282,11 @@ class PostgresMemoryStore:
                 state.next_action,
                 json.dumps(state.tool_cursors),
             )
-        if self._graph_store is not None and state.goal_id is not None and row is not None:
+        if (
+            self._graph_store is not None
+            and state.goal_id is not None
+            and row is not None
+        ):
             fire_and_forget(
                 self._link_task_state_to_goal(row["id"], state.goal_id),
                 label="link_task_state_to_goal",
@@ -284,12 +295,15 @@ class PostgresMemoryStore:
     async def propose_events(self, events: list[Event]) -> None:
         for event in events:
             try:
-                resolved = await self._resolve_participant_names(event.participant_names)
+                resolved = await self._resolve_participant_names(
+                    event.participant_names
+                )
                 participants = list({*event.participants, *resolved})
 
                 emb_list = (
                     _to_list(self._embedder.encode(event.title))
-                    if self._embedder is not None else None
+                    if self._embedder is not None
+                    else None
                 )
                 async with self._pool.acquire() as conn:
                     row = await conn.fetchrow(
@@ -321,7 +335,9 @@ class PostgresMemoryStore:
                         label="promote_event_outcome",
                     )
             except Exception as exc:
-                log.warning("memory_propose_event_failed", title=event.title, error=str(exc))
+                log.warning(
+                    "memory_propose_event_failed", title=event.title, error=str(exc)
+                )
 
     async def propose_procedure(
         self,
@@ -332,7 +348,8 @@ class PostgresMemoryStore:
         try:
             emb_list = (
                 _to_list(self._embedder.encode(f"{procedure.trigger} {procedure.name}"))
-                if self._embedder is not None else None
+                if self._embedder is not None
+                else None
             )
             async with self._pool.acquire() as conn:
                 row = await conn.fetchrow(
@@ -355,12 +372,16 @@ class PostgresMemoryStore:
             procedure_id: UUID = row["id"]
             if self._graph_store is not None and linked_task_id is not None:
                 fire_and_forget(
-                    self._link_procedure_to_task(procedure_id, linked_task_id, linked_task_type),
+                    self._link_procedure_to_task(
+                        procedure_id, linked_task_id, linked_task_type
+                    ),
                     label="link_procedure_to_task",
                 )
             return procedure_id
         except Exception as exc:
-            log.warning("memory_propose_procedure_failed", name=procedure.name, error=str(exc))
+            log.warning(
+                "memory_propose_procedure_failed", name=procedure.name, error=str(exc)
+            )
             return None
 
     async def upsert_entity(self, entity: Entity) -> UUID:
@@ -371,7 +392,8 @@ class PostgresMemoryStore:
         )
         emb_list = (
             _to_list(self._embedder.encode(entity.canonical_name))
-            if self._embedder is not None else None
+            if self._embedder is not None
+            else None
         )
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -602,6 +624,7 @@ class PostgresMemoryStore:
         if row is None:
             return None
         from ze_memory.projection import _session_summary_from_row
+
         return _session_summary_from_row(row)
 
     async def search_session_summaries(
@@ -614,10 +637,7 @@ class PostgresMemoryStore:
         cfg = nli_config(self._settings)
         emb_list = _to_list(embedding)
         fetch_limit = limit
-        if (
-            query_text
-            and cfg.get("nli_retrieval_rerank")
-        ):
+        if query_text and cfg.get("nli_retrieval_rerank"):
             fetch_limit = limit * int(cfg.get("nli_rerank_candidate_multiplier", 2))
 
         async with self._pool.acquire() as conn:
@@ -640,11 +660,16 @@ class PostgresMemoryStore:
             and cfg.get("nli_retrieval_rerank")
             and len(row_list) >= int(cfg.get("nli_rerank_min_candidates", 5))
         ):
-            row_list = await self._rerank_session_summary_rows(row_list, query_text, limit)
+            row_list = await self._rerank_session_summary_rows(
+                row_list, query_text, limit
+            )
 
         from ze_memory.projection import session_summaries_from_rows
         from ze_memory.defaults import DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
-        return session_summaries_from_rows(row_list, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS)
+
+        return session_summaries_from_rows(
+            row_list, DEFAULT_SESSION_SUMMARY_BUDGET_TOKENS
+        )
 
     async def _rerank_session_summary_rows(
         self,
@@ -840,27 +865,33 @@ class PostgresMemoryStore:
         """Create entity→fact (DESCRIBES) and fact→episode (SOURCED_FROM) edges."""
         try:
             if fact.subject_id is not None:
-                await self._graph_store.upsert_relationship(Relationship(
-                    source_id=fact.subject_id,
-                    source_type="entity",
-                    predicate=DESCRIBES,
-                    target_id=fact_id,
-                    target_type="fact",
-                    provenance_id=fact.source_episode_id,
-                    creation_method="extracted",
-                    confidence=fact.confidence,
-                ))
+                await self._graph_store.upsert_relationship(
+                    Relationship(
+                        source_id=fact.subject_id,
+                        source_type="entity",
+                        predicate=DESCRIBES,
+                        target_id=fact_id,
+                        target_type="fact",
+                        provenance_id=fact.source_episode_id,
+                        creation_method="extracted",
+                        confidence=fact.confidence,
+                    )
+                )
             if fact.source_episode_id is not None:
-                await self._graph_store.upsert_relationship(Relationship(
-                    source_id=fact_id,
-                    source_type="fact",
-                    predicate=SOURCED_FROM,
-                    target_id=fact.source_episode_id,
-                    target_type="episode",
-                    creation_method="explicit",
-                ))
+                await self._graph_store.upsert_relationship(
+                    Relationship(
+                        source_id=fact_id,
+                        source_type="fact",
+                        predicate=SOURCED_FROM,
+                        target_id=fact.source_episode_id,
+                        target_type="episode",
+                        creation_method="explicit",
+                    )
+                )
         except Exception as exc:
-            log.warning("graph_link_fact_failed", fact_predicate=fact.predicate, error=str(exc))
+            log.warning(
+                "graph_link_fact_failed", fact_predicate=fact.predicate, error=str(exc)
+            )
 
     async def _link_episode_entities(self, episode_id: UUID, text: str) -> None:
         """Scan episode text for entity name/alias matches; write MENTIONS edges and update linked_entity_ids."""
@@ -892,34 +923,48 @@ class PostgresMemoryStore:
                 )
 
             for entity_id in matched_ids:
-                await self._graph_store.upsert_relationship(Relationship(
-                    source_id=episode_id,
-                    source_type="episode",
-                    predicate=MENTIONS,
-                    target_id=entity_id,
-                    target_type="entity",
-                    creation_method="extracted",
-                    confidence=0.8,
-                ))
+                await self._graph_store.upsert_relationship(
+                    Relationship(
+                        source_id=episode_id,
+                        source_type="episode",
+                        predicate=MENTIONS,
+                        target_id=entity_id,
+                        target_type="entity",
+                        creation_method="extracted",
+                        confidence=0.8,
+                    )
+                )
 
             await refresh_episode_sensitive_flag(self._pool, episode_id)
         except Exception as exc:
-            log.warning("graph_link_episode_entities_failed", episode_id=str(episode_id), error=str(exc))
+            log.warning(
+                "graph_link_episode_entities_failed",
+                episode_id=str(episode_id),
+                error=str(exc),
+            )
 
-    async def _link_event_participants(self, event_id: UUID, participant_ids: list[UUID]) -> None:
+    async def _link_event_participants(
+        self, event_id: UUID, participant_ids: list[UUID]
+    ) -> None:
         """Create PARTICIPATES_IN edges from an event to each participant entity."""
         try:
             for entity_id in participant_ids:
-                await self._graph_store.upsert_relationship(Relationship(
-                    source_id=event_id,
-                    source_type="event",
-                    predicate=PARTICIPATES_IN,
-                    target_id=entity_id,
-                    target_type="entity",
-                    creation_method="explicit",
-                ))
+                await self._graph_store.upsert_relationship(
+                    Relationship(
+                        source_id=event_id,
+                        source_type="event",
+                        predicate=PARTICIPATES_IN,
+                        target_id=entity_id,
+                        target_type="entity",
+                        creation_method="explicit",
+                    )
+                )
         except Exception as exc:
-            log.warning("graph_link_event_participants_failed", event_id=str(event_id), error=str(exc))
+            log.warning(
+                "graph_link_event_participants_failed",
+                event_id=str(event_id),
+                error=str(exc),
+            )
 
     async def _link_procedure_to_task(
         self, procedure_id: UUID, task_id: UUID, task_type: str
@@ -927,14 +972,17 @@ class PostgresMemoryStore:
         """Create USES_PROCEDURE edge from a stored procedure to the goal/workflow that produced it."""
         try:
             from ze_memory.graph.predicates import USES_PROCEDURE
-            await self._graph_store.upsert_relationship(Relationship(
-                source_id=procedure_id,
-                source_type="procedure",
-                predicate=USES_PROCEDURE,
-                target_id=task_id,
-                target_type=task_type,
-                creation_method="explicit",
-            ))
+
+            await self._graph_store.upsert_relationship(
+                Relationship(
+                    source_id=procedure_id,
+                    source_type="procedure",
+                    predicate=USES_PROCEDURE,
+                    target_id=task_id,
+                    target_type=task_type,
+                    creation_method="explicit",
+                )
+            )
         except Exception as exc:
             log.warning(
                 "graph_link_procedure_failed",
@@ -942,19 +990,27 @@ class PostgresMemoryStore:
                 error=str(exc),
             )
 
-    async def _link_task_state_to_goal(self, task_state_id: UUID, goal_id: UUID) -> None:
+    async def _link_task_state_to_goal(
+        self, task_state_id: UUID, goal_id: UUID
+    ) -> None:
         """Create BELONGS_TO_GOAL edge from task state to its goal."""
         try:
-            await self._graph_store.upsert_relationship(Relationship(
-                source_id=task_state_id,
-                source_type="task_state",
-                predicate=BELONGS_TO_GOAL,
-                target_id=goal_id,
-                target_type="goal",
-                creation_method="explicit",
-            ))
+            await self._graph_store.upsert_relationship(
+                Relationship(
+                    source_id=task_state_id,
+                    source_type="task_state",
+                    predicate=BELONGS_TO_GOAL,
+                    target_id=goal_id,
+                    target_type="goal",
+                    creation_method="explicit",
+                )
+            )
         except Exception as exc:
-            log.warning("graph_link_task_state_failed", task_state_id=str(task_state_id), error=str(exc))
+            log.warning(
+                "graph_link_task_state_failed",
+                task_state_id=str(task_state_id),
+                error=str(exc),
+            )
 
     async def _resolve_entity_ref(
         self,
@@ -968,24 +1024,45 @@ class PostgresMemoryStore:
         if lower in existing:
             return existing[lower]
         try:
-            entity_id = await self.upsert_entity(Entity(
-                id=None,
-                entity_type=ref.entity_type,
-                canonical_name=ref.name.strip(),
-                aliases=[],
-                attrs={},
-            ))
+            entity_id = await self.upsert_entity(
+                Entity(
+                    id=None,
+                    entity_type=ref.entity_type,
+                    canonical_name=ref.name.strip(),
+                    aliases=[],
+                    attrs={},
+                )
+            )
             existing[lower] = entity_id
             return entity_id
         except Exception as exc:
-            log.warning("entity_ref_upsert_failed", name=ref.name, type=ref.entity_type, error=str(exc))
+            log.warning(
+                "entity_ref_upsert_failed",
+                name=ref.name,
+                type=ref.entity_type,
+                error=str(exc),
+            )
             return None
 
     async def _resolve_participant_names(self, names: list[str]) -> list[UUID]:
         """Resolve participant name strings to entity UUIDs, auto-creating when unmatched."""
         if not names:
             return []
-        _GENERIC = frozenset({"the", "a", "an", "all", "everyone", "team", "group", "us", "we", "they", "them"})
+        _GENERIC = frozenset(
+            {
+                "the",
+                "a",
+                "an",
+                "all",
+                "everyone",
+                "team",
+                "group",
+                "us",
+                "we",
+                "they",
+                "them",
+            }
+        )
 
         candidates: list[str] = []
         for raw in names:
@@ -1019,7 +1096,7 @@ class PostgresMemoryStore:
         existing: dict[str, UUID] = {}
         for row in entity_rows:
             existing[row["canonical_name"].lower()] = row["id"]
-            for alias in (row["aliases"] or []):
+            for alias in row["aliases"] or []:
                 if alias:
                     existing[alias.lower()] = row["id"]
 
@@ -1049,31 +1126,47 @@ class PostgresMemoryStore:
                 try:
                     fact_id = await self._write_fact_with_contradiction_check(fact)
                     if fact_id is not None:
-                        await self._graph_store.upsert_relationship(Relationship(
-                            source_id=event_id,
-                            source_type="event",
-                            predicate=PROMOTES_TO,
-                            target_id=fact_id,
-                            target_type="fact",
-                            creation_method="extracted",
-                            confidence=fact.confidence,
-                        ))
+                        await self._graph_store.upsert_relationship(
+                            Relationship(
+                                source_id=event_id,
+                                source_type="event",
+                                predicate=PROMOTES_TO,
+                                target_id=fact_id,
+                                target_type="fact",
+                                creation_method="extracted",
+                                confidence=fact.confidence,
+                            )
+                        )
                 except Exception as exc:
-                    log.warning("graph_promote_event_outcome_fact_failed", error=str(exc))
-            log.info("graph_promote_event_outcome_done", event_id=str(event_id), facts=len(facts))
+                    log.warning(
+                        "graph_promote_event_outcome_fact_failed", error=str(exc)
+                    )
+            log.info(
+                "graph_promote_event_outcome_done",
+                event_id=str(event_id),
+                facts=len(facts),
+            )
         except Exception as exc:
-            log.warning("graph_promote_event_outcome_failed", event_id=str(event_id), error=str(exc))
+            log.warning(
+                "graph_promote_event_outcome_failed",
+                event_id=str(event_id),
+                error=str(exc),
+            )
 
-    async def _generate_summary(self, episode_id: Any, prompt: str, response: str) -> str | None:
+    async def _generate_summary(
+        self, episode_id: Any, prompt: str, response: str
+    ) -> str | None:
         try:
             return await self._client.complete(
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        "Summarize this interaction in one sentence.\n"
-                        f"User: {prompt}\nAssistant: {response}"
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            "Summarize this interaction in one sentence.\n"
+                            f"User: {prompt}\nAssistant: {response}"
+                        ),
+                    }
+                ],
                 model=self._synthesis_model(),
                 max_tokens=100,
             )
@@ -1151,15 +1244,17 @@ class PostgresMemoryStore:
                     if entity_id is not None:
                         entity_ids.append(entity_id)
                         try:
-                            await self._graph_store.upsert_relationship(Relationship(
-                                source_id=signal_id,
-                                source_type="signal",
-                                predicate=MENTIONS,
-                                target_id=entity_id,
-                                target_type="entity",
-                                creation_method="extracted",
-                                confidence=0.9,
-                            ))
+                            await self._graph_store.upsert_relationship(
+                                Relationship(
+                                    source_id=signal_id,
+                                    source_type="signal",
+                                    predicate=MENTIONS,
+                                    target_id=entity_id,
+                                    target_type="entity",
+                                    creation_method="extracted",
+                                    confidence=0.9,
+                                )
+                            )
                         except Exception as exc:
                             log.warning(
                                 "signal_entity_edge_failed",
@@ -1174,9 +1269,13 @@ class PostgresMemoryStore:
                 source=signal.source,
                 entities=len(entity_ids),
             )
-            return SignalIngestResult(signal_id=signal_id, entity_ids=entity_ids, created=True)
+            return SignalIngestResult(
+                signal_id=signal_id, entity_ids=entity_ids, created=True
+            )
         except Exception as exc:
-            log.warning("signal_ingest_failed", external_ref=signal.external_ref, error=str(exc))
+            log.warning(
+                "signal_ingest_failed", external_ref=signal.external_ref, error=str(exc)
+            )
             return None
 
     @staticmethod

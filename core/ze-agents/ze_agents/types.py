@@ -9,32 +9,36 @@ from uuid import UUID
 
 # ── Capability types ──────────────────────────────────────────────────────────
 
+
 class Mode(str, Enum):
     AUTONOMOUS = "autonomous"
-    CONFIRM    = "confirm"
+    CONFIRM = "confirm"
     DRAFT_ONLY = "draft_only"
-    DISABLED   = "disabled"
+    DISABLED = "disabled"
 
 
 class GateDecision(str, Enum):
-    EXECUTE            = "execute"
-    DRAFT              = "draft"
+    EXECUTE = "execute"
+    DRAFT = "draft"
     AWAIT_CONFIRMATION = "confirm"
-    BLOCKED            = "blocked"
+    BLOCKED = "blocked"
 
 
 @dataclass
 class Intent:
     """An agent capability: execution mode and a human-readable description."""
+
     mode: Mode
     description: str = ""
 
 
 # ── Orchestration types ───────────────────────────────────────────────────────
 
+
 @dataclass
 class AbortToken:
     """Async abort signal for agentic loops. Set from outside; checked per iteration."""
+
     _event: asyncio.Event = field(default_factory=asyncio.Event)
     reason: str | None = None
 

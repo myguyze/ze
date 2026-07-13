@@ -1,4 +1,5 @@
 """Enrich a MemoryContext with data discovered via graph expansion."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -31,7 +32,9 @@ async def enrich_context(
     existing_entity_ids: set[UUID] = {e.id for e in ctx.entities if e.id is not None}
 
     new_fact_ids = [fid for fid in expansion.fact_ids if fid not in existing_fact_ids]
-    new_entity_ids = [eid for eid in expansion.entity_ids if eid not in existing_entity_ids]
+    new_entity_ids = [
+        eid for eid in expansion.entity_ids if eid not in existing_entity_ids
+    ]
 
     extra_facts: list[Fact] = []
     extra_entities: list[Entity] = []

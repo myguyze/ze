@@ -6,7 +6,7 @@ from typing import Literal
 
 @dataclass
 class ProgressBar:
-    value: float    # 0.0 – 1.0
+    value: float  # 0.0 – 1.0
     label: str | None = None
     type: Literal["progress"] = field(default="progress", init=False)
 

@@ -56,6 +56,7 @@ def _row(suggestion: GoalSuggestion) -> dict:
 
 # ── save ──────────────────────────────────────────────────────────────────────
 
+
 async def test_save_returns_true_on_insert():
     s = _suggestion()
     row = MagicMock()
@@ -82,6 +83,7 @@ async def test_save_returns_false_on_week_key_conflict():
 
 
 # ── mark_accepted ─────────────────────────────────────────────────────────────
+
 
 async def test_mark_accepted_returns_true_on_first_call():
     s = _suggestion()
@@ -111,6 +113,7 @@ async def test_mark_accepted_returns_false_on_second_call():
 
 # ── mark_dismissed ────────────────────────────────────────────────────────────
 
+
 async def test_mark_dismissed_returns_true_when_pending():
     s = _suggestion()
     row = MagicMock()
@@ -137,6 +140,7 @@ async def test_mark_dismissed_returns_false_when_already_accepted():
 
 # ── expire_stale_pending ──────────────────────────────────────────────────────
 
+
 async def test_expire_stale_pending_returns_count():
     pool, conn = _make_pool(execute="UPDATE 3")
     store = GoalSuggestionStore(pool)
@@ -161,6 +165,7 @@ async def test_expire_stale_pending_does_not_affect_resolved():
 
 
 # ── was_suggested_recently ────────────────────────────────────────────────────
+
 
 async def test_was_suggested_recently_returns_true_for_pending_within_window():
     row = MagicMock()
@@ -198,6 +203,7 @@ async def test_was_suggested_recently_excludes_expired():
 
 
 # ── resolve_short_id ──────────────────────────────────────────────────────────
+
 
 async def test_resolve_short_id_finds_suggestion_by_prefix():
     s = _suggestion()

@@ -31,10 +31,14 @@ async def test_lifespan_runs_auto_migrate_when_enabled(monkeypatch):
 
     get_settings.cache_clear()
     monkeypatch.setenv("AUTO_MIGRATE", "true")
-    monkeypatch.setenv("DATABASE_URL_SYNC", "postgresql+psycopg2://test:test@localhost/test")
+    monkeypatch.setenv(
+        "DATABASE_URL_SYNC", "postgresql+psycopg2://test:test@localhost/test"
+    )
     monkeypatch.setattr(app_module, "build_container", fake_build_container)
     monkeypatch.setattr(app_module.ze_migrate, "upgrade", fake_upgrade)
-    monkeypatch.setattr(app_module.ze_migrate, "assert_schema_ready", fake_assert_schema_ready)
+    monkeypatch.setattr(
+        app_module.ze_migrate, "assert_schema_ready", fake_assert_schema_ready
+    )
 
     app = SimpleNamespace(state=SimpleNamespace())
     async with app_module.lifespan(app):
@@ -60,9 +64,13 @@ async def test_lifespan_checks_schema_when_auto_migrate_disabled(monkeypatch):
 
     get_settings.cache_clear()
     monkeypatch.delenv("AUTO_MIGRATE", raising=False)
-    monkeypatch.setenv("DATABASE_URL_SYNC", "postgresql+psycopg2://test:test@localhost/test")
+    monkeypatch.setenv(
+        "DATABASE_URL_SYNC", "postgresql+psycopg2://test:test@localhost/test"
+    )
     monkeypatch.setattr(app_module, "build_container", fake_build_container)
-    monkeypatch.setattr(app_module.ze_migrate, "assert_schema_ready", fake_assert_schema_ready)
+    monkeypatch.setattr(
+        app_module.ze_migrate, "assert_schema_ready", fake_assert_schema_ready
+    )
 
     app = SimpleNamespace(state=SimpleNamespace())
     async with app_module.lifespan(app):

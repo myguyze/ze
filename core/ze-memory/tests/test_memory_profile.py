@@ -36,8 +36,11 @@ async def test_get_profile_returns_data():
 
 async def test_get_profile_none_when_all_empty():
     row = {
-        "preferences": "", "habits": "", "topics": "",
-        "relationships": "", "goals": "",
+        "preferences": "",
+        "habits": "",
+        "topics": "",
+        "relationships": "",
+        "goals": "",
         "updated_at": datetime(2026, 5, 20, tzinfo=timezone.utc),
         "version": 0,
     }

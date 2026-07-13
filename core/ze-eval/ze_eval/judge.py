@@ -8,6 +8,7 @@ The judge() function signature is the stable public interface. The internal
 implementation can be swapped for DeepEval's GEval in a follow-up phase
 without changing any callers — only this module changes.
 """
+
 from __future__ import annotations
 
 import json
@@ -101,7 +102,9 @@ async def judge(
     return JudgeScore(
         quality=int(parsed["quality"]),
         tone=int(parsed["tone"]),
-        tool_use=int(parsed["tool_use"]) if parsed.get("tool_use") is not None else None,
+        tool_use=int(parsed["tool_use"])
+        if parsed.get("tool_use") is not None
+        else None,
         pass_=bool(parsed["pass"]),
         reasoning=parsed["reasoning"],
     )

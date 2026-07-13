@@ -1,4 +1,5 @@
 """Tests for CapabilityGate persistent overrides and PostgresCapabilityOverrideStore."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -48,6 +49,7 @@ def _make_pool(rows=None):
 
 
 # ── PostgresCapabilityOverrideStore ──────────────────────────────────────────
+
 
 class TestPostgresCapabilityOverrideStore:
     async def test_get_returns_none_when_no_row(self):
@@ -101,6 +103,7 @@ class TestPostgresCapabilityOverrideStore:
 
 
 # ── CapabilityGate with persistent overrides ─────────────────────────────────
+
 
 class TestPersistentOverrides:
     async def test_persistent_override_takes_precedence_over_class_attribute(self):
@@ -171,7 +174,10 @@ class TestPersistentOverrides:
         gate = CapabilityGate(override_store=override_store)
         await gate.load_persistent_overrides()
         # Effective mode is CONFIRM, ceiling is EXECUTE — session override to AUTONOMOUS ok
-        assert gate.evaluate("email", "create", {"email.create": "autonomous"}) == GateDecision.EXECUTE
+        assert (
+            gate.evaluate("email", "create", {"email.create": "autonomous"})
+            == GateDecision.EXECUTE
+        )
 
     async def test_no_override_store_works_without_load(self):
         _register("cal", {"read": Mode.AUTONOMOUS})

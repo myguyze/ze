@@ -21,7 +21,9 @@ def _planner(client):
     return GoalPlanner(client=client, model="test-model")
 
 
-def _fact(key="language", value="User studies Spanish every morning before work") -> Fact:
+def _fact(
+    key="language", value="User studies Spanish every morning before work"
+) -> Fact:
     return Fact(predicate=key, value=value, confidence=0.9)
 
 
@@ -51,21 +53,25 @@ def _goal_with_retro(title="Travel to South America") -> Goal:
 
 
 def _valid_suggestion_json(title="Learn Spanish", rationale=None) -> str:
-    return json.dumps({
-        "suggestion": {
-            "title": title,
-            "objective": "Achieve conversational fluency in Spanish within 6 months using daily practice and immersion.",
-            "rationale": rationale or (
-                "Based on your retrospective for 'Travel to South America', language barrier was "
-                "identified as the main blocker during the trip to Argentina in 2024."
-            ),
-            "source_type": "retrospective",
-            "source_ref": "Travel to South America",
+    return json.dumps(
+        {
+            "suggestion": {
+                "title": title,
+                "objective": "Achieve conversational fluency in Spanish within 6 months using daily practice and immersion.",
+                "rationale": rationale
+                or (
+                    "Based on your retrospective for 'Travel to South America', language barrier was "
+                    "identified as the main blocker during the trip to Argentina in 2024."
+                ),
+                "source_type": "retrospective",
+                "source_ref": "Travel to South America",
+            }
         }
-    })
+    )
 
 
 # ── generate_suggestion: null / no signal ─────────────────────────────────────
+
 
 async def test_generate_suggestion_returns_none_on_null_response():
     client = _client(json.dumps({"suggestion": None}))
@@ -97,21 +103,29 @@ async def test_generate_suggestion_returns_none_when_no_signal():
 
 # ── generate_suggestion: confidence gate ─────────────────────────────────────
 
+
 async def test_generate_suggestion_returns_none_when_rationale_too_short():
     short_rationale = "User seems interested in Spanish."  # < 15 words, no proper nouns
-    client = _client(json.dumps({
-        "suggestion": {
-            "title": "Learn Spanish",
-            "objective": "Achieve conversational fluency in Spanish within 6 months.",
-            "rationale": short_rationale,
-            "source_type": "memory_facts",
-            "source_ref": "language",
-        }
-    }))
+    client = _client(
+        json.dumps(
+            {
+                "suggestion": {
+                    "title": "Learn Spanish",
+                    "objective": "Achieve conversational fluency in Spanish within 6 months.",
+                    "rationale": short_rationale,
+                    "source_type": "memory_facts",
+                    "source_ref": "language",
+                }
+            }
+        )
+    )
     planner = _planner(client)
 
     result = await planner.generate_suggestion(
-        memory_facts=[_fact()], episodes=[], retrospectives=[], active_goal_titles=[],
+        memory_facts=[_fact()],
+        episodes=[],
+        retrospectives=[],
+        active_goal_titles=[],
     )
 
     assert result is None
@@ -119,19 +133,26 @@ async def test_generate_suggestion_returns_none_when_rationale_too_short():
 
 async def test_generate_suggestion_returns_none_when_rationale_generic():
     generic_rationale = "the user has mentioned this topic several times in recent conversations about goals"
-    client = _client(json.dumps({
-        "suggestion": {
-            "title": "Learn Spanish",
-            "objective": "Achieve conversational fluency in Spanish within 6 months of practice.",
-            "rationale": generic_rationale,
-            "source_type": "memory_facts",
-            "source_ref": "language",
-        }
-    }))
+    client = _client(
+        json.dumps(
+            {
+                "suggestion": {
+                    "title": "Learn Spanish",
+                    "objective": "Achieve conversational fluency in Spanish within 6 months of practice.",
+                    "rationale": generic_rationale,
+                    "source_type": "memory_facts",
+                    "source_ref": "language",
+                }
+            }
+        )
+    )
     planner = _planner(client)
 
     result = await planner.generate_suggestion(
-        memory_facts=[_fact()], episodes=[], retrospectives=[], active_goal_titles=[],
+        memory_facts=[_fact()],
+        episodes=[],
+        retrospectives=[],
+        active_goal_titles=[],
     )
 
     assert result is None
@@ -142,7 +163,10 @@ async def test_generate_suggestion_returns_none_on_malformed_json():
     planner = _planner(client)
 
     result = await planner.generate_suggestion(
-        memory_facts=[_fact()], episodes=[], retrospectives=[], active_goal_titles=[],
+        memory_facts=[_fact()],
+        episodes=[],
+        retrospectives=[],
+        active_goal_titles=[],
     )
 
     assert result is None
@@ -154,7 +178,10 @@ async def test_generate_suggestion_returns_none_on_openrouter_error():
     planner = _planner(client)
 
     result = await planner.generate_suggestion(
-        memory_facts=[_fact()], episodes=[], retrospectives=[], active_goal_titles=[],
+        memory_facts=[_fact()],
+        episodes=[],
+        retrospectives=[],
+        active_goal_titles=[],
     )
 
     assert result is None
@@ -176,6 +203,7 @@ async def test_generate_suggestion_skips_topic_matching_active_goal():
 
 # ── generate_suggestion: happy path ──────────────────────────────────────────
 
+
 async def test_generate_suggestion_returns_suggestion_on_valid_output():
     client = _client(_valid_suggestion_json())
     planner = _planner(client)
@@ -195,6 +223,7 @@ async def test_generate_suggestion_returns_suggestion_on_valid_output():
 
 
 # ── create_goal_from_suggestion ───────────────────────────────────────────────
+
 
 def test_create_goal_from_suggestion_maps_fields_correctly():
     client = AsyncMock()

@@ -10,7 +10,14 @@ class FormField:
     id: str
     label: str
     field_type: Literal[
-        "text", "textarea", "number", "date", "select", "multiselect", "boolean", "chips",
+        "text",
+        "textarea",
+        "number",
+        "date",
+        "select",
+        "multiselect",
+        "boolean",
+        "chips",
     ] = "text"
     placeholder: str | None = None
     options: list[str] | None = None

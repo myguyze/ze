@@ -82,7 +82,11 @@ class WorkflowScheduler:
         if workflow is None:
             raise ValueError(f"Workflow {workflow_id} not found")
         execution_id = await self._store.start_execution(workflow_id)
-        log.info("workflow_trigger_now", workflow=workflow.name, execution_id=str(execution_id))
+        log.info(
+            "workflow_trigger_now",
+            workflow=workflow.name,
+            execution_id=str(execution_id),
+        )
         asyncio.create_task(self._run_execution(workflow, execution_id))
         return execution_id
 
@@ -126,21 +130,33 @@ class WorkflowScheduler:
         if workflow is None or not workflow.enabled:
             return
         execution_id = await self._store.start_execution(workflow_id)
-        log.info("workflow_execution_start", workflow=workflow.name, execution_id=str(execution_id))
+        log.info(
+            "workflow_execution_start",
+            workflow=workflow.name,
+            execution_id=str(execution_id),
+        )
         await self._run_execution(workflow, execution_id)
 
     async def _run_execution(self, workflow: Workflow, execution_id: UUID) -> None:
         try:
             await self._executor(workflow, execution_id)
         except Exception as exc:
-            log.exception("workflow_execution_error", workflow=workflow.name, error=str(exc))
+            log.exception(
+                "workflow_execution_error", workflow=workflow.name, error=str(exc)
+            )
             await self._store.finish_execution(execution_id, "failed", error=str(exc))
             if self._on_failure:
                 await self._on_failure(workflow, exc)
             return
 
         now = datetime.now(tz=timezone.utc)
-        trigger = CronTrigger.from_crontab(workflow.schedule) if workflow.schedule else None
+        trigger = (
+            CronTrigger.from_crontab(workflow.schedule) if workflow.schedule else None
+        )
         next_run = trigger.get_next_fire_time(None, now) if trigger else None
         await self._store.update_run_timestamps(workflow.id, now, next_run)
-        log.info("workflow_execution_done", workflow=workflow.name, execution_id=str(execution_id))
+        log.info(
+            "workflow_execution_done",
+            workflow=workflow.name,
+            execution_id=str(execution_id),
+        )

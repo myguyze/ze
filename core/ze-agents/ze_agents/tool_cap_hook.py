@@ -1,4 +1,5 @@
 """Tool-call cap hook — aborts a tool call when the per-turn limit is exceeded."""
+
 from __future__ import annotations
 
 from ze_agents.errors import HookAbort

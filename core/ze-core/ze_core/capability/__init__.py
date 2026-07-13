@@ -1,5 +1,8 @@
 from ze_core.capability.gate import CapabilityGate
-from ze_core.capability.overrides import CapabilityOverrideStore, PostgresCapabilityOverrideStore
+from ze_core.capability.overrides import (
+    CapabilityOverrideStore,
+    PostgresCapabilityOverrideStore,
+)
 
 __all__ = [
     "CapabilityGate",

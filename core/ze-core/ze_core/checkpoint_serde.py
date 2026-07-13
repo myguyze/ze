@@ -72,7 +72,11 @@ def collect_checkpoint_allowlist(
         try:
             allowlist.update(collect_types_from_module(module_name))
         except Exception as exc:
-            log.error("checkpoint_serde_module_scan_failed", module=module_name, error=str(exc))
+            log.error(
+                "checkpoint_serde_module_scan_failed",
+                module=module_name,
+                error=str(exc),
+            )
             raise
 
     return tuple(sorted(allowlist))

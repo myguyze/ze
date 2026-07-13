@@ -10,7 +10,11 @@ from fastapi.testclient import TestClient
 
 from ze_api.api import dependencies
 from ze_api.api.routes import sessions as sessions_route
-from ze_core.conversation.sessions.types import Session, SessionListPage, SessionSearchHit
+from ze_core.conversation.sessions.types import (
+    Session,
+    SessionListPage,
+    SessionSearchHit,
+)
 
 
 @pytest.fixture

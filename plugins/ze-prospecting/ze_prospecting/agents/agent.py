@@ -63,7 +63,7 @@ class ProspectingAgent(BaseAgent):
         "log_outreach_event",
     ]
     intents = {
-        "read":  Intent(Mode.AUTONOMOUS, "Research and enrich prospect candidates"),
+        "read": Intent(Mode.AUTONOMOUS, "Research and enrich prospect candidates"),
         "write": Intent(Mode.AUTONOMOUS, "Draft outreach for prospects"),
     }
 
@@ -90,7 +90,9 @@ class ProspectingAgent(BaseAgent):
 
         reachable = await self._browser_client.health()
         if not reachable:
-            self._log.warning("browser_service_unreachable", campaign_id=str(campaign_id))
+            self._log.warning(
+                "browser_service_unreachable", campaign_id=str(campaign_id)
+            )
 
         tool_names = (
             self.tools
@@ -130,7 +132,9 @@ class ProspectingAgent(BaseAgent):
                 # No research happened — likely a mis-routed or conversational turn.
                 # Don't leave an empty campaign behind.
                 await self._campaign_store.discard(campaign_id)
-                self._log.info("campaign_discarded_no_work", campaign_id=str(campaign_id))
+                self._log.info(
+                    "campaign_discarded_no_work", campaign_id=str(campaign_id)
+                )
 
             return AgentResult(
                 agent=self.name,

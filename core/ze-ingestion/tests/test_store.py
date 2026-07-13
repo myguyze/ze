@@ -47,7 +47,9 @@ async def test_save_executes_insert(
     extraction: ExtractionResult,
 ) -> None:
     store = IngestionStore(pool)
-    await store.save(ingestion_id="test-id-123", processed=processed, extraction=extraction)
+    await store.save(
+        ingestion_id="test-id-123", processed=processed, extraction=extraction
+    )
 
     conn = pool.acquire.return_value.__aenter__.return_value
     conn.execute.assert_called_once()

@@ -99,7 +99,9 @@ class TestRegisteredTools:
 class TestToolSpecLlmSchema:
     def test_includes_primitive_params(self):
         @tool(access=ToolAccess.READ, description="schema test")
-        async def schema_tool(query: str, count: int, active: bool, ratio: float) -> str: ...
+        async def schema_tool(
+            query: str, count: int, active: bool, ratio: float
+        ) -> str: ...
 
         schema = get_tool("schema_tool").llm_schema()
         props = schema["function"]["parameters"]["properties"]
@@ -175,4 +177,6 @@ class TestToolSpecLlmSchema:
             _schema_override=None,
         )
         schema = spec.llm_schema()
-        assert schema["function"]["parameters"]["properties"]["query"] == {"type": "string"}
+        assert schema["function"]["parameters"]["properties"]["query"] == {
+            "type": "string"
+        }

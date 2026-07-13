@@ -1,4 +1,5 @@
 """Profile synthesis: derive ProfileFacets from facts and episode summaries."""
+
 from __future__ import annotations
 
 import json
@@ -37,8 +38,8 @@ class ProfileSynthesizer:
         prompt = (
             "Based on these user facts and recent conversation summaries,"
             " synthesize a structured user profile as a JSON array of facets.\n"
-            "Each facet: {\"key\": \"snake_case\", \"value\": \"...\","
-            " \"stability\": \"stable|dynamic|transient\", \"confidence\": 0.0-1.0}\n"
+            'Each facet: {"key": "snake_case", "value": "...",'
+            ' "stability": "stable|dynamic|transient", "confidence": 0.0-1.0}\n'
             "Only include facets derivable from the provided data. Return the JSON array only.\n\n"
             f"Facts:\n{facts_text}\n\nRecent conversations:\n{episodes_text}"
         )
@@ -61,9 +62,11 @@ class ProfileSynthesizer:
             return False
 
         valid = [
-            f for f in facets_data
+            f
+            for f in facets_data
             if isinstance(f, dict)
-            and f.get("key") and f.get("value")
+            and f.get("key")
+            and f.get("value")
             and f.get("stability") in _STABILITY_LEVELS
         ]
         if not valid:

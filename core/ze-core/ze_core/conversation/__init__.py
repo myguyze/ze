@@ -1,5 +1,10 @@
 from ze_core.conversation.confirmations import PendingConfirmationStore
-from ze_core.conversation.messages import Message, MessageRole, MessageStore, PostgresMessageStore
+from ze_core.conversation.messages import (
+    Message,
+    MessageRole,
+    MessageStore,
+    PostgresMessageStore,
+)
 from ze_core.conversation.sessions import Session, SessionStore, PostgresSessionStore
 from ze_core.conversation.turn import (
     TurnResult,

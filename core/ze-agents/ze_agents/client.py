@@ -3,6 +3,7 @@
 The concrete OpenRouterClient in ze-core satisfies this protocol structurally.
 Ze-agents depends only on this protocol, not on any concrete implementation.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Awaitable

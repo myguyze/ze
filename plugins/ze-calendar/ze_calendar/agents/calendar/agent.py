@@ -42,12 +42,18 @@ class CalendarAgent(BaseAgent):
     model = "anthropic/claude-haiku-4-5"
     vision_capable = True
     timeout = 30
-    tools = ["list_events", "create_event", "update_event", "delete_event", "world_time"]
+    tools = [
+        "list_events",
+        "create_event",
+        "update_event",
+        "delete_event",
+        "world_time",
+    ]
     intents = {
-        "read":   Intent(Mode.AUTONOMOUS, "Search and retrieve calendar events."),
-        "create": Intent(Mode.CONFIRM,    "Create a new calendar event."),
-        "update": Intent(Mode.CONFIRM,    "Update an existing calendar event."),
-        "delete": Intent(Mode.CONFIRM,    "Delete a calendar event."),
+        "read": Intent(Mode.AUTONOMOUS, "Search and retrieve calendar events."),
+        "create": Intent(Mode.CONFIRM, "Create a new calendar event."),
+        "update": Intent(Mode.CONFIRM, "Update an existing calendar event."),
+        "delete": Intent(Mode.CONFIRM, "Delete a calendar event."),
     }
 
     def __init__(
@@ -58,19 +64,28 @@ class CalendarAgent(BaseAgent):
     ) -> None:
         self._settings = settings
         self._client = openrouter_client
-        self._creds  = google_credentials
+        self._creds = google_credentials
         self._timezone_service = TimezoneService()
 
     async def run(self, ctx: AgentContext) -> AgentResult:
-        key = "calendar.writing" if ctx.intent in ("create", "update", "delete") else "calendar.reading"
+        key = (
+            "calendar.writing"
+            if ctx.intent in ("create", "update", "delete")
+            else "calendar.reading"
+        )
         await self.emit(ctx, key)
-        system = self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx, timezone=self._settings.timezone)
+        system = self._build_system_prompt(
+            _AGENT_INSTRUCTIONS, ctx, timezone=self._settings.timezone
+        )
         response, loop_tool_calls = await self.agentic_loop(
             ctx,
             client=self._client,
             messages=list(ctx.messages),
             system=system,
-            deps={"credentials": self._creds, "timezone_service": self._timezone_service},
+            deps={
+                "credentials": self._creds,
+                "timezone_service": self._timezone_service,
+            },
         )
 
         contact_proposals = extract_calendar_contacts(loop_tool_calls)
@@ -90,9 +105,7 @@ class CalendarAgent(BaseAgent):
         )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
-        events_tc = await self.call_tool(
-            "list_events", ctx, credentials=self._creds
-        )
+        events_tc = await self.call_tool("list_events", ctx, credentials=self._creds)
         augmented = ctx.prompt
         if events_tc.success and events_tc.result:
             augmented = f"{ctx.prompt}\n\nUpcoming events:\n{events_tc.result}"
@@ -100,6 +113,8 @@ class CalendarAgent(BaseAgent):
         async for token in self._client.stream(
             messages=[{"role": "user", "content": augmented}],
             model=self._model(ctx),
-            system=self._build_system_prompt(_AGENT_INSTRUCTIONS, ctx, timezone=self._settings.timezone),
+            system=self._build_system_prompt(
+                _AGENT_INSTRUCTIONS, ctx, timezone=self._settings.timezone
+            ),
         ):
             yield token

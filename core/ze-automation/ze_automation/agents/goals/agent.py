@@ -71,10 +71,19 @@ class GoalAgent(BaseAgent):
         "abandon_goal",
     ]
     intents = {
-        "create": Intent(Mode.CONFIRM,    "Create a new multi-week goal and decompose it into milestones."),
-        "read":   Intent(Mode.AUTONOMOUS, "Inspect goal status, list active goals, or review progress and traces."),
-        "update": Intent(Mode.CONFIRM,    "Pause, resume, or redirect (steer) an active goal mid-execution."),
-        "delete": Intent(Mode.CONFIRM,    "Abandon a goal."),
+        "create": Intent(
+            Mode.CONFIRM,
+            "Create a new multi-week goal and decompose it into milestones.",
+        ),
+        "read": Intent(
+            Mode.AUTONOMOUS,
+            "Inspect goal status, list active goals, or review progress and traces.",
+        ),
+        "update": Intent(
+            Mode.CONFIRM,
+            "Pause, resume, or redirect (steer) an active goal mid-execution.",
+        ),
+        "delete": Intent(Mode.CONFIRM, "Abandon a goal."),
     }
 
     def __init__(
@@ -111,7 +120,9 @@ class GoalAgent(BaseAgent):
             session_id=ctx.session_id,
             tool_calls=len(loop_tool_calls),
         )
-        return AgentResult(agent=self.name, response=response, tool_calls=loop_tool_calls)
+        return AgentResult(
+            agent=self.name, response=response, tool_calls=loop_tool_calls
+        )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
         result = await self.run(ctx)

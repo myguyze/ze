@@ -23,6 +23,7 @@ class _EmptyGoalProvider:
 @proactive_job
 class MorningBriefing:
     job_id = "morning_briefing"
+
     def __init__(
         self,
         notifier: ProactiveNotifier,
@@ -52,12 +53,18 @@ class MorningBriefing:
         self._personalization_settings = PersonalizationSettings.from_config(news_cfg)
         news_personalization_cfg = news_cfg.get("personalization", {})
         self._briefing_news_limit = int(
-            news_personalization_cfg.get("briefing_limit", news_cfg.get("briefing_limit", 8))
+            news_personalization_cfg.get(
+                "briefing_limit", news_cfg.get("briefing_limit", 8)
+            )
         )
         self._personalization_enabled = self._personalization_settings.enabled
         news_credibility_cfg = news_cfg.get("credibility", {})
-        self._credibility_flag_in_briefing = news_credibility_cfg.get("flag_in_briefing", True)
-        self._credibility_briefing_summary = news_credibility_cfg.get("briefing_summary", True)
+        self._credibility_flag_in_briefing = news_credibility_cfg.get(
+            "flag_in_briefing", True
+        )
+        self._credibility_briefing_summary = news_credibility_cfg.get(
+            "briefing_summary", True
+        )
 
     async def run(self) -> None:
 
@@ -73,7 +80,9 @@ class MorningBriefing:
         )
 
         threshold = int(
-            self._settings.config.get("proactive", {}).get("briefing", {}).get("unreviewed_nudge_threshold", 5)
+            self._settings.config.get("proactive", {})
+            .get("briefing", {})
+            .get("unreviewed_nudge_threshold", 5)
         )
 
         lines = ["Good morning! Here's your Ze briefing.", ""]
@@ -134,11 +143,15 @@ class MorningBriefing:
         lines.append("")
         lines.append(f"🌙 Ze dreamed — processed {episodes} memories overnight.")
         if insights > 0:
-            lines.append(f"  → {insights} insight{'s' if insights != 1 else ''} promoted to memory")
+            lines.append(
+                f"  → {insights} insight{'s' if insights != 1 else ''} promoted to memory"
+            )
         if risks > 0:
             lines.append(f"  → {risks} plan risk{'s' if risks != 1 else ''} surfaced")
         if pending > 0:
-            lines.append(f"  → {pending} item{'s' if pending != 1 else ''} ready for your review")
+            lines.append(
+                f"  → {pending} item{'s' if pending != 1 else ''} ready for your review"
+            )
 
     async def _append_news_section(self, lines: list[str]) -> None:
         if not self._personalization_enabled:
@@ -167,14 +180,25 @@ class MorningBriefing:
                 ctx.fact_count >= self._personalization_settings.min_preferences
                 and ctx.interest_text.strip()
             )
-            header = "📰 For you (based on your interests):" if personalized else "📰 Headlines:"
+            header = (
+                "📰 For you (based on your interests):"
+                if personalized
+                else "📰 Headlines:"
+            )
             lines.append("")
             lines.append(header)
             flagged_count = 0
             for article in relevant:
                 line = f"  • {article.title} ({article.source_key})"
-                if self._credibility_flag_in_briefing and article.credibility and article.credibility.is_briefing_worthy:
-                    flag_labels = ", ".join(f.label.lower() for f in article.credibility.high_confidence_flags)
+                if (
+                    self._credibility_flag_in_briefing
+                    and article.credibility
+                    and article.credibility.is_briefing_worthy
+                ):
+                    flag_labels = ", ".join(
+                        f.label.lower()
+                        for f in article.credibility.high_confidence_flags
+                    )
                     line += f"  🔍 {flag_labels}"
                     flagged_count += 1
                 lines.append(line)
@@ -183,7 +207,9 @@ class MorningBriefing:
                 and flagged_count > 0
                 and flagged_count < len(relevant) * 0.5
             ):
-                lines.append(f"  ({flagged_count} of {len(relevant)} articles flagged for potentially misleading patterns)")
+                lines.append(
+                    f"  ({flagged_count} of {len(relevant)} articles flagged for potentially misleading patterns)"
+                )
 
         if discovery:
             lines.append("")
@@ -192,7 +218,9 @@ class MorningBriefing:
                 lines.append(f"  • {article.title} ({article.source_key})")
 
     async def _append_recency_news(self, lines: list[str]) -> None:
-        headlines = await self._news.get_recent(limit=self._briefing_news_limit, tags=["global"])
+        headlines = await self._news.get_recent(
+            limit=self._briefing_news_limit, tags=["global"]
+        )
         if headlines:
             lines.append("")
             lines.append("📰 Headlines:")

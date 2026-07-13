@@ -6,7 +6,9 @@ from ze_calendar.api.schemas import PluginPageResponse, ReminderListItem
 from ze_calendar.ui.page import build_reminders_page
 from ze_plugin.api_auth import require_api_key
 
-router = APIRouter(prefix="/api/v0", tags=["reminders"], dependencies=[Depends(require_api_key)])
+router = APIRouter(
+    prefix="/api/v0", tags=["reminders"], dependencies=[Depends(require_api_key)]
+)
 
 
 @router.get(

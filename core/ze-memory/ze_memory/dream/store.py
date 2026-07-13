@@ -172,7 +172,9 @@ class PostgresDreamStore:
             )
         return dict(row) if row else None
 
-    async def get_pending_artifacts_by_type(self, run_id: UUID, artifact_type: str) -> list[dict]:
+    async def get_pending_artifacts_by_type(
+        self, run_id: UUID, artifact_type: str
+    ) -> list[dict]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -210,7 +212,9 @@ class PostgresDreamStore:
             )
         return [dict(r) for r in rows]
 
-    async def update_artifact_gate1(self, artifact_id: UUID, faithfulness_score: float) -> None:
+    async def update_artifact_gate1(
+        self, artifact_id: UUID, faithfulness_score: float
+    ) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "UPDATE memory_dream_artifacts SET faithfulness_score = $2 WHERE id = $1",
@@ -218,7 +222,9 @@ class PostgresDreamStore:
                 faithfulness_score,
             )
 
-    async def update_artifact_gate2(self, artifact_id: UUID, novelty_score: float) -> None:
+    async def update_artifact_gate2(
+        self, artifact_id: UUID, novelty_score: float
+    ) -> None:
         async with self._pool.acquire() as conn:
             await conn.execute(
                 "UPDATE memory_dream_artifacts SET novelty_score = $2 WHERE id = $1",

@@ -4,7 +4,7 @@ from enum import StrEnum
 
 
 class ChannelType(StrEnum):
-    EMAIL    = "email"
+    EMAIL = "email"
     LINKEDIN = "linkedin"
     WHATSAPP = "whatsapp"
 
@@ -53,6 +53,7 @@ class Thread:
 @dataclass
 class InboundMessage:
     """A new message received on a channel, not tied to a known outbound thread."""
+
     message_id: str
     channel_type: ChannelType
     sender: str
@@ -60,4 +61,6 @@ class InboundMessage:
     body: str
     thread_id: str | None
     received_at: datetime
-    headers: dict[str, str] = field(default_factory=dict)  # raw transport headers for sender classification
+    headers: dict[str, str] = field(
+        default_factory=dict
+    )  # raw transport headers for sender classification

@@ -7,7 +7,10 @@ from ze_news.store import NewsStore
 from ze_news.types import PersonalizationContext
 
 
-@tool(access=ToolAccess.READ, description="Semantic search over the local news article store.")
+@tool(
+    access=ToolAccess.READ,
+    description="Semantic search over the local news article store.",
+)
 async def search_news(
     news_store: NewsStore,
     query: str,

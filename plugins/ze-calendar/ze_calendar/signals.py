@@ -4,6 +4,7 @@ Emits upcoming calendar events as signals so the correlation engine can cross-
 reference meetings with news and other domains (e.g. a meeting with an org that
 also appears in a news signal lands in the same neighbourhood).
 """
+
 from __future__ import annotations
 
 import uuid

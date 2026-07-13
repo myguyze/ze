@@ -180,7 +180,11 @@ class GoalSuggestionStore:
                 return None
             pending = [r for r in rows if r["status"] == "pending"]
             if len(pending) > 1:
-                log.warning("goal_suggestion_short_id_collision", short_id=short_id, count=len(pending))
+                log.warning(
+                    "goal_suggestion_short_id_collision",
+                    short_id=short_id,
+                    count=len(pending),
+                )
                 return None
             if pending:
                 return _suggestion_from_row(pending[0])

@@ -5,11 +5,18 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 
-from ze_news.credibility import _prompt_version, run_heuristics, run_llm_scoring, score_article
+from ze_news.credibility import (
+    _prompt_version,
+    run_heuristics,
+    run_llm_scoring,
+    score_article,
+)
 from ze_news.types import Article, CredibilityFlag, CredibilityReport
 
 
-def _make_article(title: str = "Test headline", summary: str = "Test summary.") -> Article:
+def _make_article(
+    title: str = "Test headline", summary: str = "Test summary."
+) -> Article:
     return Article(
         url="https://example.com/test",
         source_key="test",
@@ -36,7 +43,9 @@ def test_betteridge_question_with_factual_answer_still_flags():
 
 
 def test_betteridge_not_flagged_for_non_question():
-    flags = run_heuristics("Government passes new budget", "Finance minister approves plan.")
+    flags = run_heuristics(
+        "Government passes new budget", "Finance minister approves plan."
+    )
     assert not any(f.type == "betteridge" for f in flags)
 
 
@@ -119,19 +128,23 @@ def _make_flag(flag_type: str, confidence: str = "high") -> CredibilityFlag:
 
 
 def test_high_confidence_flags_property():
-    report = CredibilityReport(flags=[
-        _make_flag("betteridge", "high"),
-        _make_flag("weasel_words", "low"),
-    ])
+    report = CredibilityReport(
+        flags=[
+            _make_flag("betteridge", "high"),
+            _make_flag("weasel_words", "low"),
+        ]
+    )
     assert len(report.high_confidence_flags) == 1
     assert report.high_confidence_flags[0].type == "betteridge"
 
 
 def test_is_briefing_worthy_two_high_confidence():
-    report = CredibilityReport(flags=[
-        _make_flag("betteridge", "high"),
-        _make_flag("clickbait", "high"),
-    ])
+    report = CredibilityReport(
+        flags=[
+            _make_flag("betteridge", "high"),
+            _make_flag("clickbait", "high"),
+        ]
+    )
     assert report.is_briefing_worthy is True
 
 
@@ -148,10 +161,12 @@ def test_not_briefing_worthy_single_vague_attribution():
 
 
 def test_not_briefing_worthy_only_low_confidence():
-    report = CredibilityReport(flags=[
-        _make_flag("weasel_words", "low"),
-        _make_flag("sensationalism", "low"),
-    ])
+    report = CredibilityReport(
+        flags=[
+            _make_flag("weasel_words", "low"),
+            _make_flag("sensationalism", "low"),
+        ]
+    )
     assert report.is_briefing_worthy is False
 
 
@@ -168,15 +183,17 @@ def test_not_briefing_worthy_empty():
 async def test_run_llm_scoring_present_verdict_adds_flag():
     client = MagicMock()
     response = MagicMock()
-    response.content = json.dumps({
-        "verdicts": {
-            "headline_mismatch": {
-                "verdict": "present",
-                "detail": "Headline says 'proves' but summary says 'suggests'.",
-            }
-        },
-        "cleared_heuristic_flags": [],
-    })
+    response.content = json.dumps(
+        {
+            "verdicts": {
+                "headline_mismatch": {
+                    "verdict": "present",
+                    "detail": "Headline says 'proves' but summary says 'suggests'.",
+                }
+            },
+            "cleared_heuristic_flags": [],
+        }
+    )
     client.complete = AsyncMock(return_value=response)
 
     flags = await run_llm_scoring("Headline", "Summary", [], client, "test-model")
@@ -186,29 +203,37 @@ async def test_run_llm_scoring_present_verdict_adds_flag():
 async def test_run_llm_scoring_clears_heuristic_false_positive():
     client = MagicMock()
     response = MagicMock()
-    response.content = json.dumps({
-        "verdicts": {},
-        "cleared_heuristic_flags": ["betteridge"],
-    })
+    response.content = json.dumps(
+        {
+            "verdicts": {},
+            "cleared_heuristic_flags": ["betteridge"],
+        }
+    )
     client.complete = AsyncMock(return_value=response)
 
     heuristic = [_make_flag("betteridge", "high")]
-    flags = await run_llm_scoring("What is the VAT rate?", "23%.", heuristic, client, "test-model")
+    flags = await run_llm_scoring(
+        "What is the VAT rate?", "23%.", heuristic, client, "test-model"
+    )
     assert not any(f.type == "betteridge" for f in flags)
 
 
 async def test_run_llm_scoring_uncertain_not_stored():
     client = MagicMock()
     response = MagicMock()
-    response.content = json.dumps({
-        "verdicts": {
-            "clickbait": {"verdict": "uncertain", "detail": ""},
-        },
-        "cleared_heuristic_flags": [],
-    })
+    response.content = json.dumps(
+        {
+            "verdicts": {
+                "clickbait": {"verdict": "uncertain", "detail": ""},
+            },
+            "cleared_heuristic_flags": [],
+        }
+    )
     client.complete = AsyncMock(return_value=response)
 
-    flags = await run_llm_scoring("Some title", "Some summary.", [], client, "test-model")
+    flags = await run_llm_scoring(
+        "Some title", "Some summary.", [], client, "test-model"
+    )
     assert not any(f.type == "clickbait" for f in flags)
 
 
@@ -232,11 +257,15 @@ async def test_credibility_nli_headline_mismatch():
     client = MagicMock()
     nli_client = MagicMock()
     nli_client.pair_is_scorable = MagicMock(return_value=True)
-    nli_client.scores = AsyncMock(return_value=[{
-        "entailment": 0.10,
-        "contradiction": 0.80,
-        "neutral": 0.10,
-    }])
+    nli_client.scores = AsyncMock(
+        return_value=[
+            {
+                "entailment": 0.10,
+                "contradiction": 0.80,
+                "neutral": 0.10,
+            }
+        ]
+    )
 
     article = _make_article(
         title="Government proves vaccine causes harm",
@@ -260,7 +289,9 @@ async def test_score_article_heuristic_only():
     client = MagicMock()
     article = _make_article("Is this the worst government ever?", "Some summary.")
 
-    report = await score_article(article, client=client, model="test-model", llm_enabled=False)
+    report = await score_article(
+        article, client=client, model="test-model", llm_enabled=False
+    )
 
     assert report.status == "heuristic_only"
     assert report.model is None
@@ -272,16 +303,20 @@ async def test_score_article_heuristic_only():
 async def test_score_article_complete():
     client = MagicMock()
     response = MagicMock()
-    response.content = json.dumps({
-        "verdicts": {
-            "betteridge": {"verdict": "absent", "detail": ""},
-        },
-        "cleared_heuristic_flags": ["betteridge"],
-    })
+    response.content = json.dumps(
+        {
+            "verdicts": {
+                "betteridge": {"verdict": "absent", "detail": ""},
+            },
+            "cleared_heuristic_flags": ["betteridge"],
+        }
+    )
     client.complete = AsyncMock(return_value=response)
 
     article = _make_article("Is this real?", "Yes, it is.")
-    report = await score_article(article, client=client, model="test-model", llm_enabled=True)
+    report = await score_article(
+        article, client=client, model="test-model", llm_enabled=True
+    )
 
     assert report.status == "complete"
     assert report.model == "test-model"

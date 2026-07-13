@@ -8,6 +8,7 @@ to surface prompt/completion tokens and LLM-side duration.
 Note: cost_usd is backfilled asynchronously by CostReconciler (runs every
 15 min). Token counts and duration are available immediately.
 """
+
 from __future__ import annotations
 
 import os
@@ -40,7 +41,9 @@ async def fetch_session_metrics(
     session_id in llm_cost_log is prefixed with "eval-" by the server;
     this function handles that prefix automatically.
     """
-    url = db_url or os.environ.get("DATABASE_URL", "postgresql://ze:ze@localhost:5432/ze")
+    url = db_url or os.environ.get(
+        "DATABASE_URL", "postgresql://ze:ze@localhost:5432/ze"
+    )
     stored_session_id = f"eval-{session_id}"
 
     try:

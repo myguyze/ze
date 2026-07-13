@@ -14,7 +14,9 @@ def memory_store() -> AsyncMock:
 
 async def test_push_calls_propose_facts(memory_store: AsyncMock) -> None:
     sink = MemorySink(memory_store)
-    await sink.push(ingestion_id="abc", facts=["Python is popular.", "It runs on CPython."])
+    await sink.push(
+        ingestion_id="abc", facts=["Python is popular.", "It runs on CPython."]
+    )
     memory_store.propose_facts.assert_called_once()
     proposed = memory_store.propose_facts.call_args.args[0]
     assert len(proposed) == 2

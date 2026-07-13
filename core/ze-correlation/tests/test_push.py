@@ -1,4 +1,5 @@
 """Tests for CorrelationPushConsumer and CorrelationJob (Phase 59)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -90,7 +91,9 @@ def _make_consumer(
     )
 
     memory_store = MagicMock()
-    memory_store.list_recent_signal_ids = AsyncMock(return_value=seed_ids or [uuid4(), uuid4()])
+    memory_store.list_recent_signal_ids = AsyncMock(
+        return_value=seed_ids or [uuid4(), uuid4()]
+    )
 
     notifier = MagicMock()
     notifier.push = AsyncMock()
@@ -125,6 +128,7 @@ def _make_consumer(
 
 
 # ── seed selection ────────────────────────────────────────────────────────────
+
 
 async def test_seed_selection_respects_max_seeds_per_run():
     settings = _make_settings(max_seeds_per_run=5)
@@ -162,6 +166,7 @@ async def test_no_seeds_returns_early():
 
 
 # ── push bar ──────────────────────────────────────────────────────────────────
+
 
 async def test_qualifying_hypothesis_is_pushed():
     h = _make_hypothesis(confidence=0.75, relevance=0.65)
@@ -254,6 +259,7 @@ async def test_low_grounding_rejected():
 
 # ── surfaced flag ─────────────────────────────────────────────────────────────
 
+
 async def test_pushed_hypothesis_marked_surfaced():
     h = _make_hypothesis(confidence=0.75, relevance=0.65)
     consumer, mocks = _make_consumer(hypotheses=[h])
@@ -269,6 +275,7 @@ async def test_sub_bar_hypothesis_not_marked_surfaced():
 
 
 # ── dry_run ───────────────────────────────────────────────────────────────────
+
 
 async def test_dry_run_does_not_push():
     settings = _make_settings(dry_run=True)
@@ -290,6 +297,7 @@ async def test_dry_run_does_not_log_to_push_log():
 
 # ── disabled ──────────────────────────────────────────────────────────────────
 
+
 async def test_disabled_with_no_dry_run_returns_early():
     settings = _make_settings(enabled=False, dry_run=False)
     consumer, mocks = _make_consumer(settings)
@@ -299,6 +307,7 @@ async def test_disabled_with_no_dry_run_returns_early():
 
 
 # ── return value ──────────────────────────────────────────────────────────────
+
 
 async def test_returns_all_hypotheses_not_just_pushed():
     h_good = _make_hypothesis(confidence=0.75, relevance=0.65)
@@ -310,6 +319,7 @@ async def test_returns_all_hypotheses_not_just_pushed():
 
 
 # ── CorrelationJob ────────────────────────────────────────────────────────────
+
 
 async def test_correlation_job_delegates_to_consumer():
     consumer = MagicMock()

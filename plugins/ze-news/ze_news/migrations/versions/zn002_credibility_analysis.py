@@ -6,6 +6,7 @@ Create Date: 2026-06-07
 Branch labels:
 Depends on: zn001
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

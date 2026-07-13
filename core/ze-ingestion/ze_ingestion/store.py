@@ -37,4 +37,8 @@ class IngestionStore:
                 json.dumps(extraction.tags),
                 json.dumps({**processed.metadata, **extraction.metadata}),
             )
-        log.info("ingestion_stored", id=ingestion_id, content_type=processed.content_type.value)
+        log.info(
+            "ingestion_stored",
+            id=ingestion_id,
+            content_type=processed.content_type.value,
+        )

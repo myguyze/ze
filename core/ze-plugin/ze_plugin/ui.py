@@ -16,9 +16,7 @@ __all__ = [
     "filter_ui_manifest_by_openapi",
 ]
 
-CORE_RESERVED_NAV_PATHS = frozenset(
-    {"goals", "costs", "settings"}
-)
+CORE_RESERVED_NAV_PATHS = frozenset({"goals", "costs", "settings"})
 
 
 @dataclass(frozen=True)

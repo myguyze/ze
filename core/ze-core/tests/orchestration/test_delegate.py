@@ -1,4 +1,5 @@
 """Tests for delegate_to_agent built-in harness tool."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -51,15 +52,18 @@ def _make_agent(agent_name: str, response: str = "agent response") -> BaseAgent:
             "name": agent_name,
             "description": f"{agent_name} agent",
             "tools": [],
-            "run": (lambda self, ctx, _r=response, _n=agent_name:
-                    __import__("asyncio").coroutine(
-                        lambda: AgentResult(agent=_n, response=_r)
-                    )()),
+            "run": (
+                lambda self, ctx, _r=response, _n=agent_name: __import__(
+                    "asyncio"
+                ).coroutine(lambda: AgentResult(agent=_n, response=_r))()
+            ),
         },
     )
+
     # Use a simpler async approach
     async def _run(self, ctx: AgentContext) -> AgentResult:
         return AgentResult(agent=agent_name, response=response)
+
     cls.run = _run
     agent(cls)
     instance = cls()
@@ -68,6 +72,7 @@ def _make_agent(agent_name: str, response: str = "agent response") -> BaseAgent:
 
 
 # ── DELEGATE_TOOL_SCHEMA ─────────────────────────────────────────────────────
+
 
 class TestDelegateToolSchema:
     def test_schema_has_correct_name(self):
@@ -87,6 +92,7 @@ class TestDelegateToolSchema:
 
 
 # ── run_delegate ──────────────────────────────────────────────────────────────
+
 
 class TestRunDelegate:
     async def test_delegates_to_named_agent(self):
@@ -110,6 +116,7 @@ class TestRunDelegate:
             name = "echo_agent"
             description = "echo"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 received["prompt"] = ctx.prompt
                 received["messages"] = ctx.messages
@@ -124,7 +131,9 @@ class TestRunDelegate:
         )
 
         assert received["prompt"] == "extra info\n\ndo X"
-        assert received["messages"] == [{"role": "user", "content": "extra info\n\ndo X"}]
+        assert received["messages"] == [
+            {"role": "user", "content": "extra info\n\ndo X"}
+        ]
 
     async def test_no_context_uses_task_as_prompt(self):
         received = {}
@@ -134,6 +143,7 @@ class TestRunDelegate:
             name = "bare_agent"
             description = "bare"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 received["prompt"] = ctx.prompt
                 return AgentResult(agent="bare_agent", response="ok")
@@ -156,6 +166,7 @@ class TestRunDelegate:
             name = "gate_agent"
             description = "gate"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 received["gate"] = ctx.gate_decision
                 return AgentResult(agent="gate_agent", response="ok")
@@ -168,7 +179,6 @@ class TestRunDelegate:
             iteration=0,
         )
 
-
         assert received["gate"] == GateDecision.DRAFT
 
     async def test_inherits_abort_token(self):
@@ -180,6 +190,7 @@ class TestRunDelegate:
             name = "token_agent"
             description = "token"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 received["token"] = ctx.abort_token
                 return AgentResult(agent="token_agent", response="ok")
@@ -192,7 +203,6 @@ class TestRunDelegate:
             iteration=0,
         )
 
-
         assert received["token"] is token
 
     async def test_depth_incremented_in_sub_ctx(self):
@@ -203,6 +213,7 @@ class TestRunDelegate:
             name = "depth_agent"
             description = "depth"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 received["depth"] = ctx.extensions.get("_delegate_depth", 0)
                 return AgentResult(agent="depth_agent", response="ok")
@@ -245,6 +256,7 @@ class TestRunDelegate:
             name = "crash_agent"
             description = "crash"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 raise RuntimeError("agent exploded")
 
@@ -268,6 +280,7 @@ class TestRunDelegate:
             name = "aborting_agent"
             description = "aborts"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 raise AgentAbortedError("sub aborted")
 
@@ -291,6 +304,7 @@ class TestRunDelegate:
             name = "token_aborting_agent"
             description = "aborts via token"
             tools = []
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 raise AgentAbortedError("token fired")
 
@@ -301,16 +315,30 @@ class TestRunDelegate:
             name = "parent_agent"
             description = "delegates"
             tools = [DELEGATE_TOOL_NAME]
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 return AgentResult(agent="parent_agent", response="ok")
 
         register_instance("parent_agent", _Parent())
 
         client = MagicMock()
-        client.complete_with_tools = AsyncMock(side_effect=[
-            (None, [{"id": "d1", "name": DELEGATE_TOOL_NAME,
-                     "arguments": {"agent_name": "token_aborting_agent", "task": "t"}}]),
-        ])
+        client.complete_with_tools = AsyncMock(
+            side_effect=[
+                (
+                    None,
+                    [
+                        {
+                            "id": "d1",
+                            "name": DELEGATE_TOOL_NAME,
+                            "arguments": {
+                                "agent_name": "token_aborting_agent",
+                                "task": "t",
+                            },
+                        }
+                    ],
+                ),
+            ]
+        )
         client.complete = AsyncMock(return_value="fallback")
 
         parent = _Parent()
@@ -319,10 +347,13 @@ class TestRunDelegate:
         )
 
         with pytest.raises(AgentAbortedError):
-            await parent.agentic_loop(ctx, client, [{"role": "user", "content": "q"}], system="s")
+            await parent.agentic_loop(
+                ctx, client, [{"role": "user", "content": "q"}], system="s"
+            )
 
 
 # ── delegate in agentic_loop ─────────────────────────────────────────────────
+
 
 class TestDelegateInAgenticLoop:
     def _client(self, responses):
@@ -337,6 +368,7 @@ class TestDelegateInAgenticLoop:
             name = "loop_agent"
             description = "loop"
             tools = [DELEGATE_TOOL_NAME]
+
             async def run(self, ctx: AgentContext) -> AgentResult:
                 return AgentResult(agent="loop_agent", response="ok")
 
@@ -366,11 +398,24 @@ class TestDelegateInAgenticLoop:
         _make_agent("target_agent", response="target result")
         a = self._loop_agent()
 
-        client = self._client([
-            (None, [{"id": "d1", "name": DELEGATE_TOOL_NAME,
-                     "arguments": {"agent_name": "target_agent", "task": "sub task"}}]),
-            ("final answer", None),
-        ])
+        client = self._client(
+            [
+                (
+                    None,
+                    [
+                        {
+                            "id": "d1",
+                            "name": DELEGATE_TOOL_NAME,
+                            "arguments": {
+                                "agent_name": "target_agent",
+                                "task": "sub task",
+                            },
+                        }
+                    ],
+                ),
+                ("final answer", None),
+            ]
+        )
         ctx = AgentContext(session_id="s1", prompt="q", intent="loop_agent")
         messages = [{"role": "user", "content": "q"}]
 

@@ -32,6 +32,7 @@ def _register(name: str, intent_map: dict | None = None) -> None:
 
 def _registry_from_names(*names: str) -> dict:
     from ze_agents.registry import get_enabled_agents
+
     return get_enabled_agents()
 
 
@@ -44,9 +45,18 @@ def _mock_client(response: str) -> AsyncMock:
 class TestDecomposeSingleAgent:
     async def test_returns_single_subtask(self):
         _register("research")
-        payload = json.dumps({"subtasks": [{"agent": "research", "intent": "read", "prompt": "find X"}], "sequential": False})
+        payload = json.dumps(
+            {
+                "subtasks": [
+                    {"agent": "research", "intent": "read", "prompt": "find X"}
+                ],
+                "sequential": False,
+            }
+        )
         client = _mock_client(payload)
-        env = await decompose("find X", {}, client, _registry_from_names("research"), "haiku")
+        env = await decompose(
+            "find X", {}, client, _registry_from_names("research"), "haiku"
+        )
         assert env.primary_agent == "research"
         assert len(env.subtasks) == 1
         assert env.routing_method == "haiku"
@@ -54,9 +64,16 @@ class TestDecomposeSingleAgent:
 
     async def test_populates_confidence_from_raw_scores(self):
         _register("research")
-        payload = json.dumps({"subtasks": [{"agent": "research", "intent": "read", "prompt": "q"}], "sequential": False})
+        payload = json.dumps(
+            {
+                "subtasks": [{"agent": "research", "intent": "read", "prompt": "q"}],
+                "sequential": False,
+            }
+        )
         client = _mock_client(payload)
-        env = await decompose("q", {"research": 0.72}, client, _registry_from_names(), "haiku")
+        env = await decompose(
+            "q", {"research": 0.72}, client, _registry_from_names(), "haiku"
+        )
         assert env.confidence == pytest.approx(0.72)
 
 
@@ -64,15 +81,19 @@ class TestDecomposeCompound:
     async def test_compound_non_sequential(self):
         _register("research")
         _register("calendar")
-        payload = json.dumps({
-            "subtasks": [
-                {"agent": "research", "intent": "read", "prompt": "research X"},
-                {"agent": "calendar", "intent": "create", "prompt": "create event"},
-            ],
-            "sequential": False,
-        })
+        payload = json.dumps(
+            {
+                "subtasks": [
+                    {"agent": "research", "intent": "read", "prompt": "research X"},
+                    {"agent": "calendar", "intent": "create", "prompt": "create event"},
+                ],
+                "sequential": False,
+            }
+        )
         client = _mock_client(payload)
-        env = await decompose("research X and create event", {}, client, _registry_from_names(), "haiku")
+        env = await decompose(
+            "research X and create event", {}, client, _registry_from_names(), "haiku"
+        )
         assert env.is_compound
         assert env.requires_synthesis
         assert not env.is_sequential
@@ -80,13 +101,15 @@ class TestDecomposeCompound:
     async def test_compound_sequential(self):
         _register("research")
         _register("calendar")
-        payload = json.dumps({
-            "subtasks": [
-                {"agent": "research", "intent": "read", "prompt": "research X"},
-                {"agent": "calendar", "intent": "create", "prompt": "create event"},
-            ],
-            "sequential": True,
-        })
+        payload = json.dumps(
+            {
+                "subtasks": [
+                    {"agent": "research", "intent": "read", "prompt": "research X"},
+                    {"agent": "calendar", "intent": "create", "prompt": "create event"},
+                ],
+                "sequential": True,
+            }
+        )
         client = _mock_client(payload)
         env = await decompose("q", {}, client, _registry_from_names(), "haiku")
         assert env.is_sequential
@@ -96,7 +119,12 @@ class TestDecomposeCompound:
 class TestErrorHandling:
     async def test_unknown_agent_raises_immediately(self):
         _register("research")
-        payload = json.dumps({"subtasks": [{"agent": "ghost", "intent": "read", "prompt": "q"}], "sequential": False})
+        payload = json.dumps(
+            {
+                "subtasks": [{"agent": "ghost", "intent": "read", "prompt": "q"}],
+                "sequential": False,
+            }
+        )
         client = _mock_client(payload)
         with pytest.raises(RoutingError, match="unknown agent"):
             await decompose("q", {}, client, _registry_from_names(), "haiku")

@@ -36,12 +36,14 @@ class StuckGoalJob:
         log.info("stuck_goals_found", count=len(stuck))
 
         content, actions = _build_message(stuck)
-        await self._notifier.push_notification(Notification(
-            content=content,
-            format="html",
-            urgency="normal",
-            actions=actions,
-        ))
+        await self._notifier.push_notification(
+            Notification(
+                content=content,
+                format="html",
+                urgency="normal",
+                actions=actions,
+            )
+        )
 
         for sg in stuck:
             await self._goal_store.mark_stuck_alerted(sg.goal.id)
@@ -70,9 +72,21 @@ def _build_message(stuck: list[StuckGoal]) -> tuple[str, list[Action]]:
             )
             row = i - 1
             actions += [
-                Action(label=f"Approve{num}", payload=f"goal_stuck:gate_approve:{goal_id_hex}", row=row),
-                Action(label=f"Redirect{num}", payload=f"goal_stuck:redirect:{goal_id_hex}", row=row),
-                Action(label=f"Stop{num}", payload=f"goal_stuck:gate_stop:{goal_id_hex}", row=row),
+                Action(
+                    label=f"Approve{num}",
+                    payload=f"goal_stuck:gate_approve:{goal_id_hex}",
+                    row=row,
+                ),
+                Action(
+                    label=f"Redirect{num}",
+                    payload=f"goal_stuck:redirect:{goal_id_hex}",
+                    row=row,
+                ),
+                Action(
+                    label=f"Stop{num}",
+                    payload=f"goal_stuck:gate_stop:{goal_id_hex}",
+                    row=row,
+                ),
             ]
         else:
             last = (
@@ -87,9 +101,21 @@ def _build_message(stuck: list[StuckGoal]) -> tuple[str, list[Action]]:
             )
             row = i - 1
             actions += [
-                Action(label=f"Redirect{num}", payload=f"goal_stuck:redirect:{goal_id_hex}", row=row),
-                Action(label=f"Pause{num}", payload=f"goal_stuck:pause:{goal_id_hex}", row=row),
-                Action(label=f"Abandon{num}", payload=f"goal_stuck:abandon:{goal_id_hex}", row=row),
+                Action(
+                    label=f"Redirect{num}",
+                    payload=f"goal_stuck:redirect:{goal_id_hex}",
+                    row=row,
+                ),
+                Action(
+                    label=f"Pause{num}",
+                    payload=f"goal_stuck:pause:{goal_id_hex}",
+                    row=row,
+                ),
+                Action(
+                    label=f"Abandon{num}",
+                    payload=f"goal_stuck:abandon:{goal_id_hex}",
+                    row=row,
+                ),
             ]
 
         sections.append(body)

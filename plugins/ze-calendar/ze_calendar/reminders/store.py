@@ -30,7 +30,8 @@ class ReminderStore:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
                 "INSERT INTO user_reminders (label, fire_at) VALUES ($1, $2) RETURNING id",
-                label, fire_at,
+                label,
+                fire_at,
             )
         return row["id"]
 
@@ -86,7 +87,9 @@ class ReminderStore:
         return tag == "UPDATE 1"
 
 
-async def fire_reminder(store: ReminderStore, notifier: ProactiveNotifier, reminder_id: UUID) -> None:
+async def fire_reminder(
+    store: ReminderStore, notifier: ProactiveNotifier, reminder_id: UUID
+) -> None:
     """Push the reminder and mark it sent. Atomic — safe to call concurrently."""
     reminder = await store.get(reminder_id)
     if reminder is None:

@@ -174,6 +174,7 @@ async def test_connection_manager_push_clears_ws_on_send_error():
 
 # ── Confirmation persistence and replay ───────────────────────────────────────
 
+
 async def test_connect_replays_all_pending_confirmations():
     mgr = ConnectionManager()
     ws = _make_ws()
@@ -182,20 +183,22 @@ async def test_connect_replays_all_pending_confirmations():
     store.list_unread = AsyncMock(return_value=[])
 
     confirmation_store = AsyncMock()
-    confirmation_store.get_all_pending = AsyncMock(return_value=[
-        {
-            "thread_id": "t1",
-            "request_id": "req-123",
-            "prompt": "Delete 50 emails?",
-            "actions": [{"label": "Approve", "payload": "yes"}],
-        },
-        {
-            "thread_id": "t2",
-            "request_id": "req-456",
-            "prompt": "Send newsletter?",
-            "actions": [{"label": "Approve", "payload": "yes"}],
-        },
-    ])
+    confirmation_store.get_all_pending = AsyncMock(
+        return_value=[
+            {
+                "thread_id": "t1",
+                "request_id": "req-123",
+                "prompt": "Delete 50 emails?",
+                "actions": [{"label": "Approve", "payload": "yes"}],
+            },
+            {
+                "thread_id": "t2",
+                "request_id": "req-456",
+                "prompt": "Send newsletter?",
+                "actions": [{"label": "Approve", "payload": "yes"}],
+            },
+        ]
+    )
 
     await mgr.connect(ws, store, confirmation_store)
 
@@ -304,7 +307,9 @@ async def test_component_submit_uses_onboarding_coordinator():
     container = AsyncMock()
     container.onboarding_coordinator.submit = AsyncMock(return_value=view)
 
-    with patch("ze_api.api.websocket.component_submit.send_onboarding_view", new=AsyncMock()) as mock_send_view:
+    with patch(
+        "ze_api.api.websocket.component_submit.send_onboarding_view", new=AsyncMock()
+    ) as mock_send_view:
         await handle_component_submit(
             ws,
             {
@@ -336,7 +341,10 @@ async def test_component_submit_falls_back_to_graph_on_unknown_session():
         side_effect=OnboardingError("Unknown onboarding step"),
     )
 
-    with patch("ze_api.api.websocket.component_submit.handle_message", new=AsyncMock(return_value=None)) as mock_handle:
+    with patch(
+        "ze_api.api.websocket.component_submit.handle_message",
+        new=AsyncMock(return_value=None),
+    ) as mock_handle:
         await handle_component_submit(
             ws,
             {

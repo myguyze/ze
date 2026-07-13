@@ -6,7 +6,9 @@ from ze_personal.api.schemas import ContactListItem, PluginPageResponse
 from ze_personal.ui.page import build_contacts_page
 from ze_plugin.api_auth import require_api_key
 
-router = APIRouter(prefix="/api/v0", tags=["contacts"], dependencies=[Depends(require_api_key)])
+router = APIRouter(
+    prefix="/api/v0", tags=["contacts"], dependencies=[Depends(require_api_key)]
+)
 
 
 def _page_title(count: int) -> str:

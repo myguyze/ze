@@ -14,7 +14,9 @@ from ze_automation.goals.types import GoalSuggestion
 
 log = get_logger(__name__)
 
-_FIRST_SUGGESTION_INTRO = "Here's a goal idea, based on what I've learned about you:\n\n"
+_FIRST_SUGGESTION_INTRO = (
+    "Here's a goal idea, based on what I've learned about you:\n\n"
+)
 
 
 @proactive_job
@@ -48,16 +50,18 @@ class GoalSuggestionJob:
 
         # 2. Gather signal — treat any read failure as insufficient signal
         try:
-            facts    = await self._memory_store.list_recent_facts(days=90, limit=40)
+            facts = await self._memory_store.list_recent_facts(days=90, limit=40)
             episodes = await self._memory_store.list_recent_episodes(days=30, limit=10)
-            retros   = await self._goal_store.list_retrospectives(days=60)
-            active   = await self._goal_store.list_active_goal_titles()
+            retros = await self._goal_store.list_retrospectives(days=60)
+            active = await self._goal_store.list_active_goal_titles()
         except Exception as exc:
             log.error("goal_suggestion_signal_read_failed", error=str(exc))
             return
 
         # 3. Generate — confidence gate is inside generate_suggestion()
-        suggestion = await self._planner.generate_suggestion(facts, episodes, retros, active)
+        suggestion = await self._planner.generate_suggestion(
+            facts, episodes, retros, active
+        )
         if suggestion is None:
             log.info("goal_suggestion_no_signal")
             return
@@ -82,7 +86,9 @@ class GoalSuggestionJob:
 
         log.info("goal_suggestion_sent", suggestion_id=str(suggestion.id))
 
-    async def _push(self, suggestion: GoalSuggestion, *, is_first: bool = False) -> None:
+    async def _push(
+        self, suggestion: GoalSuggestion, *, is_first: bool = False
+    ) -> None:
         short_id = suggestion.id.hex[:8]
 
         prefix = _FIRST_SUGGESTION_INTRO if is_first else ""
@@ -92,13 +98,27 @@ class GoalSuggestionJob:
             f"{suggestion.objective}\n\n"
             f"<i>{suggestion.rationale}</i>"
         )
-        await self._notifier.push_notification(Notification(
-            content=content,
-            format="html",
-            urgency="normal",
-            actions=[
-                Action(label="Yes, create it", payload=f"goal_suggest:accept:{short_id}", row=0),
-                Action(label="Dismiss",        payload=f"goal_suggest:dismiss:{short_id}", row=0),
-                Action(label="Tell me more",   payload=f"goal_suggest:more:{short_id}",   row=1),
-            ],
-        ))
+        await self._notifier.push_notification(
+            Notification(
+                content=content,
+                format="html",
+                urgency="normal",
+                actions=[
+                    Action(
+                        label="Yes, create it",
+                        payload=f"goal_suggest:accept:{short_id}",
+                        row=0,
+                    ),
+                    Action(
+                        label="Dismiss",
+                        payload=f"goal_suggest:dismiss:{short_id}",
+                        row=0,
+                    ),
+                    Action(
+                        label="Tell me more",
+                        payload=f"goal_suggest:more:{short_id}",
+                        row=1,
+                    ),
+                ],
+            )
+        )

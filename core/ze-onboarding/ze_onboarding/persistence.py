@@ -20,7 +20,9 @@ class OnboardingPersistence:
         self._memory_store = memory_store
         self._plugin_setting_setters = plugin_setting_setters or {}
 
-    async def apply(self, seeds: list[StoredOnboardingSeed]) -> list[StoredOnboardingSeed]:
+    async def apply(
+        self, seeds: list[StoredOnboardingSeed]
+    ) -> list[StoredOnboardingSeed]:
         applied: list[StoredOnboardingSeed] = []
         for seed in seeds:
             if seed.kind == "memory_fact":
@@ -35,29 +37,37 @@ class OnboardingPersistence:
         return applied
 
     async def _apply_memory_fact(self, seed: StoredOnboardingSeed) -> None:
-        await self._memory_store.propose_facts([
-            Fact(
-                predicate=seed.key,
-                value=_seed_value_text(seed.value),
-                confidence=seed.confidence,
-                reviewed=True,
-            )
-        ])
+        await self._memory_store.propose_facts(
+            [
+                Fact(
+                    predicate=seed.key,
+                    value=_seed_value_text(seed.value),
+                    confidence=seed.confidence,
+                    reviewed=True,
+                )
+            ]
+        )
 
     async def _apply_profile_facet(self, seed: StoredOnboardingSeed) -> None:
-        await self._memory_store.upsert_profile_facets([{
-            "key": seed.key,
-            "value": _seed_value_text(seed.value),
-            "stability": "stable",
-            "confidence": seed.confidence,
-        }])
+        await self._memory_store.upsert_profile_facets(
+            [
+                {
+                    "key": seed.key,
+                    "value": _seed_value_text(seed.value),
+                    "stability": "stable",
+                    "confidence": seed.confidence,
+                }
+            ]
+        )
 
     async def _apply_plugin_setting(self, seed: StoredOnboardingSeed) -> None:
         if seed.plugin is None:
             raise OnboardingError("Plugin setting seed is missing plugin name")
         setter = self._plugin_setting_setters.get(seed.plugin)
         if setter is None:
-            raise OnboardingError(f"No onboarding setting setter registered for {seed.plugin}")
+            raise OnboardingError(
+                f"No onboarding setting setter registered for {seed.plugin}"
+            )
         await setter(seed.key, seed.value)
 
 

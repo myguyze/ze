@@ -125,7 +125,9 @@ async def get_goal_detail(request: Request, goal_id: UUID) -> GoalDetailResponse
 async def list_goal_traces(
     request: Request,
     goal_id: UUID,
-    milestone_id: UUID | None = Query(default=None, description="Filter to a single milestone"),
+    milestone_id: UUID | None = Query(
+        default=None, description="Filter to a single milestone"
+    ),
     limit: int = Query(default=100, ge=1, le=500, description="Max rows"),
     offset: int = Query(default=0, ge=0, description="Pagination offset"),
 ) -> list[ExecutionTraceResponse]:

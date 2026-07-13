@@ -42,21 +42,29 @@ class DreamJob:
             dream_store=dream_store,
             settings=settings,
         )
-        self._dream_pass = DreamPass(
-            pool=pool,
-            dream_store=dream_store,
-            client=client,
-            embedder=embedder,
-            nli_client=nli_client,
-            settings=settings,
-        ) if client is not None else None
+        self._dream_pass = (
+            DreamPass(
+                pool=pool,
+                dream_store=dream_store,
+                client=client,
+                embedder=embedder,
+                nli_client=nli_client,
+                settings=settings,
+            )
+            if client is not None
+            else None
+        )
         self._promoter = DreamPromoter(
             pool=pool,
             dream_store=dream_store,
             embedder=embedder,
             settings=settings,
         )
-        self._journal = DreamJournal(client=client, dream_store=dream_store) if client is not None else None
+        self._journal = (
+            DreamJournal(client=client, dream_store=dream_store)
+            if client is not None
+            else None
+        )
 
     def _dream_config(self) -> dict:
         if self._settings is None:
@@ -87,7 +95,9 @@ class DreamJob:
             )
         except asyncio.TimeoutError:
             error = f"sleep pass timed out after {timeout}s"
-            log.error("dream_sleep_pass_timeout", run_id=str(run_id), timeout_seconds=timeout)
+            log.error(
+                "dream_sleep_pass_timeout", run_id=str(run_id), timeout_seconds=timeout
+            )
         except Exception as exc:
             error = str(exc)
             log.error("dream_sleep_pass_failed", run_id=str(run_id), error=error)

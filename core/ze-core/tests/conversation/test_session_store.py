@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from ze_core.conversation.sessions import PostgresSessionStore, SessionTitleGenerator
 
@@ -93,7 +92,9 @@ async def test_upsert_executes_insert():
     pool, conn = _make_pool_mock()
     store = PostgresSessionStore(pool=pool)
 
-    await store.upsert("thread-3", title="Title", preview="Preview", title_source="user")
+    await store.upsert(
+        "thread-3", title="Title", preview="Preview", title_source="user"
+    )
 
     conn.execute.assert_called_once()
     sql = conn.execute.call_args[0][0]

@@ -45,6 +45,7 @@ def store_with_row():
         row = {"profile": profile, "dials": dials or {}, "updated_at": updated_at}
         pool, conn = _make_pool(row)
         return PostgresPersonaStore(pool=pool, profiles=_PROFILES), conn
+
     return _make
 
 

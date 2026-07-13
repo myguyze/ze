@@ -69,8 +69,11 @@ class WorkflowManagerAgent(BaseAgent):
         "trigger_workflow",
     ]
     intents = {
-        "read":   Intent(Mode.AUTONOMOUS, "List or inspect stored workflows."),
-        "manage": Intent(Mode.CONFIRM,    "Create, update, enable, disable, delete, or trigger a workflow."),
+        "read": Intent(Mode.AUTONOMOUS, "List or inspect stored workflows."),
+        "manage": Intent(
+            Mode.CONFIRM,
+            "Create, update, enable, disable, delete, or trigger a workflow.",
+        ),
     }
 
     def __init__(
@@ -105,7 +108,9 @@ class WorkflowManagerAgent(BaseAgent):
             session_id=ctx.session_id,
             tool_calls=len(loop_tool_calls),
         )
-        return AgentResult(agent=self.name, response=response, tool_calls=loop_tool_calls)
+        return AgentResult(
+            agent=self.name, response=response, tool_calls=loop_tool_calls
+        )
 
     async def stream(self, ctx: AgentContext) -> AsyncIterator[str]:
         result = await self.run(ctx)

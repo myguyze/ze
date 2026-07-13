@@ -49,10 +49,13 @@ def _make_executor(push=None):
 
 # ── _push_reuse_notice ────────────────────────────────────────────────────────
 
+
 async def test_push_reuse_notice_sends_notification():
     executor, push = _make_executor()
     goal = _goal()
-    milestone = _milestone(reuse_hint="Prior goal 'Market Research' produced competitor list (5 days ago).")
+    milestone = _milestone(
+        reuse_hint="Prior goal 'Market Research' produced competitor list (5 days ago)."
+    )
 
     await executor._push_reuse_notice(goal, milestone)
 
@@ -79,6 +82,7 @@ async def test_push_reuse_notice_includes_hint_content():
 
 
 # ── advance integration: reuse notice fires on completion ──────────────────────
+
 
 async def test_advance_fires_reuse_notice_when_hint_set():
     push = AsyncMock()
@@ -118,8 +122,9 @@ async def test_advance_fires_reuse_notice_when_hint_set():
 
     # create_task should have been called for: save_traces and reuse notice (at minimum)
     task_calls = [str(c) for c in mock_task.call_args_list]
-    assert any("reuse_notice" in c or "_push_reuse_notice" in c for c in task_calls), \
+    assert any("reuse_notice" in c or "_push_reuse_notice" in c for c in task_calls), (
         f"Expected _push_reuse_notice task, got: {task_calls}"
+    )
 
 
 async def test_advance_does_not_fire_reuse_notice_when_hint_empty():

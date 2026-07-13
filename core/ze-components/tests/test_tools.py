@@ -63,7 +63,10 @@ async def test_render_confirm_appends_col_with_buttons():
     token = ctx.begin_collection()
     await ze_components.tools.render_confirm(
         prompt="Delete this?",
-        actions=[{"label": "Yes", "value": "yes", "style": "danger"}, {"label": "No", "value": "no"}],
+        actions=[
+            {"label": "Yes", "value": "yes", "style": "danger"},
+            {"label": "No", "value": "no"},
+        ],
     )
     components = ctx.collect_and_reset(token)
 

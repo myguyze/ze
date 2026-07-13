@@ -64,7 +64,9 @@ def _make_job(
     planner.generate_suggestion = AsyncMock(return_value=suggestion)
 
     if push_raises:
-        notifier.push_notification = AsyncMock(side_effect=RuntimeError("Telegram down"))
+        notifier.push_notification = AsyncMock(
+            side_effect=RuntimeError("Telegram down")
+        )
 
     job = GoalSuggestionJob(
         notifier=notifier,
@@ -78,6 +80,7 @@ def _make_job(
 
 # ── step 0: expire stale ──────────────────────────────────────────────────────
 
+
 async def test_run_expires_stale_before_dedup_check():
     job, _, suggestion_store, _ = _make_job(suggested_recently=True, expired=2)
     await job.run()
@@ -85,6 +88,7 @@ async def test_run_expires_stale_before_dedup_check():
 
 
 # ── step 1: dedup ─────────────────────────────────────────────────────────────
+
 
 async def test_run_skips_when_suggested_recently():
     job, notifier, suggestion_store, planner = _make_job(suggested_recently=True)
@@ -95,6 +99,7 @@ async def test_run_skips_when_suggested_recently():
 
 # ── step 2: signal read failure ───────────────────────────────────────────────
 
+
 async def test_run_exits_cleanly_when_signal_read_raises():
     job, notifier, _, planner = _make_job(signal_raises=True)
     await job.run()
@@ -103,6 +108,7 @@ async def test_run_exits_cleanly_when_signal_read_raises():
 
 
 # ── step 3: no suggestion from planner ───────────────────────────────────────
+
 
 async def test_run_skips_when_generate_suggestion_returns_none():
     job, notifier, suggestion_store, _ = _make_job(suggestion=None)
@@ -113,9 +119,11 @@ async def test_run_skips_when_generate_suggestion_returns_none():
 
 # ── step 4: week conflict ─────────────────────────────────────────────────────
 
+
 async def test_run_exits_when_save_returns_false_week_conflict():
     job, notifier, suggestion_store, _ = _make_job(
-        suggestion=_suggestion(), save_result=False,
+        suggestion=_suggestion(),
+        save_result=False,
     )
     await job.run()
     suggestion_store.save.assert_called_once()
@@ -124,16 +132,19 @@ async def test_run_exits_when_save_returns_false_week_conflict():
 
 # ── step 5: push failure ──────────────────────────────────────────────────────
 
+
 async def test_run_calls_mark_expired_when_push_fails():
     s = _suggestion()
     job, _, suggestion_store, _ = _make_job(
-        suggestion=s, push_raises=True,
+        suggestion=s,
+        push_raises=True,
     )
     await job.run()
     suggestion_store.mark_expired.assert_called_once_with(s.id)
 
 
 # ── happy path ────────────────────────────────────────────────────────────────
+
 
 async def test_run_saves_suggestion_and_pushes_notification():
     s = _suggestion()

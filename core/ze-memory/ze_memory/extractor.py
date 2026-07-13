@@ -1,4 +1,5 @@
 """LLM-based extraction of user facts and events from a completed conversation turn."""
+
 from __future__ import annotations
 
 import json
@@ -32,14 +33,18 @@ def fact_extraction_model(settings: Any = None) -> str:
         return MODEL_SYNTHESIS
     if isinstance(settings, dict):
         memory = settings.get("memory", {})
-        override = memory.get("fact_extraction_model") if isinstance(memory, dict) else None
+        override = (
+            memory.get("fact_extraction_model") if isinstance(memory, dict) else None
+        )
         if override:
             return override
         return settings.get("models", {}).get("synthesis", MODEL_SYNTHESIS)
     cfg = getattr(settings, "config", None)
     if isinstance(cfg, dict):
         memory = cfg.get("memory", {})
-        override = memory.get("fact_extraction_model") if isinstance(memory, dict) else None
+        override = (
+            memory.get("fact_extraction_model") if isinstance(memory, dict) else None
+        )
         if override:
             return override
         return cfg.get("models", {}).get("synthesis", MODEL_SYNTHESIS)
@@ -64,7 +69,8 @@ def parse_fact_response(raw: str) -> list[dict]:
                 "confidence": float(f.get("confidence", 0.8)),
             }
             for f in parsed
-            if isinstance(f, dict) and f.get("value")
+            if isinstance(f, dict)
+            and f.get("value")
             and (f.get("predicate") or f.get("key"))
         ]
     except (json.JSONDecodeError, KeyError, ValueError):
@@ -106,10 +112,12 @@ async def extract_facts(
         return []
     try:
         raw = await client.complete(
-            messages=[{
-                "role": "user",
-                "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
+                }
+            ],
             model=model,
             system=_SYSTEM,
             max_tokens=300,
@@ -167,7 +175,8 @@ def parse_event_response(raw: str) -> list[dict]:
         if not isinstance(parsed, list):
             return []
         return [
-            e for e in parsed
+            e
+            for e in parsed
             if isinstance(e, dict) and e.get("title") and e.get("event_type")
         ]
     except (json.JSONDecodeError, ValueError):
@@ -213,10 +222,12 @@ async def extract_events(
         return []
     try:
         raw = await client.complete(
-            messages=[{
-                "role": "user",
-                "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
+                }
+            ],
             model=model,
             system=_EVENT_SYSTEM,
             max_tokens=400,
@@ -240,7 +251,9 @@ async def gather_event_proposals(
 
     settings = configurable.get("settings")
     settings_dict = (
-        settings.config if settings is not None and hasattr(settings, "config") else settings
+        settings.config
+        if settings is not None and hasattr(settings, "config")
+        else settings
     )
     model = fact_extraction_model(settings_dict)
     return await extract_events(client, prompt=prompt, response=response, model=model)
@@ -259,6 +272,7 @@ _ENTITY_SYSTEM = (
 
 def raw_to_entities(raw: list[dict]) -> list["Entity"]:
     from ze_memory.types import Entity
+
     return [
         Entity(
             id=None,
@@ -283,10 +297,12 @@ async def extract_entities(
         return []
     try:
         raw_text = await client.complete(
-            messages=[{
-                "role": "user",
-                "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"User said: {prompt}\n\nAssistant replied: {response[:1000]}",
+                }
+            ],
             model=model,
             system=_ENTITY_SYSTEM,
             max_tokens=300,
@@ -299,13 +315,17 @@ async def extract_entities(
         text = text.strip()
         try:
             import json as _json
+
             parsed = _json.loads(text)
             if not isinstance(parsed, list):
                 return []
-            return raw_to_entities([
-                e for e in parsed
-                if isinstance(e, dict) and e.get("name") and e.get("entity_type")
-            ])
+            return raw_to_entities(
+                [
+                    e
+                    for e in parsed
+                    if isinstance(e, dict) and e.get("name") and e.get("entity_type")
+                ]
+            )
         except (_json.JSONDecodeError, ValueError):
             return []
     except Exception as exc:
@@ -326,7 +346,9 @@ async def gather_entity_proposals(
 
     settings = configurable.get("settings")
     settings_dict = (
-        settings.config if settings is not None and hasattr(settings, "config") else settings
+        settings.config
+        if settings is not None and hasattr(settings, "config")
+        else settings
     )
     model = fact_extraction_model(settings_dict)
     return await extract_entities(client, prompt=prompt, response=response, model=model)
@@ -352,7 +374,9 @@ async def gather_fact_proposals(
 
     settings = configurable.get("settings")
     settings_dict = (
-        settings.config if settings is not None and hasattr(settings, "config") else settings
+        settings.config
+        if settings is not None and hasattr(settings, "config")
+        else settings
     )
     model = fact_extraction_model(settings_dict)
     extracted = await extract_facts(

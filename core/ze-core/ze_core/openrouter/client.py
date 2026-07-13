@@ -52,7 +52,9 @@ class OpenRouterClient:
             resp = await self._sdk.generations.get_generation_async(id=generation_id)
             return resp.data.total_cost
         except Exception as exc:
-            self._log.warning("cost_fetch_failed", generation_id=generation_id, error=str(exc))
+            self._log.warning(
+                "cost_fetch_failed", generation_id=generation_id, error=str(exc)
+            )
             return None
 
     # ── Public interface ──────────────────────────────────────────────────────
@@ -109,7 +111,9 @@ class OpenRouterClient:
                 continue
 
             if not isinstance(response, ChatResult):
-                raise OpenRouterError("Unexpected streaming response for non-streaming call")
+                raise OpenRouterError(
+                    "Unexpected streaming response for non-streaming call"
+                )
 
             duration_ms = int((time.monotonic() - start) * 1000)
             usage = _extract_usage(response)
@@ -182,7 +186,9 @@ class OpenRouterClient:
                 continue
 
             if not isinstance(response, ChatResult):
-                raise OpenRouterError("Unexpected streaming response for tool-call request")
+                raise OpenRouterError(
+                    "Unexpected streaming response for tool-call request"
+                )
 
             duration_ms = int((time.monotonic() - start) * 1000)
             usage = _extract_usage(response)
@@ -214,11 +220,13 @@ class OpenRouterClient:
                         args = json.loads(tc.function.arguments)
                     except (json.JSONDecodeError, ValueError):
                         args = {}
-                    tool_call_list.append({
-                        "id": tc.id,
-                        "name": tc.function.name,
-                        "arguments": args,
-                    })
+                    tool_call_list.append(
+                        {
+                            "id": tc.id,
+                            "name": tc.function.name,
+                            "arguments": args,
+                        }
+                    )
                 return None, tool_call_list
 
             return _extract_message_text(message), None
@@ -276,12 +284,16 @@ class OpenRouterClient:
                 continue
 
             if isinstance(event_stream, ChatResult):
-                raise OpenRouterError("Unexpected non-streaming response for streaming call")
+                raise OpenRouterError(
+                    "Unexpected non-streaming response for streaming call"
+                )
 
             text_parts: list[str] = []
             # tool_call_map: index → {id, name, arguments_chunks}
             tool_call_map: dict[int, dict] = {}
-            stream_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            stream_usage = TokenUsage(
+                prompt_tokens=0, completion_tokens=0, total_tokens=0
+            )
 
             async with event_stream:
                 async for chunk in event_stream:
@@ -303,7 +315,11 @@ class OpenRouterClient:
                         for tc_delta in delta.tool_calls:
                             idx = tc_delta.index
                             if idx not in tool_call_map:
-                                tool_call_map[idx] = {"id": None, "name": None, "arguments": []}
+                                tool_call_map[idx] = {
+                                    "id": None,
+                                    "name": None,
+                                    "arguments": [],
+                                }
                             entry = tool_call_map[idx]
                             if tc_delta.id:
                                 entry["id"] = tc_delta.id
@@ -311,7 +327,9 @@ class OpenRouterClient:
                                 if tc_delta.function.name:
                                     entry["name"] = tc_delta.function.name
                                 if tc_delta.function.arguments:
-                                    entry["arguments"].append(tc_delta.function.arguments)
+                                    entry["arguments"].append(
+                                        tc_delta.function.arguments
+                                    )
 
             duration_ms = int((time.monotonic() - start) * 1000)
             self._log.info(
@@ -341,11 +359,13 @@ class OpenRouterClient:
                         args = json.loads(raw_args) if raw_args else {}
                     except (json.JSONDecodeError, ValueError):
                         args = {}
-                    tool_calls.append({
-                        "id": entry["id"] or f"call_{idx}",
-                        "name": entry["name"] or "",
-                        "arguments": args,
-                    })
+                    tool_calls.append(
+                        {
+                            "id": entry["id"] or f"call_{idx}",
+                            "name": entry["name"] or "",
+                            "arguments": args,
+                        }
+                    )
                 return None, tool_calls
 
             return "".join(text_parts) or None, None
@@ -439,9 +459,13 @@ class OpenRouterClient:
                 continue
 
             if isinstance(event_stream, ChatResult):
-                raise OpenRouterError("Unexpected non-streaming response for streaming call")
+                raise OpenRouterError(
+                    "Unexpected non-streaming response for streaming call"
+                )
 
-            stream_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            stream_usage = TokenUsage(
+                prompt_tokens=0, completion_tokens=0, total_tokens=0
+            )
             async with event_stream:
                 async for chunk in event_stream:
                     if chunk.usage is not None:
@@ -487,7 +511,14 @@ def _normalise_audio_format(fmt: str) -> str:
 
 async def _to_mp3(audio_bytes: bytes) -> bytes:
     proc = await asyncio.create_subprocess_exec(
-        "ffmpeg", "-i", "pipe:0", "-f", "mp3", "-q:a", "4", "pipe:1",
+        "ffmpeg",
+        "-i",
+        "pipe:0",
+        "-f",
+        "mp3",
+        "-q:a",
+        "4",
+        "pipe:1",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
@@ -511,7 +542,9 @@ def _chunk_content(chunk: ChatStreamChunk) -> str | None:
     text = _content_to_str(delta.content)
     if not text.strip():
         reasoning = delta.reasoning
-        if reasoning not in (UNSET, UNSET_SENTINEL, None) and isinstance(reasoning, str):
+        if reasoning not in (UNSET, UNSET_SENTINEL, None) and isinstance(
+            reasoning, str
+        ):
             text = reasoning
     return text or None
 
@@ -520,7 +553,9 @@ def _extract_message_text(message: ChatAssistantMessage) -> str:
     text = _content_to_str(message.content)
     if not text.strip():
         reasoning = message.reasoning
-        if reasoning not in (UNSET, UNSET_SENTINEL, None) and isinstance(reasoning, str):
+        if reasoning not in (UNSET, UNSET_SENTINEL, None) and isinstance(
+            reasoning, str
+        ):
             return reasoning
     return text
 

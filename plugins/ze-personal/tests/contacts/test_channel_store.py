@@ -9,6 +9,7 @@ from ze_personal.contacts.channel_store import ContactChannelStore, _handle_from
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def make_conn():
     conn = AsyncMock()
     conn.fetch = AsyncMock(return_value=[])
@@ -53,8 +54,11 @@ def make_row(**overrides):
 
 # ── _handle_from_row ──────────────────────────────────────────────────────────
 
+
 def test_handle_from_row_maps_fields():
-    row = make_row(channel_type="email", handle="a@b.com", preferred=True, verified=True)
+    row = make_row(
+        channel_type="email", handle="a@b.com", preferred=True, verified=True
+    )
     h = _handle_from_row(row)
     assert h.channel_type == ChannelType.EMAIL
     assert h.handle == "a@b.com"
@@ -63,6 +67,7 @@ def test_handle_from_row_maps_fields():
 
 
 # ── get_handles ───────────────────────────────────────────────────────────────
+
 
 async def test_get_handles_returns_empty_when_none():
     store = make_store()
@@ -86,6 +91,7 @@ async def test_get_handles_returns_all_handles():
 
 # ── get_preferred ─────────────────────────────────────────────────────────────
 
+
 async def test_get_preferred_returns_none_when_no_preferred():
     store = make_store()
     result = await store.get_preferred(uuid4())
@@ -105,6 +111,7 @@ async def test_get_preferred_returns_preferred_handle():
 
 # ── upsert ────────────────────────────────────────────────────────────────────
 
+
 async def test_upsert_calls_execute_with_correct_values():
     conn = make_conn()
     store = make_store(conn)
@@ -120,11 +127,12 @@ async def test_upsert_calls_execute_with_correct_values():
     assert call_args.args[1] == contact_id
     assert call_args.args[2] == "email"
     assert call_args.args[3] == "a@b.com"
-    assert call_args.args[4] is True   # preferred
+    assert call_args.args[4] is True  # preferred
     assert call_args.args[5] is False  # verified
 
 
 # ── set_preferred ─────────────────────────────────────────────────────────────
+
 
 async def test_set_preferred_executes_two_updates():
     conn = make_conn()
@@ -155,6 +163,7 @@ async def test_set_preferred_unsets_other_types_then_sets_target():
 
 
 # ── delete ────────────────────────────────────────────────────────────────────
+
 
 async def test_delete_calls_execute_with_correct_params():
     conn = make_conn()

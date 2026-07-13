@@ -1,4 +1,5 @@
 """Tests for BaseAgent.call_tool() and BaseAgent.agentic_loop()."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -38,7 +39,9 @@ def clean():
     clear_hooks()
 
 
-def _ctx(gate: GateDecision = GateDecision.EXECUTE, model: str | None = None) -> AgentContext:
+def _ctx(
+    gate: GateDecision = GateDecision.EXECUTE, model: str | None = None
+) -> AgentContext:
     return AgentContext(
         session_id="s1",
         prompt="hello",
@@ -61,6 +64,7 @@ def _agent() -> BaseAgent:
 
 
 # ── call_tool ────────────────────────────────────────────────────────────────
+
 
 class TestCallTool:
     async def test_executes_read_tool(self):
@@ -135,12 +139,14 @@ class TestCallTool:
 
     async def test_unknown_tool_raises(self):
         from ze_agents.errors import UnknownToolError
+
         a = _agent()
         with pytest.raises(UnknownToolError):
             await a.call_tool("does_not_exist", _ctx())
 
 
 # ── call_tool hooks ───────────────────────────────────────────────────────────
+
 
 class TestCallToolHooks:
     async def test_on_tool_start_and_end_fire(self):
@@ -149,6 +155,7 @@ class TestCallToolHooks:
         class _H(BaseHarnessHook):
             async def on_tool_start(self, e: ToolStartEvent):
                 events.append(("start", e.tool_name, e.iteration))
+
             async def on_tool_end(self, e: ToolEndEvent):
                 events.append(("end", e.tool_name, e.tool_call.success))
 
@@ -279,7 +286,9 @@ class TestCallToolHooks:
         async def draft_write_tool(x: str) -> str:
             return x
 
-        tc = await _agent().call_tool("draft_write_tool", _ctx(GateDecision.DRAFT), x="v")
+        tc = await _agent().call_tool(
+            "draft_write_tool", _ctx(GateDecision.DRAFT), x="v"
+        )
         assert tc.is_draft is True
         assert events == []
 
@@ -301,6 +310,7 @@ class TestCallToolHooks:
 
 
 # ── agentic_loop ─────────────────────────────────────────────────────────────
+
 
 class TestAgenticLoop:
     def _client(self, responses: list) -> MagicMock:
@@ -333,10 +343,12 @@ class TestAgenticLoop:
 
         a = _agent()
         a.tools = ["lookup"]
-        client = self._client([
-            (None, [{"id": "c1", "name": "lookup", "arguments": {"q": "hello"}}]),
-            ("done", None),
-        ])
+        client = self._client(
+            [
+                (None, [{"id": "c1", "name": "lookup", "arguments": {"q": "hello"}}]),
+                ("done", None),
+            ]
+        )
         messages = [{"role": "user", "content": "search"}]
 
         text, calls = await a.agentic_loop(_ctx(), client, messages, system="sys")
@@ -369,7 +381,10 @@ class TestAgenticLoop:
 
         a = _agent()
         a.tools = ["always_calls"]
-        tool_response = (None, [{"id": "c1", "name": "always_calls", "arguments": {"x": "v"}}])
+        tool_response = (
+            None,
+            [{"id": "c1", "name": "always_calls", "arguments": {"x": "v"}}],
+        )
         client = self._client([tool_response] * 3)
         messages = [{"role": "user", "content": "q"}]
 
@@ -392,15 +407,15 @@ class TestAgenticLoop:
         fake_db = object()
         a = _agent()
         a.tools = ["dep_tool"]
-        client = self._client([
-            (None, [{"id": "c1", "name": "dep_tool", "arguments": {"q": "hi"}}]),
-            ("done", None),
-        ])
+        client = self._client(
+            [
+                (None, [{"id": "c1", "name": "dep_tool", "arguments": {"q": "hi"}}]),
+                ("done", None),
+            ]
+        )
         messages = [{"role": "user", "content": "x"}]
 
-        await a.agentic_loop(
-            _ctx(), client, messages, system="s", deps={"db": fake_db}
-        )
+        await a.agentic_loop(_ctx(), client, messages, system="s", deps={"db": fake_db})
 
         assert captured["db"] is fake_db
 
@@ -428,13 +443,18 @@ class TestAgenticLoop:
 
         a = _agent()
         a.tools = ["tool_a", "tool_b"]
-        client = self._client([
-            (None, [
-                {"id": "c1", "name": "tool_a", "arguments": {"x": "1"}},
-                {"id": "c2", "name": "tool_b", "arguments": {"x": "2"}},
-            ]),
-            ("done", None),
-        ])
+        client = self._client(
+            [
+                (
+                    None,
+                    [
+                        {"id": "c1", "name": "tool_a", "arguments": {"x": "1"}},
+                        {"id": "c2", "name": "tool_b", "arguments": {"x": "2"}},
+                    ],
+                ),
+                ("done", None),
+            ]
+        )
         messages = [{"role": "user", "content": "q"}]
 
         text, calls = await a.agentic_loop(_ctx(), client, messages, system="s")
@@ -456,10 +476,21 @@ class TestAgenticLoop:
     async def test_openrouter_server_tool_variants(self, returned_name, expected_name):
         a = _agent()
         a.tools = ["openrouter:web_search"]
-        client = self._client([
-            (None, [{"id": "c1", "name": returned_name, "arguments": {"query": "AI news"}}]),
-            ("done", None),
-        ])
+        client = self._client(
+            [
+                (
+                    None,
+                    [
+                        {
+                            "id": "c1",
+                            "name": returned_name,
+                            "arguments": {"query": "AI news"},
+                        }
+                    ],
+                ),
+                ("done", None),
+            ]
+        )
         messages = [{"role": "user", "content": "search"}]
 
         text, calls = await a.agentic_loop(_ctx(), client, messages, system="sys")
@@ -471,6 +502,7 @@ class TestAgenticLoop:
 
 
 # ── OpenRouter server tool helpers ────────────────────────────────────────────
+
 
 class TestOpenRouterServerTools:
     @pytest.mark.parametrize(
@@ -501,6 +533,7 @@ class TestOpenRouterServerTools:
 
 # ── agentic_loop hooks ────────────────────────────────────────────────────────
 
+
 class TestAgenticLoopHooks:
     def _client(self, responses):
         client = MagicMock()
@@ -514,6 +547,7 @@ class TestAgenticLoopHooks:
         class _H(BaseHarnessHook):
             async def on_loop_start(self, e: LoopStartEvent):
                 events.append(("start", e.agent_name))
+
             async def on_loop_end(self, e: LoopEndEvent):
                 events.append(("end", e.iterations_used, len(e.tool_calls)))
 
@@ -526,7 +560,9 @@ class TestAgenticLoopHooks:
         a = _agent()
         a.tools = ["lh_tool"]
         client = self._client([("answer", None)])
-        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+        await a.agentic_loop(
+            _ctx(), client, [{"role": "user", "content": "q"}], system="s"
+        )
 
         assert events == [("start", "test"), ("end", 1, 0)]
 
@@ -546,11 +582,15 @@ class TestAgenticLoopHooks:
 
         a = _agent()
         a.tools = ["le_tool"]
-        client = self._client([
-            (None, [{"id": "c1", "name": "le_tool", "arguments": {"x": "v"}}]),
-            ("done", None),
-        ])
-        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+        client = self._client(
+            [
+                (None, [{"id": "c1", "name": "le_tool", "arguments": {"x": "v"}}]),
+                ("done", None),
+            ]
+        )
+        await a.agentic_loop(
+            _ctx(), client, [{"role": "user", "content": "q"}], system="s"
+        )
 
         assert len(captured["calls"]) == 1
         assert captured["calls"][0].tool_name == "le_tool"
@@ -573,7 +613,13 @@ class TestAgenticLoopHooks:
         a.tools = ["mi_tool"]
         tool_resp = (None, [{"id": "c1", "name": "mi_tool", "arguments": {"x": "v"}}])
         client = self._client([tool_resp] * 2)
-        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s", max_iterations=2)
+        await a.agentic_loop(
+            _ctx(),
+            client,
+            [{"role": "user", "content": "q"}],
+            system="s",
+            max_iterations=2,
+        )
 
         assert events == [2]
 
@@ -593,7 +639,9 @@ class TestAgenticLoopHooks:
         client = self._client([("answer", None)])
 
         with pytest.raises(AgentAbortedError, match="rate limited"):
-            await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+            await a.agentic_loop(
+                _ctx(), client, [{"role": "user", "content": "q"}], system="s"
+            )
 
         client.complete_with_tools.assert_not_awaited()
 
@@ -610,17 +658,21 @@ class TestAgenticLoopHooks:
 
         a = _agent()
         a.tools = ["count_tool"]
-        client = self._client([
-            (None, [{"id": "c1", "name": "count_tool", "arguments": {"x": "v"}}]),
-            (None, [{"id": "c2", "name": "count_tool", "arguments": {"x": "v"}}]),
-            ("done", None),
-        ])
+        client = self._client(
+            [
+                (None, [{"id": "c1", "name": "count_tool", "arguments": {"x": "v"}}]),
+                (None, [{"id": "c2", "name": "count_tool", "arguments": {"x": "v"}}]),
+                ("done", None),
+            ]
+        )
 
         ctx = _ctx()
         ctx.abort_token = token
 
         with pytest.raises(AgentAbortedError, match="user cancelled"):
-            await a.agentic_loop(ctx, client, [{"role": "user", "content": "q"}], system="s")
+            await a.agentic_loop(
+                ctx, client, [{"role": "user", "content": "q"}], system="s"
+            )
 
         assert call_count == 1  # second iteration never runs
 
@@ -638,7 +690,9 @@ class TestAgenticLoopHooks:
         a = _agent()
         a.tools = ["safe_tool"]
         client = self._client([("answer", None)])
-        text, _ = await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+        text, _ = await a.agentic_loop(
+            _ctx(), client, [{"role": "user", "content": "q"}], system="s"
+        )
 
         assert text == "answer"
 
@@ -657,17 +711,22 @@ class TestAgenticLoopHooks:
 
         a = _agent()
         a.tools = ["idx_tool"]
-        client = self._client([
-            (None, [{"id": "c1", "name": "idx_tool", "arguments": {"x": "v"}}]),
-            (None, [{"id": "c2", "name": "idx_tool", "arguments": {"x": "v"}}]),
-            ("done", None),
-        ])
-        await a.agentic_loop(_ctx(), client, [{"role": "user", "content": "q"}], system="s")
+        client = self._client(
+            [
+                (None, [{"id": "c1", "name": "idx_tool", "arguments": {"x": "v"}}]),
+                (None, [{"id": "c2", "name": "idx_tool", "arguments": {"x": "v"}}]),
+                ("done", None),
+            ]
+        )
+        await a.agentic_loop(
+            _ctx(), client, [{"role": "user", "content": "q"}], system="s"
+        )
 
         assert iterations_seen == [0, 1]
 
 
 # ── _merge_deps ───────────────────────────────────────────────────────────────
+
 
 class TestMergeDeps:
     def test_injects_missing_dep(self):
@@ -703,9 +762,12 @@ class TestMergeDeps:
 
 # ── _serialise_result ────────────────────────────────────────────────────────
 
+
 class TestSerialiseResult:
     def _tc(self, **kwargs) -> ToolCall:
-        defaults = dict(tool_name="t", args={}, result=None, duration_ms=0, success=True)
+        defaults = dict(
+            tool_name="t", args={}, result=None, duration_ms=0, success=True
+        )
         defaults.update(kwargs)
         return ToolCall(**defaults)
 
@@ -736,6 +798,7 @@ class TestSerialiseResult:
 
 # ── _truncate_messages ────────────────────────────────────────────────────────
 
+
 class TestTruncateMessages:
     def _msg(self, role: str, content: str = "x") -> dict:
         return {"role": role, "content": content}
@@ -745,7 +808,13 @@ class TestTruncateMessages:
             {
                 "role": "assistant",
                 "content": None,
-                "tool_calls": [{"id": call_id, "type": "function", "function": {"name": "f", "arguments": "{}"}}],
+                "tool_calls": [
+                    {
+                        "id": call_id,
+                        "type": "function",
+                        "function": {"name": "f", "arguments": "{}"},
+                    }
+                ],
             },
             {"role": "tool", "tool_call_id": call_id, "content": "result"},
         ]
@@ -777,6 +846,7 @@ class TestTruncateMessages:
 
 # ── _fetch_tool_executor_context / ToolExecutorPolicy ─────────────────────────
 
+
 class TestToolExecutorContextFetch:
     """agentic_loop prepends memory context to system when ctx.memory_store is set."""
 
@@ -787,7 +857,9 @@ class TestToolExecutorContextFetch:
             intent="execute",
             gate_decision=GateDecision.EXECUTE,
             memory_store=memory_store,
-            embed_fn=MagicMock(return_value=[0.1] * 384) if memory_store is not None else None,
+            embed_fn=MagicMock(return_value=[0.1] * 384)
+            if memory_store is not None
+            else None,
         )
         return ctx
 
@@ -805,7 +877,9 @@ class TestToolExecutorContextFetch:
         client.complete_with_tools = _capture
 
         ctx = self._make_ctx_with_memory(memory_store=None)
-        await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
+        await a.agentic_loop(
+            ctx, client, [{"role": "user", "content": "hi"}], system="BASE"
+        )
 
         assert captured_systems[0] == "BASE"
 
@@ -815,7 +889,9 @@ class TestToolExecutorContextFetch:
         a = _agent()
 
         memory_ctx = MemoryContext(
-            facts=[Fact(predicate="preferred_language", value="Python", confidence=1.0)],
+            facts=[
+                Fact(predicate="preferred_language", value="Python", confidence=1.0)
+            ],
         )
         memory_store = AsyncMock()
         memory_store.retrieve = AsyncMock(return_value=memory_ctx)
@@ -831,10 +907,15 @@ class TestToolExecutorContextFetch:
 
         ctx = self._make_ctx_with_memory(memory_store=memory_store)
 
-        await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
+        await a.agentic_loop(
+            ctx, client, [{"role": "user", "content": "hi"}], system="BASE"
+        )
 
         assert len(captured_systems) > 0
-        assert "preferred_language" in captured_systems[0] or "Relevant facts" in captured_systems[0]
+        assert (
+            "preferred_language" in captured_systems[0]
+            or "Relevant facts" in captured_systems[0]
+        )
 
     async def test_memory_store_failure_does_not_abort_loop(self):
         a = _agent()
@@ -847,6 +928,8 @@ class TestToolExecutorContextFetch:
 
         ctx = self._make_ctx_with_memory(memory_store=memory_store)
 
-        result, _ = await a.agentic_loop(ctx, client, [{"role": "user", "content": "hi"}], system="BASE")
+        result, _ = await a.agentic_loop(
+            ctx, client, [{"role": "user", "content": "hi"}], system="BASE"
+        )
 
         assert result == "done"

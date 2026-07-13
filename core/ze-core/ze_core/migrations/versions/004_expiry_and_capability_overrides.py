@@ -4,6 +4,7 @@ Revision ID: zc004
 Revises: zc003
 Create Date: 2026-05-27
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -19,9 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Grace-period expiry: facts are soft-expired by setting expires_at,
     # then hard-deleted once the timestamp elapses.
-    op.execute(
-        "ALTER TABLE user_facts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ"
-    )
+    op.execute("ALTER TABLE user_facts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ")
     op.execute(
         "CREATE INDEX IF NOT EXISTS user_facts_expires_at_idx"
         " ON user_facts (expires_at) WHERE expires_at IS NOT NULL"

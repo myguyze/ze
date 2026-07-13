@@ -31,7 +31,9 @@ def _register(name: str, intent_map: dict | None = None) -> None:
     agent(_A)
 
 
-def _envelope(is_compound: bool = True, raw_scores: dict | None = None) -> RoutingEnvelope:
+def _envelope(
+    is_compound: bool = True, raw_scores: dict | None = None
+) -> RoutingEnvelope:
     return RoutingEnvelope(
         primary_agent="alpha",
         confidence=0.4,
@@ -66,13 +68,17 @@ class TestDecomposeNode:
         _register("alpha")
         _register("beta")
         client = AsyncMock()
-        client.complete = AsyncMock(return_value=json.dumps({
-            "subtasks": [
-                {"agent": "alpha", "intent": "read", "prompt": "research part"},
-                {"agent": "beta", "intent": "create", "prompt": "write part"},
-            ],
-            "sequential": False,
-        }))
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "subtasks": [
+                        {"agent": "alpha", "intent": "read", "prompt": "research part"},
+                        {"agent": "beta", "intent": "create", "prompt": "write part"},
+                    ],
+                    "sequential": False,
+                }
+            )
+        )
 
         result = await decompose(_state(), _config(client))
 
@@ -86,10 +92,16 @@ class TestDecomposeNode:
     async def test_single_subtask_result_is_not_compound(self):
         _register("alpha")
         client = AsyncMock()
-        client.complete = AsyncMock(return_value=json.dumps({
-            "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "simple"}],
-            "sequential": False,
-        }))
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "subtasks": [
+                        {"agent": "alpha", "intent": "read", "prompt": "simple"}
+                    ],
+                    "sequential": False,
+                }
+            )
+        )
 
         result = await decompose(_state(), _config(client))
 
@@ -102,10 +114,14 @@ class TestDecomposeNode:
         router = MagicMock()
         router._config = RouterConfig(fallback_model="openai/gpt-4o-mini")
         client = AsyncMock()
-        client.complete = AsyncMock(return_value=json.dumps({
-            "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
-            "sequential": False,
-        }))
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
+                    "sequential": False,
+                }
+            )
+        )
 
         await decompose(_state(), _config(client, router=router))
 
@@ -120,10 +136,12 @@ class TestDecomposeNode:
 
         async def _capture(**kwargs):
             captured.update(kwargs)
-            return json.dumps({
-                "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
-                "sequential": False,
-            })
+            return json.dumps(
+                {
+                    "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
+                    "sequential": False,
+                }
+            )
 
         client.complete = _capture
         raw = {"alpha": 0.45, "beta": 0.38}
@@ -138,13 +156,17 @@ class TestDecomposeNode:
         _register("alpha")
         _register("beta")
         client = AsyncMock()
-        client.complete = AsyncMock(return_value=json.dumps({
-            "subtasks": [
-                {"agent": "alpha", "intent": "read", "prompt": "step 1"},
-                {"agent": "beta", "intent": "create", "prompt": "step 2"},
-            ],
-            "sequential": True,
-        }))
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "subtasks": [
+                        {"agent": "alpha", "intent": "read", "prompt": "step 1"},
+                        {"agent": "beta", "intent": "create", "prompt": "step 2"},
+                    ],
+                    "sequential": True,
+                }
+            )
+        )
 
         result = await decompose(_state(), _config(client))
         assert result["envelope"].is_sequential is True
@@ -167,10 +189,14 @@ class TestDecomposeNode:
     async def test_no_router_in_config_uses_default_model(self):
         _register("alpha")
         client = AsyncMock()
-        client.complete = AsyncMock(return_value=json.dumps({
-            "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
-            "sequential": False,
-        }))
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "subtasks": [{"agent": "alpha", "intent": "read", "prompt": "p"}],
+                    "sequential": False,
+                }
+            )
+        )
 
         result = await decompose(_state(), _config(client, router=None))
 
@@ -209,7 +235,11 @@ class TestEmbedRouteNode:
         await embed_route(state, config)
 
         call_args = router.route.call_args
-        routing_text = call_args.kwargs.get("prompt") or call_args.args[0] if call_args.args else call_args.kwargs["prompt"]
+        routing_text = (
+            call_args.kwargs.get("prompt") or call_args.args[0]
+            if call_args.args
+            else call_args.kwargs["prompt"]
+        )
         assert "skip the LinkedIn step" in routing_text
         assert "[Active goals:" in routing_text
         # Hints appended AFTER the message, not prepended
@@ -255,7 +285,10 @@ class TestEmbedRouteFollowUps:
     def _news_history(self) -> list[dict]:
         return [
             {"role": "user", "content": "whats in the news regarding AI?"},
-            {"role": "assistant", "content": "Here's what's trending in AI right now: ..."},
+            {
+                "role": "assistant",
+                "content": "Here's what's trending in AI right now: ...",
+            },
         ]
 
     async def _routed_text(self, state: dict) -> str:
@@ -265,61 +298,73 @@ class TestEmbedRouteFollowUps:
         return call_args.kwargs["prompt"]
 
     async def test_are_these_recent_includes_news_history(self):
-        routing_text = await self._routed_text({
-            "session_id": "s1",
-            "prompt": "are these news recent?",
-            "image_caption": None,
-            "routing_hints": None,
-            "messages": self._news_history(),
-            "last_active_at": time.time(),
-        })
+        routing_text = await self._routed_text(
+            {
+                "session_id": "s1",
+                "prompt": "are these news recent?",
+                "image_caption": None,
+                "routing_hints": None,
+                "messages": self._news_history(),
+                "last_active_at": time.time(),
+            }
+        )
         assert routing_text.startswith("are these news recent?")
         assert "[Recent conversation]" in routing_text
         assert "whats in the news regarding AI?" in routing_text
 
     async def test_how_did_you_get_those_includes_news_history(self):
-        routing_text = await self._routed_text({
-            "session_id": "s1",
-            "prompt": "I meant those ones in specific. How did you get those?",
-            "image_caption": None,
-            "routing_hints": None,
-            "messages": self._news_history(),
-            "last_active_at": time.time(),
-        })
+        routing_text = await self._routed_text(
+            {
+                "session_id": "s1",
+                "prompt": "I meant those ones in specific. How did you get those?",
+                "image_caption": None,
+                "routing_hints": None,
+                "messages": self._news_history(),
+                "last_active_at": time.time(),
+            }
+        )
         assert "trending in AI" in routing_text
         # current message dominates: it comes before the history hint
-        assert routing_text.index("How did you get those?") < routing_text.index("[Recent conversation]")
+        assert routing_text.index("How did you get those?") < routing_text.index(
+            "[Recent conversation]"
+        )
 
     async def test_no_history_hint_when_session_expired(self):
-        routing_text = await self._routed_text({
-            "session_id": "s1",
-            "prompt": "are these recent?",
-            "image_caption": None,
-            "routing_hints": None,
-            "messages": self._news_history(),
-            "last_active_at": time.time() - 3600,  # > 30 min inactivity
-        })
+        routing_text = await self._routed_text(
+            {
+                "session_id": "s1",
+                "prompt": "are these recent?",
+                "image_caption": None,
+                "routing_hints": None,
+                "messages": self._news_history(),
+                "last_active_at": time.time() - 3600,  # > 30 min inactivity
+            }
+        )
         assert routing_text == "are these recent?"
 
     async def test_no_history_hint_when_no_messages(self):
-        routing_text = await self._routed_text({
-            "session_id": "s1",
-            "prompt": "are these recent?",
-            "image_caption": None,
-            "routing_hints": None,
-            "messages": [],
-            "last_active_at": None,
-        })
+        routing_text = await self._routed_text(
+            {
+                "session_id": "s1",
+                "prompt": "are these recent?",
+                "image_caption": None,
+                "routing_hints": None,
+                "messages": [],
+                "last_active_at": None,
+            }
+        )
         assert routing_text == "are these recent?"
 
     async def test_history_messages_are_truncated(self):
         history = [{"role": "assistant", "content": "y" * 5000}]
-        routing_text = await self._routed_text({
-            "session_id": "s1",
-            "prompt": "shorten please",
-            "image_caption": None,
-            "routing_hints": None,
-            "messages": history,
-            "last_active_at": time.time(),
-        })
+        routing_text = await self._routed_text(
+            {
+                "session_id": "s1",
+                "prompt": "shorten please",
+                "image_caption": None,
+                "routing_hints": None,
+                "messages": history,
+                "last_active_at": time.time(),
+            }
+        )
         assert len(routing_text) < 1000

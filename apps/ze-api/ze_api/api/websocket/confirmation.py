@@ -10,7 +10,10 @@ from fastapi import WebSocket
 from ze_agents.tasks import fire_and_forget
 from ze_api.api.websocket.connection import ConnectionManager
 from ze_api.api.websocket.context import bound_turn_context
-from ze_api.api.websocket.serializers import ephemeral_assistant_message, extract_thread_id
+from ze_api.api.websocket.serializers import (
+    ephemeral_assistant_message,
+    extract_thread_id,
+)
 from ze_api.api.websocket.session_titles import schedule_session_title_from_thread
 from ze_logging import get_logger
 
@@ -33,7 +36,9 @@ async def handle_confirm(
     request_id = data.get("id", "")
 
     if pending_config is None:
-        await conn_mgr.send_frame({"type": "error", "detail": "No pending confirmation."}, thread_id)
+        await conn_mgr.send_frame(
+            {"type": "error", "detail": "No pending confirmation."}, thread_id
+        )
         return None
 
     if confirmation_store is not None and thread_id:
@@ -49,7 +54,9 @@ async def handle_confirm(
                 outcome = await container.resume_turn(pending_config)
         except Exception as exc:
             log.exception("ws_resume_error", error=str(exc))
-            await conn_mgr.send_frame({"type": "error", "detail": "Resume failed."}, thread_id)
+            await conn_mgr.send_frame(
+                {"type": "error", "detail": "Resume failed."}, thread_id
+            )
             return None
         finally:
             conn_mgr.clear_busy(thread_id)
@@ -91,7 +98,11 @@ async def handle_confirm(
 
 async def push_confirmation_ntfy(notifier: Any, prompt: str) -> None:
     try:
-        text = f"Ze needs your approval:\n{prompt}" if prompt else "Ze needs your approval."
+        text = (
+            f"Ze needs your approval:\n{prompt}"
+            if prompt
+            else "Ze needs your approval."
+        )
         await notifier.push(text, urgency="high")
     except Exception as exc:
         log.warning("ws_confirmation_ntfy_failed", error=str(exc))
@@ -180,14 +191,16 @@ async def send_confirmation_request(
         )
 
     if confirmation_store is not None and effective_thread_id:
-        asyncio.create_task(confirmation_timeout(
-            confirmation_store,
-            conn_mgr,
-            notifier,
-            effective_thread_id,
-            confirm_timeout,
-            container=container,
-            graph_config=outcome.config,
-        ))
+        asyncio.create_task(
+            confirmation_timeout(
+                confirmation_store,
+                conn_mgr,
+                notifier,
+                effective_thread_id,
+                confirm_timeout,
+                container=container,
+                graph_config=outcome.config,
+            )
+        )
 
     return outcome.config

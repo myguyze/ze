@@ -3,6 +3,7 @@
 Transitional location — will move to ze_personal/graph/memory_hooks.py once
 the ze-personal package is created (arch-package-reorg step 4).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -70,10 +71,14 @@ async def _write_contact_proposals(
                 contact_id = stored.id
 
             if contact_channel_store:
-                await _write_channel_handles(contact_channel_store, contact_id, proposal)
+                await _write_channel_handles(
+                    contact_channel_store, contact_id, proposal
+                )
 
         except Exception as exc:
-            log.warning("contact_proposal_write_failed", name=proposal.name, error=str(exc))
+            log.warning(
+                "contact_proposal_write_failed", name=proposal.name, error=str(exc)
+            )
 
 
 async def _write_channel_handles(
@@ -84,9 +89,16 @@ async def _write_channel_handles(
     email_addr = proposal.contact_info.get("email", "").strip().lower()
     if email_addr:
         try:
-            await store.upsert(contact_id, ChannelHandle(
-                channel_type=ChannelType.EMAIL,
-                handle=email_addr,
-            ))
+            await store.upsert(
+                contact_id,
+                ChannelHandle(
+                    channel_type=ChannelType.EMAIL,
+                    handle=email_addr,
+                ),
+            )
         except Exception as exc:
-            log.warning("contact_channel_write_failed", contact_id=str(contact_id), error=str(exc))
+            log.warning(
+                "contact_channel_write_failed",
+                contact_id=str(contact_id),
+                error=str(exc),
+            )

@@ -1,4 +1,5 @@
 """Tests for dream/job.py — DreamJob (78a + 78b)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -35,17 +36,37 @@ async def test_run_completes_and_writes_journal():
         patch.object(
             job._sleep_pass,
             "run",
-            new=AsyncMock(return_value={"episodes_scored": 3, "episodes_replayed": 1, "duration_ms": 10}),
+            new=AsyncMock(
+                return_value={
+                    "episodes_scored": 3,
+                    "episodes_replayed": 1,
+                    "duration_ms": 10,
+                }
+            ),
         ),
         patch.object(
             job._dream_pass,
             "run",
-            new=AsyncMock(return_value={"artifacts_scored": 0, "policies": 0, "stress_tests": 0, "duration_ms": 5}),
+            new=AsyncMock(
+                return_value={
+                    "artifacts_scored": 0,
+                    "policies": 0,
+                    "stress_tests": 0,
+                    "duration_ms": 5,
+                }
+            ),
         ),
         patch.object(
             job._promoter,
             "run_morning_integration",
-            new=AsyncMock(return_value={"promoted": 0, "needs_review": 0, "rejected": 0, "duration_ms": 5}),
+            new=AsyncMock(
+                return_value={
+                    "promoted": 0,
+                    "needs_review": 0,
+                    "rejected": 0,
+                    "duration_ms": 5,
+                }
+            ),
         ),
         patch.object(
             job._journal,
@@ -70,12 +91,25 @@ async def test_run_without_client_skips_dream_pass_and_journal():
         patch.object(
             job._sleep_pass,
             "run",
-            new=AsyncMock(return_value={"episodes_scored": 3, "episodes_replayed": 1, "duration_ms": 10}),
+            new=AsyncMock(
+                return_value={
+                    "episodes_scored": 3,
+                    "episodes_replayed": 1,
+                    "duration_ms": 10,
+                }
+            ),
         ),
         patch.object(
             job._promoter,
             "run_morning_integration",
-            new=AsyncMock(return_value={"promoted": 0, "needs_review": 0, "rejected": 0, "duration_ms": 5}),
+            new=AsyncMock(
+                return_value={
+                    "promoted": 0,
+                    "needs_review": 0,
+                    "rejected": 0,
+                    "duration_ms": 5,
+                }
+            ),
         ),
         patch(
             "ze_memory.dream.job.expire_retrieval_cache",

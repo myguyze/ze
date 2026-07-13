@@ -1,4 +1,5 @@
 """Tests for ArticleSignalAdapter and NewsSignalSource (Phases 55/60)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ def _make_article(**kwargs) -> Article:
 
 
 # ── round-trip ────────────────────────────────────────────────────────────────
+
 
 def test_external_ref_equals_article_url():
     adapter = ArticleSignalAdapter()
@@ -61,6 +63,7 @@ def test_expires_at_is_none_on_ingest():
 
 
 # ── entity refs from tags ─────────────────────────────────────────────────────
+
 
 def test_tags_become_topic_entity_refs():
     adapter = ArticleSignalAdapter()

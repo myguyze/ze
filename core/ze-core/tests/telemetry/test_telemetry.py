@@ -1,4 +1,5 @@
 """Tests for telemetry: CostContext, CostStore, CostTracker, CostReconciler."""
+
 import asyncio
 from contextvars import copy_context
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -21,6 +22,7 @@ from ze_core.telemetry.types import CostRecord, UsageInfo
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_pool(rows=None):
     conn = AsyncMock()
     conn.fetch = AsyncMock(return_value=rows or [])
@@ -35,14 +37,22 @@ def _make_pool(rows=None):
 
 def _make_rec(**kwargs) -> CostRecord:
     defaults = dict(
-        agent="a", flow_type="f", model="m",
-        prompt_tokens=1, completion_tokens=2, total_tokens=3,
-        duration_ms=100, session_id=None, cost_usd=None, generation_id=None,
+        agent="a",
+        flow_type="f",
+        model="m",
+        prompt_tokens=1,
+        completion_tokens=2,
+        total_tokens=3,
+        duration_ms=100,
+        session_id=None,
+        cost_usd=None,
+        generation_id=None,
     )
     return CostRecord(**{**defaults, **kwargs})
 
 
 # ── TestCostContext ───────────────────────────────────────────────────────────
+
 
 class TestCostContext:
     def test_get_returns_default_when_unset(self):
@@ -58,6 +68,7 @@ class TestCostContext:
             assert ctx.flow_type == "research"
             assert ctx.session_id == "s1"
             assert ctx.agent == "unknown"
+
         copy_context().run(_run)
 
     def test_set_agent_context_updates_agent(self):
@@ -67,6 +78,7 @@ class TestCostContext:
             ctx = get_cost_context()
             assert ctx.agent == "companion_agent"
             assert ctx.flow_type == "companion"
+
         copy_context().run(_run)
 
     def test_set_agent_context_no_op_when_no_flow(self):
@@ -75,6 +87,7 @@ class TestCostContext:
             ctx = get_cost_context()
             assert ctx.flow_type == "unknown"
             assert ctx.agent == "unknown"
+
         copy_context().run(_run)
 
     def test_set_flow_context_preserves_agent(self):
@@ -86,6 +99,7 @@ class TestCostContext:
             assert ctx.flow_type == "flow2"
             assert ctx.agent == "agent1"
             assert ctx.session_id == "s2"
+
         copy_context().run(_run)
 
     def test_context_is_frozen(self):
@@ -95,12 +109,15 @@ class TestCostContext:
 
     def test_context_isolation_between_tasks(self):
         results = {}
+
         def _task_a():
             set_flow_context("flow-a")
             results["a"] = get_cost_context().flow_type
+
         def _task_b():
             set_flow_context("flow-b")
             results["b"] = get_cost_context().flow_type
+
         copy_context().run(_task_a)
         copy_context().run(_task_b)
         assert results["a"] == "flow-a"
@@ -108,6 +125,7 @@ class TestCostContext:
 
 
 # ── TestCostStore (Protocol) ──────────────────────────────────────────────────
+
 
 class TestCostStoreProtocol:
     def test_postgres_store_satisfies_protocol(self):
@@ -123,6 +141,7 @@ class TestCostStoreProtocol:
 
 
 # ── TestPostgresCostStore ─────────────────────────────────────────────────────
+
 
 class TestPostgresCostStore:
     async def test_write_executes_insert(self):
@@ -158,6 +177,7 @@ class TestPostgresCostStore:
 
 # ── TestSQLiteCostStore ───────────────────────────────────────────────────────
 
+
 class TestSQLiteCostStore:
     async def test_setup_creates_table(self):
         store = SQLiteCostStore(":memory:")
@@ -181,9 +201,13 @@ class TestSQLiteCostStore:
     async def test_write_stores_correct_values(self):
         store = SQLiteCostStore(":memory:")
         await store.setup()
-        rec = _make_rec(model="my-model", agent="researcher", total_tokens=99, generation_id="gen-x")
+        rec = _make_rec(
+            model="my-model", agent="researcher", total_tokens=99, generation_id="gen-x"
+        )
         await store.write(rec)
-        async with store._conn.execute("SELECT model, agent, total_tokens, generation_id FROM llm_cost_log") as cur:
+        async with store._conn.execute(
+            "SELECT model, agent, total_tokens, generation_id FROM llm_cost_log"
+        ) as cur:
             row = await cur.fetchone()
         assert row["model"] == "my-model"
         assert row["agent"] == "researcher"
@@ -210,24 +234,46 @@ class TestSQLiteCostStore:
 
 # ── TestCostTracker ───────────────────────────────────────────────────────────
 
+
 class TestCostTracker:
     def test_record_without_store_does_not_raise(self):
         tracker = CostTracker(store=None)
-        tracker.record(model="m", prompt_tokens=1, completion_tokens=2, total_tokens=3, duration_ms=50)
+        tracker.record(
+            model="m",
+            prompt_tokens=1,
+            completion_tokens=2,
+            total_tokens=3,
+            duration_ms=50,
+        )
 
     async def test_record_with_store_creates_task(self):
         store = AsyncMock(spec=CostStore)
         tracker = CostTracker(store=store)
         created = []
-        with patch("asyncio.create_task", side_effect=lambda coro: created.append(coro) or MagicMock()):
-            tracker.record(model="m", prompt_tokens=1, completion_tokens=2, total_tokens=3, duration_ms=50)
+        with patch(
+            "asyncio.create_task",
+            side_effect=lambda coro: created.append(coro) or MagicMock(),
+        ):
+            tracker.record(
+                model="m",
+                prompt_tokens=1,
+                completion_tokens=2,
+                total_tokens=3,
+                duration_ms=50,
+            )
         assert len(created) == 1
 
     async def test_record_calls_store_write(self):
         store = AsyncMock(spec=CostStore)
         tracker = CostTracker(store=store)
         with patch("asyncio.create_task", lambda coro: asyncio.ensure_future(coro)):
-            tracker.record(model="m", prompt_tokens=1, completion_tokens=2, total_tokens=3, duration_ms=50)
+            tracker.record(
+                model="m",
+                prompt_tokens=1,
+                completion_tokens=2,
+                total_tokens=3,
+                duration_ms=50,
+            )
         await asyncio.sleep(0)
         store.write.assert_awaited_once()
         rec = store.write.call_args[0][0]
@@ -249,11 +295,18 @@ class TestCostTracker:
 
     def test_record_audio_seconds(self):
         tracker = CostTracker(store=None)
-        tracker.record(model="whisper", prompt_tokens=0, completion_tokens=0,
-                       total_tokens=0, duration_ms=200, audio_seconds=12.5)
+        tracker.record(
+            model="whisper",
+            prompt_tokens=0,
+            completion_tokens=0,
+            total_tokens=0,
+            duration_ms=200,
+            audio_seconds=12.5,
+        )
 
 
 # ── TestCostReconciler ────────────────────────────────────────────────────────
+
 
 class TestCostReconciler:
     async def test_skips_db_when_no_pending_writes(self):
@@ -313,9 +366,15 @@ class TestCostReconciler:
 
 # ── TestUsageInfo ─────────────────────────────────────────────────────────────
 
+
 class TestUsageInfo:
     def test_fields(self):
-        u = UsageInfo(prompt_tokens=10, completion_tokens=20, total_tokens=30,
-                      generation_id="gen-1", duration_ms=150)
+        u = UsageInfo(
+            prompt_tokens=10,
+            completion_tokens=20,
+            total_tokens=30,
+            generation_id="gen-1",
+            duration_ms=150,
+        )
         assert u.total_tokens == 30
         assert u.generation_id == "gen-1"

@@ -34,6 +34,7 @@ async def preprocess(state: AgentState, config: RunnableConfig) -> dict:
 
     if state.get("audio_data"):
         from ze_core.telemetry.context import set_agent_context, set_flow_context
+
         set_flow_context("transcription")
         set_agent_context("whisper")
 
@@ -50,7 +51,9 @@ async def preprocess(state: AgentState, config: RunnableConfig) -> dict:
     elif state.get("image_data"):
         if not state.get("prompt"):
             model = models.get("vision_caption", MODEL_VISION_CAPTION)
-            caption = await _vision_caption(state["image_data"], state["image_mime"], client, model)
+            caption = await _vision_caption(
+                state["image_data"], state["image_mime"], client, model
+            )
             updates["image_caption"] = caption
             log.info("preprocess_captioned", chars=len(caption))
         else:
@@ -76,9 +79,10 @@ async def _vision_caption(
                     "detail": "low",
                 },
             },
-            {"type": "text", "text": "Describe this image in one sentence for intent classification."},
+            {
+                "type": "text",
+                "text": "Describe this image in one sentence for intent classification.",
+            },
         ],
     }
     return await client.complete(messages=[message], model=model, max_tokens=80)
-
-

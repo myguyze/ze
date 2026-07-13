@@ -27,10 +27,16 @@ class TestIntent:
 
 class TestKeywords:
     def test_complex_keywords_score_complex(self, estimator):
-        assert estimator.classify("analyze and compare these two approaches", "read", 0.5) == "complex"
+        assert (
+            estimator.classify("analyze and compare these two approaches", "read", 0.5)
+            == "complex"
+        )
 
     def test_simple_keywords_score_simple(self, estimator):
-        assert estimator.classify("what is the definition of recursion", "read", 0.9) == "simple"
+        assert (
+            estimator.classify("what is the definition of recursion", "read", 0.9)
+            == "simple"
+        )
 
 
 class TestConfidence:

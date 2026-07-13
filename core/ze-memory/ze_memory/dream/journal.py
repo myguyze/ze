@@ -1,4 +1,5 @@
 """Dream journal builder — writes a DreamJournalEntry for the morning briefing."""
+
 from __future__ import annotations
 
 from typing import Any

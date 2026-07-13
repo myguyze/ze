@@ -1,4 +1,5 @@
 """Shared dataclasses for the ze_eval package."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

@@ -1,15 +1,23 @@
 """Tests for Channel ABC, ChannelRegistry, and channel types."""
+
 from datetime import datetime, timezone
 
 import pytest
 
 from ze_communication.channel import Channel
 from ze_communication.registry import ChannelRegistry
-from ze_communication.types import ChannelType, Message, SentMessage, Thread, ThreadMessage
+from ze_communication.types import (
+    ChannelType,
+    Message,
+    SentMessage,
+    Thread,
+    ThreadMessage,
+)
 from ze_agents.errors import ChannelError, ChannelNotFoundError
 
 
 # ── stub implementation ───────────────────────────────────────────────────────
+
 
 class StubChannel(Channel):
     def __init__(self, ctype: ChannelType = ChannelType.EMAIL) -> None:
@@ -30,11 +38,14 @@ class StubChannel(Channel):
     async def get_thread(self, thread_id: str) -> Thread:
         return Thread(thread_id=thread_id, channel_type=self._type)
 
-    async def poll_replies(self, thread_ids: list[str], since: datetime) -> list[ThreadMessage]:
+    async def poll_replies(
+        self, thread_ids: list[str], since: datetime
+    ) -> list[ThreadMessage]:
         return []
 
 
 # ── TestChannelTypes ──────────────────────────────────────────────────────────
+
 
 class TestChannelTypes:
     def test_channel_type_values(self):
@@ -51,13 +62,17 @@ class TestChannelTypes:
 
     def test_sent_message_fields(self):
         now = datetime.now(timezone.utc)
-        s = SentMessage(message_id="x", thread_id="t", channel_type=ChannelType.EMAIL, sent_at=now)
+        s = SentMessage(
+            message_id="x", thread_id="t", channel_type=ChannelType.EMAIL, sent_at=now
+        )
         assert s.message_id == "x"
         assert s.thread_id == "t"
 
     def test_thread_message_fields(self):
         now = datetime.now(timezone.utc)
-        tm = ThreadMessage(message_id="m", sender="alice", body="hi", sent_at=now, is_outbound=False)
+        tm = ThreadMessage(
+            message_id="m", sender="alice", body="hi", sent_at=now, is_outbound=False
+        )
         assert tm.body == "hi"
         assert not tm.is_outbound
 
@@ -67,6 +82,7 @@ class TestChannelTypes:
 
 
 # ── TestChannelABC ────────────────────────────────────────────────────────────
+
 
 class TestChannelABC:
     def test_cannot_instantiate_abstract(self):
@@ -96,6 +112,7 @@ class TestChannelABC:
 
 # ── TestChannelRegistry ───────────────────────────────────────────────────────
 
+
 class TestChannelRegistry:
     def test_get_registered_channel(self):
         ch = StubChannel(ChannelType.EMAIL)
@@ -113,7 +130,9 @@ class TestChannelRegistry:
             reg.get(ChannelType.EMAIL)
 
     def test_available_returns_types(self):
-        reg = ChannelRegistry([StubChannel(ChannelType.EMAIL), StubChannel(ChannelType.WHATSAPP)])
+        reg = ChannelRegistry(
+            [StubChannel(ChannelType.EMAIL), StubChannel(ChannelType.WHATSAPP)]
+        )
         assert set(reg.available()) == {ChannelType.EMAIL, ChannelType.WHATSAPP}
 
     def test_available_empty(self):

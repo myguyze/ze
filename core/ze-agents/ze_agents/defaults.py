@@ -93,5 +93,7 @@ GOAL_ADVANCE_INTERVAL_SECONDS: int = 900
 PERSONA_DEFAULT_PROFILE: str = "default"
 """Name of the persona profile used when no override is active."""
 
-PERSONA_KNOWN_DIALS: frozenset = frozenset({"humor", "directness", "formality", "depth"})
+PERSONA_KNOWN_DIALS: frozenset = frozenset(
+    {"humor", "directness", "formality", "depth"}
+)
 """Dial names the framework recognises. Applications may extend by subclassing PersonaStore."""

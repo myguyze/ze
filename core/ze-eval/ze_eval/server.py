@@ -25,6 +25,7 @@ create .claude/settings.local.json (gitignored) with your key:
 
 Then start a new Claude Code session. See docs/eval.md for full setup instructions.
 """
+
 from __future__ import annotations
 
 import json
@@ -59,13 +60,17 @@ async def _run_scenario_turns(scenario: dict, session_id: str) -> dict:
         turn_results = []
         for i, turn in enumerate(turns):
             result = await _do_chat(turn["prompt"], session_id)
-            turn_results.append({
-                "turn": i + 1,
-                "prompt": turn["prompt"],
-                "description": turn.get("description", ""),
-                "result": result,
-            })
-        final_agent = turn_results[-1]["result"].get("agent_used") if turn_results else None
+            turn_results.append(
+                {
+                    "turn": i + 1,
+                    "prompt": turn["prompt"],
+                    "description": turn.get("description", ""),
+                    "result": result,
+                }
+            )
+        final_agent = (
+            turn_results[-1]["result"].get("agent_used") if turn_results else None
+        )
         return {"turns": turn_results, "agent_used": final_agent}
     return await _do_chat(scenario["prompt"], session_id)
 
@@ -128,6 +133,7 @@ async def ze_run_scenario(scenario_id: str) -> str:
     You (the evaluator) should read the criteria and judge whether Ze's response passes.
     """
     from ze_eval.scenario import load_scenario_by_id
+
     scenario = load_scenario_by_id(scenario_id)
     if scenario is None:
         return json.dumps({"error": f"Scenario '{scenario_id}' not found"})
@@ -141,7 +147,10 @@ async def ze_run_scenario(scenario_id: str) -> str:
         if agent_used:
             matches = agent_used == expected
 
-    return json.dumps({"scenario": scenario, "result": result, "matches_expected_agent": matches}, indent=2)
+    return json.dumps(
+        {"scenario": scenario, "result": result, "matches_expected_agent": matches},
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -174,13 +183,21 @@ async def ze_run_suite(tag: str = "") -> str:
             agent_used = result.get("agent_used")
             if agent_used:
                 matches = agent_used == expected
-        results.append({"scenario": scenario, "result": result, "matches_expected_agent": matches})
+        results.append(
+            {"scenario": scenario, "result": result, "matches_expected_agent": matches}
+        )
 
     summary = {
         "total": len(results),
-        "routing_correct": sum(1 for r in results if r["matches_expected_agent"] is True),
-        "routing_wrong": sum(1 for r in results if r["matches_expected_agent"] is False),
-        "routing_unchecked": sum(1 for r in results if r["matches_expected_agent"] is None),
+        "routing_correct": sum(
+            1 for r in results if r["matches_expected_agent"] is True
+        ),
+        "routing_wrong": sum(
+            1 for r in results if r["matches_expected_agent"] is False
+        ),
+        "routing_unchecked": sum(
+            1 for r in results if r["matches_expected_agent"] is None
+        ),
         "errors": sum(1 for r in results if r["result"].get("error")),
         "results": results,
     }

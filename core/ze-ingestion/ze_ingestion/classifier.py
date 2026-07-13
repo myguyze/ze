@@ -11,8 +11,14 @@ _URL_PATTERNS: list[tuple[re.Pattern, ContentType]] = [
     (re.compile(r"vimeo\.com/", re.I), ContentType.VIDEO),
     (re.compile(r"twitter\.com/.+/status|x\.com/.+/status", re.I), ContentType.VIDEO),
     (re.compile(r"\.pdf(?:\?|$)", re.I), ContentType.PDF),
-    (re.compile(r"\.mp3(?:\?|$)|\.ogg(?:\?|$)|\.wav(?:\?|$)|\.m4a(?:\?|$)", re.I), ContentType.AUDIO),
-    (re.compile(r"\.png(?:\?|$)|\.jpe?g(?:\?|$)|\.gif(?:\?|$)|\.webp(?:\?|$)", re.I), ContentType.IMAGE),
+    (
+        re.compile(r"\.mp3(?:\?|$)|\.ogg(?:\?|$)|\.wav(?:\?|$)|\.m4a(?:\?|$)", re.I),
+        ContentType.AUDIO,
+    ),
+    (
+        re.compile(r"\.png(?:\?|$)|\.jpe?g(?:\?|$)|\.gif(?:\?|$)|\.webp(?:\?|$)", re.I),
+        ContentType.IMAGE,
+    ),
 ]
 
 _MIME_MAP: dict[str, ContentType] = {

@@ -28,12 +28,14 @@ from ze_logging import get_logger
 
 log = get_logger(__name__)
 
-_DONE_MILESTONE_STATUSES = frozenset({MilestoneStatus.COMPLETED, MilestoneStatus.SKIPPED})
+_DONE_MILESTONE_STATUSES = frozenset(
+    {MilestoneStatus.COMPLETED, MilestoneStatus.SKIPPED}
+)
 
 # Payload format: "goal:<action>:<gate_id>"
-_PAYLOAD_APPROVE   = "goal:approve:{gate_id}"
-_PAYLOAD_STOP      = "goal:stop:{gate_id}"
-_PAYLOAD_REDIRECT  = "goal:redirect:{gate_id}"
+_PAYLOAD_APPROVE = "goal:approve:{gate_id}"
+_PAYLOAD_STOP = "goal:stop:{gate_id}"
+_PAYLOAD_REDIRECT = "goal:redirect:{gate_id}"
 
 _TRACE_RESULT_MAX = 2000
 
@@ -92,7 +94,9 @@ def _build_milestone_prompt(
     return prompt
 
 
-def _to_traces(milestone: Milestone, tool_calls: list[ToolCall]) -> list[ExecutionTrace]:
+def _to_traces(
+    milestone: Milestone, tool_calls: list[ToolCall]
+) -> list[ExecutionTrace]:
     return [
         ExecutionTrace(
             milestone_id=milestone.id,
@@ -174,80 +178,130 @@ class GoalExecutor:
         next_milestone = pending[0]
 
         gate = await self._store.get_pending_gate(goal_id)
-        if gate is not None and self._gate_should_fire(gate, next_milestone, milestones):
+        if gate is not None and self._gate_should_fire(
+            gate, next_milestone, milestones
+        ):
             completed = [m for m in milestones if m.status in _DONE_MILESTONE_STATUSES]
             await self._fire_gate(goal, gate, completed, pending)
             return
 
-        await self._store.update_milestone(next_milestone.id, MilestoneStatus.IN_PROGRESS)
-        await self._sync_task_state(goal_id, "in_progress", milestones, next_action=next_milestone.title)
-        log.info("milestone_started", goal_id=str(goal_id), sequence=next_milestone.sequence, title=next_milestone.title)
+        await self._store.update_milestone(
+            next_milestone.id, MilestoneStatus.IN_PROGRESS
+        )
+        await self._sync_task_state(
+            goal_id, "in_progress", milestones, next_action=next_milestone.title
+        )
+        log.info(
+            "milestone_started",
+            goal_id=str(goal_id),
+            sequence=next_milestone.sequence,
+            title=next_milestone.title,
+        )
 
         try:
-            output, tool_calls = await self._execute_milestone(next_milestone, goal, milestones)
-            await self._store.update_milestone(next_milestone.id, MilestoneStatus.COMPLETED, output=output)
-            asyncio.create_task(self._store.save_traces(_to_traces(next_milestone, tool_calls)))
+            output, tool_calls = await self._execute_milestone(
+                next_milestone, goal, milestones
+            )
+            await self._store.update_milestone(
+                next_milestone.id, MilestoneStatus.COMPLETED, output=output
+            )
+            asyncio.create_task(
+                self._store.save_traces(_to_traces(next_milestone, tool_calls))
+            )
             if next_milestone.reuse_hint:
                 asyncio.create_task(self._push_reuse_notice(goal, next_milestone))
             await self._store.reset_consecutive_failures(goal_id)
-            completed_so_far = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
+            completed_so_far = [
+                m for m in milestones if m.status == MilestoneStatus.COMPLETED
+            ]
             completed_so_far.append(next_milestone)
             if len(completed_so_far) % 3 == 0:
-                asyncio.create_task(self._extract_provisional_procedure(goal_id, goal, completed_so_far))
-            log.info("milestone_completed", goal_id=str(goal_id), sequence=next_milestone.sequence)
+                asyncio.create_task(
+                    self._extract_provisional_procedure(goal_id, goal, completed_so_far)
+                )
+            log.info(
+                "milestone_completed",
+                goal_id=str(goal_id),
+                sequence=next_milestone.sequence,
+            )
         except GoalExecutionError as exc:
             error_msg = str(exc)
-            log.warning("milestone_failed", goal_id=str(goal_id), sequence=next_milestone.sequence, error=error_msg)
-            await self._store.update_milestone(next_milestone.id, MilestoneStatus.SKIPPED, output=f"Failed: {error_msg}")
-            await self._store.add_learning(GoalLearning(
-                goal_id=goal_id,
-                content=f"Milestone {next_milestone.sequence} ({next_milestone.title}) failed: {error_msg}",
-                source="milestone_completion",
-            ))
+            log.warning(
+                "milestone_failed",
+                goal_id=str(goal_id),
+                sequence=next_milestone.sequence,
+                error=error_msg,
+            )
+            await self._store.update_milestone(
+                next_milestone.id,
+                MilestoneStatus.SKIPPED,
+                output=f"Failed: {error_msg}",
+            )
+            await self._store.add_learning(
+                GoalLearning(
+                    goal_id=goal_id,
+                    content=f"Milestone {next_milestone.sequence} ({next_milestone.title}) failed: {error_msg}",
+                    source="milestone_completion",
+                )
+            )
 
             failures = await self._store.increment_consecutive_failures(goal_id)
             if failures >= 2:
                 replan_count = await self._store.increment_replan_count(goal_id)
                 if replan_count > 1:
                     await self._store.update_status(goal_id, GoalStatus.PAUSED)
-                    await self._sync_task_state(goal_id, "blocked", milestones, blocked_by=[error_msg])
-                    await self._push(Notification(
-                        content="Multiple steps have failed after replanning. The goal is paused — send new instructions or abandon it.",
-                        urgency="high",
-                    ))
+                    await self._sync_task_state(
+                        goal_id, "blocked", milestones, blocked_by=[error_msg]
+                    )
+                    await self._push(
+                        Notification(
+                            content="Multiple steps have failed after replanning. The goal is paused — send new instructions or abandon it.",
+                            urgency="high",
+                        )
+                    )
                     return
                 await self._trigger_adaptive_replan(goal, milestones)
                 return
 
-            await self._push(Notification(
-                content=(
-                    f"Milestone <b>{_html.escape(next_milestone.title)}</b> failed.\n"
-                    f"<code>{_html.escape(error_msg[:200])}</code>\n\n"
-                    "Continuing to next step."
-                ),
-                format="html",
-                urgency="high",
-            ))
+            await self._push(
+                Notification(
+                    content=(
+                        f"Milestone <b>{_html.escape(next_milestone.title)}</b> failed.\n"
+                        f"<code>{_html.escape(error_msg[:200])}</code>\n\n"
+                        "Continuing to next step."
+                    ),
+                    format="html",
+                    urgency="high",
+                )
+            )
             asyncio.create_task(self.advance(goal_id))
             return
 
         try:
-            learning_text = await self._planner.extract_learning(next_milestone.title, output)
-            await self._store.add_learning(GoalLearning(
-                goal_id=goal_id,
-                content=learning_text,
-                source="milestone_completion",
-            ))
+            learning_text = await self._planner.extract_learning(
+                next_milestone.title, output
+            )
+            await self._store.add_learning(
+                GoalLearning(
+                    goal_id=goal_id,
+                    content=learning_text,
+                    source="milestone_completion",
+                )
+            )
             await self._store.append_learnings(goal_id, learning_text)
         except Exception as exc:
             log.warning("learning_extraction_failed", error=str(exc))
 
         total = len(milestones)
-        completed_count = sum(1 for m in milestones if m.status == MilestoneStatus.COMPLETED) + 1
-        await self._push(Notification(
-            content=f"<b>{_html.escape(next_milestone.title)}</b> done ({completed_count}/{total}).",
-            format="html",
-        ))
+        completed_count = (
+            sum(1 for m in milestones if m.status == MilestoneStatus.COMPLETED) + 1
+        )
+        await self._push(
+            Notification(
+                content=f"<b>{_html.escape(next_milestone.title)}</b> done ({completed_count}/{total}).",
+                format="html",
+            )
+        )
 
         asyncio.create_task(self.advance(goal_id))
 
@@ -287,11 +341,13 @@ class GoalExecutor:
         await self._store.update_status(gate.goal_id, GoalStatus.ABANDONED)
         goal = await self._store.get_goal(gate.goal_id)
         title = goal.title if goal else str(gate.goal_id)
-        await self._push(Notification(
-            content=f"Goal <b>{_html.escape(title)}</b> stopped.",
-            format="html",
-            urgency="high",
-        ))
+        await self._push(
+            Notification(
+                content=f"Goal <b>{_html.escape(title)}</b> stopped.",
+                format="html",
+                urgency="high",
+            )
+        )
         log.info("gate_stopped", gate_id=str(gate_id), goal_id=str(gate.goal_id))
 
     async def handle_gate_redirected(self, gate_id: UUID, feedback: str) -> None:
@@ -303,11 +359,13 @@ class GoalExecutor:
         if goal is None:
             return
 
-        await self._store.add_learning(GoalLearning(
-            goal_id=gate.goal_id,
-            content=f"User redirect at checkpoint '{gate.title}': {feedback}",
-            source="gate_feedback",
-        ))
+        await self._store.add_learning(
+            GoalLearning(
+                goal_id=gate.goal_id,
+                content=f"User redirect at checkpoint '{gate.title}': {feedback}",
+                source="gate_feedback",
+            )
+        )
         await self._store.append_learnings(gate.goal_id, f"User redirect: {feedback}")
 
         milestones = await self._store.list_milestones(gate.goal_id)
@@ -317,17 +375,22 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(gate.goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback, next_seq,
+                goal,
+                completed,
+                feedback,
+                next_seq,
                 prior_work=prior_work or None,
                 local_procedures=self._provisional_procedures.get(gate.goal_id),
             )
         except Exception as exc:
             log.warning("replan_failed", error=str(exc))
-            await self._push(Notification(
-                content=f"Could not replan goal: {_html.escape(str(exc))}",
-                format="html",
-                urgency="high",
-            ))
+            await self._push(
+                Notification(
+                    content=f"Could not replan goal: {_html.escape(str(exc))}",
+                    format="html",
+                    urgency="high",
+                )
+            )
             return
 
         for m in new_milestones:
@@ -339,9 +402,13 @@ class GoalExecutor:
         await self._store.replace_pending_gates(gate.goal_id, new_gates)
 
         if len(completed) >= 2:
-            asyncio.create_task(self._extract_provisional_procedure(gate.goal_id, goal, completed))
+            asyncio.create_task(
+                self._extract_provisional_procedure(gate.goal_id, goal, completed)
+            )
 
-        await self._store.resolve_gate(gate_id, GateStatus.REDIRECTED, user_feedback=feedback)
+        await self._store.resolve_gate(
+            gate_id, GateStatus.REDIRECTED, user_feedback=feedback
+        )
         await self._store.update_status(gate.goal_id, GoalStatus.ACTIVE)
         log.info("gate_redirected", gate_id=str(gate_id), goal_id=str(gate.goal_id))
         asyncio.create_task(self.advance(gate.goal_id))
@@ -352,7 +419,9 @@ class GoalExecutor:
         milestones = await self._store.list_milestones(goal_id)
         learnings = await self._store.list_learnings(goal_id)
         try:
-            narrative = await self._planner.synthesize_retrospective(goal, milestones, learnings)
+            narrative = await self._planner.synthesize_retrospective(
+                goal, milestones, learnings
+            )
         except Exception as exc:
             log.warning("retrospective_failed", error=str(exc))
             narrative = goal.success_condition
@@ -360,25 +429,31 @@ class GoalExecutor:
             await self._store.save_retrospective(goal_id, narrative)
         except Exception as exc:
             log.warning("retrospective_save_failed", error=str(exc))
-        await self._push(Notification(
-            content=(
-                f"<b>{_html.escape(goal.title)}</b> — completed\n\n"
-                f"{_html.escape(narrative)}"
-            ),
-            format="html",
-            urgency="high",
-        ))
+        await self._push(
+            Notification(
+                content=(
+                    f"<b>{_html.escape(goal.title)}</b> — completed\n\n"
+                    f"{_html.escape(narrative)}"
+                ),
+                format="html",
+                urgency="high",
+            )
+        )
         self._provisional_procedures.pop(goal_id, None)
         asyncio.create_task(self._promote_learnings(goal, learnings))
         asyncio.create_task(self._extract_and_store_procedure(goal, milestones))
 
-    async def _extract_and_store_procedure(self, goal: Goal, milestones: list[Milestone]) -> None:
+    async def _extract_and_store_procedure(
+        self, goal: Goal, milestones: list[Milestone]
+    ) -> None:
         if self._memory is None:
             return
         try:
             procedure = await self._planner.extract_procedure(goal, milestones)
         except Exception as exc:
-            log.warning("goal_procedure_extraction_failed", goal_id=str(goal.id), error=str(exc))
+            log.warning(
+                "goal_procedure_extraction_failed", goal_id=str(goal.id), error=str(exc)
+            )
             return
         if procedure is None:
             return
@@ -390,7 +465,9 @@ class GoalExecutor:
             )
             log.info("goal_procedure_stored", goal_id=str(goal.id), name=procedure.name)
         except Exception as exc:
-            log.warning("goal_procedure_store_failed", goal_id=str(goal.id), error=str(exc))
+            log.warning(
+                "goal_procedure_store_failed", goal_id=str(goal.id), error=str(exc)
+            )
 
     async def _extract_provisional_procedure(
         self, goal_id: UUID, goal: Goal, completed: list[Milestone]
@@ -399,11 +476,21 @@ class GoalExecutor:
             procedure = await self._planner.extract_procedure(goal, completed)
             if procedure is not None:
                 self._provisional_procedures[goal_id] = [procedure]
-                log.info("goal_provisional_procedure_extracted", goal_id=str(goal_id), name=procedure.name)
+                log.info(
+                    "goal_provisional_procedure_extracted",
+                    goal_id=str(goal_id),
+                    name=procedure.name,
+                )
         except Exception as exc:
-            log.warning("goal_provisional_procedure_failed", goal_id=str(goal_id), error=str(exc))
+            log.warning(
+                "goal_provisional_procedure_failed",
+                goal_id=str(goal_id),
+                error=str(exc),
+            )
 
-    async def _promote_learnings(self, goal: Goal, learnings: list[GoalLearning]) -> None:
+    async def _promote_learnings(
+        self, goal: Goal, learnings: list[GoalLearning]
+    ) -> None:
         if self._memory is None or not learnings:
             return
         try:
@@ -426,32 +513,40 @@ class GoalExecutor:
             goal_id=str(goal.id),
             milestone_title=milestone.title,
         )
-        self._push(Notification(
-            content=(
-                f"<b>Prior work reused</b>\n\n"
-                f"While completing <i>{_html.escape(milestone.title)}</i> "
-                f"(goal: <b>{_html.escape(goal.title)}</b>), I drew on earlier work "
-                f"from another goal:\n\n"
-                f"{_html.escape(milestone.reuse_hint)}"
-            ),
-            format="html",
-            urgency="low",
-        ))
+        self._push(
+            Notification(
+                content=(
+                    f"<b>Prior work reused</b>\n\n"
+                    f"While completing <i>{_html.escape(milestone.title)}</i> "
+                    f"(goal: <b>{_html.escape(goal.title)}</b>), I drew on earlier work "
+                    f"from another goal:\n\n"
+                    f"{_html.escape(milestone.reuse_hint)}"
+                ),
+                format="html",
+                urgency="low",
+            )
+        )
 
-    async def _fetch_prior_work(self, exclude_goal_id: UUID) -> list[PriorMilestoneOutput]:
+    async def _fetch_prior_work(
+        self, exclude_goal_id: UUID
+    ) -> list[PriorMilestoneOutput]:
         try:
             return await self._store.list_completed_milestone_summaries(
-                days=90, limit=20, exclude_goal_id=exclude_goal_id,
+                days=90,
+                limit=20,
+                exclude_goal_id=exclude_goal_id,
             )
         except Exception as exc:
             log.warning("goal_prior_work_query_failed", error=str(exc))
             return []
 
     async def _apply_steer(self, goal_id: UUID, goal: Goal, instruction: str) -> None:
-        await self._push(Notification(
-            content="Applying your direction — replanning remaining steps...",
-            urgency="high",
-        ))
+        await self._push(
+            Notification(
+                content="Applying your direction — replanning remaining steps...",
+                urgency="high",
+            )
+        )
 
         milestones = await self._store.list_milestones(goal_id)
         completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
@@ -460,17 +555,22 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(goal_id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, instruction, next_seq,
+                goal,
+                completed,
+                instruction,
+                next_seq,
                 prior_work=prior_work or None,
                 local_procedures=self._provisional_procedures.get(goal_id),
             )
         except Exception as exc:
             log.warning("steer_replan_failed", goal_id=str(goal_id), error=str(exc))
-            await self._push(Notification(
-                content=f"Could not apply direction: {_html.escape(str(exc))}. The goal is paused.",
-                format="html",
-                urgency="high",
-            ))
+            await self._push(
+                Notification(
+                    content=f"Could not apply direction: {_html.escape(str(exc))}. The goal is paused.",
+                    format="html",
+                    urgency="high",
+                )
+            )
             await self._store.update_status(goal_id, GoalStatus.PAUSED)
             return
 
@@ -484,9 +584,13 @@ class GoalExecutor:
         await self._store.reset_consecutive_failures(goal_id)
 
         if len(completed) >= 2:
-            asyncio.create_task(self._extract_provisional_procedure(goal_id, goal, completed))
+            asyncio.create_task(
+                self._extract_provisional_procedure(goal_id, goal, completed)
+            )
 
-        log.info("steer_applied", goal_id=str(goal_id), new_milestones=len(new_milestones))
+        log.info(
+            "steer_applied", goal_id=str(goal_id), new_milestones=len(new_milestones)
+        )
         asyncio.create_task(self.advance(goal_id))
 
     @staticmethod
@@ -520,7 +624,9 @@ class GoalExecutor:
         from ze_agents.types import AgentContext
 
         provisional = self._provisional_procedures.get(goal.id)
-        prompt = _build_milestone_prompt(milestone, goal, all_milestones, provisional_procedures=provisional or None)
+        prompt = _build_milestone_prompt(
+            milestone, goal, all_milestones, provisional_procedures=provisional or None
+        )
 
         ctx = AgentContext(
             session_id=f"goal:{milestone.goal_id}",
@@ -547,10 +653,12 @@ class GoalExecutor:
         milestones: list[Milestone],
     ) -> None:
         goal_id = goal.id
-        await self._push(Notification(
-            content="Two steps failed in a row — I'm adapting the plan based on what I've learned so far.",
-            urgency="high",
-        ))
+        await self._push(
+            Notification(
+                content="Two steps failed in a row — I'm adapting the plan based on what I've learned so far.",
+                urgency="high",
+            )
+        )
 
         completed = [m for m in milestones if m.status == MilestoneStatus.COMPLETED]
         next_seq = max((m.sequence for m in completed), default=0) + 1
@@ -558,17 +666,22 @@ class GoalExecutor:
         prior_work = await self._fetch_prior_work(goal.id)
         try:
             new_milestones, new_gates = await self._planner.replan_remaining(
-                goal, completed, feedback="", next_sequence=next_seq,
+                goal,
+                completed,
+                feedback="",
+                next_sequence=next_seq,
                 prior_work=prior_work or None,
                 local_procedures=self._provisional_procedures.get(goal.id),
             )
         except Exception as exc:
             log.warning("adaptive_replan_failed", goal_id=str(goal_id), error=str(exc))
-            await self._push(Notification(
-                content=f"Could not adapt the plan: {_html.escape(str(exc))}. The goal is paused.",
-                format="html",
-                urgency="high",
-            ))
+            await self._push(
+                Notification(
+                    content=f"Could not adapt the plan: {_html.escape(str(exc))}. The goal is paused.",
+                    format="html",
+                    urgency="high",
+                )
+            )
             await self._store.update_status(goal_id, GoalStatus.PAUSED)
             return
 
@@ -583,13 +696,19 @@ class GoalExecutor:
         plan_lines = "\n".join(
             f"{i + 1}. {m.title}" for i, m in enumerate(new_milestones[:5])
         )
-        await self._push(Notification(
-            content=f"Adapted plan:\n{plan_lines}",
-            urgency="high",
-        ))
+        await self._push(
+            Notification(
+                content=f"Adapted plan:\n{plan_lines}",
+                urgency="high",
+            )
+        )
 
         await self._store.reset_consecutive_failures(goal_id)
-        log.info("adaptive_replan_complete", goal_id=str(goal_id), new_milestones=len(new_milestones))
+        log.info(
+            "adaptive_replan_complete",
+            goal_id=str(goal_id),
+            new_milestones=len(new_milestones),
+        )
         asyncio.create_task(self.advance(goal_id))
 
     async def _fire_gate(
@@ -609,7 +728,9 @@ class GoalExecutor:
             )
         except (asyncio.TimeoutError, Exception) as exc:
             log.warning("gate_narrative_failed", error=str(exc))
-            context_lines = [f"• {m.title}: {m.output[:150]}" for m in completed] or ["• No milestones completed yet."]
+            context_lines = [f"• {m.title}: {m.output[:150]}" for m in completed] or [
+                "• No milestones completed yet."
+            ]
             narrative = "\n".join(context_lines)
 
         context_summary = narrative
@@ -624,16 +745,26 @@ class GoalExecutor:
             "Approve to continue, or send new instructions."
         )
 
-        await self._push(Notification(
-            content=content,
-            format="html",
-            urgency="high",
-            actions=[
-                Action(label="Proceed", payload=_PAYLOAD_APPROVE.format(gate_id=gate_id_str)),
-                Action(label="Stop",    payload=_PAYLOAD_STOP.format(gate_id=gate_id_str)),
-                Action(label="Redirect", payload=_PAYLOAD_REDIRECT.format(gate_id=gate_id_str)),
-            ],
-        ))
+        await self._push(
+            Notification(
+                content=content,
+                format="html",
+                urgency="high",
+                actions=[
+                    Action(
+                        label="Proceed",
+                        payload=_PAYLOAD_APPROVE.format(gate_id=gate_id_str),
+                    ),
+                    Action(
+                        label="Stop", payload=_PAYLOAD_STOP.format(gate_id=gate_id_str)
+                    ),
+                    Action(
+                        label="Redirect",
+                        payload=_PAYLOAD_REDIRECT.format(gate_id=gate_id_str),
+                    ),
+                ],
+            )
+        )
         log.info("gate_fired", gate_id=str(gate.id), goal_id=str(goal.id))
 
     async def _sync_task_state(
@@ -647,19 +778,22 @@ class GoalExecutor:
         if self._memory is None:
             return
         open_steps = [
-            m.title for m in milestones
-            if m.status == MilestoneStatus.PENDING
+            m.title for m in milestones if m.status == MilestoneStatus.PENDING
         ]
         try:
-            await self._memory.upsert_task_state(TaskState(
-                id=None,
-                task_id=None,
-                goal_id=goal_id,
-                status=status,
-                open_steps=open_steps,
-                blocked_by=blocked_by or [],
-                last_action=next_action,
-                next_action=open_steps[0] if open_steps else None,
-            ))
+            await self._memory.upsert_task_state(
+                TaskState(
+                    id=None,
+                    task_id=None,
+                    goal_id=goal_id,
+                    status=status,
+                    open_steps=open_steps,
+                    blocked_by=blocked_by or [],
+                    last_action=next_action,
+                    next_action=open_steps[0] if open_steps else None,
+                )
+            )
         except Exception as exc:
-            log.warning("goal_task_state_sync_failed", goal_id=str(goal_id), error=str(exc))
+            log.warning(
+                "goal_task_state_sync_failed", goal_id=str(goal_id), error=str(exc)
+            )

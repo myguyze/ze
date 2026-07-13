@@ -19,5 +19,7 @@ async def get_routing_log(
     offset: int = Query(default=0, ge=0, description="Number of rows to skip"),
     container=Depends(get_container),
 ) -> list[RoutingLogEntry]:
-    rows = await routing_rest.list_routing_log(container.pool, limit=limit, offset=offset)
+    rows = await routing_rest.list_routing_log(
+        container.pool, limit=limit, offset=offset
+    )
     return [RoutingLogEntry.model_validate(r) for r in rows]

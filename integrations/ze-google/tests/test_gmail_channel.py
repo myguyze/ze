@@ -75,6 +75,7 @@ def _channel(creds: MagicMock | None = None) -> GmailChannel:
 
 # ── channel_type ──────────────────────────────────────────────────────────────
 
+
 def test_channel_type():
     assert _channel().channel_type == ChannelType.EMAIL
 
@@ -85,13 +86,19 @@ def test_supports_push_is_false():
 
 # ── send() ────────────────────────────────────────────────────────────────────
 
+
 async def test_send_returns_sent_message():
     creds = _make_credentials(
         send_result={"id": "msg1", "threadId": "thread1"},
         sent_msg=_make_gmail_message("msg1", _USER_EMAIL, "hi"),
     )
     ch = _channel(creds)
-    msg = Message(channel_type=ChannelType.EMAIL, to="alice@example.com", subject="Hi", body="hello")
+    msg = Message(
+        channel_type=ChannelType.EMAIL,
+        to="alice@example.com",
+        subject="Hi",
+        body="hello",
+    )
     result = await ch.send(msg)
     assert isinstance(result, SentMessage)
     assert result.message_id == "msg1"
@@ -112,7 +119,11 @@ async def test_send_attaches_thread_id_when_provided():
     )
     await ch.send(msg)
     call_kwargs = service.users.return_value.messages.return_value.send.call_args
-    body_arg = call_kwargs.kwargs.get("body") or call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs["body"]
+    body_arg = (
+        call_kwargs.kwargs.get("body") or call_kwargs.args[0]
+        if call_kwargs.args
+        else call_kwargs.kwargs["body"]
+    )
     assert body_arg.get("threadId") == "existing-thread"
 
 
@@ -129,8 +140,8 @@ async def test_send_omits_thread_id_when_none():
 
 async def test_send_raises_channel_send_error_on_failure():
     creds = _make_credentials()
-    creds.gmail.return_value.users.return_value.messages.return_value.send.return_value.execute.side_effect = (
-        Exception("network error")
+    creds.gmail.return_value.users.return_value.messages.return_value.send.return_value.execute.side_effect = Exception(
+        "network error"
     )
     ch = _channel(creds)
     with pytest.raises(ChannelSendError, match="network error"):
@@ -138,6 +149,7 @@ async def test_send_raises_channel_send_error_on_failure():
 
 
 # ── get_thread() ──────────────────────────────────────────────────────────────
+
 
 async def test_get_thread_parses_messages():
     inbound = _make_gmail_message("m1", "alice@example.com", "Hey!")
@@ -162,8 +174,12 @@ async def test_get_thread_sets_is_outbound_correctly():
 
 
 async def test_get_thread_sorts_by_date():
-    earlier = _make_gmail_message("m1", "alice@example.com", "first", "Mon, 25 May 2026 09:00:00 +0000")
-    later = _make_gmail_message("m2", _USER_EMAIL, "second", "Mon, 25 May 2026 11:00:00 +0000")
+    earlier = _make_gmail_message(
+        "m1", "alice@example.com", "first", "Mon, 25 May 2026 09:00:00 +0000"
+    )
+    later = _make_gmail_message(
+        "m2", _USER_EMAIL, "second", "Mon, 25 May 2026 11:00:00 +0000"
+    )
     creds = _make_credentials(thread_result={"messages": [later, earlier]})
     ch = _channel(creds)
     thread = await ch.get_thread("t1")
@@ -180,9 +196,14 @@ async def test_get_thread_empty():
 
 # ── poll_replies() ────────────────────────────────────────────────────────────
 
+
 async def test_poll_replies_returns_inbound_after_since():
-    inbound = _make_gmail_message("m1", "alice@example.com", "reply", "Mon, 25 May 2026 12:00:00 +0000")
-    outbound = _make_gmail_message("m2", _USER_EMAIL, "original", "Mon, 25 May 2026 10:00:00 +0000")
+    inbound = _make_gmail_message(
+        "m1", "alice@example.com", "reply", "Mon, 25 May 2026 12:00:00 +0000"
+    )
+    outbound = _make_gmail_message(
+        "m2", _USER_EMAIL, "original", "Mon, 25 May 2026 10:00:00 +0000"
+    )
     creds = _make_credentials(thread_result={"messages": [outbound, inbound]})
     ch = _channel(creds)
     since = datetime(2026, 5, 25, 11, 0, 0, tzinfo=timezone.utc)
@@ -192,7 +213,9 @@ async def test_poll_replies_returns_inbound_after_since():
 
 
 async def test_poll_replies_excludes_outbound():
-    outbound = _make_gmail_message("m1", _USER_EMAIL, "my message", "Mon, 25 May 2026 12:00:00 +0000")
+    outbound = _make_gmail_message(
+        "m1", _USER_EMAIL, "my message", "Mon, 25 May 2026 12:00:00 +0000"
+    )
     creds = _make_credentials(thread_result={"messages": [outbound]})
     ch = _channel(creds)
     since = datetime(2026, 5, 25, 0, 0, 0, tzinfo=timezone.utc)
@@ -201,7 +224,9 @@ async def test_poll_replies_excludes_outbound():
 
 
 async def test_poll_replies_excludes_messages_before_since():
-    inbound = _make_gmail_message("m1", "alice@example.com", "old reply", "Mon, 25 May 2026 08:00:00 +0000")
+    inbound = _make_gmail_message(
+        "m1", "alice@example.com", "old reply", "Mon, 25 May 2026 08:00:00 +0000"
+    )
     creds = _make_credentials(thread_result={"messages": [inbound]})
     ch = _channel(creds)
     since = datetime(2026, 5, 25, 10, 0, 0, tzinfo=timezone.utc)
@@ -216,8 +241,12 @@ async def test_poll_replies_empty_thread_ids():
 
 
 async def test_poll_replies_across_multiple_threads():
-    reply1 = _make_gmail_message("m1", "alice@example.com", "r1", "Mon, 25 May 2026 12:00:00 +0000")
-    reply2 = _make_gmail_message("m2", "bob@example.com", "r2", "Mon, 25 May 2026 13:00:00 +0000")
+    reply1 = _make_gmail_message(
+        "m1", "alice@example.com", "r1", "Mon, 25 May 2026 12:00:00 +0000"
+    )
+    reply2 = _make_gmail_message(
+        "m2", "bob@example.com", "r2", "Mon, 25 May 2026 13:00:00 +0000"
+    )
 
     service = MagicMock()
     service.users.return_value.getProfile.return_value.execute.return_value = {
@@ -238,8 +267,11 @@ async def test_poll_replies_across_multiple_threads():
 
 # ── poll_new_messages() ───────────────────────────────────────────────────────
 
+
 async def test_poll_new_messages_returns_inbound_messages():
-    msg = _make_gmail_message("m1", "alice@example.com", "Hello", "Mon, 25 May 2026 12:00:00 +0000")
+    msg = _make_gmail_message(
+        "m1", "alice@example.com", "Hello", "Mon, 25 May 2026 12:00:00 +0000"
+    )
     msg["payload"]["headers"].append({"name": "Subject", "value": "Hello"})
 
     service = MagicMock()
@@ -273,6 +305,7 @@ async def test_poll_new_messages_empty():
 
 
 # ── _resolve_user_email() — caching ──────────────────────────────────────────
+
 
 async def test_user_email_resolved_only_once():
     creds = _make_credentials()

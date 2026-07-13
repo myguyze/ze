@@ -1,4 +1,5 @@
 """Tests for GET /api/v0/ui/manifest."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -40,8 +41,12 @@ def _make_app(manifest: UiManifest | None = None) -> FastAPI:
 @pytest.mark.asyncio
 async def test_get_ui_manifest_returns_empty_lists():
     app = _make_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/ui/manifest", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/ui/manifest", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
     assert resp.status_code == 200
     assert resp.json() == {"nav": [], "settings_sections": []}
 
@@ -73,8 +78,12 @@ async def test_get_ui_manifest_returns_plugin_contributions():
         ],
     )
     app = _make_app(manifest)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/v0/ui/manifest", headers={"Authorization": f"Bearer {API_KEY}"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/api/v0/ui/manifest", headers={"Authorization": f"Bearer {API_KEY}"}
+        )
     assert resp.status_code == 200
     data = resp.json()
     assert data["nav"][0]["path"] == "finance"

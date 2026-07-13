@@ -12,7 +12,11 @@ def extract_email_contacts(tool_calls: list[ToolCall]) -> list[ContactProposal]:
     proposals: list[ContactProposal] = []
 
     for tc in tool_calls:
-        if tc.tool_name != "get_email" or not tc.success or not isinstance(tc.result, dict):
+        if (
+            tc.tool_name != "get_email"
+            or not tc.success
+            or not isinstance(tc.result, dict)
+        ):
             continue
         from_header = tc.result.get("from", "")
         if not from_header:
@@ -27,15 +31,17 @@ def extract_email_contacts(tool_calls: list[ToolCall]) -> list[ContactProposal]:
         if not name:
             name = addr.split("@")[0].replace(".", " ").title()
 
-        proposals.append(ContactProposal(
-            name=name,
-            classification="unknown",
-            relationship="email contact",
-            contact_info={"email": addr},
-            confidence=SOURCE_WEIGHTS["email"],
-            confirmed=False,
-            source_type="email",
-        ))
+        proposals.append(
+            ContactProposal(
+                name=name,
+                classification="unknown",
+                relationship="email contact",
+                contact_info={"email": addr},
+                confidence=SOURCE_WEIGHTS["email"],
+                confirmed=False,
+                source_type="email",
+            )
+        )
 
     return proposals
 
@@ -64,15 +70,20 @@ def extract_calendar_contacts(tool_calls: list[ToolCall]) -> list[ContactProposa
                     continue
                 seen.add(addr)
 
-                name = attendee.get("displayName") or addr.split("@")[0].replace(".", " ").title()
-                proposals.append(ContactProposal(
-                    name=name,
-                    classification="unknown",
-                    relationship="calendar contact",
-                    contact_info={"email": addr},
-                    confidence=SOURCE_WEIGHTS["calendar"],
-                    confirmed=False,
-                    source_type="calendar",
-                ))
+                name = (
+                    attendee.get("displayName")
+                    or addr.split("@")[0].replace(".", " ").title()
+                )
+                proposals.append(
+                    ContactProposal(
+                        name=name,
+                        classification="unknown",
+                        relationship="calendar contact",
+                        contact_info={"email": addr},
+                        confidence=SOURCE_WEIGHTS["calendar"],
+                        confirmed=False,
+                        source_type="calendar",
+                    )
+                )
 
     return proposals

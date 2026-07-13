@@ -95,7 +95,9 @@ def discover_and_instantiate_plugins(
 def topological_sort(
     entries: list[tuple[str, type]],
 ) -> list[tuple[str, type]]:
-    name_to_idx: dict[str, int] = {cls.__name__: i for i, (_, cls) in enumerate(entries)}
+    name_to_idx: dict[str, int] = {
+        cls.__name__: i for i, (_, cls) in enumerate(entries)
+    }
     n = len(entries)
     adj: list[list[int]] = [[] for _ in range(n)]
     in_degree = [0] * n
@@ -135,9 +137,8 @@ def resolve_annotation(annotation: Any, dep_map: dict) -> tuple[bool, Any]:
     origin = getattr(annotation, "__origin__", None)
     args = getattr(annotation, "__args__", ())
 
-    is_optional_union = (
-        (origin is typing.Union and type(None) in args)
-        or (isinstance(annotation, _types.UnionType) and type(None) in args)
+    is_optional_union = (origin is typing.Union and type(None) in args) or (
+        isinstance(annotation, _types.UnionType) and type(None) in args
     )
     if is_optional_union:
         inner_types = [a for a in args if a is not type(None)]
@@ -209,4 +210,6 @@ def import_plugin_modules_for_migrations() -> None:
         module = sys.modules.get(cls.__module__)
         if module is None:
             importlib.import_module(cls.__module__)
-        log.debug("plugin_module_loaded_for_migrations", name=ep_name, module=cls.__module__)
+        log.debug(
+            "plugin_module_loaded_for_migrations", name=ep_name, module=cls.__module__
+        )

@@ -1,4 +1,5 @@
 """Graph store protocol and Postgres implementation."""
+
 from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
@@ -12,11 +13,11 @@ log = get_logger(__name__)
 
 # Maps target type string to the GraphExpansion bucket it populates.
 _TYPE_BUCKET = {
-    "fact":      "fact_ids",
-    "entity":    "entity_ids",
-    "episode":   "episode_ids",
+    "fact": "fact_ids",
+    "entity": "entity_ids",
+    "episode": "episode_ids",
     "procedure": "procedure_ids",
-    "signal":    "signal_ids",
+    "signal": "signal_ids",
 }
 
 

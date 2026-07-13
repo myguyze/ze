@@ -46,10 +46,10 @@ class MessengerAgent(BaseAgent):
     timeout = 30
     tools = ["list_emails", "get_email", "draft_email", "send_email", "archive_email"]
     intents = {
-        "read":   Intent(Mode.AUTONOMOUS,  "Search and retrieve emails from Gmail."),
-        "create": Intent(Mode.DRAFT_ONLY,  "Draft or send an email."),
-        "update": Intent(Mode.DRAFT_ONLY,  "Draft a reply or forward."),
-        "delete": Intent(Mode.CONFIRM,     "Archive or delete an email."),
+        "read": Intent(Mode.AUTONOMOUS, "Search and retrieve emails from Gmail."),
+        "create": Intent(Mode.DRAFT_ONLY, "Draft or send an email."),
+        "update": Intent(Mode.DRAFT_ONLY, "Draft a reply or forward."),
+        "delete": Intent(Mode.CONFIRM, "Archive or delete an email."),
     }
 
     def __init__(
@@ -67,7 +67,9 @@ class MessengerAgent(BaseAgent):
         self._settings = settings
 
     async def run(self, ctx: AgentContext) -> AgentResult:
-        key = "email.drafting" if ctx.intent in ("create", "update") else "email.reading"
+        key = (
+            "email.drafting" if ctx.intent in ("create", "update") else "email.reading"
+        )
         await self.emit(ctx, key)
 
         default_channel = await self._default_channel()
@@ -128,7 +130,8 @@ class MessengerAgent(BaseAgent):
         if uc:
             return self._registry.get_inbound_by_id(uc.channel_id)
         channels = [
-            c for c in self._registry.inbound_channels()
+            c
+            for c in self._registry.inbound_channels()
             if c.channel_type.value == "email"
         ]
         return channels[0] if channels else None

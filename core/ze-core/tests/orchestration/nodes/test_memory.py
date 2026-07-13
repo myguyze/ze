@@ -83,7 +83,10 @@ class TestWriteMemory:
         store.write_episode.assert_awaited_once()
 
     async def test_appends_to_messages_and_trims(self):
-        existing = [{"role": "user", "content": f"m{i}"} for i in range(SESSION_HISTORY_LIMIT - 1)]
+        existing = [
+            {"role": "user", "content": f"m{i}"}
+            for i in range(SESSION_HISTORY_LIMIT - 1)
+        ]
         state = {
             "session_id": "s1",
             "agent_context": _ctx("new prompt"),
@@ -98,7 +101,9 @@ class TestWriteMemory:
         assert msgs[-1] == {"role": "assistant", "content": "response"}
 
     async def test_no_agent_context_returns_empty(self):
-        result = await write_memory({"agent_context": None, "session_id": "s1"}, _config())
+        result = await write_memory(
+            {"agent_context": None, "session_id": "s1"}, _config()
+        )
         assert result == {}
 
     async def test_image_turn_stores_caption(self):
@@ -145,8 +150,11 @@ class TestWriteMemory:
     async def test_compound_synthesizes_result(self):
         store = _make_store()
         envelope = RoutingEnvelope(
-            primary_agent="a", confidence=0.9, score_gap=0.3,
-            routing_method="embedding", is_compound=True,
+            primary_agent="a",
+            confidence=0.9,
+            score_gap=0.3,
+            routing_method="embedding",
+            is_compound=True,
             subtasks=[SubTask(agent="a", intent="read", prompt="p")],
             requires_synthesis=True,
         )
@@ -199,7 +207,10 @@ class TestSynthesize:
             "subtask_results": subtask_results,
         }
         settings = {
-            "models": {"default": "fleet-default-model", "overrides": {"synthesis": "pinned-model"}}
+            "models": {
+                "default": "fleet-default-model",
+                "overrides": {"synthesis": "pinned-model"},
+            }
         }
         await synthesize(state, _config(client=client, settings=settings))
         call_args = client.complete.call_args

@@ -5,6 +5,7 @@ Revises: zfin001
 Branch labels:
 Depends on: zfin001
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union

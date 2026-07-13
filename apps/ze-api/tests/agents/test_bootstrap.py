@@ -63,6 +63,7 @@ def test_bootstrap_registers_companion_and_research(settings):
     class _AllPathsPlugin:
         def agent_module_paths(self) -> list[str]:
             from tests.support.agent_modules import ALL_AGENT_MODULE_PATHS
+
             return list(ALL_AGENT_MODULE_PATHS)
 
     client = AsyncMock()

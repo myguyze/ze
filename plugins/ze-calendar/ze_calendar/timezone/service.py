@@ -4,37 +4,36 @@ import zoneinfo
 from datetime import datetime
 
 _ALIASES: dict[str, str] = {
-    "london":        "Europe/London",
-    "lisbon":        "Europe/Lisbon",
-    "paris":         "Europe/Paris",
-    "berlin":        "Europe/Berlin",
-    "new york":      "America/New_York",
-    "nyc":           "America/New_York",
-    "los angeles":   "America/Los_Angeles",
-    "la":            "America/Los_Angeles",
-    "chicago":       "America/Chicago",
-    "toronto":       "America/Toronto",
-    "são paulo":     "America/Sao_Paulo",
-    "sao paulo":     "America/Sao_Paulo",
-    "dubai":         "Asia/Dubai",
-    "mumbai":        "Asia/Kolkata",
-    "delhi":         "Asia/Kolkata",
-    "singapore":     "Asia/Singapore",
-    "hong kong":     "Asia/Hong_Kong",
-    "shanghai":      "Asia/Shanghai",
-    "beijing":       "Asia/Shanghai",
-    "tokyo":         "Asia/Tokyo",
-    "seoul":         "Asia/Seoul",
-    "sydney":        "Australia/Sydney",
-    "melbourne":     "Australia/Melbourne",
-    "auckland":      "Pacific/Auckland",
-    "utc":           "UTC",
-    "gmt":           "UTC",
+    "london": "Europe/London",
+    "lisbon": "Europe/Lisbon",
+    "paris": "Europe/Paris",
+    "berlin": "Europe/Berlin",
+    "new york": "America/New_York",
+    "nyc": "America/New_York",
+    "los angeles": "America/Los_Angeles",
+    "la": "America/Los_Angeles",
+    "chicago": "America/Chicago",
+    "toronto": "America/Toronto",
+    "são paulo": "America/Sao_Paulo",
+    "sao paulo": "America/Sao_Paulo",
+    "dubai": "Asia/Dubai",
+    "mumbai": "Asia/Kolkata",
+    "delhi": "Asia/Kolkata",
+    "singapore": "Asia/Singapore",
+    "hong kong": "Asia/Hong_Kong",
+    "shanghai": "Asia/Shanghai",
+    "beijing": "Asia/Shanghai",
+    "tokyo": "Asia/Tokyo",
+    "seoul": "Asia/Seoul",
+    "sydney": "Australia/Sydney",
+    "melbourne": "Australia/Melbourne",
+    "auckland": "Pacific/Auckland",
+    "utc": "UTC",
+    "gmt": "UTC",
 }
 
 
 class TimezoneService:
-
     def resolve(self, name: str) -> str:
         """Return the IANA key for a common city or timezone alias.
 

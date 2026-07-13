@@ -81,7 +81,9 @@ def planner():
     p = AsyncMock()
     p.extract_learning = AsyncMock(return_value="Key insight.")
     p.replan_remaining = AsyncMock(return_value=([], []))
-    p.synthesize_gate_narrative = AsyncMock(return_value="Work was completed successfully.")
+    p.synthesize_gate_narrative = AsyncMock(
+        return_value="Work was completed successfully."
+    )
     p.synthesize_retrospective = AsyncMock(return_value="Goal completed successfully.")
     p.promote_learnings = AsyncMock(return_value=[])
     p.extract_procedure = AsyncMock(return_value=None)
@@ -128,9 +130,11 @@ async def test_advance_skips_non_active_goal(executor, store):
 async def test_advance_marks_goal_completed_when_no_pending(executor, store, push):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     await executor.advance(goal.id)
     store.update_status.assert_called_with(goal.id, GoalStatus.COMPLETED)
     push.assert_called_once()
@@ -139,7 +143,9 @@ async def test_advance_marks_goal_completed_when_no_pending(executor, store, pus
     assert "complete" in notif.content.lower()
 
 
-async def test_advance_executes_next_pending_milestone(executor, store, push, agent_mock):
+async def test_advance_executes_next_pending_milestone(
+    executor, store, push, agent_mock
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -150,10 +156,14 @@ async def test_advance_executes_next_pending_milestone(executor, store, push, ag
         await executor.advance(goal.id)
 
     store.update_milestone.assert_any_call(m1.id, MilestoneStatus.IN_PROGRESS)
-    store.update_milestone.assert_any_call(m1.id, MilestoneStatus.COMPLETED, output="Milestone output")
+    store.update_milestone.assert_any_call(
+        m1.id, MilestoneStatus.COMPLETED, output="Milestone output"
+    )
 
 
-async def test_advance_skips_milestone_on_execution_error(executor, store, push, agent_mock):
+async def test_advance_skips_milestone_on_execution_error(
+    executor, store, push, agent_mock
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -164,7 +174,13 @@ async def test_advance_skips_milestone_on_execution_error(executor, store, push,
     with patch("ze_automation.goals.executor.asyncio.create_task"):
         await executor.advance(goal.id)
 
-    store.update_milestone.assert_any_call(m1.id, MilestoneStatus.SKIPPED, output=pytest.approx("Failed: Milestone 1 (Step 1) failed: network error", abs=100))
+    store.update_milestone.assert_any_call(
+        m1.id,
+        MilestoneStatus.SKIPPED,
+        output=pytest.approx(
+            "Failed: Milestone 1 (Step 1) failed: network error", abs=100
+        ),
+    )
 
 
 async def test_gate_fires_before_next_milestone(executor, store, push):
@@ -193,10 +209,15 @@ async def test_gate_does_not_fire_if_prior_not_done(executor, store, push):
 
     store.get_goal = AsyncMock(return_value=goal)
     # After the reset, return both as pending
-    store.list_milestones = AsyncMock(side_effect=[
-        [m1, m2],  # first call — detects stuck milestone
-        [_milestone(1, MilestoneStatus.PENDING, goal_id=goal.id), m2],  # after reset
-    ])
+    store.list_milestones = AsyncMock(
+        side_effect=[
+            [m1, m2],  # first call — detects stuck milestone
+            [
+                _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id),
+                m2,
+            ],  # after reset
+        ]
+    )
     store.get_pending_gate = AsyncMock(return_value=gate)
 
     with patch("ze_automation.goals.executor.asyncio.create_task"):
@@ -258,6 +279,7 @@ async def test_handle_gate_stopped(executor, store, push):
 
 # ── _build_milestone_prompt ───────────────────────────────────────────────────
 
+
 def test_build_milestone_prompt_no_prior_steps():
     from ze_automation.goals.executor import _build_milestone_prompt
 
@@ -293,7 +315,11 @@ def test_build_milestone_prompt_truncates_older_steps():
     goal = _goal()
     milestones = []
     for i in range(1, 6):
-        m = _milestone(i, MilestoneStatus.COMPLETED if i < 5 else MilestoneStatus.PENDING, goal_id=goal.id)
+        m = _milestone(
+            i,
+            MilestoneStatus.COMPLETED if i < 5 else MilestoneStatus.PENDING,
+            goal_id=goal.id,
+        )
         m.output = "x" * 600
         milestones.append(m)
 
@@ -328,7 +354,10 @@ def test_build_milestone_prompt_no_learnings_shows_placeholder():
 
 # ── Adaptive replan ───────────────────────────────────────────────────────────
 
-async def test_adaptive_replan_triggers_at_two_consecutive_failures(executor, store, push, agent_mock, planner):
+
+async def test_adaptive_replan_triggers_at_two_consecutive_failures(
+    executor, store, push, agent_mock, planner
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -336,7 +365,9 @@ async def test_adaptive_replan_triggers_at_two_consecutive_failures(executor, st
     store.get_pending_gate = AsyncMock(return_value=None)
     store.increment_consecutive_failures = AsyncMock(return_value=2)
     store.increment_replan_count = AsyncMock(return_value=1)
-    planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
+    planner.replan_remaining = AsyncMock(
+        return_value=([_milestone(1, goal_id=goal.id)], [])
+    )
     agent_mock.run = AsyncMock(side_effect=Exception("timeout"))
 
     with patch("ze_automation.goals.executor.asyncio.create_task"):
@@ -346,10 +377,15 @@ async def test_adaptive_replan_triggers_at_two_consecutive_failures(executor, st
     store.replace_pending_milestones.assert_called_once()
     # First push is the "Two steps failed" message
     first_notif = push.call_args_list[0].args[0]
-    assert "two steps failed" in first_notif.content.lower() or "adapting" in first_notif.content.lower()
+    assert (
+        "two steps failed" in first_notif.content.lower()
+        or "adapting" in first_notif.content.lower()
+    )
 
 
-async def test_adaptive_replan_not_triggered_at_one_failure(executor, store, push, agent_mock, planner):
+async def test_adaptive_replan_not_triggered_at_one_failure(
+    executor, store, push, agent_mock, planner
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -364,7 +400,9 @@ async def test_adaptive_replan_not_triggered_at_one_failure(executor, store, pus
     planner.replan_remaining.assert_not_called()
 
 
-async def test_adaptive_replan_cap_pauses_goal_after_second_replan(executor, store, push, agent_mock):
+async def test_adaptive_replan_cap_pauses_goal_after_second_replan(
+    executor, store, push, agent_mock
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -396,6 +434,7 @@ async def test_success_resets_consecutive_failures(executor, store, push, agent_
 
 # ── Gate narrative ────────────────────────────────────────────────────────────
 
+
 async def test_gate_uses_synthesized_narrative(executor, store, push, planner):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
@@ -405,7 +444,9 @@ async def test_gate_uses_synthesized_narrative(executor, store, push, planner):
     store.get_goal = AsyncMock(return_value=goal)
     store.list_milestones = AsyncMock(return_value=[m1, m2])
     store.get_pending_gate = AsyncMock(return_value=gate)
-    planner.synthesize_gate_narrative = AsyncMock(return_value="The first phase is complete.")
+    planner.synthesize_gate_narrative = AsyncMock(
+        return_value="The first phase is complete."
+    )
 
     await executor.advance(goal.id)
 
@@ -414,7 +455,9 @@ async def test_gate_uses_synthesized_narrative(executor, store, push, planner):
     assert "The first phase is complete." in notif.content
 
 
-async def test_gate_falls_back_to_bullet_list_on_narrative_timeout(executor, store, push, planner):
+async def test_gate_falls_back_to_bullet_list_on_narrative_timeout(
+    executor, store, push, planner
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
     m1.output = "Research done"
@@ -433,7 +476,9 @@ async def test_gate_falls_back_to_bullet_list_on_narrative_timeout(executor, sto
     assert "Step 1" in notif.content
 
 
-async def test_gate_falls_back_to_bullet_list_on_narrative_error(executor, store, push, planner):
+async def test_gate_falls_back_to_bullet_list_on_narrative_error(
+    executor, store, push, planner
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
     m1.output = "Research done"
@@ -452,6 +497,7 @@ async def test_gate_falls_back_to_bullet_list_on_narrative_error(executor, store
 
 
 # ── Steer ─────────────────────────────────────────────────────────────────────
+
 
 async def test_steer_enqueues_instruction_for_active_goal(executor, store):
     goal = _goal(status=GoalStatus.ACTIVE)
@@ -487,7 +533,9 @@ async def test_advance_drains_steer_before_milestone(executor, store, push, plan
     store.get_goal = AsyncMock(return_value=goal)
     store.list_milestones = AsyncMock(return_value=[m1])
     store.get_pending_gate = AsyncMock(return_value=None)
-    planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
+    planner.replan_remaining = AsyncMock(
+        return_value=([_milestone(1, goal_id=goal.id)], [])
+    )
 
     # Pre-load a steer instruction
     await executor._steer_queues[goal.id].put("focus on email only")
@@ -515,17 +563,26 @@ async def test_apply_steer_pauses_on_replan_failure(executor, store, push, plann
 
 # ── Retrospective ─────────────────────────────────────────────────────────────
 
+
 async def test_completion_pushes_retrospective(executor, store, push, planner):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(side_effect=[
-        [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # stuck check
-        [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # pending check → none
-        [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # retrospective fetch
-    ])
+    store.list_milestones = AsyncMock(
+        side_effect=[
+            [_milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)],  # stuck check
+            [
+                _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+            ],  # pending check → none
+            [
+                _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
+            ],  # retrospective fetch
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
-    planner.synthesize_retrospective = AsyncMock(return_value="You accomplished the objective.")
+    planner.synthesize_retrospective = AsyncMock(
+        return_value="You accomplished the objective."
+    )
 
     await executor.advance(goal.id)
 
@@ -535,12 +592,16 @@ async def test_completion_pushes_retrospective(executor, store, push, planner):
     assert "You accomplished the objective." in notif.content
 
 
-async def test_retrospective_failure_falls_back_to_success_condition(executor, store, push, planner):
+async def test_retrospective_failure_falls_back_to_success_condition(
+    executor, store, push, planner
+):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     planner.synthesize_retrospective = AsyncMock(side_effect=RuntimeError("LLM down"))
@@ -551,32 +612,46 @@ async def test_retrospective_failure_falls_back_to_success_condition(executor, s
     assert goal.success_condition in notif.content
 
 
-async def test_push_retrospective_calls_save_retrospective(executor, store, push, planner):
+async def test_push_retrospective_calls_save_retrospective(
+    executor, store, push, planner
+):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     store.save_retrospective = AsyncMock()
-    planner.synthesize_retrospective = AsyncMock(return_value="Accomplished the goal successfully.")
+    planner.synthesize_retrospective = AsyncMock(
+        return_value="Accomplished the goal successfully."
+    )
 
     await executor.advance(goal.id)
 
-    store.save_retrospective.assert_called_once_with(goal.id, "Accomplished the goal successfully.")
+    store.save_retrospective.assert_called_once_with(
+        goal.id, "Accomplished the goal successfully."
+    )
 
 
-async def test_push_retrospective_still_pushes_when_save_retrospective_fails(executor, store, push, planner):
+async def test_push_retrospective_still_pushes_when_save_retrospective_fails(
+    executor, store, push, planner
+):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     store.save_retrospective = AsyncMock(side_effect=RuntimeError("DB write failed"))
-    planner.synthesize_retrospective = AsyncMock(return_value="Accomplished the goal successfully.")
+    planner.synthesize_retrospective = AsyncMock(
+        return_value="Accomplished the goal successfully."
+    )
 
     await executor.advance(goal.id)
 
@@ -586,6 +661,7 @@ async def test_push_retrospective_still_pushes_when_save_retrospective_fails(exe
 
 
 # ── Task state sync ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def memory_store():
@@ -605,7 +681,9 @@ def executor_with_memory(store, planner, push, agent_getter, memory_store):
     )
 
 
-async def test_task_state_written_on_milestone_start(executor_with_memory, store, memory_store):
+async def test_task_state_written_on_milestone_start(
+    executor_with_memory, store, memory_store
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -621,12 +699,16 @@ async def test_task_state_written_on_milestone_start(executor_with_memory, store
     assert "in_progress" in statuses
 
 
-async def test_task_state_written_as_completed_when_no_pending(executor_with_memory, store, memory_store, push, planner):
+async def test_task_state_written_as_completed_when_no_pending(
+    executor_with_memory, store, memory_store, push, planner
+):
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     planner.synthesize_retrospective = AsyncMock(return_value="Done.")
@@ -639,7 +721,9 @@ async def test_task_state_written_as_completed_when_no_pending(executor_with_mem
     assert "completed" in statuses
 
 
-async def test_task_state_written_as_blocked_on_double_failure(executor_with_memory, store, memory_store, push, planner):
+async def test_task_state_written_as_blocked_on_double_failure(
+    executor_with_memory, store, memory_store, push, planner
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     store.get_goal = AsyncMock(return_value=goal)
@@ -663,13 +747,17 @@ async def test_task_state_written_as_blocked_on_double_failure(executor_with_mem
     assert "blocked" in statuses
 
 
-async def test_task_state_sync_skipped_when_no_memory_store(executor, store, push, planner):
+async def test_task_state_sync_skipped_when_no_memory_store(
+    executor, store, push, planner
+):
     """The default executor fixture has no memory_store — no error should occur."""
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     planner.synthesize_retrospective = AsyncMock(return_value="Done.")
@@ -680,6 +768,7 @@ async def test_task_state_sync_skipped_when_no_memory_store(executor, store, pus
 
 # ── Provisional procedure reuse (Feature 1b) ──────────────────────────────────
 
+
 def test_build_milestone_prompt_includes_provisional_procedures():
     from ze_automation.goals.executor import _build_milestone_prompt
     from ze_sdk.memory import Procedure
@@ -687,7 +776,8 @@ def test_build_milestone_prompt_includes_provisional_procedures():
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.PENDING, goal_id=goal.id)
     proc = Procedure(
-        id=None, name="Interview loop",
+        id=None,
+        name="Interview loop",
         trigger="User wants to run interviews",
         steps=["Research targets", "Draft outreach", "Send"],
     )
@@ -708,7 +798,9 @@ def test_build_milestone_prompt_no_provisional_procedures_omits_section():
     assert "[METHODS DISCOVERED IN THIS GOAL]" not in prompt
 
 
-async def test_provisional_procedure_extracted_at_third_milestone(executor, store, planner, push, agent_mock):
+async def test_provisional_procedure_extracted_at_third_milestone(
+    executor, store, planner, push, agent_mock
+):
     from ze_sdk.memory import Procedure
 
     goal = _goal()
@@ -719,19 +811,28 @@ async def test_provisional_procedure_extracted_at_third_milestone(executor, stor
     store.list_milestones = AsyncMock(return_value=[m1, m2, m3])
     store.get_pending_gate = AsyncMock(return_value=None)
 
-    proc = Procedure(id=None, name="Step loop", trigger="Generic", steps=["a", "b", "c"])
+    proc = Procedure(
+        id=None, name="Step loop", trigger="Generic", steps=["a", "b", "c"]
+    )
     planner.extract_procedure = AsyncMock(return_value=proc)
 
     captured_tasks = []
-    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+    with patch(
+        "ze_automation.goals.executor.asyncio.create_task",
+        side_effect=captured_tasks.append,
+    ):
         await executor.advance(goal.id)
 
     # One of the create_task calls should be _extract_provisional_procedure
-    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    coro_names = [
+        t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks
+    ]
     assert any("provisional" in name for name in coro_names)
 
 
-async def test_provisional_procedure_not_extracted_at_first_or_second_milestone(executor, store, planner, push, agent_mock):
+async def test_provisional_procedure_not_extracted_at_first_or_second_milestone(
+    executor, store, planner, push, agent_mock
+):
     goal = _goal()
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
     m2 = _milestone(2, MilestoneStatus.PENDING, goal_id=goal.id)
@@ -740,14 +841,21 @@ async def test_provisional_procedure_not_extracted_at_first_or_second_milestone(
     store.get_pending_gate = AsyncMock(return_value=None)
 
     captured_tasks = []
-    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+    with patch(
+        "ze_automation.goals.executor.asyncio.create_task",
+        side_effect=captured_tasks.append,
+    ):
         await executor.advance(goal.id)
 
-    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    coro_names = [
+        t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks
+    ]
     assert not any("provisional" in name for name in coro_names)
 
 
-async def test_provisional_procedure_injected_into_milestone_prompt(executor, store, planner, push, agent_mock):
+async def test_provisional_procedure_injected_into_milestone_prompt(
+    executor, store, planner, push, agent_mock
+):
     from ze_sdk.memory import Procedure
 
     goal = _goal()
@@ -767,14 +875,18 @@ async def test_provisional_procedure_injected_into_milestone_prompt(executor, st
     assert "Prior method" in prompt_used
 
 
-async def test_provisional_procedure_cleared_on_goal_completion(executor, store, planner, push):
+async def test_provisional_procedure_cleared_on_goal_completion(
+    executor, store, planner, push
+):
     from ze_sdk.memory import Procedure
 
     goal = _goal()
     store.get_goal = AsyncMock(return_value=goal)
-    store.list_milestones = AsyncMock(return_value=[
-        _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
-    ])
+    store.list_milestones = AsyncMock(
+        return_value=[
+            _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id),
+        ]
+    )
     store.list_learnings = AsyncMock(return_value=[])
     store.get_pending_gate = AsyncMock(return_value=None)
     planner.synthesize_retrospective = AsyncMock(return_value="Done.")
@@ -787,7 +899,9 @@ async def test_provisional_procedure_cleared_on_goal_completion(executor, store,
     assert goal.id not in executor._provisional_procedures
 
 
-async def test_provisional_procedure_passed_to_adaptive_replan(executor, store, planner, push, agent_mock):
+async def test_provisional_procedure_passed_to_adaptive_replan(
+    executor, store, planner, push, agent_mock
+):
     from ze_sdk.memory import Procedure
 
     goal = _goal()
@@ -797,7 +911,9 @@ async def test_provisional_procedure_passed_to_adaptive_replan(executor, store, 
     store.get_pending_gate = AsyncMock(return_value=None)
     store.increment_consecutive_failures = AsyncMock(return_value=2)
     store.increment_replan_count = AsyncMock(return_value=1)
-    planner.replan_remaining = AsyncMock(return_value=([_milestone(1, goal_id=goal.id)], []))
+    planner.replan_remaining = AsyncMock(
+        return_value=([_milestone(1, goal_id=goal.id)], [])
+    )
     agent_mock.run = AsyncMock(side_effect=GoalExecutionError("failed"))
 
     proc = Procedure(id=None, name="Known method", trigger="x", steps=["a"])
@@ -810,7 +926,9 @@ async def test_provisional_procedure_passed_to_adaptive_replan(executor, store, 
     assert call_kwargs.get("local_procedures") == [proc]
 
 
-async def test_provisional_procedure_extracted_on_gate_redirect(executor, store, planner, push):
+async def test_provisional_procedure_extracted_on_gate_redirect(
+    executor, store, planner, push
+):
     goal = _goal()
     gate_id = uuid4()
     gate = _gate(after_seq=2, goal_id=goal.id, status=GateStatus.AWAITING_APPROVAL)
@@ -824,10 +942,15 @@ async def test_provisional_procedure_extracted_on_gate_redirect(executor, store,
     planner.replan_remaining = AsyncMock(return_value=([], []))
 
     captured_tasks = []
-    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+    with patch(
+        "ze_automation.goals.executor.asyncio.create_task",
+        side_effect=captured_tasks.append,
+    ):
         await executor.handle_gate_redirected(gate_id, "focus on warm leads")
 
-    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    coro_names = [
+        t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks
+    ]
     assert any("provisional" in name for name in coro_names)
 
 
@@ -841,8 +964,13 @@ async def test_provisional_procedure_extracted_on_steer(executor, store, planner
     planner.replan_remaining = AsyncMock(return_value=([], []))
 
     captured_tasks = []
-    with patch("ze_automation.goals.executor.asyncio.create_task", side_effect=captured_tasks.append):
+    with patch(
+        "ze_automation.goals.executor.asyncio.create_task",
+        side_effect=captured_tasks.append,
+    ):
         await executor._apply_steer(goal.id, goal, "skip LinkedIn step")
 
-    coro_names = [t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks]
+    coro_names = [
+        t.cr_qualname if hasattr(t, "cr_qualname") else str(t) for t in captured_tasks
+    ]
     assert any("provisional" in name for name in coro_names)

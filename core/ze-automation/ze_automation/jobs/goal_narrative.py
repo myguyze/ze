@@ -49,7 +49,8 @@ class GoalNarrativeJob:
             try:
                 milestones = await self._store.list_milestones(goal.id)
                 completed_this_week = [
-                    m for m in milestones
+                    m
+                    for m in milestones
                     if m.status == MilestoneStatus.COMPLETED
                     and m.completed_at is not None
                     and m.completed_at >= since
@@ -59,7 +60,9 @@ class GoalNarrativeJob:
                     if goal.status == GoalStatus.AWAITING_GATE
                     else None
                 )
-                next_milestones = [m for m in milestones if m.status == MilestoneStatus.PENDING]
+                next_milestones = [
+                    m for m in milestones if m.status == MilestoneStatus.PENDING
+                ]
 
                 if not completed_this_week and pending_gate is None:
                     continue
@@ -72,7 +75,9 @@ class GoalNarrativeJob:
                     header += f" ⚠️ awaiting gate: {pending_gate.title}"
                 paragraphs.append(f"{header}\n{paragraph}")
             except Exception as exc:
-                log.warning("goal_narrative_goal_failed", goal_id=str(goal.id), error=str(exc))
+                log.warning(
+                    "goal_narrative_goal_failed", goal_id=str(goal.id), error=str(exc)
+                )
 
         if not paragraphs:
             log.info("goal_narrative_nothing_to_report")

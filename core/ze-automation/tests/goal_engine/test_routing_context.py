@@ -4,39 +4,67 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 
-from ze_automation.goals.types import Goal, GoalStatus, Milestone, MilestoneStatus, VerificationGate, GateStatus
-from ze_automation.graph.routing_context import _build_routing_hints, inject_goal_routing_context
+from ze_automation.goals.types import (
+    Goal,
+    GoalStatus,
+    Milestone,
+    MilestoneStatus,
+    VerificationGate,
+    GateStatus,
+)
+from ze_automation.graph.routing_context import (
+    _build_routing_hints,
+    inject_goal_routing_context,
+)
 
 
 def _goal(title: str, status=GoalStatus.ACTIVE) -> Goal:
     return Goal(
-        id=uuid4(), title=title, objective="o", success_condition="s", status=status,
+        id=uuid4(),
+        title=title,
+        objective="o",
+        success_condition="s",
+        status=status,
     )
 
 
-def _milestone(seq: int, status=MilestoneStatus.PENDING, title=None, goal_id=None) -> Milestone:
+def _milestone(
+    seq: int, status=MilestoneStatus.PENDING, title=None, goal_id=None
+) -> Milestone:
     return Milestone(
-        id=uuid4(), goal_id=goal_id or uuid4(),
-        title=title or f"Step {seq}", description="d", sequence=seq, status=status,
+        id=uuid4(),
+        goal_id=goal_id or uuid4(),
+        title=title or f"Step {seq}",
+        description="d",
+        sequence=seq,
+        status=status,
     )
 
 
 def _gate(title: str, goal_id=None) -> VerificationGate:
     return VerificationGate(
-        id=uuid4(), goal_id=goal_id or uuid4(),
-        after_sequence=1, title=title, status=GateStatus.AWAITING_APPROVAL,
+        id=uuid4(),
+        goal_id=goal_id or uuid4(),
+        after_sequence=1,
+        title=title,
+        status=GateStatus.AWAITING_APPROVAL,
     )
 
 
 def _make_store(goals=None, milestones_map=None, gate_map=None):
     store = AsyncMock()
     store.list_active = AsyncMock(return_value=goals or [])
-    store.list_milestones = AsyncMock(side_effect=lambda gid: milestones_map.get(gid, []) if milestones_map else [])
-    store.get_pending_gate = AsyncMock(side_effect=lambda gid: gate_map.get(gid) if gate_map else None)
+    store.list_milestones = AsyncMock(
+        side_effect=lambda gid: milestones_map.get(gid, []) if milestones_map else []
+    )
+    store.get_pending_gate = AsyncMock(
+        side_effect=lambda gid: gate_map.get(gid) if gate_map else None
+    )
     return store
 
 
 # ── _build_routing_hints ──────────────────────────────────────────────────────
+
 
 async def test_build_hints_returns_none_when_no_active_goals():
     store = _make_store(goals=[])
@@ -47,7 +75,9 @@ async def test_build_hints_returns_none_when_no_active_goals():
 async def test_build_hints_includes_active_goal_with_pending_milestone():
     goal = _goal("Job search outreach")
     m1 = _milestone(1, MilestoneStatus.COMPLETED, goal_id=goal.id)
-    m2 = _milestone(2, MilestoneStatus.PENDING, title="LinkedIn outreach", goal_id=goal.id)
+    m2 = _milestone(
+        2, MilestoneStatus.PENDING, title="LinkedIn outreach", goal_id=goal.id
+    )
     store = _make_store(goals=[goal], milestones_map={goal.id: [m1, m2]})
 
     result = await _build_routing_hints(store)
@@ -60,7 +90,9 @@ async def test_build_hints_includes_active_goal_with_pending_milestone():
 
 async def test_build_hints_shows_in_progress_milestone_over_pending():
     goal = _goal("My Goal")
-    m1 = _milestone(1, MilestoneStatus.IN_PROGRESS, title="Running now", goal_id=goal.id)
+    m1 = _milestone(
+        1, MilestoneStatus.IN_PROGRESS, title="Running now", goal_id=goal.id
+    )
     m2 = _milestone(2, MilestoneStatus.PENDING, title="Next up", goal_id=goal.id)
     store = _make_store(goals=[goal], milestones_map={goal.id: [m1, m2]})
 
@@ -118,6 +150,7 @@ async def test_build_hints_goal_with_no_milestones():
 
 
 # ── inject_goal_routing_context node ─────────────────────────────────────────
+
 
 async def test_inject_returns_none_when_no_goal_store():
     config = {"configurable": {}}

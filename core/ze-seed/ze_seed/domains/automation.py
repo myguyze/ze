@@ -113,14 +113,86 @@ async def _apply_automation(ctx: SeedContext) -> int:
         count += 3
 
         milestones = [
-            (MS_PT_1, GOAL_PORTUGUESE, "Complete A2 assessment", "Take formal A2 assessment with tutor", 1, "companion", "completed", "Passed A2 with strong grammar scores"),
-            (MS_PT_2, GOAL_PORTUGUESE, "Master past tense", "Practice pretérito perfeito and imperfeito", 2, "companion", "completed", "Comfortable with daily conversation past tense"),
-            (MS_PT_3, GOAL_PORTUGUESE, "Weekly conversation practice", "30-min conversation sessions twice weekly", 3, "companion", "in_progress", ""),
-            (MS_PT_4, GOAL_PORTUGUESE, "B1 mock exam", "Complete B1 practice exam with tutor feedback", 4, "research", "pending", ""),
-            (MS_SP_1, GOAL_SIDE_PROJECT, "Build MVP features", "CSV import, categorization, monthly summary", 1, "research", "completed", "Core features shipped"),
-            (MS_SP_2, GOAL_SIDE_PROJECT, "Launch publicly", "Landing page, Product Hunt, community posts", 2, "research", "completed", "10 beta users acquired"),
-            (MS_SL_1, GOAL_SLEEP, "Track sleep for 2 weeks", "Log bedtime and wake time daily", 1, "companion", "pending", ""),
-            (MS_SL_2, GOAL_SLEEP, "Establish wind-down routine", "No screens after 11pm, read for 20 min", 2, "companion", "pending", ""),
+            (
+                MS_PT_1,
+                GOAL_PORTUGUESE,
+                "Complete A2 assessment",
+                "Take formal A2 assessment with tutor",
+                1,
+                "companion",
+                "completed",
+                "Passed A2 with strong grammar scores",
+            ),
+            (
+                MS_PT_2,
+                GOAL_PORTUGUESE,
+                "Master past tense",
+                "Practice pretérito perfeito and imperfeito",
+                2,
+                "companion",
+                "completed",
+                "Comfortable with daily conversation past tense",
+            ),
+            (
+                MS_PT_3,
+                GOAL_PORTUGUESE,
+                "Weekly conversation practice",
+                "30-min conversation sessions twice weekly",
+                3,
+                "companion",
+                "in_progress",
+                "",
+            ),
+            (
+                MS_PT_4,
+                GOAL_PORTUGUESE,
+                "B1 mock exam",
+                "Complete B1 practice exam with tutor feedback",
+                4,
+                "research",
+                "pending",
+                "",
+            ),
+            (
+                MS_SP_1,
+                GOAL_SIDE_PROJECT,
+                "Build MVP features",
+                "CSV import, categorization, monthly summary",
+                1,
+                "research",
+                "completed",
+                "Core features shipped",
+            ),
+            (
+                MS_SP_2,
+                GOAL_SIDE_PROJECT,
+                "Launch publicly",
+                "Landing page, Product Hunt, community posts",
+                2,
+                "research",
+                "completed",
+                "10 beta users acquired",
+            ),
+            (
+                MS_SL_1,
+                GOAL_SLEEP,
+                "Track sleep for 2 weeks",
+                "Log bedtime and wake time daily",
+                1,
+                "companion",
+                "pending",
+                "",
+            ),
+            (
+                MS_SL_2,
+                GOAL_SLEEP,
+                "Establish wind-down routine",
+                "No screens after 11pm, read for 20 min",
+                2,
+                "companion",
+                "pending",
+                "",
+            ),
         ]
         for mid, gid, title, desc, seq, hint, status, output in milestones:
             completed_at = now - timedelta(days=7) if status == "completed" else None
@@ -131,7 +203,15 @@ async def _apply_automation(ctx: SeedContext) -> int:
                 VALUES ($1, $2, $3, $4, $5, $6, 'execute', $7, $8, $9)
                 ON CONFLICT (id) DO NOTHING
                 """,
-                mid, gid, title, desc, seq, hint, status, output, completed_at,
+                mid,
+                gid,
+                title,
+                desc,
+                seq,
+                hint,
+                status,
+                output,
+                completed_at,
             )
             count += 1
 
@@ -259,57 +339,103 @@ async def _apply_automation(ctx: SeedContext) -> int:
         )
         count += 5
 
-        pt_steps = json.dumps([
-            {"task": "Check Duolingo streak and weekly XP", "agent_hint": "companion", "intent": "execute"},
-            {"task": "Summarize tutor feedback from last session", "agent_hint": "companion", "intent": "execute"},
-            {"task": "Suggest one B1 practice resource", "agent_hint": "research", "intent": "execute"},
-        ])
-        mb_steps = json.dumps([
-            {"task": "List today's calendar events", "agent_hint": "calendar", "intent": "execute"},
-            {"task": "Surface pending reminders", "agent_hint": "calendar", "intent": "execute"},
-            {"task": "Draft a one-paragraph day overview", "agent_hint": "companion", "intent": "execute"},
-        ])
-        ll_steps = json.dumps([
-            {"task": "Collect beta user feedback from the past week", "agent_hint": "research", "intent": "execute"},
-            {"task": "Summarize signups and active users", "agent_hint": "research", "intent": "execute"},
-            {"task": "Draft a build-in-public update post", "agent_hint": "companion", "intent": "execute"},
-        ])
-        invoice_steps = json.dumps([
-            {
-                "task": "Check inbox for an Acme invoice",
-                "agent_hint": "messenger",
-                "intent": "execute",
-                "id": "s0",
-                "branches": [
-                    {"condition": "an Acme invoice arrived", "to": "s1"},
-                    {"condition": "no Acme invoice arrived", "to": "s2"},
-                ],
-            },
-            {
-                "task": "Forward the invoice to accounting@example.com",
-                "agent_hint": "messenger",
-                "intent": "execute",
-                "id": "s1",
-            },
-            {
-                "task": "Log that no invoice arrived today",
-                "agent_hint": "companion",
-                "intent": "execute",
-                "id": "s2",
-            },
-        ])
-        health_check_steps = json.dumps([
-            {
-                "task": "Ping the LedgerLite health endpoint",
-                "agent_hint": "research",
-                "intent": "execute",
-                "id": "s0",
-                "branches": [
-                    {"condition": "endpoint is healthy", "to": "END"},
-                    {"condition": "endpoint is still failing", "to": "s0"},
-                ],
-            },
-        ])
+        pt_steps = json.dumps(
+            [
+                {
+                    "task": "Check Duolingo streak and weekly XP",
+                    "agent_hint": "companion",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Summarize tutor feedback from last session",
+                    "agent_hint": "companion",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Suggest one B1 practice resource",
+                    "agent_hint": "research",
+                    "intent": "execute",
+                },
+            ]
+        )
+        mb_steps = json.dumps(
+            [
+                {
+                    "task": "List today's calendar events",
+                    "agent_hint": "calendar",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Surface pending reminders",
+                    "agent_hint": "calendar",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Draft a one-paragraph day overview",
+                    "agent_hint": "companion",
+                    "intent": "execute",
+                },
+            ]
+        )
+        ll_steps = json.dumps(
+            [
+                {
+                    "task": "Collect beta user feedback from the past week",
+                    "agent_hint": "research",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Summarize signups and active users",
+                    "agent_hint": "research",
+                    "intent": "execute",
+                },
+                {
+                    "task": "Draft a build-in-public update post",
+                    "agent_hint": "companion",
+                    "intent": "execute",
+                },
+            ]
+        )
+        invoice_steps = json.dumps(
+            [
+                {
+                    "task": "Check inbox for an Acme invoice",
+                    "agent_hint": "messenger",
+                    "intent": "execute",
+                    "id": "s0",
+                    "branches": [
+                        {"condition": "an Acme invoice arrived", "to": "s1"},
+                        {"condition": "no Acme invoice arrived", "to": "s2"},
+                    ],
+                },
+                {
+                    "task": "Forward the invoice to accounting@example.com",
+                    "agent_hint": "messenger",
+                    "intent": "execute",
+                    "id": "s1",
+                },
+                {
+                    "task": "Log that no invoice arrived today",
+                    "agent_hint": "companion",
+                    "intent": "execute",
+                    "id": "s2",
+                },
+            ]
+        )
+        health_check_steps = json.dumps(
+            [
+                {
+                    "task": "Ping the LedgerLite health endpoint",
+                    "agent_hint": "research",
+                    "intent": "execute",
+                    "id": "s0",
+                    "branches": [
+                        {"condition": "endpoint is healthy", "to": "END"},
+                        {"condition": "endpoint is still failing", "to": "s0"},
+                    ],
+                },
+            ]
+        )
 
         await conn.execute(
             """
@@ -396,186 +522,202 @@ async def _apply_automation(ctx: SeedContext) -> int:
         )
         count += 5
 
-        pt_ok_1_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Check Duolingo streak and weekly XP",
-                "output": "47-day streak; 340 XP this week (+12% vs last week)",
-                "success": True,
-                "error": None,
-                "duration_ms": 420,
-            },
-            {
-                "step_index": 1,
-                "task": "Summarize tutor feedback from last session",
-                "output": "Ana noted strong past tense usage; subjunctive in 'se' clauses still hesitant",
-                "success": True,
-                "error": None,
-                "duration_ms": 890,
-            },
-            {
-                "step_index": 2,
-                "task": "Suggest one B1 practice resource",
-                "output": "Practice Portuguese podcast episode 42 covers subjunctive triggers",
-                "success": True,
-                "error": None,
-                "duration_ms": 1100,
-            },
-        ])
-        pt_ok_2_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Check Duolingo streak and weekly XP",
-                "output": "40-day streak; 290 XP this week",
-                "success": True,
-                "error": None,
-                "duration_ms": 380,
-            },
-            {
-                "step_index": 1,
-                "task": "Summarize tutor feedback from last session",
-                "output": "Good progress on pretérito imperfeito; needs more conversation practice",
-                "success": True,
-                "error": None,
-                "duration_ms": 750,
-            },
-            {
-                "step_index": 2,
-                "task": "Suggest one B1 practice resource",
-                "output": "LingQ intermediate story 'O Café da Manhã' recommended",
-                "success": True,
-                "error": None,
-                "duration_ms": 920,
-            },
-        ])
-        pt_fail_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Check Duolingo streak and weekly XP",
-                "output": "Streak maintained at 35 days",
-                "success": True,
-                "error": None,
-                "duration_ms": 400,
-            },
-            {
-                "step_index": 1,
-                "task": "Summarize tutor feedback from last session",
-                "output": "",
-                "success": False,
-                "error": "Could not retrieve tutoring notes — session was rescheduled",
-                "duration_ms": 120,
-            },
-        ])
-        mb_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "List today's calendar events",
-                "output": "Focus block 9-11am, standup 10am, tutoring 6pm",
-                "success": True,
-                "error": None,
-                "duration_ms": 310,
-            },
-            {
-                "step_index": 1,
-                "task": "Surface pending reminders",
-                "output": "Prep standup notes for Marco; dentist prep in 5 days",
-                "success": True,
-                "error": None,
-                "duration_ms": 180,
-            },
-            {
-                "step_index": 2,
-                "task": "Draft a one-paragraph day overview",
-                "output": "Busy day with focus time morning, standup mid-morning, Portuguese tutoring evening.",
-                "success": True,
-                "error": None,
-                "duration_ms": 640,
-            },
-        ])
-        ll_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Collect beta user feedback from the past week",
-                "output": "3 feature requests for CSV date formats; 1 bug report on category colors",
-                "success": True,
-                "error": None,
-                "duration_ms": 1500,
-            },
-            {
-                "step_index": 1,
-                "task": "Summarize signups and active users",
-                "output": "12 total signups, 7 active this week (+2 from last week)",
-                "success": True,
-                "error": None,
-                "duration_ms": 800,
-            },
-            {
-                "step_index": 2,
-                "task": "Draft a build-in-public update post",
-                "output": "Draft post ready — highlights CSV import fix and weekly active user growth",
-                "success": True,
-                "error": None,
-                "duration_ms": 2200,
-            },
-        ])
+        pt_ok_1_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Check Duolingo streak and weekly XP",
+                    "output": "47-day streak; 340 XP this week (+12% vs last week)",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 420,
+                },
+                {
+                    "step_index": 1,
+                    "task": "Summarize tutor feedback from last session",
+                    "output": "Ana noted strong past tense usage; subjunctive in 'se' clauses still hesitant",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 890,
+                },
+                {
+                    "step_index": 2,
+                    "task": "Suggest one B1 practice resource",
+                    "output": "Practice Portuguese podcast episode 42 covers subjunctive triggers",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 1100,
+                },
+            ]
+        )
+        pt_ok_2_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Check Duolingo streak and weekly XP",
+                    "output": "40-day streak; 290 XP this week",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 380,
+                },
+                {
+                    "step_index": 1,
+                    "task": "Summarize tutor feedback from last session",
+                    "output": "Good progress on pretérito imperfeito; needs more conversation practice",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 750,
+                },
+                {
+                    "step_index": 2,
+                    "task": "Suggest one B1 practice resource",
+                    "output": "LingQ intermediate story 'O Café da Manhã' recommended",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 920,
+                },
+            ]
+        )
+        pt_fail_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Check Duolingo streak and weekly XP",
+                    "output": "Streak maintained at 35 days",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 400,
+                },
+                {
+                    "step_index": 1,
+                    "task": "Summarize tutor feedback from last session",
+                    "output": "",
+                    "success": False,
+                    "error": "Could not retrieve tutoring notes — session was rescheduled",
+                    "duration_ms": 120,
+                },
+            ]
+        )
+        mb_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "List today's calendar events",
+                    "output": "Focus block 9-11am, standup 10am, tutoring 6pm",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 310,
+                },
+                {
+                    "step_index": 1,
+                    "task": "Surface pending reminders",
+                    "output": "Prep standup notes for Marco; dentist prep in 5 days",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 180,
+                },
+                {
+                    "step_index": 2,
+                    "task": "Draft a one-paragraph day overview",
+                    "output": "Busy day with focus time morning, standup mid-morning, Portuguese tutoring evening.",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 640,
+                },
+            ]
+        )
+        ll_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Collect beta user feedback from the past week",
+                    "output": "3 feature requests for CSV date formats; 1 bug report on category colors",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 1500,
+                },
+                {
+                    "step_index": 1,
+                    "task": "Summarize signups and active users",
+                    "output": "12 total signups, 7 active this week (+2 from last week)",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 800,
+                },
+                {
+                    "step_index": 2,
+                    "task": "Draft a build-in-public update post",
+                    "output": "Draft post ready — highlights CSV import fix and weekly active user growth",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 2200,
+                },
+            ]
+        )
 
-        invoice_found_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Check inbox for an Acme invoice",
-                "output": "Found invoice #4471 from Acme for $2,340, received this morning",
-                "success": True,
-                "error": None,
-                "duration_ms": 640,
-                "step_id": "s0",
-                "branch_taken": "an Acme invoice arrived",
-            },
-            {
-                "step_index": 1,
-                "task": "Forward the invoice to accounting@example.com",
-                "output": "Forwarded invoice #4471 to accounting@example.com",
-                "success": True,
-                "error": None,
-                "duration_ms": 210,
-                "step_id": "s1",
-                "branch_taken": None,
-            },
-        ])
-        invoice_none_results = json.dumps([
-            {
-                "step_index": 0,
-                "task": "Check inbox for an Acme invoice",
-                "output": "No Acme invoice in the inbox today",
-                "success": True,
-                "error": None,
-                "duration_ms": 510,
-                "step_id": "s0",
-                "branch_taken": "no Acme invoice arrived",
-            },
-            {
-                "step_index": 1,
-                "task": "Log that no invoice arrived today",
-                "output": "Logged: no Acme invoice today",
-                "success": True,
-                "error": None,
-                "duration_ms": 90,
-                "step_id": "s2",
-                "branch_taken": None,
-            },
-        ])
-        health_loop_fail_results = json.dumps([
-            {
-                "step_index": i,
-                "task": "Ping the LedgerLite health endpoint",
-                "output": "Health endpoint returned 503 Service Unavailable",
-                "success": True,
-                "error": None,
-                "duration_ms": 300 + i * 50,
-                "step_id": "s0",
-                "branch_taken": "endpoint is still failing",
-            }
-            for i in range(4)
-        ])
+        invoice_found_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Check inbox for an Acme invoice",
+                    "output": "Found invoice #4471 from Acme for $2,340, received this morning",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 640,
+                    "step_id": "s0",
+                    "branch_taken": "an Acme invoice arrived",
+                },
+                {
+                    "step_index": 1,
+                    "task": "Forward the invoice to accounting@example.com",
+                    "output": "Forwarded invoice #4471 to accounting@example.com",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 210,
+                    "step_id": "s1",
+                    "branch_taken": None,
+                },
+            ]
+        )
+        invoice_none_results = json.dumps(
+            [
+                {
+                    "step_index": 0,
+                    "task": "Check inbox for an Acme invoice",
+                    "output": "No Acme invoice in the inbox today",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 510,
+                    "step_id": "s0",
+                    "branch_taken": "no Acme invoice arrived",
+                },
+                {
+                    "step_index": 1,
+                    "task": "Log that no invoice arrived today",
+                    "output": "Logged: no Acme invoice today",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 90,
+                    "step_id": "s2",
+                    "branch_taken": None,
+                },
+            ]
+        )
+        health_loop_fail_results = json.dumps(
+            [
+                {
+                    "step_index": i,
+                    "task": "Ping the LedgerLite health endpoint",
+                    "output": "Health endpoint returned 503 Service Unavailable",
+                    "success": True,
+                    "error": None,
+                    "duration_ms": 300 + i * 50,
+                    "step_id": "s0",
+                    "branch_taken": "endpoint is still failing",
+                }
+                for i in range(4)
+            ]
+        )
 
         executions = [
             (
@@ -670,7 +812,16 @@ async def _apply_automation(ctx: SeedContext) -> int:
                 now - timedelta(days=5) + timedelta(minutes=2),
             ),
         ]
-        for exec_id, wf_id, status, step_results, error, summary, started, completed in executions:
+        for (
+            exec_id,
+            wf_id,
+            status,
+            step_results,
+            error,
+            summary,
+            started,
+            completed,
+        ) in executions:
             await conn.execute(
                 """
                 INSERT INTO workflow_executions
@@ -695,5 +846,10 @@ async def _apply_automation(ctx: SeedContext) -> int:
 
 def automation_seed_domains() -> list[SeedDomain]:
     return [
-        SeedDomain("automation.dev", seed_order=20, clear=_clear_automation, apply=_apply_automation),
+        SeedDomain(
+            "automation.dev",
+            seed_order=20,
+            clear=_clear_automation,
+            apply=_apply_automation,
+        ),
     ]

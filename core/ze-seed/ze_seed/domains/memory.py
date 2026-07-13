@@ -133,5 +133,7 @@ async def _apply_memory(ctx: SeedContext) -> int:
 
 def memory_seed_domains() -> list[SeedDomain]:
     return [
-        SeedDomain("memory.dev", seed_order=15, clear=_clear_memory, apply=_apply_memory),
+        SeedDomain(
+            "memory.dev", seed_order=15, clear=_clear_memory, apply=_apply_memory
+        ),
     ]

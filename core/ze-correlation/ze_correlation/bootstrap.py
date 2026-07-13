@@ -4,7 +4,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from ze_logging import get_logger
-from ze_correlation import CorrelationEngine, CorrelationJob, CorrelationPushConsumer, PostgresHypothesisStore
+from ze_correlation import (
+    CorrelationEngine,
+    CorrelationJob,
+    CorrelationPushConsumer,
+    PostgresHypothesisStore,
+)
 from ze_memory.relevance import RelevanceModel
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore

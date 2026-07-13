@@ -1,4 +1,5 @@
 """NLIClient protocol — local cross-encoder inference for entailment/contradiction."""
+
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable

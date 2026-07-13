@@ -23,11 +23,13 @@ class GmailWebhookVerifier(WebhookVerifier):
         self._audience = f"{public_url.rstrip('/')}/api/v0/webhooks/email"
 
     def verify(self, payload: WebhookPayload) -> bool:
-        auth_header = payload.headers.get("authorization") or payload.headers.get("Authorization", "")
+        auth_header = payload.headers.get("authorization") or payload.headers.get(
+            "Authorization", ""
+        )
         if not auth_header.startswith("Bearer "):
             log.warning("gmail_webhook_missing_bearer")
             return False
-        token = auth_header[len("Bearer "):]
+        token = auth_header[len("Bearer ") :]
         try:
             id_token.verify_oauth2_token(
                 token,
@@ -57,15 +59,24 @@ class GmailWebhookVerifier(WebhookVerifier):
         service = self._credentials.gmail()  # type: ignore[attr-defined]
         try:
             result = await asyncio.to_thread(
-                lambda: service.users().history().list(
-                    userId="me",
-                    startHistoryId=start_history_id,
-                    historyTypes=["messageAdded"],
-                    labelId="INBOX",
-                ).execute()
+                lambda: (
+                    service.users()
+                    .history()
+                    .list(
+                        userId="me",
+                        startHistoryId=start_history_id,
+                        historyTypes=["messageAdded"],
+                        labelId="INBOX",
+                    )
+                    .execute()
+                )
             )
         except Exception as exc:
-            log.warning("gmail_webhook_history_failed", error=str(exc), history_id=start_history_id)
+            log.warning(
+                "gmail_webhook_history_failed",
+                error=str(exc),
+                history_id=start_history_id,
+            )
             return []
 
         messages: list[InboundMessage] = []
@@ -74,11 +85,18 @@ class GmailWebhookVerifier(WebhookVerifier):
                 msg_id = added["message"]["id"]
                 try:
                     full = await asyncio.to_thread(
-                        lambda mid=msg_id: service.users().messages().get(
-                            userId="me", id=mid, format="full"
-                        ).execute()
+                        lambda mid=msg_id: (
+                            service.users()
+                            .messages()
+                            .get(userId="me", id=mid, format="full")
+                            .execute()
+                        )
                     )
                     messages.append(_parse_inbound_message(full))
                 except Exception as exc:
-                    log.warning("gmail_webhook_message_fetch_failed", message_id=msg_id, error=str(exc))
+                    log.warning(
+                        "gmail_webhook_message_fetch_failed",
+                        message_id=msg_id,
+                        error=str(exc),
+                    )
         return messages

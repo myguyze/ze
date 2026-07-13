@@ -91,6 +91,7 @@ def _make_store(
 
 # ── _build_milestone_prompt ───────────────────────────────────────────────────
 
+
 def test_build_milestone_prompt_appends_prior_work_section_when_hint_set():
     m = _milestone(reuse_hint="Prior goal 'X' did this 5 days ago.")
     goal = _goal()
@@ -118,6 +119,7 @@ def test_build_milestone_prompt_prior_work_appended_after_task(caplog):
 
 def test_build_milestone_prompt_emits_log_when_hint_set():
     import structlog.testing
+
     m = _milestone(reuse_hint="Some hint")
     goal = _goal()
     with structlog.testing.capture_logs() as logs:
@@ -127,8 +129,10 @@ def test_build_milestone_prompt_emits_log_when_hint_set():
 
 # ── _fetch_prior_work ─────────────────────────────────────────────────────────
 
+
 async def test_fetch_prior_work_returns_empty_and_logs_on_store_failure():
     import structlog.testing
+
     store = _make_store(prior_work_raises=True)
     executor, _, _, _ = _make_executor(store=store)
 
@@ -149,6 +153,7 @@ async def test_fetch_prior_work_returns_results_on_success():
 
 
 # ── _apply_steer ──────────────────────────────────────────────────────────────
+
 
 async def test_apply_steer_passes_prior_work_to_replan():
     pw = _prior()
@@ -182,6 +187,7 @@ async def test_apply_steer_passes_none_when_no_prior_work():
 
 # ── _trigger_adaptive_replan ──────────────────────────────────────────────────
 
+
 async def test_trigger_adaptive_replan_passes_prior_work():
     pw = _prior()
     goal = _goal()
@@ -213,6 +219,7 @@ async def test_trigger_adaptive_replan_passes_none_when_no_prior_work():
 
 
 # ── handle_gate_redirected ────────────────────────────────────────────────────
+
 
 async def test_handle_gate_redirected_passes_prior_work():
     pw = _prior()
@@ -272,7 +279,9 @@ def _learning(content="User prefers concise summaries.") -> GoalLearning:
     return GoalLearning(goal_id=uuid4(), content=content, source="milestone")
 
 
-_USE_DEFAULT_MEMORY = object()  # sentinel to distinguish "no memory" from "use a fresh mock"
+_USE_DEFAULT_MEMORY = (
+    object()
+)  # sentinel to distinguish "no memory" from "use a fresh mock"
 
 
 def _make_executor_with_memory(*, memory=_USE_DEFAULT_MEMORY, planner=None, store=None):
@@ -286,6 +295,7 @@ def _make_executor_with_memory(*, memory=_USE_DEFAULT_MEMORY, planner=None, stor
     push = AsyncMock()
     agent_getter = MagicMock(return_value=AsyncMock())
     from ze_automation.goals.executor import GoalExecutor
+
     executor = GoalExecutor(
         goal_store=store,
         goal_planner=planner,
@@ -322,6 +332,7 @@ async def test_promote_learnings_calls_propose_facts_on_happy_path():
 
 async def test_promote_learnings_logs_count_on_success():
     import structlog.testing
+
     fact = Fact(predicate="k", value="v")
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[fact])
@@ -335,6 +346,7 @@ async def test_promote_learnings_logs_count_on_success():
 
 async def test_promote_learnings_logs_none_when_no_facts_returned():
     import structlog.testing
+
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[])
     executor, _, _, _ = _make_executor_with_memory(planner=planner)
@@ -347,6 +359,7 @@ async def test_promote_learnings_logs_none_when_no_facts_returned():
 
 async def test_promote_learnings_swallows_planner_exception():
     import structlog.testing
+
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(side_effect=RuntimeError("LLM error"))
     executor, _, _, memory = _make_executor_with_memory(planner=planner)
@@ -360,6 +373,7 @@ async def test_promote_learnings_swallows_planner_exception():
 
 async def test_promote_learnings_swallows_propose_facts_exception():
     import structlog.testing
+
     fact = Fact(predicate="k", value="v")
     planner = AsyncMock()
     planner.promote_learnings = AsyncMock(return_value=[fact])
@@ -390,6 +404,7 @@ async def test_push_retrospective_fires_promote_learnings_as_task():
     await executor._push_retrospective(goal, goal.id)
 
     import asyncio
+
     await asyncio.sleep(0)
 
     planner.promote_learnings.assert_called_once()

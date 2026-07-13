@@ -47,7 +47,9 @@ class Trading212DataSource:
         return Account(
             id=f"trading212:{info.get('id', 'default')}",
             source_id=self.source_id,
-            account_type=AccountType.ISA if info.get("type") == "ISA" else AccountType.BROKERAGE,
+            account_type=AccountType.ISA
+            if info.get("type") == "ISA"
+            else AccountType.BROKERAGE,
             name=info.get("currencyCode", "Trading212"),
             currency=info.get("currencyCode", "GBP"),
             balance=Decimal(str(cash.get("free", 0))),
@@ -58,7 +60,9 @@ class Trading212DataSource:
         try:
             raw = await self._client.get_portfolio()
         except Exception as exc:
-            raise ZeIntegrationError(f"Trading212 portfolio fetch failed: {exc}") from exc
+            raise ZeIntegrationError(
+                f"Trading212 portfolio fetch failed: {exc}"
+            ) from exc
 
         account = await self.fetch_account()
         positions: list[Position] = []
@@ -73,20 +77,24 @@ class Trading212DataSource:
             asset = Asset(
                 ticker=ticker,
                 name=item.get("fullName", ticker),
-                asset_class=_ASSET_CLASS_MAP.get(item.get("type", ""), AssetClass.EQUITY),
+                asset_class=_ASSET_CLASS_MAP.get(
+                    item.get("type", ""), AssetClass.EQUITY
+                ),
                 currency=account.currency,
             )
-            positions.append(Position(
-                account_id=account.id,
-                asset=asset,
-                quantity=quantity,
-                notional=notional,
-                average_price=avg_price,
-                current_price=current_price,
-                unrealised_pnl=pnl,
-                currency=account.currency,
-                updated_at=datetime.now(timezone.utc),
-            ))
+            positions.append(
+                Position(
+                    account_id=account.id,
+                    asset=asset,
+                    quantity=quantity,
+                    notional=notional,
+                    average_price=avg_price,
+                    current_price=current_price,
+                    unrealised_pnl=pnl,
+                    currency=account.currency,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
         return positions
 
     async def fetch_transactions(self, since: datetime) -> list[Transaction]:
@@ -95,7 +103,9 @@ class Trading212DataSource:
             raw_dividends = await self._client.get_dividend_history()
             raw_cash = await self._client.get_transaction_history()
         except Exception as exc:
-            raise ZeIntegrationError(f"Trading212 transaction fetch failed: {exc}") from exc
+            raise ZeIntegrationError(
+                f"Trading212 transaction fetch failed: {exc}"
+            ) from exc
 
         account = await self.fetch_account()
         transactions: list[Transaction] = []
@@ -107,56 +117,84 @@ class Trading212DataSource:
             ticker = item.get("ticker", "")
             qty = Decimal(str(item.get("filledQuantity", 0)))
             price = Decimal(str(item.get("fillPrice", 0)))
-            tx_type = TransactionType.BUY if item.get("type") == "BUY" else TransactionType.SELL
-            transactions.append(Transaction(
-                id=f"t212:order:{item.get('id', '')}",
-                account_id=account.id,
-                transaction_type=tx_type,
-                asset=Asset(ticker=ticker, name=ticker, asset_class=AssetClass.EQUITY, currency=account.currency),
-                quantity=qty,
-                price=price,
-                fees=Decimal(str(item.get("taxes", [{}])[0].get("fillId", 0) if item.get("taxes") else 0)),
-                currency=account.currency,
-                settled_at=filled_at or datetime.now(timezone.utc),
-                notes=f"T212 order {item.get('id', '')}",
-            ))
+            tx_type = (
+                TransactionType.BUY
+                if item.get("type") == "BUY"
+                else TransactionType.SELL
+            )
+            transactions.append(
+                Transaction(
+                    id=f"t212:order:{item.get('id', '')}",
+                    account_id=account.id,
+                    transaction_type=tx_type,
+                    asset=Asset(
+                        ticker=ticker,
+                        name=ticker,
+                        asset_class=AssetClass.EQUITY,
+                        currency=account.currency,
+                    ),
+                    quantity=qty,
+                    price=price,
+                    fees=Decimal(
+                        str(
+                            item.get("taxes", [{}])[0].get("fillId", 0)
+                            if item.get("taxes")
+                            else 0
+                        )
+                    ),
+                    currency=account.currency,
+                    settled_at=filled_at or datetime.now(timezone.utc),
+                    notes=f"T212 order {item.get('id', '')}",
+                )
+            )
 
         for item in raw_dividends.get("items", []):
             paid_at = _parse_dt(item.get("paidOn", ""))
             if paid_at and paid_at < since:
                 continue
             ticker = item.get("ticker", "")
-            transactions.append(Transaction(
-                id=f"t212:div:{item.get('reference', '')}",
-                account_id=account.id,
-                transaction_type=TransactionType.DIVIDEND,
-                asset=Asset(ticker=ticker, name=ticker, asset_class=AssetClass.EQUITY, currency=account.currency),
-                quantity=Decimal("0"),
-                price=Decimal(str(item.get("amount", 0))),
-                fees=Decimal("0"),
-                currency=account.currency,
-                settled_at=paid_at or datetime.now(timezone.utc),
-                notes=f"Dividend {ticker}",
-            ))
+            transactions.append(
+                Transaction(
+                    id=f"t212:div:{item.get('reference', '')}",
+                    account_id=account.id,
+                    transaction_type=TransactionType.DIVIDEND,
+                    asset=Asset(
+                        ticker=ticker,
+                        name=ticker,
+                        asset_class=AssetClass.EQUITY,
+                        currency=account.currency,
+                    ),
+                    quantity=Decimal("0"),
+                    price=Decimal(str(item.get("amount", 0))),
+                    fees=Decimal("0"),
+                    currency=account.currency,
+                    settled_at=paid_at or datetime.now(timezone.utc),
+                    notes=f"Dividend {ticker}",
+                )
+            )
 
         for item in raw_cash.get("items", []):
             tx_time = _parse_dt(item.get("dateTime", ""))
             if tx_time and tx_time < since:
                 continue
             amount = Decimal(str(item.get("amount", 0)))
-            tx_type = TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
-            transactions.append(Transaction(
-                id=f"t212:cash:{item.get('reference', '')}",
-                account_id=account.id,
-                transaction_type=tx_type,
-                asset=None,
-                quantity=abs(amount),
-                price=Decimal("1"),
-                fees=Decimal("0"),
-                currency=account.currency,
-                settled_at=tx_time or datetime.now(timezone.utc),
-                notes=item.get("type", ""),
-            ))
+            tx_type = (
+                TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
+            )
+            transactions.append(
+                Transaction(
+                    id=f"t212:cash:{item.get('reference', '')}",
+                    account_id=account.id,
+                    transaction_type=tx_type,
+                    asset=None,
+                    quantity=abs(amount),
+                    price=Decimal("1"),
+                    fees=Decimal("0"),
+                    currency=account.currency,
+                    settled_at=tx_time or datetime.now(timezone.utc),
+                    notes=item.get("type", ""),
+                )
+            )
 
         return transactions
 

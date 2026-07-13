@@ -3,6 +3,7 @@
 Revision ID: zm011
 Revises: zm010
 """
+
 from __future__ import annotations
 from typing import Sequence, Union
 from alembic import op
@@ -43,4 +44,6 @@ def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS idx_memory_facts_provenance")
     op.execute("ALTER TABLE memory_procedures DROP COLUMN IF EXISTS dream_run_id")
     op.execute("ALTER TABLE memory_procedures DROP COLUMN IF EXISTS creation_method")
-    op.execute("ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS needs_resummary")
+    op.execute(
+        "ALTER TABLE memory_session_summaries DROP COLUMN IF EXISTS needs_resummary"
+    )

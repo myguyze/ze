@@ -37,7 +37,9 @@ def make_briefing(
 ):
     push_log = MagicMock()
     push_log.was_sent_within_hours = AsyncMock(return_value=dedup)
-    push_log.list_workflow_failures_within_hours = AsyncMock(return_value=failures or [])
+    push_log.list_workflow_failures_within_hours = AsyncMock(
+        return_value=failures or []
+    )
     push_log.log = AsyncMock()
 
     memory = memory_store or MagicMock()
@@ -232,7 +234,9 @@ def make_briefing_with_personalization(
     push_log.log = AsyncMock()
 
     memory = memory_store or MagicMock()
-    if not isinstance(memory, MagicMock) or not hasattr(memory.count_unreviewed_facts, "_mock_name"):
+    if not isinstance(memory, MagicMock) or not hasattr(
+        memory.count_unreviewed_facts, "_mock_name"
+    ):
         memory = MagicMock()
     memory.count_unreviewed_facts = AsyncMock(return_value=0)
 
@@ -280,7 +284,9 @@ async def test_briefing_personalized_shows_relevant_and_discovery():
     ]
 
     news_store = MagicMock()
-    news_store.get_personalized = AsyncMock(return_value=(relevant_articles, discovery_articles))
+    news_store.get_personalized = AsyncMock(
+        return_value=(relevant_articles, discovery_articles)
+    )
 
     memory_store = MagicMock()
     memory_store.count_unreviewed_facts = AsyncMock(return_value=0)
@@ -381,14 +387,16 @@ async def test_briefing_ignores_activity_facts_for_personalization():
 
     memory_store = MagicMock()
     memory_store.count_unreviewed_facts = AsyncMock(return_value=0)
-    memory_store.list_recent_facts = AsyncMock(return_value=[
-        SimpleNamespace(
-            predicate="activity_programming",
-            value="programming the AI assistant",
-            confidence=0.9,
-            contradicted=False,
-        ),
-    ])
+    memory_store.list_recent_facts = AsyncMock(
+        return_value=[
+            SimpleNamespace(
+                predicate="activity_programming",
+                value="programming the AI assistant",
+                confidence=0.9,
+                contradicted=False,
+            ),
+        ]
+    )
     memory_store.get_profile = AsyncMock(return_value=[])
 
     b = make_briefing_with_personalization(

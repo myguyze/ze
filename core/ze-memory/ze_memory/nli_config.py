@@ -45,7 +45,9 @@ def nli_config(settings: Any = None) -> dict[str, Any]:
             "nli_retrieval_rerank", NLI_RETRIEVAL_RERANK
         ),
         "nli_rerank_candidate_multiplier": int(
-            memory_cfg.get("nli_rerank_candidate_multiplier", NLI_RERANK_CANDIDATE_MULTIPLIER)
+            memory_cfg.get(
+                "nli_rerank_candidate_multiplier", NLI_RERANK_CANDIDATE_MULTIPLIER
+            )
         ),
         "nli_rerank_min_candidates": int(
             memory_cfg.get("nli_rerank_min_candidates", NLI_RERANK_MIN_CANDIDATES)

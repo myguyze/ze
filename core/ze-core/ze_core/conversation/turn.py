@@ -92,11 +92,7 @@ def _confirmation_meta(final_state: dict) -> tuple[str, str, str]:
     envelope = final_state.get("envelope")
     draft = result.response if result else ""
     agent = envelope.primary_agent if envelope else ""
-    action = (
-        envelope.subtasks[0].intent
-        if envelope and envelope.subtasks
-        else ""
-    )
+    action = envelope.subtasks[0].intent if envelope and envelope.subtasks else ""
     return draft, agent, action
 
 
@@ -120,7 +116,9 @@ async def invoke_raw_turn(
     final_state: dict = {}
     graph_ended = False
 
-    async for event in container.graph.astream_events(graph_input, config, version="v2"):
+    async for event in container.graph.astream_events(
+        graph_input, config, version="v2"
+    ):
         kind = event["event"]
         name = event.get("name", "")
         data = event.get("data", {})
@@ -128,37 +126,60 @@ async def invoke_raw_turn(
         if kind == "on_chain_end" and name == "embed_route":
             env = (data.get("output") or {}).get("envelope")
             if env is not None and interface is not None:
-                await interface.send_trace_partial(pending_message_id, {
-                    "agent": env.primary_agent,
-                    "routing_method": env.routing_method,
-                    "confidence": env.confidence,
-                    "score_gap": env.score_gap,
-                    "is_compound": env.is_compound,
-                    "subtasks": [s.agent for s in env.subtasks] if env.is_compound else [],
-                }, thread_id)
+                await interface.send_trace_partial(
+                    pending_message_id,
+                    {
+                        "agent": env.primary_agent,
+                        "routing_method": env.routing_method,
+                        "confidence": env.confidence,
+                        "score_gap": env.score_gap,
+                        "is_compound": env.is_compound,
+                        "subtasks": [s.agent for s in env.subtasks]
+                        if env.is_compound
+                        else [],
+                    },
+                    thread_id,
+                )
 
         elif kind == "on_chain_end" and name == "fetch_context":
             memory_ctx = (data.get("output") or {}).get("memory_context")
             if memory_ctx is not None and interface is not None:
                 chunks = _extract_memory_chunks(memory_ctx)
                 if chunks:
-                    await interface.send_trace_partial(pending_message_id, {
-                        "memory_chunks": [
-                            {"text": c.text, "score": c.score, "source": c.source}
-                            for c in chunks
-                        ],
-                    }, thread_id)
+                    await interface.send_trace_partial(
+                        pending_message_id,
+                        {
+                            "memory_chunks": [
+                                {"text": c.text, "score": c.score, "source": c.source}
+                                for c in chunks
+                            ],
+                        },
+                        thread_id,
+                    )
 
         elif kind == "on_tool_end":
             if interface is not None:
                 output = data.get("output")
-                content = getattr(output, "content", None) if output is not None else None
+                content = (
+                    getattr(output, "content", None) if output is not None else None
+                )
                 if content is None and output is not None:
                     content = str(output)
                 snippet = str(content)[:200] if content else ""
-                await interface.send_trace_partial(pending_message_id, {
-                    "tool_calls": [{"name": name, "result_snippet": snippet, "duration_ms": 0, "success": True}],
-                }, thread_id)
+                await interface.send_trace_partial(
+                    pending_message_id,
+                    {
+                        "tool_calls": [
+                            {
+                                "name": name,
+                                "result_snippet": snippet,
+                                "duration_ms": 0,
+                                "success": True,
+                            }
+                        ],
+                    },
+                    thread_id,
+                )
 
         elif kind == "on_chain_end" and name == graph_name:
             final_state = data.get("output") or {}

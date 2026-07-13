@@ -1,4 +1,5 @@
 """Tests for NLI integration in MemoryConsolidator.dedup_facts."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -34,7 +35,9 @@ def _embedder(vectors: list[list[float]]):
     return e
 
 
-def _fact_row(value: str, *, confidence: float = 1.0, created_at: datetime | None = None):
+def _fact_row(
+    value: str, *, confidence: float = 1.0, created_at: datetime | None = None
+):
     return {
         "id": uuid4(),
         "predicate": "diet",
@@ -60,8 +63,12 @@ def _consolidator(store, embedder, client=None, nli=None):
 
 
 async def test_nli_contradiction_marks_older_fact():
-    older = _fact_row("User is vegetarian", created_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
-    newer = _fact_row("User eats meat weekly", created_at=datetime(2026, 6, 1, tzinfo=timezone.utc))
+    older = _fact_row(
+        "User is vegetarian", created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)
+    )
+    newer = _fact_row(
+        "User eats meat weekly", created_at=datetime(2026, 6, 1, tzinfo=timezone.utc)
+    )
     store = _store(fetch_active_facts=AsyncMock(return_value=[older, newer]))
     vecs = [[1.0, 0.0], [0.75, 0.66]]
     nli = _nli([{"contradiction": 0.9, "neutral": 0.05, "entailment": 0.05}])
@@ -81,7 +88,9 @@ async def test_nli_entailment_triggers_llm_merge():
     client = AsyncMock()
     client.complete = AsyncMock(return_value="likes and enjoys coffee")
 
-    merged = await _consolidator(store, _embedder(vecs), client=client, nli=nli).dedup_facts()
+    merged = await _consolidator(
+        store, _embedder(vecs), client=client, nli=nli
+    ).dedup_facts()
 
     assert merged == 1
     client.complete.assert_awaited_once()
