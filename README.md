@@ -24,13 +24,15 @@ An honest attempt at building a personal AI that does more than answer questions
 
 The objective: an assistant that holds context across weeks, works in the background, and connects things that happen in separate parts of your life — calendar, email, news, long-running projects. Not a chat window that resets. Something closer to Jarvis. That's the whole brief.
 
-It isn't there yet. But 60+ shipped phases in, the infrastructure is real and it's getting closer.
+It isn't there yet. But 100+ shipped phases in, the infrastructure is real and it's getting closer.
 
 ---
 
 ## Where it is now
 
 Python/FastAPI backend, LangGraph orchestration, React web client, plugin-per-domain architecture. Routing uses local embeddings — zero LLM calls until an agent actually needs to act. All LLM traffic goes through OpenRouter. Graph state is checkpointed in Postgres and survives restarts.
+
+- **ze-web** — React SPA (Feature-Sliced Design); REST types and client generated from OpenAPI via `@ze/client`.
 
 ### Goal engine
 
@@ -105,11 +107,11 @@ Every domain plugin also declares a `DataDomain` — an export, import, and dele
 
 ### Proactive surface
 
-Ze doesn't wait to be asked. Morning briefings, calendar reminders, weekly insights, goal suggestions, stuck-goal alerts, news fetch — all background jobs, configurable in `config.yaml`.
+Ze doesn't wait to be asked. Morning briefings, calendar reminders, weekly insights, goal suggestions, stuck-goal alerts, news fetch — all background jobs, configurable in `config.yaml`. Offline push goes through ntfy; the in-app notification center (REST + WebSocket) surfaces the same events while you're in ze-web.
 
 ### Agents
 
-Research, companion, calendar, email, reminders, workflow, goals, prospecting, news, ingestion. Each runs in a ReAct loop via `BaseAgent`; tool access is gated per-agent.
+Research, companion, calendar, messenger, reminders, workflow, goals, prospecting, news, ingestion. Each runs in a ReAct loop via `BaseAgent`; tool access is gated per-agent.
 
 <details>
 <summary>Agent reference</summary>
@@ -119,7 +121,7 @@ Research, companion, calendar, email, reminders, workflow, goals, prospecting, n
 | `research` | Web search + synthesis, delegation | Autonomous |
 | `companion` | Reasoning, writing, conversation | Autonomous |
 | `calendar` | Google Calendar CRUD + availability | Read auto · writes confirm |
-| `email` | Gmail list / read / draft / send | Read auto · draft-first |
+| `messenger` | Cross-channel messaging (Gmail) | Read auto · draft-first |
 | `reminders` | NL reminders + proactive push | Autonomous |
 | `workflow` | Recurring multi-step tasks | Read auto · manage confirm |
 | `goals` | Multi-week autonomous objectives | Read auto · writes confirm |
@@ -142,6 +144,8 @@ Research, companion, calendar, email, reminders, workflow, goals, prospecting, n
 | `data_domains()` | Export / import / delete contract for every table the plugin owns |
 | `memory_policies()` | Per-agent retrieval strategy from the memory graph |
 | `channels()` | Outbound communication channels (email, etc.) |
+| `ui_contributions()` | Nav items, settings sections, plugin pages in ze-web |
+| `rest_routes()` | Plugin-owned REST routers under `/api/v0/` |
 
 The hooks compose. A finance plugin registers a `TransactionExtractor` so that ingesting a bank statement produces structured transaction facts — which land in memory, which surface in retrieval, which the correlation engine can cross with calendar and news. That chain is the whole point.
 
@@ -171,7 +175,7 @@ flowchart TD
     WM --> R([response + components])
 ```
 
-Full diagram: [docs/architecture.md](docs/architecture.md)
+See [docs/architecture.md](docs/architecture.md) for the full flow and node-by-node detail.
 
 ---
 
@@ -179,10 +183,11 @@ Full diagram: [docs/architecture.md](docs/architecture.md)
 
 ```
 apps/           ze-api · ze-web
-plugins/        personal · email · calendar · news · prospecting · finance* · legal*
-core/           ze-core · ze-agents · ze-plugin · ze-sdk · ze-memory · ze-correlation
-                ze-data · ze-ingestion · ze-browser · ze-notifications · …
-integrations/   ze-google · ze-yt · …
+plugins/        personal · messenger · calendar · news · prospecting · finance* · legal*
+core/           ze-core · ze-agents · ze-automation · ze-communication · ze-plugin · ze-sdk
+                ze-memory · ze-proactive · ze-seed · ze-correlation · ze-data · ze-ingestion
+                ze-browser · ze-notifications · ze-components · ze-logging · …
+integrations/   ze-google (GmailChannel) · ze-yt · …
 specs/          one spec per phase, written before the code
 ```
 
@@ -192,17 +197,17 @@ specs/          one spec per phase, written before the code
 | Client | React · Vite · TypeScript · Tailwind |
 | LLM | OpenRouter · local embeddings (multilingual MiniLM) |
 | Data | PostgreSQL 16 + pgvector |
-| Push | ntfy · WebSocket `/ws` |
+| Push | ntfy (offline) · in-app notification center · WebSocket `/ws` |
 
 ---
 
 ## Quick start
 
-**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/), Docker, [OpenRouter](https://openrouter.ai) key, ntfy for push.
+**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/), [bun](https://bun.sh), Docker, [OpenRouter](https://openrouter.ai) key, ntfy for push.
 
 ```bash
 git clone https://github.com/joaoajmatos/ze.git && cd ze
-make install
+make install && make web-install
 
 cp apps/ze-api/.env.example apps/ze-api/.env
 make db-up && make migrate
@@ -228,15 +233,22 @@ Every package has a README. Conventions: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation
 
+Full index: [docs/README.md](docs/README.md)
+
 | Doc | Topic |
 |---|---|
 | [architecture.md](docs/architecture.md) | System design, graph flow |
 | [package-architecture.md](docs/package-architecture.md) | Monorepo, `ZePlugin`, dependency rules |
+| [frontend.md](docs/frontend.md) | ze-web — FSD layout, `@ze/client`, plugin UI |
+| [native-interface.md](docs/native-interface.md) | WebSocket protocol, frames, ntfy push |
 | [extending-ze.md](docs/extending-ze.md) | Agents, plugins, jobs, channels |
+| [channels.md](docs/channels.md) | Outbound communication channels |
 | [ingestion.md](docs/ingestion.md) | Ingestion pipeline — fetchers, processors, extractors, plugin hooks |
 | [memory.md](docs/memory.md) | Facts, episodes, graph, retrieval policies |
+| [dreaming.md](docs/dreaming.md) | Offline sleep/dream memory improvement loop |
 | [goals.md](docs/goals.md) | Goal engine |
 | [sdk.md](docs/sdk.md) | `ze_sdk` reference |
+| [testing.md](docs/testing.md) | Running tests across Python packages and ze-web |
 | [data-portability.md](docs/data-portability.md) | Export, import, and deletion — `DataDomain` contract |
 | [specs/](specs/) | Design specs — where Ze is going next |
 
