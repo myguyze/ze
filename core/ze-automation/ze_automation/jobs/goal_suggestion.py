@@ -122,3 +122,11 @@ class GoalSuggestionJob:
                 ],
             )
         )
+        await self._notifier.notify(
+            "goal_suggestion",
+            f'New goal idea: "{suggestion.title}"',
+            suggestion.objective,
+            source="goals",
+            target_type="goal_suggestion",
+            target_id=str(suggestion.id),
+        )

@@ -147,3 +147,44 @@ async def test_push_with_actions_sends_confirm_request():
     assert frame["type"] == "confirm_request"
     assert frame["actions"][0]["value"] == "goal_plan:yes:abc"
     assert frame["actions"][1]["style"] == "danger"
+
+
+async def test_push_structured_notification_sends_notification_frame():
+    from datetime import datetime, timezone
+
+    from ze_agents.interface.types import Notification
+
+    iface, store, conn, notifier = _make_interface(connected=True)
+    created_at = datetime(2026, 7, 13, 12, 0, tzinfo=timezone.utc)
+    await iface.push(
+        Notification(
+            content="Goal A hasn't moved in 3 days",
+            id="notif-1",
+            event_type="stuck_goal",
+            source="goals",
+            title="Goal stuck",
+            target_type="goal",
+            target_id="goal-a",
+            created_at=created_at,
+        )
+    )
+
+    conn.send_frame.assert_called_once()
+    frame = conn.send_frame.call_args[0][0]
+    assert frame["type"] == "notification"
+    assert frame["id"] == "notif-1"
+    assert frame["event_type"] == "stuck_goal"
+    assert frame["source"] == "goals"
+    assert frame["title"] == "Goal stuck"
+    assert frame["body"] == "Goal A hasn't moved in 3 days"
+    assert frame["target_type"] == "goal"
+    assert frame["target_id"] == "goal-a"
+    assert frame["read"] is False
+
+
+async def test_push_plain_notification_does_not_send_notification_frame():
+    iface, store, conn, notifier = _make_interface(connected=True)
+
+    await iface.push(Notification(content="Hello"))
+
+    conn.send_frame.assert_not_called()

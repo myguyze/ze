@@ -579,6 +579,19 @@ class WsTraceUpdateFrame(BaseModel):
     total_duration_ms: int
 
 
+class WsNotificationFrame(BaseModel):
+    type: Literal["notification"]
+    id: str
+    event_type: str
+    source: str
+    title: str
+    body: str
+    target_type: str | None
+    target_id: str | None
+    created_at: datetime
+    read: bool = False
+
+
 WsInboundFrame = Annotated[
     Union[
         WsMessageFrame,
@@ -591,6 +604,7 @@ WsInboundFrame = Annotated[
         WsRefreshFrame,
         WsPongFrame,
         WsTraceUpdateFrame,
+        WsNotificationFrame,
     ],
     Field(discriminator="type"),
 ]
@@ -891,3 +905,31 @@ class EntityDetailResponse(BaseModel):
     episodes: list[EpisodeDigestItem]
     neighbours: list[GraphEntityNode]
     neighbour_edges: list[GraphEdge]
+
+
+# ── REST: notifications ──────────────────────────────────────────────────────
+
+
+class NotificationItem(BaseModel):
+    id: str
+    event_type: str
+    source: str
+    title: str
+    body: str
+    target_type: str | None
+    target_id: str | None
+    created_at: datetime
+    read: bool
+
+
+class NotificationListResponse(BaseModel):
+    items: list[NotificationItem]
+    next_cursor: str | None
+
+
+class UnreadCountResponse(BaseModel):
+    count: int
+
+
+class MarkAllReadResponse(BaseModel):
+    marked: int

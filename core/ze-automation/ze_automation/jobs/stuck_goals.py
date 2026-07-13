@@ -47,6 +47,19 @@ class StuckGoalJob:
 
         for sg in stuck:
             await self._goal_store.mark_stuck_alerted(sg.goal.id)
+            await self._notifier.notify(
+                "stuck_goal",
+                f'Goal stuck: "{sg.goal.title}"',
+                (
+                    f"Awaiting your approval for {sg.idle_days} days"
+                    if sg.kind == "awaiting_gate"
+                    else f"No progress for {sg.idle_days} days"
+                ),
+                source="goals",
+                target_type="goal",
+                target_id=str(sg.goal.id),
+                hours=14 * 24,
+            )
 
 
 def _build_message(stuck: list[StuckGoal]) -> tuple[str, list[Action]]:

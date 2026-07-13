@@ -19,7 +19,7 @@ def make_settings():
 
 def make_notifier():
     n = MagicMock(spec=ProactiveNotifier)
-    n.push = AsyncMock()
+    n.notify = AsyncMock()
     return n
 
 
@@ -75,8 +75,8 @@ async def test_briefing_sends_stats():
     b, _ = make_briefing(unreviewed=2, workflows=workflows, notifier=notifier)
     await b.run()
 
-    notifier.push.assert_awaited_once()
-    text = notifier.push.call_args[0][0]
+    notifier.notify.assert_awaited_once()
+    text = notifier.notify.call_args[0][2]
     assert "Good morning" in text
     assert "Unreviewed facts: 2" in text
     assert "daily_report" in text
@@ -86,7 +86,7 @@ async def test_briefing_dedup_skips():
     notifier = make_notifier()
     b, push_log = make_briefing(dedup=True, notifier=notifier)
     await b.run()
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
     push_log.log.assert_not_awaited()
 
 
@@ -95,7 +95,7 @@ async def test_briefing_includes_nudge_above_threshold():
     b, _ = make_briefing(unreviewed=6, notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "waiting for review" in text
 
 
@@ -104,7 +104,7 @@ async def test_briefing_no_nudge_below_threshold():
     b, _ = make_briefing(unreviewed=2, notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "waiting for review" not in text
 
 
@@ -120,7 +120,7 @@ async def test_briefing_includes_failure_summary():
     b, _ = make_briefing(failures=failures, notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Recent failure" in text
     assert "daily_report" in text
 
@@ -139,7 +139,7 @@ async def test_briefing_includes_stale_contact_nudge():
     b, _ = make_briefing(stale_contacts=stale, notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Follow-up nudges" in text
     assert "João Silva" in text
     assert "14 days ago" in text
@@ -150,7 +150,7 @@ async def test_briefing_no_nudge_when_no_stale_contacts():
     b, _ = make_briefing(stale_contacts=[], notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Follow-up nudges" not in text
 
 
@@ -160,7 +160,7 @@ async def test_briefing_singular_day_in_nudge():
     b, _ = make_briefing(stale_contacts=stale, notifier=notifier)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "1 day ago" in text
     assert "1 days ago" not in text
 
@@ -191,7 +191,7 @@ async def test_briefing_includes_headlines_when_news_store_present():
     b, _ = make_briefing(notifier=notifier, news_store=news_store)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Headlines" in text
     assert "Global Summit Concludes" in text
     assert "AI Chip Breakthrough" in text
@@ -204,7 +204,7 @@ async def test_briefing_omits_headlines_when_news_store_absent():
     b, _ = make_briefing(notifier=notifier, news_store=None)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Headlines" not in text
 
 
@@ -216,7 +216,7 @@ async def test_briefing_omits_headlines_when_store_returns_empty():
     b, _ = make_briefing(notifier=notifier, news_store=news_store)
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Headlines" not in text
 
 
@@ -300,7 +300,7 @@ async def test_briefing_personalized_shows_relevant_and_discovery():
     )
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "AI Chip Breakthrough" in text
     assert "Outside your usual" in text
     assert "Global Summit Concludes" in text
@@ -335,7 +335,7 @@ async def test_briefing_personalized_shows_only_relevant_when_no_discovery():
     )
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "AI Chip Breakthrough" in text
     assert "Outside your usual" not in text
 
@@ -376,7 +376,7 @@ async def test_briefing_personalized_header_when_sufficient_facts():
     )
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "For you (based on your interests)" in text
 
 
@@ -438,6 +438,6 @@ async def test_briefing_personalized_fallback_on_get_personalized_error():
     )
     await b.run()
 
-    text = notifier.push.call_args[0][0]
+    text = notifier.notify.call_args[0][2]
     assert "Fallback Headline" in text
     news_store.get_recent.assert_awaited_once()

@@ -23,6 +23,8 @@ export const queryKeys = {
   pluginPage: (path: string) => ["plugin-page", path] as const,
   pluginSettings: (id: string) => ["plugin-settings", id] as const,
   dataDomains: () => ["data-domains"] as const,
+  notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,
+  unreadNotificationCount: ["unread-notification-count"] as const,
 };
 
 const CORE_REFRESH_SCREEN_MAP: Record<string, readonly string[]> = {

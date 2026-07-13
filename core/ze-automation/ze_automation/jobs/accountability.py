@@ -47,7 +47,12 @@ class AccountabilityJob:
         summary = await self._build_summary(period_days=7)
         narrative = build_narrative(summary)
 
-        await self._notifier.push(narrative, urgency="low")
+        await self._notifier.notify(
+            "accountability_narrative",
+            "Weekly accountability report",
+            narrative,
+            source="accountability",
+        )
         await self._push_log.log(_DEDUP_KEY)
         log.info("accountability_job_sent", total_cost=summary.total_cost_usd)
 

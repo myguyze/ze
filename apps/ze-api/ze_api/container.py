@@ -59,6 +59,7 @@ from ze_api.openapi_export import collect_openapi_operation_ids
 from ze_plugin.bootstrap import discover_and_instantiate_plugins
 from ze_plugin.ui import collect_ui_contributions, filter_ui_manifest_by_openapi
 from ze_communication.registry import ChannelRegistry
+from ze_proactive.notification_store import NotificationStore
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
@@ -102,6 +103,7 @@ class ZeContainer(CoreContainer):
     reset_service: ResetService
     _checkpointer: Any
     _push_log_store: PushLogStore
+    notification_store: NotificationStore
     data_portability_service: DataPortabilityService
     dev_data_seeder: DevDataSeeder
     ingestion_pipeline: Any
@@ -235,7 +237,10 @@ async def build_container(settings: Settings) -> ZeContainer:
     )
     validate_interface(interface)
 
-    notifier = ProactiveNotifier(interface=interface)
+    notification_store = NotificationStore(pool=pool)
+    notifier = ProactiveNotifier(
+        interface=interface, notification_store=notification_store
+    )
     push_log_store = PushLogStore(pool=pool)
 
     persona_cfg = settings.persona_config
@@ -259,6 +264,7 @@ async def build_container(settings: Settings) -> ZeContainer:
             CoreSettings: core_settings,
             ProactiveNotifier: notifier,
             PushLogStore: push_log_store,
+            NotificationStore: notification_store,
             SentenceTransformer: shared.embedder,
             NLIClient: shared.nli_client,
             LocalNLIClient: shared.nli_client,
@@ -416,6 +422,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         plugins=plugins,
         _checkpointer=checkpointer,
         _push_log_store=push_log_store,
+        notification_store=notification_store,
         data_portability_service=data_portability_service,
         dev_data_seeder=dev_data_seeder,
         ingestion_pipeline=ingestion.pipeline,
@@ -475,6 +482,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         plugins=plugins,
         notifier=notifier,
         push_log_store=push_log_store,
+        notification_store=notification_store,
         dream_job=dream_job,
         pool=pool,
     )

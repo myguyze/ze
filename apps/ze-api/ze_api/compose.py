@@ -13,6 +13,8 @@ from ze_memory.bootstrap import (
     register_dream_jobs,
     register_memory_jobs,
 )
+from ze_proactive.bootstrap import register_notification_jobs
+from ze_proactive.notification_store import NotificationStore
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
@@ -29,6 +31,7 @@ def register_all_proactive_jobs(
     plugins: list,
     notifier: ProactiveNotifier,
     push_log_store: PushLogStore,
+    notification_store: NotificationStore | None = None,
     dream_job: Any = None,
     pool: Any = None,
 ) -> None:
@@ -39,6 +42,8 @@ def register_all_proactive_jobs(
         notifier=notifier,
         push_log_store=push_log_store,
     )
+    if notification_store is not None:
+        register_notification_jobs(scheduler, settings, notification_store)
     register_engine_jobs(automation.workflow_scheduler, settings, shared)
     register_memory_jobs(scheduler, settings, shared)
     register_correlation_jobs(

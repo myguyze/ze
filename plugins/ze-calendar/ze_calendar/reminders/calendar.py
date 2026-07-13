@@ -161,7 +161,14 @@ class CalendarReminderService:
         label = await self._store.mark_sent(reminder_id)
         if label is None:
             return
-        await self._notifier.push(label)
+        await self._notifier.notify(
+            "calendar_reminder",
+            "Calendar reminder",
+            label,
+            source="calendar",
+            target_type="reminder",
+            target_id=str(reminder_id),
+        )
         await self._push_log.log(f"calendar_reminder:{reminder_id}", label)
         log.info("reminder_fired", id=str(reminder_id))
 

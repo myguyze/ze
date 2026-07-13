@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 
@@ -62,6 +63,15 @@ class Notification:
     urgency: str = "normal"  # "normal" | "high"
     actions: list[Action] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Structured fields (notification center) — optional so plain push(str) calls
+    # remain unaffected; populated by ProactiveNotifier.notify().
+    id: str | None = None
+    event_type: str | None = None
+    source: str | None = None
+    title: str | None = None
+    target_type: str | None = None
+    target_id: str | None = None
+    created_at: datetime | None = None
 
 
 @dataclass

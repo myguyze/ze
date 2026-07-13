@@ -162,7 +162,12 @@ class InsightEngine:
                     insight["category"],
                     week_of,
                 )
-                await self._notifier.push(insight["text"])
+                await self._notifier.notify(
+                    "insight_digest",
+                    f"New insight: {insight['category'].capitalize()}",
+                    insight["text"],
+                    source="personal",
+                )
                 await conn.execute(
                     "UPDATE insights SET pushed = true, pushed_at = NOW() WHERE id = $1",
                     row["id"],

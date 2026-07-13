@@ -12,7 +12,8 @@ export type WsInboundFrame =
   | WsErrorFrame
   | WsRefreshFrame
   | WsPongFrame
-  | WsTraceUpdateFrame;
+  | WsTraceUpdateFrame
+  | WsNotificationFrame;
 export type Type = "message";
 export type Id = string;
 export type Role = "user" | "assistant";
@@ -76,6 +77,16 @@ export type DurationMs = number;
 export type Success = boolean;
 export type ToolCalls = ToolCallTraceResponse[];
 export type TotalDurationMs = number;
+export type Type10 = "notification";
+export type Id4 = string;
+export type EventType = string;
+export type Source1 = string;
+export type Title = string;
+export type Body = string;
+export type TargetType = string | null;
+export type TargetId = string | null;
+export type CreatedAt1 = string;
+export type Read1 = boolean;
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
  * via the `definition` "WsOutboundFrame".
@@ -88,29 +99,29 @@ export type WsOutboundFrame =
   | WsCommandFrame
   | WsComponentSubmitFrame
   | WsPingFrame;
-export type Type10 = "message";
+export type Type11 = "message";
 export type Text5 = string;
 export type ThreadId9 = string | null;
 export type Screen1 = string;
 export type GoalId = string | null;
 export type WorkflowId = string | null;
 export type ExecutionId = string | null;
-export type Type11 = "ack";
+export type Type12 = "ack";
 export type Ids = string[];
-export type Type12 = "confirm";
-export type Id4 = string;
+export type Type13 = "confirm";
+export type Id5 = string;
 export type ThreadId10 = string;
 export type Choice = "approve" | "deny";
-export type Type13 = "action";
+export type Type14 = "action";
 export type Payload = string;
 export type ThreadId11 = string | null;
-export type Type14 = "command";
+export type Type15 = "command";
 export type Name1 = "cancel" | "costs" | "capabilities" | "status" | "onboarding" | "reset" | "reset_preview";
-export type Type15 = "component_submit";
+export type Type16 = "component_submit";
 export type StepId = string;
 export type SessionId1 = string | null;
 export type ThreadId12 = string | null;
-export type Type16 = "ping";
+export type Type17 = "ping";
 
 export interface WsProtocol {
   inbound?: WsInboundFrame;
@@ -269,10 +280,26 @@ export interface ToolCallTraceResponse {
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema
+ * via the `definition` "WsNotificationFrame".
+ */
+export interface WsNotificationFrame {
+  type: Type10;
+  id: Id4;
+  event_type: EventType;
+  source: Source1;
+  title: Title;
+  body: Body;
+  target_type: TargetType;
+  target_id: TargetId;
+  created_at: CreatedAt1;
+  read?: Read1;
+}
+/**
+ * This interface was referenced by `WsProtocol`'s JSON-Schema
  * via the `definition` "WsSendMessageFrame".
  */
 export interface WsSendMessageFrame {
-  type: Type10;
+  type: Type11;
   text: Text5;
   thread_id?: ThreadId9;
   context?: WsScreenContext | null;
@@ -292,7 +319,7 @@ export interface WsScreenContext {
  * via the `definition` "WsAckFrame".
  */
 export interface WsAckFrame {
-  type: Type11;
+  type: Type12;
   ids: Ids;
 }
 /**
@@ -300,8 +327,8 @@ export interface WsAckFrame {
  * via the `definition` "WsConfirmFrame".
  */
 export interface WsConfirmFrame {
-  type: Type12;
-  id: Id4;
+  type: Type13;
+  id: Id5;
   thread_id: ThreadId10;
   choice: Choice;
 }
@@ -310,7 +337,7 @@ export interface WsConfirmFrame {
  * via the `definition` "WsActionFrame".
  */
 export interface WsActionFrame {
-  type: Type13;
+  type: Type14;
   payload: Payload;
   thread_id?: ThreadId11;
 }
@@ -319,7 +346,7 @@ export interface WsActionFrame {
  * via the `definition` "WsCommandFrame".
  */
 export interface WsCommandFrame {
-  type: Type14;
+  type: Type15;
   name: Name1;
 }
 /**
@@ -327,7 +354,7 @@ export interface WsCommandFrame {
  * via the `definition` "WsComponentSubmitFrame".
  */
 export interface WsComponentSubmitFrame {
-  type: Type15;
+  type: Type16;
   step_id: StepId;
   values: Values;
   session_id?: SessionId1;
@@ -341,5 +368,5 @@ export interface Values {
  * via the `definition` "WsPingFrame".
  */
 export interface WsPingFrame {
-  type: Type16;
+  type: Type17;
 }

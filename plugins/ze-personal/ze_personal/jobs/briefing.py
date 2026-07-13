@@ -120,7 +120,12 @@ class MorningBriefing:
         if self._news is not None:
             await self._append_news_section(lines)
 
-        await self._notifier.push("\n".join(lines))
+        await self._notifier.notify(
+            "morning_brief",
+            "Morning Briefing",
+            "\n".join(lines),
+            source="personal",
+        )
         self._log.info("briefing_sent", unreviewed=unreviewed)
         await self._push_log.log("morning_brief")
 

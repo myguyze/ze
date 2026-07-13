@@ -51,6 +51,8 @@ class NativeAppInterface:
         )
         if notification.actions:
             await self._send_action_request(notification)
+        if notification.event_type is not None:
+            await self._send_notification_frame(notification)
 
     async def send_trace_partial(
         self, message_id: str, fields: dict, thread_id: str | None = None
@@ -186,6 +188,27 @@ class NativeAppInterface:
                 )
             except Exception as exc:
                 log.warning("native_interface_confirmation_ntfy_failed", error=str(exc))
+
+    async def _send_notification_frame(self, notification: Notification) -> None:
+        try:
+            await self._conn.send_frame(
+                {
+                    "type": "notification",
+                    "id": notification.id,
+                    "event_type": notification.event_type,
+                    "source": notification.source,
+                    "title": notification.title,
+                    "body": notification.content,
+                    "target_type": notification.target_type,
+                    "target_id": notification.target_id,
+                    "created_at": notification.created_at.isoformat()
+                    if notification.created_at
+                    else None,
+                    "read": False,
+                }
+            )
+        except Exception as exc:
+            log.warning("native_interface_notification_frame_failed", error=str(exc))
 
     async def _send_action_request(self, notification: Notification) -> None:
         prompt = (

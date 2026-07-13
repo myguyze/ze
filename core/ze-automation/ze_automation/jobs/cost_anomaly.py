@@ -108,13 +108,18 @@ class CostAnomalyJob:
             await self._acc_store.record_anomaly(rec)
             alerted_sessions.add(session_id)
 
-            text = (
-                f"⚠️ Ze cost anomaly detected\n\n"
+            body = (
                 f"The {agent} agent spent ${run_cost:.4f} on one run — "
                 f"{multiplier:.1f}× its usual ${baseline:.4f}.\n"
                 f"Date: {rec.detected_at[:10]}"
             )
-            await self._notifier.push(text, urgency="high")
+            await self._notifier.notify(
+                "cost_anomaly",
+                "Cost anomaly detected",
+                body,
+                source="accountability",
+                urgency="high",
+            )
             log.info(
                 "cost_anomaly_detected",
                 agent=agent,

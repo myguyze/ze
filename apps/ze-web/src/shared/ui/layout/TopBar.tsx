@@ -1,9 +1,9 @@
-import { Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { navRoutes, settingsNavRoute } from "@/shared/config";
 import { useBreadcrumb } from "@/shared/lib/breadcrumb";
 import { usePageHeader } from "@/shared/lib/page-header";
 import { useTopBarActions } from "@/shared/lib/top-bar-actions";
+import { NotificationBell } from "@/widgets/notification-bell";
 
 const allRoutes = [...navRoutes, settingsNavRoute];
 
@@ -78,12 +78,7 @@ export function TopBar() {
             />
           </>
         )}
-        <button
-          className="flex items-center justify-center w-9 h-9 rounded-pill text-smoke hover:text-white hover:bg-white/5 transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-[18px] h-[18px]" />
-        </button>
+        <NotificationBell />
       </div>
     </div>
   );

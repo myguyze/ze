@@ -185,6 +185,7 @@ def wire_goal_executor_push(
     stack: AutomationStack, notifier: ProactiveNotifier
 ) -> None:
     stack.goal_executor._push = notifier.push_notification
+    stack.goal_executor._notify = notifier.notify
 
 
 async def configure_workflow_executor(
@@ -255,9 +256,13 @@ async def configure_workflow_executor(
         if await push_log_store.was_sent_within_hours(event_type, cooldown):
             log.info("failure_alert_suppressed_cooldown", workflow=workflow.name)
             return
-        await notifier.push(
-            f"Workflow failed: *{workflow.name}*\n`{str(exc)[:200]}`",
-            format="markdown",
+        await notifier.notify(
+            "workflow_failure",
+            f'Workflow failed: "{workflow.name}"',
+            str(exc)[:200],
+            source="workflows",
+            target_type="workflow_run",
+            target_id=str(workflow.id),
             urgency="high",
         )
         await push_log_store.log(event_type, workflow.name)

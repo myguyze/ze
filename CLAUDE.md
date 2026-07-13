@@ -343,7 +343,7 @@ and runs them against a single `alembic_version` table.
 | ze-memory | `zm` | memory_entities, memory_facts, memory_episodes, memory_events, memory_procedures, memory_task_state, memory_profile_facets, memory_relationships, memory_signals, memory_session_summaries, memory_retrieval_cache |
 | ze-onboarding | `zo` | onboarding_sessions, onboarding_steps, onboarding_seeds |
 | ze-correlation | `zcor` | correlation_hypothesis |
-| ze-proactive | `zpro` | push_log |
+| ze-proactive | `zpro` | push_log, notifications |
 | ze-calendar | `zcal` | calendar_reminders, user_reminders |
 | ze-prospecting | `zpros` | prospect_campaigns, prospect_outreach |
 | ze-news | `zn` | news_articles |
@@ -443,3 +443,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 94 | Memory Graph View — interactive entity/relationship graph; `GET /api/v0/memory/graph` + entity detail endpoint; `/brain/graph` page using React Flow + dagre layout; click-to-expand neighbourhoods | Done |
 | 95 | Unified Streaming Architecture — switch `invoke_raw_turn` to `astream_events`; emit partial `trace_update` frames as graph nodes complete (routing → memory → tools → final); token streaming for messages already works; trace panel fills progressively | Pending |
 | 104 | Workflow Flowchart View — replace the flat timeline run view with a top-to-bottom flowchart (`@xyflow/react` + `dagre`); steps as nodes, `branches`/`default_next` as labeled edges, executed path highlighted via `branch_taken`; full replacement of `WorkflowStepsList` | Done |
+| 105 | Notification Center — `notifications` table owned by `ze-proactive` (`zpro002`); `ProactiveNotifier.notify()` structured path; `GET/POST /api/v0/notifications` REST surface; live `notification` WS frame; `entities/notification` + `widgets/notification-bell` replacing the decorative Bell in `TopBar` | Done |

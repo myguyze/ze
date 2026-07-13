@@ -138,13 +138,13 @@ def _make_accountability_job(*, dedup_hit: bool = False) -> AccountabilityJob:
 async def test_accountability_job_skips_when_dedup_hit():
     job = _make_accountability_job(dedup_hit=True)
     await job.run()
-    job._notifier.push.assert_not_called()
+    job._notifier.notify.assert_not_called()
 
 
 async def test_accountability_job_sends_narrative_when_no_dedup():
     job = _make_accountability_job(dedup_hit=False)
     await job.run()
-    job._notifier.push.assert_called_once()
+    job._notifier.notify.assert_called_once()
     job._push_log.log.assert_called_once()
 
 
@@ -197,10 +197,10 @@ async def test_anomaly_job_fires_when_cost_exceeds_threshold():
     job = _make_cost_anomaly_job(baseline_rows=baseline, recent_rows=recent)
     await job.run()
     job._acc_store.record_anomaly.assert_called_once()
-    job._notifier.push.assert_called_once()
-    text = job._notifier.push.call_args[0][0]
-    assert "research" in text
-    assert "anomaly" in text.lower()
+    job._notifier.notify.assert_called_once()
+    call = job._notifier.notify.call_args
+    assert call.args[0] == "cost_anomaly"
+    assert "research" in call.args[2]
 
 
 async def test_anomaly_job_no_alert_below_threshold():
@@ -209,7 +209,7 @@ async def test_anomaly_job_no_alert_below_threshold():
     job = _make_cost_anomaly_job(baseline_rows=baseline, recent_rows=recent)
     await job.run()
     job._acc_store.record_anomaly.assert_not_called()
-    job._notifier.push.assert_not_called()
+    job._notifier.notify.assert_not_called()
 
 
 async def test_anomaly_job_skips_agents_below_min_samples():

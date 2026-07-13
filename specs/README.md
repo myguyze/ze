@@ -150,6 +150,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 102 | [Workflow Conditional Branching](phases/102-workflow-branching/spec.md) | ✅ Done |
 | 103 | [Model Default with Overrides](phases/103-model-default-overrides/spec.md) | ✅ Done |
 | 104 | [Workflow Flowchart View](phases/104-workflow-flowchart-view/spec.md) | ✅ Done |
+| 105 | [Notification Center](phases/105-notification-center/spec.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

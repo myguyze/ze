@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 
-from ze_core.proactive.notifier import ProactiveNotifier
+from ze_proactive.notifier import ProactiveNotifier
 from ze_calendar.reminders.calendar import (
     CalendarReminderService,
     _human_offset,
@@ -12,7 +12,7 @@ from ze_calendar.reminders.calendar import (
 from ze_calendar.reminders.calendar_store import CalendarReminderStore
 from ze_automation.workflow.scheduler import WorkflowScheduler
 from ze_automation.workflow.types import Workflow
-from ze_core.proactive.push_log_store import PushLogStore
+from ze_proactive.push_log_store import PushLogStore
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ def make_settings():
 def make_notifier():
     n = MagicMock(spec=ProactiveNotifier)
     n.push = AsyncMock()
+    n.notify = AsyncMock()
     return n
 
 
@@ -323,7 +324,11 @@ async def test_fire_reminder_pushes_and_logs():
     svc._push_log = push_log
     await svc.fire_reminder(rid)
 
-    notifier.push.assert_awaited_once_with("Meeting in 1 hour")
+    notifier.notify.assert_awaited_once()
+    call = notifier.notify.call_args
+    assert call.args[0] == "calendar_reminder"
+    assert call.args[2] == "Meeting in 1 hour"
+    assert call.kwargs["target_id"] == str(rid)
     push_log.log.assert_awaited_once()
 
 

@@ -12,7 +12,7 @@ from ze_sdk.proactive import ProactiveNotifier
 
 def make_notifier():
     n = MagicMock(spec=ProactiveNotifier)
-    n.push = AsyncMock()
+    n.notify = AsyncMock()
     return n
 
 
@@ -109,8 +109,8 @@ async def test_insights_generates_and_pushes():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_awaited_once()
-    pushed_text = notifier.push.call_args[0][0]
+    notifier.notify.assert_awaited_once()
+    pushed_text = notifier.notify.call_args[0][2]
     assert "sleep" in pushed_text.lower()
     # UPDATE should mark pushed
     conn.execute.assert_awaited_once()
@@ -169,7 +169,7 @@ async def test_insights_skips_sparse():
     await engine.run()
 
     client.complete.assert_not_awaited()
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_filters_category_cooldown():
@@ -191,7 +191,7 @@ async def test_insights_filters_category_cooldown():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_caps_max_per_run():
@@ -227,7 +227,7 @@ async def test_insights_caps_max_per_run():
     )
     await engine.run()
 
-    assert notifier.push.await_count == 3
+    assert notifier.notify.await_count == 3
 
 
 async def test_insights_haiku_failure():
@@ -249,7 +249,7 @@ async def test_insights_haiku_failure():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_bad_json():
@@ -271,7 +271,7 @@ async def test_insights_bad_json():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_empty_array():
@@ -293,7 +293,7 @@ async def test_insights_empty_array():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_invalid_category_discarded():
@@ -316,7 +316,7 @@ async def test_insights_invalid_category_discarded():
     engine, _ = make_engine(conn=conn, notifier=notifier, client=client)
     await engine.run()
 
-    notifier.push.assert_not_awaited()
+    notifier.notify.assert_not_awaited()
 
 
 async def test_insights_passes_recent_to_llm():

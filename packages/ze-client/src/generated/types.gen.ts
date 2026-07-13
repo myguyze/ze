@@ -1240,6 +1240,16 @@ export type LearningResponse = {
 };
 
 /**
+ * MarkAllReadResponse
+ */
+export type MarkAllReadResponse = {
+    /**
+     * Marked
+     */
+    marked: number;
+};
+
+/**
  * MemoryActivityDay
  */
 export type MemoryActivityDay = {
@@ -1579,6 +1589,62 @@ export type MilestoneResponse = {
 };
 
 /**
+ * NotificationItem
+ */
+export type NotificationItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Event Type
+     */
+    event_type: string;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Target Type
+     */
+    target_type: string | null;
+    /**
+     * Target Id
+     */
+    target_id: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Read
+     */
+    read: boolean;
+};
+
+/**
+ * NotificationListResponse
+ */
+export type NotificationListResponse = {
+    /**
+     * Items
+     */
+    items: Array<NotificationItem>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
  * PluginPageResponse
  */
 export type PluginPageResponse = {
@@ -1900,6 +1966,16 @@ export type UiManifestResponse = {
      * Settings Sections
      */
     settings_sections: Array<UiContributionSchema>;
+};
+
+/**
+ * UnreadCountResponse
+ */
+export type UnreadCountResponse = {
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -3230,13 +3306,13 @@ export type ListMessagesResponse = ListMessagesResponses[keyof ListMessagesRespo
 export type GetMessageTracesData = {
     body?: never;
     path?: never;
-    query: {
+    query?: {
         /**
          * Ids
          *
          * Message IDs to fetch traces for
          */
-        ids: Array<string>;
+        ids?: Array<string>;
     };
     url: '/api/v0/messages/traces';
 };
@@ -3625,6 +3701,110 @@ export type RollbackDreamRunResponses = {
 };
 
 export type RollbackDreamRunResponse = RollbackDreamRunResponses[keyof RollbackDreamRunResponses];
+
+export type ListNotificationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Unread Only
+         */
+        unread_only?: boolean;
+        /**
+         * Mark Read
+         */
+        mark_read?: boolean;
+    };
+    url: '/api/v0/notifications';
+};
+
+export type ListNotificationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListNotificationsError = ListNotificationsErrors[keyof ListNotificationsErrors];
+
+export type ListNotificationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: NotificationListResponse;
+};
+
+export type ListNotificationsResponse = ListNotificationsResponses[keyof ListNotificationsResponses];
+
+export type GetUnreadNotificationCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/notifications/unread-count';
+};
+
+export type GetUnreadNotificationCountResponses = {
+    /**
+     * Successful Response
+     */
+    200: UnreadCountResponse;
+};
+
+export type GetUnreadNotificationCountResponse = GetUnreadNotificationCountResponses[keyof GetUnreadNotificationCountResponses];
+
+export type MarkNotificationReadData = {
+    body?: never;
+    path: {
+        /**
+         * Notification Id
+         */
+        notification_id: string;
+    };
+    query?: never;
+    url: '/api/v0/notifications/{notification_id}/read';
+};
+
+export type MarkNotificationReadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MarkNotificationReadError = MarkNotificationReadErrors[keyof MarkNotificationReadErrors];
+
+export type MarkNotificationReadResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type MarkNotificationReadResponse = MarkNotificationReadResponses[keyof MarkNotificationReadResponses];
+
+export type MarkAllNotificationsReadData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v0/notifications/read-all';
+};
+
+export type MarkAllNotificationsReadResponses = {
+    /**
+     * Successful Response
+     */
+    200: MarkAllReadResponse;
+};
+
+export type MarkAllNotificationsReadResponse = MarkAllNotificationsReadResponses[keyof MarkAllNotificationsReadResponses];
 
 export type ListChannelsData = {
     body?: never;

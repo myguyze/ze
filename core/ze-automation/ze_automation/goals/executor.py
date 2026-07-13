@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import html as _html
 from collections import defaultdict
-from typing import Callable
+from typing import Awaitable, Callable
 from uuid import UUID
 
 from ze_agents.errors import GoalExecutionError
@@ -121,12 +121,17 @@ class GoalExecutor:
         push: Callable[[Notification], None],
         agent_getter: Callable[[str], object],
         memory_store: MemoryStore | None = None,
+        notify: Callable[..., Awaitable[None]] | None = None,
     ) -> None:
         self._store = goal_store
         self._planner = goal_planner
         self._push = push
         self._get_agent = agent_getter
         self._memory = memory_store
+        # Structured notification-center path (ProactiveNotifier.notify), wired
+        # alongside `push` by wire_goal_executor_push — kept optional so tests
+        # that construct GoalExecutor directly don't need to supply it.
+        self._notify = notify
         self._advance_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._steer_queues: dict[UUID, asyncio.Queue] = defaultdict(asyncio.Queue)
         self._provisional_procedures: dict[UUID, list[Procedure]] = {}
@@ -765,6 +770,15 @@ class GoalExecutor:
                 ],
             )
         )
+        if self._notify is not None:
+            await self._notify(
+                "goal_gate",
+                f'Checkpoint reached: "{gate.title}"',
+                narrative,
+                source="goals",
+                target_type="goal",
+                target_id=str(goal.id),
+            )
         log.info("gate_fired", gate_id=str(gate.id), goal_id=str(goal.id))
 
     async def _sync_task_state(
