@@ -2,6 +2,7 @@ import { FloatingButton } from "@/features/open-context-overlay";
 import { ActivityHeatmapPanel } from "@/widgets/activity-heatmap-panel";
 import {
   formatAgentName,
+  formatPluginName,
   formatTokens,
   formatUsd,
   useCostsQuery,
@@ -171,12 +172,13 @@ function TokenSplit({
   );
 }
 
-function AgentUsageItem({
-  agent,
+function UsageItem({
+  label,
   usage,
   totalUsd,
+  formatLabel,
 }: {
-  agent: string;
+  label: string;
   usage: {
     usd: number;
     tokens: number;
@@ -185,13 +187,14 @@ function AgentUsageItem({
     completion_tokens: number;
   };
   totalUsd: number;
+  formatLabel: (key: string) => string;
 }) {
   const pct = totalUsd > 0 ? (usage.usd / totalUsd) * 100 : 0;
   const avgPerCall = usage.calls > 0 ? usage.usd / usage.calls : 0;
 
   return (
     <BreakdownItem
-      header={<p className="text-sm text-white">{formatAgentName(agent)}</p>}
+      header={<p className="text-sm text-white">{formatLabel(label)}</p>}
       meta={<span className="text-sm text-white">{formatUsd(usage.usd)}</span>}
     >
       <MetricProgressBar pct={pct} minWidthPct={0} />
@@ -220,6 +223,9 @@ export function CostsOverview() {
   const anomalies = anomaliesData?.anomalies ?? [];
   const sortedAgents = data
     ? Object.entries(data.by_agent).sort((a, b) => b[1].usd - a[1].usd)
+    : [];
+  const sortedPlugins = data
+    ? Object.entries(data.by_plugin).sort((a, b) => b[1].usd - a[1].usd)
     : [];
 
   const dailyAvg = data ? data.total_usd / 30 : 0;
@@ -274,6 +280,25 @@ export function CostsOverview() {
 
             <DashboardGridAside>
               <BreakdownPanel
+                title="By plugin"
+                scrollable={false}
+                isEmpty={sortedPlugins.length === 0}
+                emptyMessage="No plugin data yet."
+              >
+                <div className="space-y-2">
+                  {sortedPlugins.map(([plugin, usage]) => (
+                    <UsageItem
+                      key={plugin}
+                      label={plugin}
+                      usage={usage}
+                      totalUsd={data.total_usd}
+                      formatLabel={formatPluginName}
+                    />
+                  ))}
+                </div>
+              </BreakdownPanel>
+
+              <BreakdownPanel
                 title="By agent"
                 scrollable={false}
                 isEmpty={sortedAgents.length === 0}
@@ -281,11 +306,12 @@ export function CostsOverview() {
               >
                 <div className="space-y-2">
                   {sortedAgents.map(([agent, usage]) => (
-                    <AgentUsageItem
+                    <UsageItem
                       key={agent}
-                      agent={agent}
+                      label={agent}
                       usage={usage}
                       totalUsd={data.total_usd}
+                      formatLabel={formatAgentName}
                     />
                   ))}
                 </div>

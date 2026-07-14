@@ -277,7 +277,7 @@ export const triggerWorkflow = <ThrowOnError extends boolean = false>(options: O
 /**
  * Web cost summary
  *
- * Aggregate LLM token usage and cost by agent for the web client costs screen. Defaults to the last 30 days.
+ * Aggregate LLM token usage and cost by agent and by plugin for the web client costs screen. Defaults to the last 30 days.
  */
 export const getCostSummary = <ThrowOnError extends boolean = false>(options?: Options<GetCostSummaryData, ThrowOnError>): RequestResult<GetCostSummaryResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetCostSummaryResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

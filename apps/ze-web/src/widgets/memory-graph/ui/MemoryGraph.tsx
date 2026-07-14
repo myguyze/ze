@@ -140,6 +140,7 @@ export function MemoryGraph({ data, entityType, onEntityTypeChange }: MemoryGrap
           linkLabel={(l) => l.predicate}
           linkWidth={1}
           linkOpacity={0.6}
+          clickAfterDrag={true}
           onNodeClick={(n) => setSelectedId((prev) => (prev === n.id ? null : (n.id as string)))}
           onBackgroundClick={() => setSelectedId(null)}
           onEngineStop={handleEngineStop}

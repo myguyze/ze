@@ -5,6 +5,13 @@ export function formatAgentName(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+export function formatPluginName(key: string): string {
+  if (key === "other") return "Other";
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function formatUsd(usd: number): string {
   if (usd === 0) return "$0.00";
   if (usd < 0.0001) return "<$0.0001";

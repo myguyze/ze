@@ -343,6 +343,7 @@ class WebCostSummaryResponse(BaseModel):
     total_tokens: int
     total_calls: int
     by_agent: dict[str, AgentCostBucket]
+    by_plugin: dict[str, AgentCostBucket]
     by_day: list[DailyCostBucket]
     period: str
 

@@ -2124,6 +2124,12 @@ export type WebCostSummaryResponse = {
         [key: string]: AgentCostBucket;
     };
     /**
+     * By Plugin
+     */
+    by_plugin: {
+        [key: string]: AgentCostBucket;
+    };
+    /**
      * By Day
      */
     by_day: Array<DailyCostBucket>;
