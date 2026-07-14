@@ -11,8 +11,21 @@ export type ZeUIPrimitives =
   | ProgressBar
   | Table
   | Form
-  | Connections;
-export type Primitive = Col | Row | Text | Badge | Divider | Spacer | Button | ProgressBar | Table | Form | Connections;
+  | Connections
+  | Steps;
+export type Primitive =
+  | Col
+  | Row
+  | Text
+  | Badge
+  | Divider
+  | Spacer
+  | Button
+  | ProgressBar
+  | Table
+  | Form
+  | Connections
+  | Steps;
 
 export interface Col {
   children: Primitive[];
@@ -95,4 +108,14 @@ export interface ConnectionEvidence {
   kind: string;
   date?: string;
   source?: string;
+}
+export interface Steps {
+  steps: StepItem[];
+  title?: string;
+  type: "steps";
+}
+export interface StepItem {
+  label: string;
+  status: string;
+  note?: string;
 }

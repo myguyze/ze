@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from contextvars import ContextVar
-from dataclasses import asdict
 from typing import Any
+
+from ze_components.serialize import serialize_primitive
 
 _pending: ContextVar[list[dict[str, Any]]] = ContextVar("ze_components_pending")
 
@@ -18,7 +19,7 @@ def append(component: object) -> None:
         current = _pending.get()
     except LookupError:
         return
-    _pending.set(current + [asdict(component)])  # type: ignore[arg-type]
+    _pending.set(current + [serialize_primitive(component)])
 
 
 def collect_and_reset(token: object) -> list[dict[str, Any]]:

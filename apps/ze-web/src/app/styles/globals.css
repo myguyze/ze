@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source "../../../packages/ze-ui/src";
+@source "../../../../../packages/ze-ui/src";
 
 @theme {
   /* ── Colors ───────────────────────────────────────────────────── */

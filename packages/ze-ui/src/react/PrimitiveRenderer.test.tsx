@@ -80,4 +80,33 @@ describe("PrimitiveRenderer", () => {
     expect(screen.getByText("Linked insights")).toBeInTheDocument();
     expect(screen.getByText("You work late before deadlines")).toBeInTheDocument();
   });
+
+  it("renders a steps primitive with title, labels, and notes", () => {
+    render(
+      <PrimitiveRenderer
+        node={{
+          type: "steps",
+          title: "Reach B1 Portuguese",
+          steps: [
+            { label: "Complete A2 assessment", status: "done" },
+            { label: "Weekly conversation practice", status: "active", note: "2x per week" },
+            { label: "B1 mock exam", status: "pending" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("Reach B1 Portuguese")).toBeInTheDocument();
+    expect(screen.getByText("Complete A2 assessment")).toBeInTheDocument();
+    expect(screen.getByText("2x per week")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("renders inline markdown in text primitives", () => {
+    render(
+      <PrimitiveRenderer node={{ type: "text", content: "Focus on **conversation** next" }} />,
+    );
+    const strong = screen.getByText("conversation");
+    expect(strong.tagName).toBe("STRONG");
+    expect(screen.queryByText(/\*\*/)).not.toBeInTheDocument();
+  });
 });

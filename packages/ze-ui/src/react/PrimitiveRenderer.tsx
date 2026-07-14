@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import type {
   Badge,
@@ -11,6 +11,8 @@ import type {
   ProgressBar,
   Row,
   Spacer,
+  StepItem,
+  Steps,
   Table,
   Text,
 } from "../generated/types.gen";
@@ -36,14 +38,15 @@ const ALIGN: Record<string, string> = {
 
 const COL_VARIANT: Record<string, string> = {
   default: "",
-  card: "mt-2 p-4 rounded-pill border border-white/10",
-  section: "mt-2 p-4 rounded-pill border border-white/10 border-l-4 border-l-amber-spark",
+  card: "px-4 py-3.5 rounded-[20px] border border-white/10 bg-white/[0.03]",
+  section:
+    "px-4 py-3.5 rounded-[20px] border border-white/10 bg-white/[0.03] border-l-2 border-l-amber-spark",
 };
 
 const TEXT_STYLE: Record<string, string> = {
   heading: "text-[48px] font-extralight leading-none tracking-tight text-white",
   subheading: "text-sm font-semibold text-white",
-  body: "text-sm text-white",
+  body: "text-sm leading-relaxed text-white",
   label: "text-xs tracking-wide text-smoke",
   caption: "text-xs text-ash",
   code: "font-mono text-xs bg-white/5 rounded px-1 py-0.5 text-white",
@@ -135,6 +138,8 @@ function PrimitiveNodeRenderer({ node }: { node: Primitive }) {
       return <FormRenderer node={node} />;
     case "connections":
       return <ConnectionsRenderer node={node} />;
+    case "steps":
+      return <StepsRenderer node={node} />;
     default:
       // Unknown primitive from a newer backend — render nothing, don't crash.
       return null;
@@ -161,10 +166,39 @@ function RowRenderer({ node }: { node: Row }) {
   );
 }
 
+// Agents emit light markdown in text bodies; render the inline subset instead of
+// showing raw ** / ` markers. Block markdown is out of scope for primitives.
+const INLINE_MD = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g;
+
+function renderInlineMarkdown(content: string): ReactNode[] {
+  return content.split(INLINE_MD).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return (
+        <code key={i} className="font-mono text-xs bg-white/5 rounded px-1 py-0.5">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
 function TextRenderer({ node }: { node: Text }) {
   const styleClass = TEXT_STYLE[node.style ?? "body"] ?? TEXT_STYLE.body;
   const colorClass = node.color && node.color !== "default" ? TEXT_COLOR[node.color] : "";
-  return <p className={cn(styleClass, colorClass)}>{node.content}</p>;
+  return (
+    <p className={cn(styleClass, colorClass)}>{renderInlineMarkdown(node.content)}</p>
+  );
 }
 
 function BadgeRenderer({ node }: { node: Badge }) {
@@ -197,10 +231,10 @@ function ButtonRenderer({ node }: { node: Button }) {
 
   const styleClass =
     node.style === "primary"
-      ? "bg-plum-voltage text-white"
+      ? "bg-plum-voltage text-white hover:bg-plum-voltage/85"
       : node.style === "danger"
-        ? "border border-amber-spark text-amber-spark"
-        : "border border-white/20 text-white";
+        ? "border border-ember/50 text-ember hover:bg-ember/10"
+        : "border border-white/15 text-white hover:bg-white/5";
 
   return (
     <button
@@ -208,7 +242,8 @@ function ButtonRenderer({ node }: { node: Button }) {
       onClick={handleClick}
       disabled={used}
       className={cn(
-        "px-4 py-2 rounded-pill text-xs font-semibold tracking-wide transition-opacity disabled:opacity-40",
+        "px-4 py-2 rounded-pill text-xs font-semibold tracking-wide cursor-pointer",
+        "transition-[background-color,opacity] duration-250 disabled:opacity-40 disabled:cursor-default",
         styleClass,
         used && "opacity-100",
       )}
@@ -235,7 +270,7 @@ function ProgressRenderer({ node }: { node: ProgressBar }) {
 
 function TableRenderer({ node }: { node: Table }) {
   return (
-    <div className="mt-2 overflow-auto max-h-72 rounded-pill border border-white/10">
+    <div className="overflow-auto max-h-72 rounded-[20px] border border-white/10 bg-white/[0.02]">
       {node.title && (
         <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-smoke">
           {node.title}
@@ -289,7 +324,7 @@ function FormRenderer({ node }: { node: Form }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 p-4 rounded-pill border border-white/10 space-y-3">
+    <form onSubmit={handleSubmit} className="p-4 rounded-[20px] border border-white/10 bg-white/[0.03] space-y-3">
       <p className="text-sm font-semibold text-white">{node.title}</p>
       {node.fields.map((field) => (
         <div key={field.id}>
@@ -359,9 +394,91 @@ function ConnectionCard({ item }: { item: ConnectionItem }) {
   );
 }
 
+const STEP_LABEL: Record<string, string> = {
+  done: "text-sm text-ash",
+  active: "text-sm font-medium text-white",
+  pending: "text-sm text-smoke",
+  error: "text-sm text-ember",
+};
+
+function StepMarker({ status }: { status: string }) {
+  if (status === "done") {
+    return (
+      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border border-lichen/50 bg-lichen/15 text-lichen">
+        <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" fill="none" aria-hidden="true">
+          <path d="M1.5 5.5L4 8L8.5 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "active") {
+    return (
+      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border border-plum-voltage bg-plum-voltage/15">
+        <span className="h-1.5 w-1.5 rounded-full bg-plum-voltage motion-safe:animate-pulse" />
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border border-ember/50 bg-ember/10 text-ember">
+        <svg viewBox="0 0 10 10" className="h-2 w-2" fill="none" aria-hidden="true">
+          <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span className="h-[18px] w-[18px] flex-shrink-0 rounded-full border border-white/20" />
+  );
+}
+
+function StepsRenderer({ node }: { node: Steps }) {
+  return (
+    <div className="px-4 py-3.5 rounded-[20px] border border-white/10 bg-white/[0.03]">
+      {node.title && (
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-smoke">
+          {node.title}
+        </p>
+      )}
+      <ol className="m-0 list-none p-0">
+        {node.steps.map((step, i) => (
+          <StepRow key={i} step={step} last={i === node.steps.length - 1} />
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function StepRow({ step, last }: { step: StepItem; last: boolean }) {
+  const labelClass = STEP_LABEL[step.status] ?? STEP_LABEL.pending;
+  return (
+    <li className="relative flex gap-3 pb-3.5 last:pb-0">
+      {!last && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute left-[8.5px] top-[21px] bottom-[3px] w-px",
+            step.status === "done" ? "bg-lichen/30" : "bg-white/10",
+          )}
+        />
+      )}
+      <span className="mt-px">
+        <StepMarker status={step.status} />
+      </span>
+      <div className="min-w-0">
+        <p className={labelClass}>
+          {step.label}
+          <span className="sr-only"> — {step.status}</span>
+        </p>
+        {step.note && <p className="mt-0.5 text-xs text-smoke">{renderInlineMarkdown(step.note)}</p>}
+      </div>
+    </li>
+  );
+}
+
 function ConnectionsRenderer({ node }: { node: Connections }) {
   return (
-    <div className="mt-2 rounded-pill border border-plum-voltage/20 overflow-hidden">
+    <div className="rounded-[20px] border border-plum-voltage/20 bg-white/[0.02] overflow-hidden">
       <p className="px-4 py-2 text-xs font-semibold tracking-widest uppercase text-plum-voltage border-b border-plum-voltage/20">
         {node.title ?? "Connected to your history"}
       </p>

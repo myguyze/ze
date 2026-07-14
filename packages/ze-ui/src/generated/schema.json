@@ -100,6 +100,25 @@
         "confidence"
       ]
     },
+    "StepItem": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "status"
+      ]
+    },
     "Col": {
       "type": "object",
       "properties": {
@@ -390,6 +409,28 @@
         "type"
       ]
     },
+    "Steps": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepItem"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "const": "steps"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "steps",
+        "type"
+      ]
+    },
     "Primitive": {
       "oneOf": [
         {
@@ -424,6 +465,9 @@
         },
         {
           "$ref": "#/$defs/Connections"
+        },
+        {
+          "$ref": "#/$defs/Steps"
         }
       ],
       "discriminator": {
@@ -439,7 +483,8 @@
           "progress": "#/$defs/ProgressBar",
           "table": "#/$defs/Table",
           "form": "#/$defs/Form",
-          "connections": "#/$defs/Connections"
+          "connections": "#/$defs/Connections",
+          "steps": "#/$defs/Steps"
         }
       }
     },
@@ -484,6 +529,9 @@
     },
     {
       "$ref": "#/$defs/Connections"
+    },
+    {
+      "$ref": "#/$defs/Steps"
     }
   ],
   "discriminator": {
@@ -499,7 +547,8 @@
       "progress": "#/$defs/ProgressBar",
       "table": "#/$defs/Table",
       "form": "#/$defs/Form",
-      "connections": "#/$defs/Connections"
+      "connections": "#/$defs/Connections",
+      "steps": "#/$defs/Steps"
     }
   }
 }

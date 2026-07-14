@@ -68,6 +68,7 @@ class _TimelineSchema:
 class _ProgressStep:
     label: str
     status: str
+    note: str | None = None
 
 
 @dataclasses.dataclass
@@ -272,7 +273,8 @@ async def render_timeline(
     _ProgressSchema,
     description=(
         "Render a step-by-step progress tracker. "
-        "Each step: {label (required), status: 'done'|'active'|'pending' (required)}."
+        "Each step: {label (required), status: 'done'|'active'|'pending'|'error' (required), "
+        "note (optional short annotation shown under the label)}."
     ),
 )
 async def render_progress(

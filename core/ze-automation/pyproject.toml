@@ -13,6 +13,7 @@ dependencies = [
     "ze-proactive",
     "ze-memory",
     "ze-data",
+    "ze-components",
     "asyncpg==0.31.0",
     "apscheduler==3.11.2",
 ]
@@ -37,6 +38,7 @@ ze-proactive = { workspace = true }
 ze-memory    = { workspace = true }
 ze-data      = { workspace = true }
 ze-sdk       = { workspace = true }
+ze-components = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["ze_automation"]

@@ -5,6 +5,8 @@ import { useOnboardingSession } from "@/entities/onboarding-session";
 import { useSession } from "@/entities/session";
 import { send } from "@/shared/api";
 
+const GOAL_ACTION_RE = /^(goal|goal_plan|goal_stuck):[a-z_]+:[0-9a-fA-F-]+$/;
+
 export function usePrimitiveRendererActions(): PrimitiveRendererActions {
   const sessionId = useOnboardingSession((s) => s.sessionId);
   const completed = useOnboardingSession((s) => s.completed);
@@ -14,6 +16,9 @@ export function usePrimitiveRendererActions(): PrimitiveRendererActions {
   return useMemo(
     () => ({
       onButtonAction: (action: string) => {
+        if (GOAL_ACTION_RE.test(action)) {
+          return send({ type: "action", payload: action, thread_id: threadId });
+        }
         return send({ type: "message", text: action, thread_id: threadId });
       },
       onFormSubmit: (formId: string, values: Record<string, string>) => {

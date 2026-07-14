@@ -79,7 +79,16 @@ async def get_goal_status(store: GoalStore, goal_id: str) -> dict:
             {"sequence": m.sequence, "title": m.title, "status": m.status.value}
             for m in milestones
         ],
-        "pending_gate": gate.title if gate else None,
+        "pending_gate": (
+            {
+                "gate_id": str(gate.id),
+                "title": gate.title,
+                "context_summary": gate.context_summary,
+                "plan_summary": gate.plan_summary,
+            }
+            if gate
+            else None
+        ),
     }
     if goal.learnings:
         result["learnings"] = goal.learnings[:500]

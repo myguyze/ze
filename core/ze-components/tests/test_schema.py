@@ -79,3 +79,29 @@ def test_export_json_schema_includes_discriminators_and_recursive_children():
 def test_export_json_schema_maps_progress_bar_type():
     schema = export_json_schema()
     assert schema["$defs"]["ProgressBar"]["properties"]["type"] == {"const": "progress"}
+
+
+def test_export_json_schema_includes_steps():
+    schema = export_json_schema()
+    steps = schema["$defs"]["Steps"]
+    assert steps["properties"]["type"] == {"const": "steps"}
+    assert steps["properties"]["steps"]["items"] == {"$ref": "#/$defs/StepItem"}
+    assert schema["$defs"]["StepItem"]["required"] == ["label", "status"]
+
+
+def test_progress_steps_pattern_emits_steps_primitive():
+    from ze_components.patterns import progress_steps
+    from ze_components.serialize import serialize_primitive
+
+    node = progress_steps(
+        "Reach B1",
+        [
+            {"label": "A2 assessment", "status": "done"},
+            {"label": "Conversation practice", "status": "active", "note": "2x weekly"},
+        ],
+    )
+    data = serialize_primitive(node)
+    assert data["type"] == "steps"
+    assert data["title"] == "Reach B1"
+    assert data["steps"][0] == {"label": "A2 assessment", "status": "done"}
+    assert data["steps"][1]["note"] == "2x weekly"

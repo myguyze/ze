@@ -46,10 +46,13 @@ from ze_components.organisms import (
     Connections,
     Form,
     FormField,
+    StepItem,
+    Steps,
     Table,
     connections,
     form,
     form_field,
+    steps,
     table,
 )
 
@@ -69,7 +72,12 @@ from ze_components.patterns import (
 )
 
 # ── Registry (for codegen and schema generation) ──────────────────────────────
-PRIMITIVE_SUB_TYPES: list[type] = [FormField, ConnectionEvidence, ConnectionItem]
+PRIMITIVE_SUB_TYPES: list[type] = [
+    FormField,
+    ConnectionEvidence,
+    ConnectionItem,
+    StepItem,
+]
 
 PRIMITIVE_TYPES: list[type] = [
     Col,
@@ -83,6 +91,7 @@ PRIMITIVE_TYPES: list[type] = [
     Table,
     Form,
     Connections,
+    Steps,
 ]
 
 __all__ = [
@@ -129,11 +138,14 @@ __all__ = [
     "Connections",
     "Form",
     "FormField",
+    "StepItem",
+    "Steps",
     "Table",
     # Organisms — helpers
     "connections",
     "form",
     "form_field",
+    "steps",
     "table",
     # Patterns
     "card_notice",

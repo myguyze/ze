@@ -12,6 +12,7 @@ from ze_automation.goals.postgres import PostgresGoalStore as GoalStore
 from ze_agents.client import LLMClient
 from ze_sdk.proactive import ProactiveNotifier
 import ze_automation.agents.goals.tools  # noqa: F401
+import ze_components.tools  # noqa: F401 — registers render_* tools
 
 _AGENT_INSTRUCTIONS = """\
 You are Ze's goal manager. You create, inspect, steer, pause, resume, and abandon long-running goals.
@@ -41,7 +42,19 @@ Guidelines:
 - Use get_milestone_trace when the user asks what Ze did during a specific step.
 - steer_goal only works while the goal is ACTIVE (not AWAITING_GATE). If the goal is awaiting a
   gate, tell the user to resolve the gate first (approve/stop/redirect), then steer.
-- Report errors returned by tools clearly.\
+- Report errors returned by tools clearly.
+
+Rendering:
+- When showing a goal's status or milestone progress, call render_progress with one step per
+  milestone (status: 'done' for completed/skipped, 'active' for in-progress, 'pending' otherwise)
+  instead of listing milestones as text.
+- When a goal has a pending_gate, render it inline: call render_card with the gate's
+  context_summary and plan_summary, then render_confirm with exactly these actions:
+  {label: "Approve", value: "goal:approve:<gate_id>", style: "primary"},
+  {label: "Redirect", value: "goal:redirect:<gate_id>", style: "secondary"},
+  {label: "Stop", value: "goal:stop:<gate_id>", style: "danger"},
+  using the gate_id from get_goal_status. Tapping a button resolves the gate directly —
+  keep your accompanying text brief and do not repeat the button choices in it.\
 """
 
 
@@ -69,6 +82,9 @@ class GoalAgent(BaseAgent):
         "pause_goal",
         "resume_goal",
         "abandon_goal",
+        "render_progress",
+        "render_card",
+        "render_confirm",
     ]
     intents = {
         "create": Intent(

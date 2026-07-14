@@ -25,15 +25,42 @@ export function MessageBubble({ message }: { message: Message }) {
         {message.text && (
           <div className="group relative">
             <div
-              className={`px-4 py-2.5 rounded-[20px] text-sm leading-relaxed ${
+              className={`px-4 py-2.5 rounded-[20px] text-sm leading-relaxed space-y-2 ${
                 isUser
                   ? "bg-plum-voltage text-white rounded-br-[6px]"
-                  : "border border-white/10 text-white rounded-bl-[6px]"
+                  : "border border-white/[0.08] bg-white/[0.04] text-white rounded-bl-[6px]"
               }`}
             >
               <ReactMarkdown
                 components={{
                   p: ({ children }) => <p className="m-0">{children}</p>,
+                  strong: ({ children }) => (
+                    <strong className="font-semibold">{children}</strong>
+                  ),
+                  a: ({ children, href }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`underline underline-offset-2 ${
+                        isUser ? "text-white" : "text-plum-voltage hover:text-plum-voltage/80"
+                      }`}
+                    >
+                      {children}
+                    </a>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="m-0 list-disc space-y-1 pl-5">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="m-0 list-decimal space-y-1 pl-5">{children}</ol>
+                  ),
+                  li: ({ children }) => <li className="m-0">{children}</li>,
+                  blockquote: ({ children }) => (
+                    <blockquote className="my-1 border-l-2 border-white/20 pl-3 text-ash">
+                      {children}
+                    </blockquote>
+                  ),
                   code: ({ children }) => (
                     <code className="bg-white/10 rounded px-1 py-0.5 text-xs font-mono">
                       {children}
@@ -63,7 +90,9 @@ export function MessageBubble({ message }: { message: Message }) {
         )}
 
         {message.components.length > 0 && (
-          <ConnectedPrimitiveTree components={message.components} />
+          <div className="mt-2 flex w-full min-w-0 flex-col gap-2">
+            <ConnectedPrimitiveTree components={message.components} />
+          </div>
         )}
 
         {traceOpen && !isUser && message.id !== "__streaming__" && (
