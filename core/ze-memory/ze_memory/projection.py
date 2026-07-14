@@ -138,6 +138,7 @@ def _fact_from_row(row: Any) -> Fact:
         source_episode_id=row_dict["source_episode_id"],
         source_refs=_load_uuids(row_dict["source_refs"]),
         provenance=row_dict.get("provenance", "raw"),
+        relevance_score=row_dict.get("similarity"),
     )
 
 
@@ -153,6 +154,7 @@ def _episode_from_row(row: Any) -> Episode:
         created_at=row["created_at"],
         linked_entity_ids=_load_uuids(row["linked_entity_ids"]),
         linked_fact_ids=_load_uuids(row["linked_fact_ids"]),
+        relevance_score=row.get("similarity"),
     )
 
 
@@ -180,6 +182,7 @@ def _event_from_row(row: Any) -> Event:
         summary=row.get("summary"),
         outcome=row.get("outcome"),
         source_episode_id=row.get("source_episode_id"),
+        relevance_score=row.get("similarity"),
     )
 
 
@@ -192,6 +195,7 @@ def _session_summary_from_row(row: Any) -> SessionSummary:
         last_turn_at=row["last_turn_at"],
         created_at=row["created_at"],
         summary_updated_at=row["summary_updated_at"],
+        relevance_score=row.get("similarity"),
     )
 
 
@@ -202,6 +206,7 @@ def _entity_from_row(row: Any) -> Entity:
         canonical_name=row["canonical_name"],
         aliases=_load_json(row["aliases"]),
         attrs=_load_json(row["attrs"]),
+        relevance_score=row.get("similarity"),
     )
 
 

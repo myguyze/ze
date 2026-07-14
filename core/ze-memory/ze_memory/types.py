@@ -63,6 +63,8 @@ class Entity:
     aliases: list[str] = field(default_factory=list)
     attrs: dict[str, str] = field(default_factory=dict)
     embedding: Any = field(default=None, repr=False, compare=False)
+    relevance_score: float | None = field(default=None, compare=False)
+    retrieval_provenance: str | None = field(default=None, compare=False)
 
 
 @dataclass
@@ -81,6 +83,8 @@ class Fact:
     embedding: Any = field(default=None, repr=False, compare=False)
     provenance: str = "raw"
     agent: str = "unknown"
+    relevance_score: float | None = field(default=None, compare=False)
+    retrieval_provenance: str | None = field(default=None, compare=False)
 
 
 @dataclass
@@ -96,6 +100,8 @@ class Episode:
     linked_entity_ids: list[UUID] = field(default_factory=list)
     linked_fact_ids: list[UUID] = field(default_factory=list)
     embedding: Any = field(default=None, repr=False, compare=False)
+    relevance_score: float | None = field(default=None, compare=False)
+    retrieval_provenance: str | None = field(default=None, compare=False)
 
 
 @dataclass
@@ -108,6 +114,7 @@ class SessionSummary:
     created_at: datetime
     summary_updated_at: datetime
     embedding: Any = field(default=None, repr=False, compare=False)
+    relevance_score: float | None = field(default=None, compare=False)
 
 
 @dataclass
@@ -126,6 +133,8 @@ class Event:
     outcome: str | None = None
     source_episode_id: UUID | None = None
     embedding: Any = field(default=None, repr=False, compare=False)
+    relevance_score: float | None = field(default=None, compare=False)
+    retrieval_provenance: str | None = field(default=None, compare=False)
 
 
 @dataclass
