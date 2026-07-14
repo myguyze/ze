@@ -30,6 +30,9 @@ class MemoryQueryable(Protocol):
     @property
     def settings(self) -> Any: ...
 
+    @property
+    def graph_store(self) -> Any: ...
+
     async def get_task_state(
         self,
         task_id: UUID | None = None,
