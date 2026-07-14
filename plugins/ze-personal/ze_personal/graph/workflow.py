@@ -20,12 +20,17 @@ from ze_agents.defaults import MODEL_WORKFLOW_VERIFY
 from ze_agents.model_resolution import resolve_model
 from ze_logging import get_logger
 from ze_core.orchestration.state import AgentState
+from ze_automation.workflow.retry import (
+    RETRY_DELAY_SECONDS,
+    STEP_MAX_ATTEMPTS,
+    is_transient_failure,
+)
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import StepResult, WorkflowStep
 
 log = get_logger(__name__)
 
-_TERMINAL_TARGETS = {"END", "FAIL"}
+_TERMINAL_TARGETS = {"END", "FAIL", "CANCELLED"}
 _MAX_STEP_VISITS = 4  # 1 initial + 3 revisits (FR-008)
 
 
@@ -44,6 +49,8 @@ class WorkflowAgentState(AgentState, total=False):
     visit_counts: dict[str, int]
     workflow_step_results: list  # list[StepResult]
     step_started_at: float | None
+    step_attempt: int
+    from_retry: bool
 
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
@@ -51,6 +58,15 @@ class WorkflowAgentState(AgentState, total=False):
 
 async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> dict:
     """Set prompt to the current step's task and reset all per-step state."""
+    scheduler = config["configurable"].get("workflow_scheduler")
+    execution_id = state.get("workflow_execution_id")
+    if (
+        scheduler is not None
+        and execution_id is not None
+        and scheduler.is_cancelled(execution_id)
+    ):
+        return {"current_step_id": "CANCELLED"}
+
     steps: list[WorkflowStep] = state["workflow_steps"]
     steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {
         s.id: s for s in steps
@@ -63,6 +79,11 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
     visit_counts = dict(state.get("visit_counts") or {})
     visit_counts[current_step_id] = visit_counts.get(current_step_id, 0) + 1
 
+    if state.get("from_retry"):
+        step_attempt = state.get("step_attempt", 1)
+    else:
+        step_attempt = 1
+
     log.info(
         "workflow_step_start",
         step_id=current_step_id,
@@ -70,6 +91,7 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
         task=step.task[:80],
         execution_id=str(state.get("workflow_execution_id")),
         visit_count=visit_counts[current_step_id],
+        attempt=step_attempt,
     )
 
     return {
@@ -77,6 +99,8 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
         "current_step_id": current_step_id,
         "visit_counts": visit_counts,
         "step_started_at": time.monotonic(),
+        "step_attempt": step_attempt,
+        "from_retry": False,
         "prompt": step.task,
         "envelope": None,
         "memory_context": None,
@@ -148,30 +172,49 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
                         "content": (
                             f"Step output:\n{output}\n\n"
                             f"Verification criteria: {step.verify}\n\n"
-                            'Does the output meet the criteria? Reply with JSON only: {"pass": true, "reason": "..."}'
+                            'Does the output meet the criteria? Reply with JSON only: '
+                            '{"pass": true, "no_results": false, "reason": "..."}'
                         ),
                     }
                 ],
                 model=model,
             )
             verdict = json.loads(raw)
-            if not verdict.get("pass", True):
-                reason = verdict.get("reason", "Verification failed")
-                return await _fail_step(
-                    store,
-                    execution_id,
-                    state,
-                    exec_index,
-                    step_id,
-                    step.task,
-                    output,
-                    reason,
+            if verdict.get("pass", True):
+                no_results = bool(verdict.get("no_results", False))
+                reason = verdict.get("reason", output)
+                step_result = StepResult(
+                    step_index=exec_index,
+                    step_id=step_id,
+                    task=step.task,
+                    output=reason if no_results else output,
+                    success=True,
+                    error=None,
+                    duration_ms=_step_duration_ms(state),
+                    attempt_count=state.get("step_attempt", 1),
+                    no_results=no_results,
                 )
+                log.info(
+                    "workflow_step_complete",
+                    step_id=step_id,
+                    task=step.task[:60],
+                    no_results=no_results,
+                )
+                return {"workflow_step_results": prior + [step_result]}
+            reason = verdict.get("reason", "Verification failed")
+            return await _fail_step(
+                store,
+                execution_id,
+                state,
+                exec_index,
+                step_id,
+                step.task,
+                output,
+                reason,
+            )
         except Exception as exc:
             log.warning("workflow_verify_error", step_id=step_id, error=str(exc))
 
-    # Persistence (and branch_taken) is finalized by route_branch, which runs next and
-    # knows whether/which branch matched — avoids writing this row twice.
     step_result = StepResult(
         step_index=exec_index,
         step_id=step_id,
@@ -180,6 +223,7 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
         success=True,
         error=None,
         duration_ms=_step_duration_ms(state),
+        attempt_count=state.get("step_attempt", 1),
     )
 
     log.info("workflow_step_complete", step_id=step_id, task=step.task[:60])
@@ -278,12 +322,22 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
 
     step_results: list[StepResult] = state.get("workflow_step_results") or []
     execution_id = state.get("workflow_execution_id")
+    successful = [r for r in step_results if r.success]
+
+    if not successful:
+        return await workflow_failed(state, config)
 
     parts = "\n\n".join(
         f"Step {r.step_index + 1} — {r.task}:\n{r.output}"
-        for r in step_results
-        if r.success and r.output
+        for r in successful
+        if r.output
     )
+    failed = [r for r in step_results if not r.success]
+    if failed:
+        failure_notes = "\n".join(
+            f"- Step {r.step_index + 1} ({r.task}): {r.error}" for r in failed
+        )
+        parts = f"{parts}\n\nSteps that failed but did not stop the run:\n{failure_notes}"
 
     if parts:
         response = await client.complete(
@@ -321,19 +375,53 @@ async def workflow_synthesize(state: dict[str, Any], config: RunnableConfig) -> 
 async def workflow_failed(state: dict[str, Any], config: RunnableConfig) -> dict:
     """Record execution failure and build a user-facing error message."""
     store: WorkflowStore = config["configurable"]["workflow_store"]
+    client: Any = config["configurable"].get("openrouter_client")
+    model = _resolve_verify_model(config)
 
     step_results: list[StepResult] = state.get("workflow_step_results") or []
     execution_id = state.get("workflow_execution_id")
-
+    successful = [r for r in step_results if r.success]
     failed = [r for r in step_results if not r.success]
+
     if failed:
         last = failed[-1]
         error_msg = f"Step {last.step_index + 1} ({last.task}) failed: {last.error}"
+    elif not successful:
+        failure_lines = "\n".join(
+            f"- Step {r.step_index + 1} ({r.task}): {r.error}" for r in step_results
+        )
+        error_msg = f"All steps failed:\n{failure_lines}"
     else:
         error_msg = state.get("error") or "Workflow failed"
 
+    summary: str | None = None
+    if successful and client is not None:
+        parts = "\n\n".join(
+            f"Step {r.step_index + 1} — {r.task}:\n{r.output}"
+            for r in successful
+            if r.output
+        )
+        try:
+            summary = await client.complete(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"The workflow failed with: {error_msg}\n\n"
+                            "Summarize the successful steps' output for the user:\n\n"
+                            f"{parts}"
+                        ),
+                    }
+                ],
+                model=model,
+            )
+        except Exception as exc:
+            log.warning("workflow_partial_synthesis_error", error=str(exc))
+
     if execution_id:
-        await store.finish_execution(execution_id, "failed", error=error_msg)
+        await store.finish_execution(
+            execution_id, "failed", error=error_msg, summary=summary
+        )
 
     steps = state.get("workflow_steps") or []
     executed_ids = {r.step_id for r in step_results}
@@ -350,7 +438,85 @@ async def workflow_failed(state: dict[str, Any], config: RunnableConfig) -> dict
         )
     )
     log.warning("workflow_failed", execution_id=str(execution_id), error=error_msg)
-    return {"final_response": f"Workflow failed: {error_msg}"}
+    response = summary or error_msg
+    return {"final_response": f"Workflow failed: {response}"}
+
+
+async def handle_step_failure(state: dict[str, Any], config: RunnableConfig) -> dict:
+    """Apply per-step on_failure policy after a step fails verification."""
+    scheduler = config["configurable"].get("workflow_scheduler")
+    execution_id = state.get("workflow_execution_id")
+    if (
+        scheduler is not None
+        and execution_id is not None
+        and scheduler.is_cancelled(execution_id)
+    ):
+        return {"current_step_id": "CANCELLED"}
+
+    step_results: list[StepResult] = list(state.get("workflow_step_results") or [])
+    if not step_results:
+        return {"current_step_id": "FAIL"}
+
+    last = step_results[-1]
+    steps: list[WorkflowStep] = state.get("workflow_steps") or []
+    steps_by_id: dict[str, WorkflowStep] = state.get("steps_by_id") or {}
+    step = steps_by_id[last.step_id]
+    policy = step.on_failure or "fail"
+
+    if policy == "fail":
+        target = "FAIL"
+    elif policy == "continue":
+        next_id = _next_step_id_in_list(steps, step.id)
+        target = next_id if next_id else "END"
+    elif policy.startswith("skip_to:"):
+        target = policy.split(":", 1)[1]
+    else:
+        target = "FAIL"
+
+    log.info(
+        "workflow_step_failure_handled",
+        step_id=step.id,
+        policy=policy,
+        target=target,
+    )
+    return {"current_step_id": target}
+
+
+async def retry_step(state: dict[str, Any], config: RunnableConfig) -> dict:
+    """Wait and retry a step after a transient failure."""
+    await asyncio.sleep(RETRY_DELAY_SECONDS)
+    prior = list(state.get("workflow_step_results") or [])
+    if prior and not prior[-1].success:
+        prior = prior[:-1]
+    return {
+        "workflow_step_results": prior,
+        "step_attempt": state.get("step_attempt", 1) + 1,
+        "from_retry": True,
+    }
+
+
+async def workflow_cancelled(state: dict[str, Any], config: RunnableConfig) -> dict:
+    """Record a cancelled execution with partial progress."""
+    store: WorkflowStore = config["configurable"]["workflow_store"]
+    step_results: list[StepResult] = state.get("workflow_step_results") or []
+    execution_id = state.get("workflow_execution_id")
+
+    successful = [r for r in step_results if r.success]
+    if successful:
+        parts = "\n\n".join(
+            f"Step {r.step_index + 1} — {r.task}:\n{r.output}"
+            for r in successful
+            if r.output
+        )
+        summary = f"Run cancelled after completing {len(successful)} step(s).\n\n{parts}"
+    else:
+        summary = "Run cancelled before any step completed."
+
+    if execution_id:
+        await store.finish_execution(execution_id, "cancelled", summary=summary)
+
+    log.info("workflow_cancelled", execution_id=str(execution_id))
+    return {"final_response": "Workflow run cancelled."}
 
 
 # ── Edge functions ────────────────────────────────────────────────────────────
@@ -367,8 +533,23 @@ def after_capability_check_workflow(state: dict[str, Any]) -> str:
 def after_verify_step(state: dict[str, Any]) -> str:
     step_results = state.get("workflow_step_results") or []
     if step_results and not step_results[-1].success:
-        return "workflow_failed"
+        last = step_results[-1]
+        attempt = state.get("step_attempt", 1)
+        if is_transient_failure(last.error) and attempt < STEP_MAX_ATTEMPTS:
+            return "retry_step"
+        return "handle_step_failure"
     return "route_branch"
+
+
+def after_handle_step_failure(state: dict[str, Any]) -> str:
+    target = state.get("current_step_id")
+    if target == "END":
+        return "workflow_synthesize"
+    if target == "FAIL":
+        return "workflow_failed"
+    if target == "CANCELLED":
+        return "workflow_cancelled"
+    return "load_workflow_step"
 
 
 def after_route_branch(state: dict[str, Any]) -> str:
@@ -377,6 +558,8 @@ def after_route_branch(state: dict[str, Any]) -> str:
         return "workflow_synthesize"
     if target == "FAIL":
         return "workflow_failed"
+    if target == "CANCELLED":
+        return "workflow_cancelled"
     return "load_workflow_step"
 
 
@@ -397,8 +580,11 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
     builder.add_node("load_workflow_step", load_workflow_step)
     builder.add_node("verify_step", verify_step)
     builder.add_node("route_branch", route_branch)
+    builder.add_node("handle_step_failure", handle_step_failure)
+    builder.add_node("retry_step", retry_step)
     builder.add_node("workflow_synthesize", workflow_synthesize)
     builder.add_node("workflow_failed", workflow_failed)
+    builder.add_node("workflow_cancelled", workflow_cancelled)
 
     builder.set_entry_point("load_workflow_step")
 
@@ -426,7 +612,19 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
         after_verify_step,
         {
             "route_branch": "route_branch",
+            "handle_step_failure": "handle_step_failure",
+            "retry_step": "retry_step",
+        },
+    )
+    builder.add_edge("retry_step", "load_workflow_step")
+    builder.add_conditional_edges(
+        "handle_step_failure",
+        after_handle_step_failure,
+        {
+            "load_workflow_step": "load_workflow_step",
+            "workflow_synthesize": "workflow_synthesize",
             "workflow_failed": "workflow_failed",
+            "workflow_cancelled": "workflow_cancelled",
         },
     )
     builder.add_conditional_edges(
@@ -436,10 +634,12 @@ def build_workflow_graph(checkpointer: Any, plugins: list | None = None) -> Any:
             "load_workflow_step": "load_workflow_step",
             "workflow_synthesize": "workflow_synthesize",
             "workflow_failed": "workflow_failed",
+            "workflow_cancelled": "workflow_cancelled",
         },
     )
     builder.add_edge("workflow_synthesize", END)
     builder.add_edge("workflow_failed", END)
+    builder.add_edge("workflow_cancelled", END)
 
     for plugin in plugins or []:
         for name, fn in plugin.graph_nodes().items():
@@ -631,7 +831,10 @@ async def _fail_step(
     task: str,
     output: str,
     error: str,
+    exc: BaseException | None = None,
 ) -> dict:
+    attempt = state.get("step_attempt", 1)
+    can_retry = is_transient_failure(error, exc) and attempt < STEP_MAX_ATTEMPTS
     step_result = StepResult(
         step_index=exec_index,
         step_id=step_id,
@@ -640,11 +843,18 @@ async def _fail_step(
         success=False,
         error=error,
         duration_ms=_step_duration_ms(state),
+        attempt_count=attempt,
     )
-    if execution_id:
+    if execution_id and not can_retry:
         await store.record_step(execution_id, step_result)
     prior = list(state.get("workflow_step_results") or [])
-    log.warning("workflow_step_failed", step_id=step_id, error=error)
+    log.warning(
+        "workflow_step_failed",
+        step_id=step_id,
+        error=error,
+        attempt=attempt,
+        will_retry=can_retry,
+    )
     return {
         "workflow_step_results": prior + [step_result],
     }

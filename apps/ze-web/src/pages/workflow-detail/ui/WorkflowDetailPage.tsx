@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
+import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle, Ban } from "lucide-react";
 import { useOverlayStore } from "@/features/open-context-overlay";
 import { useSetBreadcrumbTitle } from "@/shared/lib";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +10,7 @@ import {
   useWorkflowExecutionsQuery,
   useLiveExecutionQuery,
   useTriggerWorkflowMutation,
+  useCancelExecutionMutation,
   formatSchedule,
   averageSuccessfulRunDuration,
 } from "@/entities/workflow";
@@ -28,17 +29,23 @@ export function WorkflowDetailPage() {
   const { data: liveExecution } = useLiveExecutionQuery(workflowId ?? "", liveExecutionId);
 
   const trigger = useTriggerWorkflowMutation();
+  const cancelExecution = useCancelExecutionMutation();
 
   useSetBreadcrumbTitle(detail?.name);
-
-  const isRunning = trigger.isPending || liveExecution?.status === "running";
 
   const avgRunDuration = executions ? averageSuccessfulRunDuration(executions) : null;
 
   const displayExecution: WorkflowExecutionResponse | null | undefined =
-    isRunning ? liveExecution : (selectedExecution ?? liveExecution);
+    selectedExecution ?? liveExecution;
+
+  const isRunning =
+    trigger.isPending ||
+    liveExecution?.status === "running" ||
+    displayExecution?.status === "running";
 
   const displayedId = displayExecution?.id ?? null;
+  const activeExecutionId =
+    liveExecutionId ?? (liveExecution?.status === "running" ? liveExecution.id : null);
 
   function handleTrigger() {
     if (!workflowId) return;
@@ -48,6 +55,11 @@ export function WorkflowDetailPage() {
         setLiveExecutionId(data.execution_id);
       },
     });
+  }
+
+  function handleCancel() {
+    if (!workflowId || !activeExecutionId) return;
+    cancelExecution.mutate({ workflowId, executionId: activeExecutionId });
   }
 
   function handleSelectExecution(ex: WorkflowExecutionResponse) {
@@ -115,14 +127,26 @@ export function WorkflowDetailPage() {
           </div>
 
           {detail.enabled && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isRunning}
-              onClick={handleTrigger}
-            >
-              {trigger.isPending ? "Starting…" : "Run now"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {isRunning && activeExecutionId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={cancelExecution.isPending}
+                  onClick={handleCancel}
+                >
+                  {cancelExecution.isPending ? "Cancelling…" : "Cancel"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isRunning}
+                onClick={handleTrigger}
+              >
+                {trigger.isPending ? "Starting…" : "Run now"}
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -270,6 +294,17 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
         </div>
       );
     }
+    if (liveExecution.status === "cancelled") {
+      return (
+        <div className="flex items-center gap-1.5">
+          <Ban className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs text-amber-400">Cancelled</span>
+          <button className="ml-1 text-xs text-smoke hover:text-white transition-colors" onClick={onClear}>
+            Clear
+          </button>
+        </div>
+      );
+    }
     if (liveExecution.status === "failed") {
       return (
         <div className="flex items-center gap-1.5">
@@ -284,15 +319,24 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
   }
 
   if (displayExecution && !liveExecution) {
-    const succeeded = displayExecution.status === "completed";
+    const status = displayExecution.status;
+    const succeeded = status === "completed";
+    const cancelled = status === "cancelled";
     return (
       <div className="flex items-center gap-1.5">
-        {succeeded
-          ? <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-          : <XCircle className="w-3.5 h-3.5 text-destructive" />
-        }
-        <span className={`text-xs ${succeeded ? "text-success" : "text-destructive"}`}>
-          {succeeded ? "Completed" : "Failed"}
+        {succeeded ? (
+          <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+        ) : cancelled ? (
+          <Ban className="w-3.5 h-3.5 text-amber-400" />
+        ) : (
+          <XCircle className="w-3.5 h-3.5 text-destructive" />
+        )}
+        <span
+          className={`text-xs ${
+            succeeded ? "text-success" : cancelled ? "text-amber-400" : "text-destructive"
+          }`}
+        >
+          {succeeded ? "Completed" : cancelled ? "Cancelled" : "Failed"}
         </span>
         <button className="ml-1 text-xs text-smoke hover:text-white transition-colors" onClick={onClear}>
           Clear

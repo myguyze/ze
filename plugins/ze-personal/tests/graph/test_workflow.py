@@ -1,5 +1,5 @@
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -9,12 +9,17 @@ from ze_automation.workflow.types import Branch, StepResult, WorkflowStep
 from ze_personal.graph.workflow import (
     _resolve_step_output,
     _resolve_verify_model,
+    after_handle_step_failure,
     after_route_branch,
     after_verify_step,
+    handle_step_failure,
     load_workflow_step,
+    retry_step,
     route_branch,
     verify_step,
+    workflow_cancelled,
     workflow_failed,
+    workflow_synthesize,
 )
 
 
@@ -336,7 +341,7 @@ class TestFailurePrecedesRouting:
         result = await verify_step(state, config)
 
         assert result["workflow_step_results"][-1].success is False
-        assert after_verify_step(result) == "workflow_failed"
+        assert after_verify_step(result) == "handle_step_failure"
         assert after_verify_step(result) != "route_branch"
 
     async def test_failed_tool_call_routes_to_workflow_failed(self):
@@ -371,7 +376,7 @@ class TestFailurePrecedesRouting:
         result = await verify_step(state, config)
 
         assert result["workflow_step_results"][-1].success is False
-        assert after_verify_step(result) == "workflow_failed"
+        assert after_verify_step(result) == "handle_step_failure"
 
 
 class TestLoopGuard:
@@ -748,6 +753,311 @@ class TestLegacyWorkflowExecution:
 
         assert failed["workflow_step_results"][-1].success is False
         assert failed["workflow_step_results"][-1].step_id == "s1"
-        assert after_verify_step(failed) == "workflow_failed"
+        assert after_verify_step(failed) == "handle_step_failure"
         assert len(failed["workflow_step_results"]) == 2
         assert [r.step_id for r in failed["workflow_step_results"]] == ["s0", "s1"]
+
+
+class TestOnFailurePolicies:
+    async def test_continue_policy_routes_to_next_step(self):
+        step_a = WorkflowStep(task="monitor", id="s0", on_failure="continue")
+        step_b = WorkflowStep(task="report", id="s1")
+        steps = [step_a, step_b]
+        state = {
+            "workflow_steps": steps,
+            "steps_by_id": {s.id: s for s in steps},
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task=step_a.task,
+                    output="",
+                    success=False,
+                    error="nothing found",
+                    duration_ms=0,
+                )
+            ],
+        }
+        result = await handle_step_failure(state, {"configurable": {}})
+        assert result["current_step_id"] == "s1"
+        assert after_handle_step_failure(result) == "load_workflow_step"
+
+    async def test_skip_to_policy_routes_to_target(self):
+        step_a = WorkflowStep(task="monitor", id="s0", on_failure="skip_to:s2")
+        step_b = WorkflowStep(task="skipped", id="s1")
+        step_c = WorkflowStep(task="report", id="s2")
+        steps = [step_a, step_b, step_c]
+        state = {
+            "workflow_steps": steps,
+            "steps_by_id": {s.id: s for s in steps},
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task=step_a.task,
+                    output="",
+                    success=False,
+                    error="failed",
+                    duration_ms=0,
+                )
+            ],
+        }
+        result = await handle_step_failure(state, {"configurable": {}})
+        assert result["current_step_id"] == "s2"
+
+    async def test_default_fail_policy_routes_to_workflow_failed(self):
+        step = WorkflowStep(task="critical", id="s0")
+        state = {
+            "workflow_steps": [step],
+            "steps_by_id": {"s0": step},
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task=step.task,
+                    output="",
+                    success=False,
+                    error="boom",
+                    duration_ms=0,
+                )
+            ],
+        }
+        result = await handle_step_failure(state, {"configurable": {}})
+        assert result["current_step_id"] == "FAIL"
+        assert after_handle_step_failure(result) == "workflow_failed"
+
+    async def test_all_continue_failures_mark_run_failed(self):
+        store = _make_store()
+        store.finish_execution = AsyncMock()
+        client = MagicMock()
+        client.complete = AsyncMock(return_value="all failed summary")
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        step_results = [
+            StepResult(
+                step_index=0,
+                step_id="s0",
+                task="a",
+                output="",
+                success=False,
+                error="fail a",
+                duration_ms=0,
+            ),
+            StepResult(
+                step_index=1,
+                step_id="s1",
+                task="b",
+                output="",
+                success=False,
+                error="fail b",
+                duration_ms=0,
+            ),
+        ]
+        state = {
+            "workflow_step_results": step_results,
+            "workflow_execution_id": uuid4(),
+        }
+        result = await workflow_synthesize(state, config)
+        assert "Workflow failed" in result["final_response"]
+        store.finish_execution.assert_called_once()
+        assert store.finish_execution.call_args.args[1] == "failed"
+
+
+class TestPartialSynthesis:
+    async def test_workflow_failed_includes_summary_when_prior_steps_succeeded(self):
+        store = _make_store()
+        store.finish_execution = AsyncMock()
+        client = MagicMock()
+        client.complete = AsyncMock(return_value="partial output summary")
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        execution_id = uuid4()
+        state = {
+            "workflow_execution_id": execution_id,
+            "workflow_steps": [
+                WorkflowStep(task="research", id="s0"),
+                WorkflowStep(task="send", id="s1"),
+            ],
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="research",
+                    output="findings",
+                    success=True,
+                    error=None,
+                    duration_ms=10,
+                ),
+                StepResult(
+                    step_index=1,
+                    step_id="s1",
+                    task="send",
+                    output="",
+                    success=False,
+                    error="smtp down",
+                    duration_ms=5,
+                ),
+            ],
+        }
+        result = await workflow_failed(state, config)
+        assert "partial output summary" in result["final_response"]
+        store.finish_execution.assert_called_once()
+        call = store.finish_execution.call_args
+        assert call.args[0] == execution_id
+        assert call.args[1] == "failed"
+        assert call.kwargs["summary"] == "partial output summary"
+
+    async def test_workflow_failed_without_successes_skips_synthesis(self):
+        store = _make_store()
+        store.finish_execution = AsyncMock()
+        client = MagicMock()
+        client.complete = AsyncMock()
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        state = {
+            "workflow_execution_id": uuid4(),
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="only",
+                    output="",
+                    success=False,
+                    error="failed immediately",
+                    duration_ms=0,
+                )
+            ],
+        }
+        await workflow_failed(state, config)
+        client.complete.assert_not_called()
+
+
+class TestRetryRouting:
+    async def test_transient_failure_routes_to_retry_step(self):
+        state = {
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="fetch",
+                    output="",
+                    success=False,
+                    error="Request timeout after 30s",
+                    duration_ms=0,
+                    attempt_count=1,
+                )
+            ],
+            "step_attempt": 1,
+        }
+        assert after_verify_step(state) == "retry_step"
+
+    async def test_retry_step_increments_attempt_and_strips_failed_result(self):
+        state = {
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="fetch",
+                    output="",
+                    success=False,
+                    error="503 service unavailable",
+                    duration_ms=0,
+                )
+            ],
+            "step_attempt": 1,
+        }
+        with patch("ze_personal.graph.workflow.asyncio.sleep", new=AsyncMock()):
+            result = await retry_step(state, {"configurable": {}})
+        assert result["step_attempt"] == 2
+        assert result["from_retry"] is True
+        assert result["workflow_step_results"] == []
+
+    async def test_exhausted_retries_route_to_handle_step_failure(self):
+        state = {
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="fetch",
+                    output="",
+                    success=False,
+                    error="503 service unavailable",
+                    duration_ms=0,
+                    attempt_count=3,
+                )
+            ],
+            "step_attempt": 3,
+        }
+        assert after_verify_step(state) == "handle_step_failure"
+
+
+class TestNoResultsVerify:
+    async def test_no_results_records_success(self):
+        store = _make_store()
+        client = MagicMock()
+        client.complete = AsyncMock(
+            return_value=json.dumps(
+                {"pass": True, "no_results": True, "reason": "No new items found"}
+            )
+        )
+        config = {"configurable": {"workflow_store": store, "openrouter_client": client}}
+        step = WorkflowStep(
+            task="Check for news",
+            id="s0",
+            verify="Empty result is valid if check ran",
+        )
+        state = {
+            "workflow_steps": [step],
+            "steps_by_id": {"s0": step},
+            "current_step_id": "s0",
+            "workflow_execution_id": uuid4(),
+            "workflow_step_results": [],
+            "agent_result": AgentResult(agent="news", response="checked, nothing new"),
+            "subtask_results": [],
+            "step_attempt": 1,
+        }
+        result = await verify_step(state, config)
+        last = result["workflow_step_results"][-1]
+        assert last.success is True
+        assert last.no_results is True
+        assert after_verify_step(result) == "route_branch"
+
+
+class TestCancellation:
+    async def test_workflow_cancelled_persists_cancelled_status(self):
+        store = _make_store()
+        store.finish_execution = AsyncMock()
+        execution_id = uuid4()
+        state = {
+            "workflow_execution_id": execution_id,
+            "workflow_step_results": [
+                StepResult(
+                    step_index=0,
+                    step_id="s0",
+                    task="long task",
+                    output="partial",
+                    success=True,
+                    error=None,
+                    duration_ms=100,
+                )
+            ],
+        }
+        result = await workflow_cancelled(state, {"configurable": {"workflow_store": store}})
+        assert result["final_response"] == "Workflow run cancelled."
+        store.finish_execution.assert_called_once_with(
+            execution_id, "cancelled", summary=store.finish_execution.call_args.kwargs["summary"]
+        )
+
+    async def test_load_workflow_step_routes_to_cancelled_when_flagged(self):
+        scheduler = MagicMock()
+        scheduler.is_cancelled = MagicMock(return_value=True)
+        execution_id = uuid4()
+        step = WorkflowStep(task="work", id="s0")
+        result = await load_workflow_step(
+            {
+                "workflow_steps": [step],
+                "steps_by_id": {"s0": step},
+                "current_step_id": "s0",
+                "workflow_execution_id": execution_id,
+            },
+            {"configurable": {"workflow_scheduler": scheduler}},
+        )
+        assert result["current_step_id"] == "CANCELLED"
+        assert after_route_branch(result) == "workflow_cancelled"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -17,6 +18,30 @@ log = get_logger(__name__)
 
 WorkflowExecutor = Callable[[Workflow, UUID], Awaitable[None]]
 WorkflowFailureHandler = Callable[[Workflow, Exception], Awaitable[None]]
+
+
+class CancellationRegistry:
+    def __init__(self) -> None:
+        self._events: dict[UUID, asyncio.Event] = {}
+
+    def register(self, execution_id: UUID) -> asyncio.Event:
+        event = asyncio.Event()
+        self._events[execution_id] = event
+        return event
+
+    def cancel(self, execution_id: UUID) -> bool:
+        event = self._events.get(execution_id)
+        if event is None:
+            return False
+        event.set()
+        return True
+
+    def is_cancelled(self, execution_id: UUID) -> bool:
+        event = self._events.get(execution_id)
+        return event is not None and event.is_set()
+
+    def unregister(self, execution_id: UUID) -> None:
+        self._events.pop(execution_id, None)
 
 
 class WorkflowScheduler:
@@ -34,6 +59,8 @@ class WorkflowScheduler:
         self._on_failure = on_failure
         self._stale_timeout_minutes = stale_timeout_minutes
         self._scheduler = AsyncIOScheduler()
+        self._cancellation = CancellationRegistry()
+        self._running_executions: set[UUID] = set()
 
     def configure_executor(
         self,
@@ -94,6 +121,25 @@ class WorkflowScheduler:
         asyncio.create_task(self._run_execution(workflow, execution_id))
         return execution_id
 
+    def is_cancelled(self, execution_id: UUID) -> bool:
+        return self._cancellation.is_cancelled(execution_id)
+
+    async def cancel_execution(
+        self, workflow_id: UUID, execution_id: UUID
+    ) -> Literal["cancelled", "not_running"]:
+        execution = await self._store.get_execution(workflow_id, execution_id)
+        if execution is None or execution.status != "running":
+            return "not_running"
+        if execution_id not in self._running_executions:
+            return "not_running"
+        self._cancellation.cancel(execution_id)
+        log.info(
+            "workflow_cancel_requested",
+            workflow_id=str(workflow_id),
+            execution_id=str(execution_id),
+        )
+        return "cancelled"
+
     def schedule_job(self, fn, cron: str, job_id: str) -> None:
         self._scheduler.add_job(
             fn,
@@ -144,6 +190,8 @@ class WorkflowScheduler:
         await self._run_execution(workflow, execution_id)
 
     async def _run_execution(self, workflow: Workflow, execution_id: UUID) -> None:
+        self._cancellation.register(execution_id)
+        self._running_executions.add(execution_id)
         try:
             await self._executor(workflow, execution_id)
         except Exception as exc:
@@ -154,10 +202,10 @@ class WorkflowScheduler:
             if self._on_failure:
                 await self._on_failure(workflow, exc)
             return
+        finally:
+            self._cancellation.unregister(execution_id)
+            self._running_executions.discard(execution_id)
 
-        # The graph can route a step failure to the workflow_failed node and return
-        # normally (no exception) — check the persisted status so those runs still
-        # trigger the failure alert instead of falling through as a success.
         execution = await self._store.get_execution(workflow.id, execution_id)
         if execution is not None and execution.status == "failed":
             log.warning(
@@ -170,6 +218,14 @@ class WorkflowScheduler:
                 await self._on_failure(
                     workflow, RuntimeError(execution.error or "Workflow step failed")
                 )
+            return
+
+        if execution is not None and execution.status == "cancelled":
+            log.info(
+                "workflow_execution_cancelled",
+                workflow=workflow.name,
+                execution_id=str(execution_id),
+            )
             return
 
         now = datetime.now(tz=timezone.utc)

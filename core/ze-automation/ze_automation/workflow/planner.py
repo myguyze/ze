@@ -8,6 +8,7 @@ from ze_logging import get_logger
 from ze_agents.client import LLMClient
 from ze_sdk.memory import Procedure
 from ze_automation.workflow.types import Branch, StepResult, WorkflowStep
+from ze_automation.workflow.validation import validate_workflow_steps
 
 log = get_logger(__name__)
 
@@ -15,25 +16,8 @@ _TERMINAL_TARGETS = {"END", "FAIL"}
 
 
 def validate_step_targets(steps: list[WorkflowStep]) -> None:
-    """Raise WorkflowPlanError if any Branch.to/default_next points at an unknown step id, or ids collide."""
-    step_ids = [s.id for s in steps]
-    seen: set[str] = set()
-    for step_id in step_ids:
-        if step_id in seen:
-            raise WorkflowPlanError(f"duplicate step id '{step_id}'")
-        seen.add(step_id)
-
-    valid_targets = seen | _TERMINAL_TARGETS
-    for step in steps:
-        for branch in step.branches:
-            if branch.to not in valid_targets:
-                raise WorkflowPlanError(
-                    f"step '{step.id}' branches to unknown step '{branch.to}'"
-                )
-        if step.default_next is not None and step.default_next not in valid_targets:
-            raise WorkflowPlanError(
-                f"step '{step.id}' default_next refers to unknown step '{step.default_next}'"
-            )
+    """Raise WorkflowPlanError if any Branch.to/default_next/on_failure target is invalid."""
+    validate_workflow_steps(steps)
 
 
 _PLAN_SYSTEM = """\
@@ -50,6 +34,12 @@ also include on the relevant step(s):
   "branches"     — ordered list of {"condition": "...", "to": "..."} pairs where
                    "to" is another step's id or the terminal targets "END" / "FAIL"
   "default_next" — step id or "END" / "FAIL" to use when no branch matches
+  "on_failure"   — one of "fail" (default), "continue", or "skip_to:<step_id>"
+
+For monitoring or checking steps that may legitimately find nothing new, author verify
+criteria that accept an empty or negative finding as success (e.g. "confirms the check
+ran; no new items is valid"). Prefer "on_failure": "continue" for non-critical
+monitoring/enrichment steps when failure should not abort the whole run.
 
 For plain sequential workflows with no conditional language, omit id, branches, and
 default_next entirely — the system assigns ids and runs steps in list order.
@@ -139,6 +129,9 @@ def _parse_step(item: dict, index: int) -> WorkflowStep:
     step_id = item.get("id")
     if not isinstance(step_id, str) or not step_id:
         step_id = f"s{index}"
+    on_failure = item.get("on_failure", "fail")
+    if not isinstance(on_failure, str) or not on_failure:
+        on_failure = "fail"
     return WorkflowStep(
         task=item["task"],
         agent_hint=item.get("agent_hint"),
@@ -147,6 +140,7 @@ def _parse_step(item: dict, index: int) -> WorkflowStep:
         id=step_id,
         branches=_parse_branches(item.get("branches")),
         default_next=default_next,
+        on_failure=on_failure,
     )
 
 
@@ -169,6 +163,7 @@ class WorkflowPlanner:
             log.warning("workflow_plan_parse_error", error=str(exc), raw=raw[:200])
             raise WorkflowPlanError(f"Planner returned invalid plan: {exc}") from exc
 
+        validate_workflow_steps(steps)
         log.info("workflow_planned", steps=len(steps))
         return steps
 

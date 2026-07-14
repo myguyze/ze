@@ -2,10 +2,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from ze_agents.errors import WorkflowPlanError
 from ze_api.api.dependencies import get_workflow_store, require_api_key
 from ze_api.api.schemas import (
+    CancelWorkflowExecutionResponse,
     StepResultResponse,
     TriggerWorkflowResponse,
+    UpdateWorkflowStepsRequest,
     WorkflowDetailResponse,
     WorkflowExecutionResponse,
     WorkflowResponse,
@@ -13,6 +16,7 @@ from ze_api.api.schemas import (
 )
 from ze_automation import rest as workflow_rest
 from ze_automation.workflow.store import WorkflowStore
+from ze_automation.workflow.types import Branch, WorkflowStep
 
 router = APIRouter(tags=["workflows"], dependencies=[Depends(require_api_key)])
 
@@ -117,3 +121,66 @@ async def trigger_workflow(
         workflow_id=workflow_id,
         execution_id=execution_id,
     )
+
+
+def _steps_from_request(steps: list) -> list[WorkflowStep]:
+    return [
+        WorkflowStep(
+            task=s.task,
+            agent_hint=s.agent_hint,
+            verify=s.verify,
+            intent=s.intent,
+            id=s.id,
+            branches=[Branch(condition=b.condition, to=b.to) for b in s.branches],
+            default_next=s.default_next,
+            on_failure=s.on_failure,
+        )
+        for s in steps
+    ]
+
+
+@router.patch(
+    "/{workflow_id}/steps",
+    response_model=WorkflowDetailResponse,
+    operation_id="updateWorkflowSteps",
+    summary="Update workflow steps",
+    description="Replace the full step list on an existing workflow. Schedule and run history are unchanged.",
+)
+async def update_workflow_steps(
+    workflow_id: UUID,
+    body: UpdateWorkflowStepsRequest,
+    store: WorkflowStore = Depends(get_workflow_store),
+) -> WorkflowDetailResponse:
+    try:
+        wf = await workflow_rest.update_workflow_steps(
+            store, workflow_id, _steps_from_request(body.steps)
+        )
+    except WorkflowPlanError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return WorkflowDetailResponse(
+        **{k: v for k, v in wf.items() if k != "steps"},
+        steps=[WorkflowStepResponse.model_validate(s) for s in wf["steps"]],
+    )
+
+
+@router.post(
+    "/{workflow_id}/executions/{execution_id}/cancel",
+    response_model=CancelWorkflowExecutionResponse,
+    operation_id="cancelWorkflowExecution",
+    summary="Cancel workflow execution",
+    description="Request cancellation of an in-progress run. Best-effort at step boundary.",
+)
+async def cancel_workflow_execution(
+    workflow_id: UUID,
+    execution_id: UUID,
+    request: Request,
+    store: WorkflowStore = Depends(get_workflow_store),
+) -> CancelWorkflowExecutionResponse:
+    scheduler = request.app.state.container.workflow_scheduler
+    try:
+        result = await workflow_rest.cancel_workflow_execution(
+            store, scheduler, workflow_id, execution_id
+        )
+    except WorkflowPlanError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return CancelWorkflowExecutionResponse.model_validate(result)

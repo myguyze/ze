@@ -142,6 +142,20 @@ export type BodyIngest = {
 };
 
 /**
+ * BranchInput
+ */
+export type BranchInput = {
+    /**
+     * Condition
+     */
+    condition: string;
+    /**
+     * To
+     */
+    to: string;
+};
+
+/**
  * BranchResponse
  */
 export type BranchResponse = {
@@ -153,6 +167,24 @@ export type BranchResponse = {
      * To
      */
     to: string;
+};
+
+/**
+ * CancelWorkflowExecutionResponse
+ */
+export type CancelWorkflowExecutionResponse = {
+    /**
+     * Status
+     */
+    status: 'cancelled' | 'not_running';
+    /**
+     * Execution Id
+     */
+    execution_id: string;
+    /**
+     * Message
+     */
+    message: string;
 };
 
 /**
@@ -1856,6 +1888,14 @@ export type StepResultResponse = {
      * Branch Taken
      */
     branch_taken: string | null;
+    /**
+     * Attempt Count
+     */
+    attempt_count?: number;
+    /**
+     * No Results
+     */
+    no_results?: boolean;
 };
 
 /**
@@ -1989,6 +2029,16 @@ export type UnreadCountResponse = {
  */
 export type UpdateCapabilityResponse = {
     [key: string]: AgentCapabilityConfig;
+};
+
+/**
+ * UpdateWorkflowStepsRequest
+ */
+export type UpdateWorkflowStepsRequest = {
+    /**
+     * Steps
+     */
+    steps: Array<WorkflowStepInput>;
 };
 
 /**
@@ -2266,6 +2316,44 @@ export type WorkflowResponse = {
 };
 
 /**
+ * WorkflowStepInput
+ */
+export type WorkflowStepInput = {
+    /**
+     * Task
+     */
+    task: string;
+    /**
+     * Agent Hint
+     */
+    agent_hint?: string | null;
+    /**
+     * Verify
+     */
+    verify?: string | null;
+    /**
+     * Intent
+     */
+    intent?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Branches
+     */
+    branches?: Array<BranchInput>;
+    /**
+     * Default Next
+     */
+    default_next?: string | null;
+    /**
+     * On Failure
+     */
+    on_failure?: string;
+};
+
+/**
  * WorkflowStepResponse
  */
 export type WorkflowStepResponse = {
@@ -2293,6 +2381,10 @@ export type WorkflowStepResponse = {
      * Default Next
      */
     default_next: string | null;
+    /**
+     * On Failure
+     */
+    on_failure?: string;
 };
 
 /**
@@ -2946,6 +3038,70 @@ export type TriggerWorkflowResponses = {
 };
 
 export type TriggerWorkflowResponse2 = TriggerWorkflowResponses[keyof TriggerWorkflowResponses];
+
+export type UpdateWorkflowStepsData = {
+    body: UpdateWorkflowStepsRequest;
+    path: {
+        /**
+         * Workflow Id
+         */
+        workflow_id: string;
+    };
+    query?: never;
+    url: '/api/v0/workflows/{workflow_id}/steps';
+};
+
+export type UpdateWorkflowStepsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateWorkflowStepsError = UpdateWorkflowStepsErrors[keyof UpdateWorkflowStepsErrors];
+
+export type UpdateWorkflowStepsResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowDetailResponse;
+};
+
+export type UpdateWorkflowStepsResponse = UpdateWorkflowStepsResponses[keyof UpdateWorkflowStepsResponses];
+
+export type CancelWorkflowExecutionData = {
+    body?: never;
+    path: {
+        /**
+         * Workflow Id
+         */
+        workflow_id: string;
+        /**
+         * Execution Id
+         */
+        execution_id: string;
+    };
+    query?: never;
+    url: '/api/v0/workflows/{workflow_id}/executions/{execution_id}/cancel';
+};
+
+export type CancelWorkflowExecutionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CancelWorkflowExecutionError = CancelWorkflowExecutionErrors[keyof CancelWorkflowExecutionErrors];
+
+export type CancelWorkflowExecutionResponses = {
+    /**
+     * Successful Response
+     */
+    200: CancelWorkflowExecutionResponse;
+};
+
+export type CancelWorkflowExecutionResponse2 = CancelWorkflowExecutionResponses[keyof CancelWorkflowExecutionResponses];
 
 export type GetCostSummaryData = {
     body?: never;

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from uuid import UUID
 
 from ze_agents.tool import ToolAccess, tool
 from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.planner import WorkflowPlanner, validate_step_targets
+from ze_automation.workflow.validation import validate_workflow_steps
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import (
+    Branch,
     StepResult,
     Workflow,
     WorkflowExecution,
@@ -25,6 +29,8 @@ def _serialize_step_result(result: StepResult) -> dict:
         "duration_ms": result.duration_ms,
         "step_id": result.step_id,
         "branch_taken": result.branch_taken,
+        "attempt_count": result.attempt_count,
+        "no_results": result.no_results,
     }
 
 
@@ -36,6 +42,7 @@ def _serialize_step(step: WorkflowStep) -> dict:
         "id": step.id,
         "branches": [{"condition": b.condition, "to": b.to} for b in step.branches],
         "default_next": step.default_next,
+        "on_failure": step.on_failure,
     }
 
 
@@ -257,3 +264,90 @@ async def trigger_workflow(
         return {"error": f"No workflow named '{workflow_name}' found."}
     await scheduler.trigger_now(wf.id)
     return {"triggered": workflow_name}
+
+
+@tool(
+    access=ToolAccess.WRITE,
+    description="Replace the step list on an existing workflow without changing its schedule.",
+)
+async def edit_workflow_steps(
+    store: WorkflowStore,
+    workflow_name: str,
+    steps_json: str,
+) -> dict:
+    wf = await store.get_by_name(workflow_name)
+    if wf is None:
+        return {"error": f"No workflow named '{workflow_name}' found."}
+
+    try:
+        raw_steps = json.loads(steps_json)
+        if not isinstance(raw_steps, list):
+            raise ValueError("steps_json must be a JSON array")
+        steps = [
+            WorkflowStep(
+                task=item["task"],
+                agent_hint=item.get("agent_hint"),
+                verify=item.get("verify"),
+                intent=item.get("intent", "execute"),
+                id=item["id"],
+                branches=[
+                    Branch(condition=b["condition"], to=b["to"])
+                    for b in item.get("branches") or []
+                ],
+                default_next=item.get("default_next"),
+                on_failure=item.get("on_failure", "fail"),
+            )
+            for item in raw_steps
+        ]
+        validate_workflow_steps(steps)
+        await store.update_steps(wf.id, steps)
+    except (json.JSONDecodeError, KeyError, ValueError, WorkflowPlanError) as exc:
+        return {"error": str(exc)}
+
+    return {
+        "name": workflow_name,
+        "step_count": len(steps),
+        "steps": [_serialize_step(s) for s in steps],
+    }
+
+
+@tool(
+    access=ToolAccess.WRITE,
+    description="Cancel an in-progress workflow run by name (latest running execution).",
+)
+async def cancel_workflow_run(
+    store: WorkflowStore,
+    scheduler: WorkflowScheduler,
+    workflow_name: str,
+    execution_id: str = "",
+) -> dict:
+    wf = await store.get_by_name(workflow_name)
+    if wf is None:
+        return {"error": f"No workflow named '{workflow_name}' found."}
+
+    target_id: UUID | None = None
+    if execution_id:
+        try:
+            target_id = UUID(execution_id)
+        except ValueError:
+            return {"error": f"Invalid execution_id '{execution_id}'."}
+    else:
+        executions = await store.list_executions(wf.id, limit=5)
+        running = next((ex for ex in executions if ex.status == "running"), None)
+        if running is None:
+            return {
+                "status": "not_running",
+                "message": "No in-progress execution found for this workflow.",
+            }
+        target_id = running.id
+
+    status = await scheduler.cancel_execution(wf.id, target_id)
+    if status == "cancelled":
+        message = "Cancellation requested; run will stop after the current step."
+    else:
+        message = "Execution is not in progress."
+    return {
+        "status": status,
+        "execution_id": str(target_id),
+        "message": message,
+    }

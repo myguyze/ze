@@ -6,6 +6,7 @@ from uuid import UUID
 
 import asyncpg
 
+from ze_agents.errors import WorkflowPlanError
 from ze_logging import get_logger
 from ze_automation.workflow.types import (
     Branch,
@@ -14,12 +15,13 @@ from ze_automation.workflow.types import (
     WorkflowExecution,
     WorkflowStep,
 )
+from ze_automation.workflow.validation import validate_workflow_steps
 
 log = get_logger(__name__)
 
 
 def _step_to_dict(step: WorkflowStep) -> dict:
-    return {
+    data = {
         "task": step.task,
         "agent_hint": step.agent_hint,
         "verify": step.verify,
@@ -28,6 +30,9 @@ def _step_to_dict(step: WorkflowStep) -> dict:
         "branches": [{"condition": b.condition, "to": b.to} for b in step.branches],
         "default_next": step.default_next,
     }
+    if step.on_failure != "fail":
+        data["on_failure"] = step.on_failure
+    return data
 
 
 def _coerce_jsonb_list(value: object) -> list:
@@ -59,11 +64,12 @@ def _step_from_dict(d: dict | str, index: int) -> WorkflowStep:
             for b in d.get("branches") or []
         ],
         default_next=d.get("default_next"),
+        on_failure=d.get("on_failure", "fail"),
     )
 
 
 def _step_result_to_dict(r: StepResult) -> dict:
-    return {
+    data = {
         "step_index": r.step_index,
         "task": r.task,
         "output": r.output,
@@ -73,6 +79,11 @@ def _step_result_to_dict(r: StepResult) -> dict:
         "step_id": r.step_id,
         "branch_taken": r.branch_taken,
     }
+    if r.attempt_count != 1:
+        data["attempt_count"] = r.attempt_count
+    if r.no_results:
+        data["no_results"] = True
+    return data
 
 
 def _step_result_from_dict(d: dict | str) -> StepResult:
@@ -87,6 +98,8 @@ def _step_result_from_dict(d: dict | str) -> StepResult:
         duration_ms=d.get("duration_ms", 0),
         step_id=d.get("step_id", ""),
         branch_taken=d.get("branch_taken"),
+        attempt_count=d.get("attempt_count", 1),
+        no_results=d.get("no_results", False),
     )
 
 
@@ -182,6 +195,27 @@ class PostgresWorkflowStore:
                 workflow_id,
             )
         log.info("workflow_schedule_updated", id=str(workflow_id), schedule=schedule)
+
+    async def update_steps(
+        self, workflow_id: UUID, steps: list[WorkflowStep]
+    ) -> None:
+        validate_workflow_steps(steps)
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id FROM workflows WHERE id = $1", workflow_id
+            )
+            if row is None:
+                raise WorkflowPlanError(f"Workflow {workflow_id} not found")
+            await conn.execute(
+                """
+                UPDATE workflows
+                SET steps = $1::jsonb, updated_at = NOW()
+                WHERE id = $2
+                """,
+                [_step_to_dict(s) for s in steps],
+                workflow_id,
+            )
+        log.info("workflow_steps_updated", id=str(workflow_id), steps=len(steps))
 
     async def delete(self, workflow_id: UUID) -> None:
         async with self._pool.acquire() as conn:

@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.store import WorkflowStore
+from ze_automation.workflow.types import WorkflowStep
+from ze_automation.workflow.validation import validate_workflow_steps
 
 
 async def list_workflows(store: WorkflowStore) -> list[dict]:
@@ -41,11 +44,13 @@ async def get_workflow(store: WorkflowStore, workflow_id: UUID) -> dict | None:
                 "task": s.task,
                 "agent_hint": s.agent_hint,
                 "verify": s.verify,
+                "intent": s.intent,
                 "id": s.id,
                 "branches": [
                     {"condition": b.condition, "to": b.to} for b in s.branches
                 ],
                 "default_next": s.default_next,
+                "on_failure": s.on_failure,
             }
             for s in wf.steps
         ],
@@ -83,6 +88,8 @@ def _execution_to_dict(ex) -> dict:
                 "duration_ms": r.duration_ms,
                 "step_id": r.step_id,
                 "branch_taken": r.branch_taken,
+                "attempt_count": r.attempt_count,
+                "no_results": r.no_results,
             }
             for r in ex.step_results
         ],
@@ -190,3 +197,35 @@ async def build_status_summary(container: Any, *, period_days: int = 1) -> str:
         total_cost_usd=total_cost,
     )
     return build_narrative(summary)
+
+
+async def update_workflow_steps(
+    store: WorkflowStore, workflow_id: UUID, steps: list[WorkflowStep]
+) -> dict:
+    wf = await store.get(workflow_id)
+    if wf is None:
+        raise WorkflowPlanError(f"Workflow {workflow_id} not found")
+    validate_workflow_steps(steps)
+    await store.update_steps(workflow_id, steps)
+    return await get_workflow(store, workflow_id)
+
+
+async def cancel_workflow_execution(
+    store: WorkflowStore,
+    scheduler: Any,
+    workflow_id: UUID,
+    execution_id: UUID,
+) -> dict:
+    wf = await store.get(workflow_id)
+    if wf is None:
+        raise WorkflowPlanError(f"Workflow {workflow_id} not found")
+    status = await scheduler.cancel_execution(workflow_id, execution_id)
+    if status == "cancelled":
+        message = "Cancellation requested; run will stop after the current step."
+    else:
+        message = "Execution is not in progress."
+    return {
+        "status": status,
+        "execution_id": execution_id,
+        "message": message,
+    }

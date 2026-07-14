@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
+import json
+
 import ze_automation.agents.workflow.tools as tools
 from ze_automation.workflow.types import (
     Branch,
@@ -189,6 +191,7 @@ async def test_get_workflow_returns_legacy_steps_with_backfilled_branch_fields()
             "id": "s0",
             "branches": [],
             "default_next": None,
+            "on_failure": "fail",
         },
         {
             "task": "Summarize",
@@ -197,6 +200,7 @@ async def test_get_workflow_returns_legacy_steps_with_backfilled_branch_fields()
             "id": "s1",
             "branches": [],
             "default_next": None,
+            "on_failure": "fail",
         },
     ]
     assert legacy_result["steps"] == linear_result["steps"]
@@ -212,3 +216,62 @@ async def test_list_workflows_includes_legacy_workflow_metadata():
     assert len(result) == 1
     assert result[0]["name"] == "morning-briefing"
     assert result[0]["enabled"] is True
+
+
+async def test_edit_workflow_steps_updates_store():
+    wf = _workflow()
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_steps = AsyncMock()
+    steps_json = json.dumps(
+        [
+            {
+                "id": "s0",
+                "task": "Updated task",
+                "on_failure": "continue",
+                "branches": [],
+            }
+        ]
+    )
+
+    result = await tools.edit_workflow_steps(store, wf.name, steps_json)
+
+    store.update_steps.assert_called_once()
+    assert result["step_count"] == 1
+    assert result["steps"][0]["on_failure"] == "continue"
+
+
+async def test_edit_workflow_steps_rejects_invalid_graph():
+    wf = _workflow()
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    steps_json = json.dumps(
+        [
+            {
+                "id": "s0",
+                "task": "Broken",
+                "branches": [{"condition": "x", "to": "missing"}],
+            }
+        ]
+    )
+
+    result = await tools.edit_workflow_steps(store, wf.name, steps_json)
+
+    assert "error" in result
+    store.update_steps.assert_not_called()
+
+
+async def test_cancel_workflow_run_delegates_to_scheduler():
+    wf = _workflow()
+    execution = _execution(status="running")
+    execution.workflow_id = wf.id
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.list_executions = AsyncMock(return_value=[execution])
+    scheduler = AsyncMock()
+    scheduler.cancel_execution = AsyncMock(return_value="cancelled")
+
+    result = await tools.cancel_workflow_run(store, scheduler, wf.name)
+
+    scheduler.cancel_execution.assert_called_once_with(wf.id, execution.id)
+    assert result["status"] == "cancelled"

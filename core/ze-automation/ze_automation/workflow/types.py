@@ -18,6 +18,7 @@ class WorkflowStep:
     id: str = ""
     branches: list["Branch"] = field(default_factory=list)
     default_next: str | None = None
+    on_failure: str = "fail"
 
 
 @dataclass
@@ -44,6 +45,8 @@ class StepResult:
     duration_ms: int
     step_id: str = ""
     branch_taken: str | None = None
+    attempt_count: int = 1
+    no_results: bool = False
 
 
 @dataclass

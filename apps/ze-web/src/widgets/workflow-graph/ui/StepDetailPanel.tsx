@@ -67,6 +67,8 @@ export function StepDetailPanel({ node, executionError, onClose }: Props) {
             <p className="text-xs text-smoke">
               {STATE_LABEL[state]}
               {result && ` • ${formatDurationMs(result.duration_ms)}`}
+              {result?.attempt_count != null && result.attempt_count > 1 && ` • ${result.attempt_count} attempts`}
+              {result?.no_results && " • No new results"}
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@ export { useWorkflowDetailQuery } from "./api/useWorkflowDetailQuery";
 export { useWorkflowExecutionsQuery } from "./api/useWorkflowExecutionsQuery";
 export { useLiveExecutionQuery } from "./api/useLiveExecutionQuery";
 export { useTriggerWorkflowMutation } from "./api/useTriggerWorkflowMutation";
+export { useCancelExecutionMutation } from "./api/useCancelExecutionMutation";
 export { WorkflowCard } from "./ui/WorkflowCard";
 export { formatSchedule, formatTimestamp, formatDurationMs, averageSuccessfulRunDuration } from "./lib/format";
 export { buildWorkflowGraph, type StepState, type WorkflowGraphNode, type WorkflowGraphEdge } from "./lib/buildWorkflowGraph";

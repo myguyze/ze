@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution
+from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
 
 
 class WorkflowStore(Protocol):
@@ -25,6 +25,10 @@ class WorkflowStore(Protocol):
         workflow_id: UUID,
         schedule: str | None,
         next_run_at: datetime | None,
+    ) -> None: ...
+
+    async def update_steps(
+        self, workflow_id: UUID, steps: list[WorkflowStep]
     ) -> None: ...
 
     async def delete(self, workflow_id: UUID) -> None: ...

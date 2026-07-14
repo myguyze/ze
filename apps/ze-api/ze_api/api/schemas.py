@@ -413,6 +413,13 @@ class StepResultResponse(BaseModel):
     duration_ms: int
     step_id: str
     branch_taken: str | None
+    attempt_count: int = 1
+    no_results: bool = False
+
+
+class BranchInput(BaseModel):
+    condition: str
+    to: str
 
 
 class WorkflowStepResponse(BaseModel):
@@ -422,6 +429,22 @@ class WorkflowStepResponse(BaseModel):
     id: str
     branches: list[BranchResponse]
     default_next: str | None
+    on_failure: str = "fail"
+
+
+class WorkflowStepInput(BaseModel):
+    task: str
+    agent_hint: str | None = None
+    verify: str | None = None
+    intent: str = "execute"
+    id: str
+    branches: list[BranchInput] = []
+    default_next: str | None = None
+    on_failure: str = "fail"
+
+
+class UpdateWorkflowStepsRequest(BaseModel):
+    steps: list[WorkflowStepInput]
 
 
 class WorkflowResponse(BaseModel):
@@ -455,6 +478,12 @@ class TriggerWorkflowResponse(BaseModel):
     status: str
     workflow_id: UUIDType
     execution_id: UUIDType
+
+
+class CancelWorkflowExecutionResponse(BaseModel):
+    status: Literal["cancelled", "not_running"]
+    execution_id: UUIDType
+    message: str
 
 
 # ── REST: eval ────────────────────────────────────────────────────────────────

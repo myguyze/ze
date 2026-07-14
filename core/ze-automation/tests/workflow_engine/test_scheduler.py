@@ -115,6 +115,41 @@ def test_add_job_prevents_concurrent_overlapping_runs():
     assert job.coalesce is True
 
 
+async def test_cancel_execution_marks_running_execution():
+    workflow = _make_workflow()
+    execution_id = uuid4()
+    running = WorkflowExecution(
+        id=execution_id,
+        workflow_id=workflow.id,
+        status="running",
+    )
+    store = _make_store(running)
+    scheduler = WorkflowScheduler(workflow_store=store, executor=AsyncMock())
+    scheduler._running_executions.add(execution_id)
+    scheduler._cancellation.register(execution_id)
+
+    status = await scheduler.cancel_execution(workflow.id, execution_id)
+
+    assert status == "cancelled"
+    assert scheduler.is_cancelled(execution_id)
+
+
+async def test_cancel_execution_returns_not_running_for_finished():
+    workflow = _make_workflow()
+    execution_id = uuid4()
+    completed = WorkflowExecution(
+        id=execution_id,
+        workflow_id=workflow.id,
+        status="completed",
+    )
+    store = _make_store(completed)
+    scheduler = WorkflowScheduler(workflow_store=store, executor=AsyncMock())
+
+    status = await scheduler.cancel_execution(workflow.id, execution_id)
+
+    assert status == "not_running"
+
+
 async def test_start_recovers_stale_executions_before_scheduling():
     workflow = _make_workflow()
     store = _make_store(execution=None)

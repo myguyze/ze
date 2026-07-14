@@ -51,8 +51,12 @@ def _make_app(
     workflow_store.get_execution = AsyncMock(
         return_value=executions[0] if executions else None
     )
+    workflow_store.list_all = AsyncMock(return_value=[workflow])
 
-    container = SimpleNamespace(workflow_store=workflow_store)
+    container = SimpleNamespace(
+        workflow_store=workflow_store,
+        workflow_scheduler=AsyncMock(),
+    )
     app.state.container = container
 
     app.dependency_overrides[require_api_key] = lambda: None
@@ -161,3 +165,118 @@ async def test_get_workflow_execution_by_id():
     assert resp.status_code == 200
     assert resp.json()["id"] == str(execution.id)
     assert resp.json()["status"] == "running"
+
+
+@pytest.mark.asyncio
+async def test_update_workflow_steps_success():
+    steps = [
+        WorkflowStep(task="Check status", id="s0", on_failure="continue"),
+        WorkflowStep(task="Notify", id="s1"),
+    ]
+    workflow = _workflow(steps)
+    app = _make_app(workflow)
+    app.state.container.workflow_store.update_steps = AsyncMock()
+    app.state.container.workflow_store.get = AsyncMock(return_value=workflow)
+
+    payload = {
+        "steps": [
+            {
+                "id": "s0",
+                "task": "Check status",
+                "on_failure": "continue",
+                "branches": [],
+            },
+            {"id": "s1", "task": "Notify", "branches": []},
+        ]
+    }
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.patch(
+            f"/api/v0/workflows/{workflow.id}/steps",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json=payload,
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["steps"][0]["on_failure"] == "continue"
+
+
+@pytest.mark.asyncio
+async def test_update_workflow_steps_validation_error():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    app = _make_app(workflow)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.patch(
+            f"/api/v0/workflows/{workflow.id}/steps",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={
+                "steps": [
+                    {
+                        "id": "s0",
+                        "task": "Check status",
+                        "branches": [{"condition": "x", "to": "missing"}],
+                    }
+                ]
+            },
+        )
+
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_cancel_workflow_execution_running():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    execution = WorkflowExecution(
+        id=uuid4(),
+        workflow_id=workflow.id,
+        status="running",
+        step_results=[],
+        created_at=datetime.now(timezone.utc),
+    )
+    app = _make_app(workflow, executions=[execution])
+    scheduler = AsyncMock()
+    scheduler.cancel_execution = AsyncMock(return_value="cancelled")
+    app.state.container.workflow_scheduler = scheduler
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            f"/api/v0/workflows/{workflow.id}/executions/{execution.id}/cancel",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "cancelled"
+
+
+@pytest.mark.asyncio
+async def test_cancel_workflow_execution_not_running():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    execution = WorkflowExecution(
+        id=uuid4(),
+        workflow_id=workflow.id,
+        status="completed",
+        step_results=[],
+        created_at=datetime.now(timezone.utc),
+    )
+    app = _make_app(workflow, executions=[execution])
+    scheduler = AsyncMock()
+    scheduler.cancel_execution = AsyncMock(return_value="not_running")
+    app.state.container.workflow_scheduler = scheduler
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            f"/api/v0/workflows/{workflow.id}/executions/{execution.id}/cancel",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "not_running"
