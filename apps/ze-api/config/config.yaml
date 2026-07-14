@@ -39,6 +39,20 @@ memory:
   nli_retrieval_rerank: true
   nli_rerank_candidate_multiplier: 2
   nli_rerank_min_candidates: 5
+  relevance_floor: 0.35            # global default; 0 recovers pre-phase-106 ANN-order behaviour (FR-017)
+  relevance_floor_overrides:
+    episode: 0.30
+  composite_weights:
+    similarity: 0.6
+    recency: 0.25
+    confidence: 0.15
+  entity_anchor:
+    enabled: true
+    match_constant: 0.75
+  live_rerank:
+    enabled: true
+    candidate_limit: 20
+    timeout_ms: 120
   consolidation:
     episode_archive_days: 7
     episode_archive_batch: 50
