@@ -44,7 +44,7 @@ from ze_memory.types import MemoryContext, RetrievalRequest
 _FACT_SELECT = """
     SELECT id, subject_id, predicate, object_text, object_id, value,
            confidence, reviewed, contradicted, source_episode_id, source_refs,
-           COALESCE(provenance, 'raw') AS provenance
+           COALESCE(provenance, 'raw') AS provenance, updated_at
 """
 
 _ENTITY_SELECT = """
@@ -92,6 +92,25 @@ def apply_relevance_floor(
             kept.append(row)
     return kept
 
+
+def _prepare_candidates(
+    rows: list[Any], memory_type: str, cfg: RelevanceConfig
+) -> list[Any]:
+    """Apply the relevance floor, then order survivors by composite score (US3).
+
+    Composite ordering runs unconditionally, but resolves to the exact
+    pre-phase-106 ANN order when `composite_weights` are configured as
+    similarity=1/recency=0/confidence=0 (FR-017 rollback, in combination with
+    `relevance_floor: 0`) since composite_score then equals raw similarity.
+    """
+    from datetime import datetime, timezone
+
+    from ze_memory.composite import sort_by_composite_score
+
+    filtered = apply_relevance_floor(rows, memory_type, cfg)
+    return sort_by_composite_score(
+        filtered, cfg.composite_weights, datetime.now(timezone.utc)
+    )
 
 
 async def _fetch_facts_by_similarity(conn: Any, emb: str, limit: int) -> list:
@@ -256,11 +275,11 @@ class CompanionPolicy:
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
-        entity_rows = apply_relevance_floor(entity_rows, "entity", cfg)
-        event_rows = apply_relevance_floor(event_rows, "event", cfg)
-        session_summary_rows = apply_relevance_floor(
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        episode_rows = _prepare_candidates(episode_rows, "episode", cfg)
+        entity_rows = _prepare_candidates(entity_rows, "entity", cfg)
+        event_rows = _prepare_candidates(event_rows, "event", cfg)
+        session_summary_rows = _prepare_candidates(
             session_summary_rows, "session_summary", cfg
         )
 
@@ -329,10 +348,10 @@ class ResearchPolicy:
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
-        event_rows = apply_relevance_floor(event_rows, "event", cfg)
-        session_summary_rows = apply_relevance_floor(
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        episode_rows = _prepare_candidates(episode_rows, "episode", cfg)
+        event_rows = _prepare_candidates(event_rows, "event", cfg)
+        session_summary_rows = _prepare_candidates(
             session_summary_rows, "session_summary", cfg
         )
 
@@ -384,8 +403,8 @@ class GoalsPolicy:
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        event_rows = apply_relevance_floor(event_rows, "event", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        event_rows = _prepare_candidates(event_rows, "event", cfg)
 
         from ze_memory.projection import (
             budget_facts,
@@ -422,7 +441,7 @@ class WorkflowPolicy:
 
         task_state = await store.get_task_state(task_id=request.task_id, goal_id=None)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -458,8 +477,8 @@ class CalendarPolicy:
             )
             event_rows = await _fetch_calendar_events_by_similarity(conn, emb)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        event_rows = apply_relevance_floor(event_rows, "event", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        event_rows = _prepare_candidates(event_rows, "event", cfg)
 
         from ze_memory.projection import budget_facts, events_from_rows, token_estimate
 
@@ -486,7 +505,7 @@ class RemindersPolicy:
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -521,11 +540,11 @@ class EmailPolicy:
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
-        entity_rows = apply_relevance_floor(entity_rows, "entity", cfg)
-        event_rows = apply_relevance_floor(event_rows, "event", cfg)
-        session_summary_rows = apply_relevance_floor(
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        episode_rows = _prepare_candidates(episode_rows, "episode", cfg)
+        entity_rows = _prepare_candidates(entity_rows, "entity", cfg)
+        event_rows = _prepare_candidates(event_rows, "event", cfg)
+        session_summary_rows = _prepare_candidates(
             session_summary_rows, "session_summary", cfg
         )
 
@@ -580,9 +599,9 @@ class ProspectingPolicy:
             )
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
-        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
-        session_summary_rows = apply_relevance_floor(
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
+        episode_rows = _prepare_candidates(episode_rows, "episode", cfg)
+        session_summary_rows = _prepare_candidates(
             session_summary_rows, "session_summary", cfg
         )
 
@@ -642,7 +661,7 @@ class PlannerPolicy:
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
 
         from ze_memory.projection import (
             budget_facts,
@@ -681,7 +700,7 @@ class ToolExecutorPolicy:
             task_id=request.task_id, goal_id=request.goal_id
         )
 
-        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        fact_rows = _prepare_candidates(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
