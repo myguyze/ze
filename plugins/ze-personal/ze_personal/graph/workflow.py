@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from dataclasses import replace
 from typing import Any
 from uuid import UUID
@@ -42,6 +43,7 @@ class WorkflowAgentState(AgentState, total=False):
     steps_by_id: dict[str, WorkflowStep]
     visit_counts: dict[str, int]
     workflow_step_results: list  # list[StepResult]
+    step_started_at: float | None
 
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
@@ -74,6 +76,7 @@ async def load_workflow_step(state: dict[str, Any], config: RunnableConfig) -> d
         "steps_by_id": steps_by_id,
         "current_step_id": current_step_id,
         "visit_counts": visit_counts,
+        "step_started_at": time.monotonic(),
         "prompt": step.task,
         "envelope": None,
         "memory_context": None,
@@ -176,7 +179,7 @@ async def verify_step(state: dict[str, Any], config: RunnableConfig) -> dict:
         output=output,
         success=True,
         error=None,
-        duration_ms=0,
+        duration_ms=_step_duration_ms(state),
     )
 
     log.info("workflow_step_complete", step_id=step_id, task=step.task[:60])
@@ -565,6 +568,14 @@ async def _sync_workflow_task_state(
         )
 
 
+def _step_duration_ms(state: dict[str, Any]) -> int:
+    """Elapsed time since load_workflow_step stamped this step's start, or 0 if untracked."""
+    started_at = state.get("step_started_at")
+    if started_at is None:
+        return 0
+    return int((time.monotonic() - started_at) * 1000)
+
+
 def _next_step_id_in_list(steps: list[WorkflowStep], step_id: str) -> str | None:
     """The id of the step immediately after `step_id` in authored (list) order, or None if last."""
     ids = [s.id for s in steps]
@@ -628,7 +639,7 @@ async def _fail_step(
         output=output,
         success=False,
         error=error,
-        duration_ms=0,
+        duration_ms=_step_duration_ms(state),
     )
     if execution_id:
         await store.record_step(execution_id, step_result)

@@ -310,3 +310,27 @@ class PostgresWorkflowStore:
             completed_at=row["completed_at"],
             created_at=row["created_at"],
         )
+
+    async def recover_stale(self, timeout_minutes: int) -> int:
+        """Mark running executions older than timeout_minutes as failed. Returns count recovered."""
+        async with self._pool.acquire() as conn:
+            tag = await conn.execute(
+                """
+                UPDATE workflow_executions
+                SET status = 'failed',
+                    error = 'Execution interrupted (process restarted mid-run)',
+                    completed_at = NOW()
+                WHERE status = 'running'
+                  AND started_at < NOW() - ($1 * INTERVAL '1 minute')
+                """,
+                timeout_minutes,
+            )
+        parts = tag.split() if isinstance(tag, str) else []
+        count = int(parts[-1]) if parts else 0
+        if count:
+            log.info(
+                "stale_workflow_executions_recovered",
+                count=count,
+                timeout_minutes=timeout_minutes,
+            )
+        return count

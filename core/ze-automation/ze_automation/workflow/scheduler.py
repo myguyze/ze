@@ -26,11 +26,13 @@ class WorkflowScheduler:
         executor: WorkflowExecutor | None = None,
         enabled: bool = True,
         on_failure: WorkflowFailureHandler | None = None,
+        stale_timeout_minutes: int = 30,
     ) -> None:
         self._store = workflow_store
         self._executor = executor
         self._enabled = enabled
         self._on_failure = on_failure
+        self._stale_timeout_minutes = stale_timeout_minutes
         self._scheduler = AsyncIOScheduler()
 
     def configure_executor(
@@ -51,6 +53,8 @@ class WorkflowScheduler:
         if not self._enabled:
             log.info("workflow_scheduler_disabled")
             return
+
+        await self._store.recover_stale(self._stale_timeout_minutes)
 
         workflows = await self._store.list_enabled_scheduled()
         for wf in workflows:
@@ -123,6 +127,8 @@ class WorkflowScheduler:
             id=str(workflow.id),
             args=[workflow.id],
             replace_existing=True,
+            max_instances=1,
+            coalesce=True,
         )
 
     async def _run_workflow(self, workflow_id: UUID) -> None:
@@ -147,6 +153,23 @@ class WorkflowScheduler:
             await self._store.finish_execution(execution_id, "failed", error=str(exc))
             if self._on_failure:
                 await self._on_failure(workflow, exc)
+            return
+
+        # The graph can route a step failure to the workflow_failed node and return
+        # normally (no exception) — check the persisted status so those runs still
+        # trigger the failure alert instead of falling through as a success.
+        execution = await self._store.get_execution(workflow.id, execution_id)
+        if execution is not None and execution.status == "failed":
+            log.warning(
+                "workflow_execution_step_failed",
+                workflow=workflow.name,
+                execution_id=str(execution_id),
+                error=execution.error,
+            )
+            if self._on_failure:
+                await self._on_failure(
+                    workflow, RuntimeError(execution.error or "Workflow step failed")
+                )
             return
 
         now = datetime.now(tz=timezone.utc)

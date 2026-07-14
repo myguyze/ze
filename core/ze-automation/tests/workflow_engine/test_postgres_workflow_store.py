@@ -164,6 +164,32 @@ def test_step_result_to_dict_and_from_dict_round_trip_step_id_and_branch_taken()
     assert restored == result
 
 
+async def test_recover_stale_marks_old_running_executions_failed():
+    pool, conn = _make_pool()
+    conn.execute = AsyncMock(return_value="UPDATE 2")
+    store = PostgresWorkflowStore(pool)
+
+    count = await store.recover_stale(timeout_minutes=30)
+
+    assert count == 2
+    conn.execute.assert_called_once()
+    sql, timeout = conn.execute.call_args.args
+    assert "UPDATE workflow_executions" in sql
+    assert "status = 'failed'" in sql
+    assert "WHERE status = 'running'" in sql
+    assert timeout == 30
+
+
+async def test_recover_stale_returns_zero_when_nothing_recovered():
+    pool, conn = _make_pool()
+    conn.execute = AsyncMock(return_value="UPDATE 0")
+    store = PostgresWorkflowStore(pool)
+
+    count = await store.recover_stale(timeout_minutes=30)
+
+    assert count == 0
+
+
 def test_step_result_from_dict_defaults_step_id_and_branch_taken_when_absent():
     d = {
         "step_index": 0,

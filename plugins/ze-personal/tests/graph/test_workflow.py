@@ -98,6 +98,41 @@ async def test_verify_step_accepts_subtask_results_without_agent_result():
 
 
 @pytest.mark.asyncio
+async def test_verify_step_records_duration_from_load_workflow_step_start():
+    store = _make_store()
+    config = {
+        "configurable": {
+            "workflow_store": store,
+            "openrouter_client": MagicMock(),
+        }
+    }
+    step = WorkflowStep(task="search news", intent="read", id="s0")
+    loaded = await load_workflow_step(
+        {
+            "workflow_steps": [step],
+            "steps_by_id": {"s0": step},
+            "current_step_id": "s0",
+            "workflow_execution_id": uuid4(),
+        },
+        {"configurable": {}},
+    )
+    state = {
+        "workflow_steps": [step],
+        "steps_by_id": {"s0": step},
+        "current_step_id": "s0",
+        "step_started_at": loaded["step_started_at"],
+        "workflow_execution_id": uuid4(),
+        "workflow_step_results": [],
+        "agent_result": None,
+        "subtask_results": [AgentResult(agent="news", response="article summary")],
+    }
+
+    result = await verify_step(state, config)
+
+    assert result["workflow_step_results"][0].duration_ms >= 0
+
+
+@pytest.mark.asyncio
 async def test_verify_step_fails_when_all_outputs_empty():
     store = _make_store()
     config = {
