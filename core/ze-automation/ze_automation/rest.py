@@ -73,6 +73,19 @@ async def get_workflow_execution(
     return _execution_to_dict(ex)
 
 
+def _step_to_response_dict(step: WorkflowStep) -> dict:
+    return {
+        "task": step.task,
+        "agent_hint": step.agent_hint,
+        "verify": step.verify,
+        "intent": step.intent,
+        "id": step.id,
+        "branches": [{"condition": b.condition, "to": b.to} for b in step.branches],
+        "default_next": step.default_next,
+        "on_failure": step.on_failure,
+    }
+
+
 def _execution_to_dict(ex) -> dict:
     return {
         "id": ex.id,
@@ -93,6 +106,7 @@ def _execution_to_dict(ex) -> dict:
             }
             for r in ex.step_results
         ],
+        "steps_snapshot": [_step_to_response_dict(s) for s in ex.steps_snapshot],
         "error": ex.error,
         "summary": ex.summary,
         "started_at": ex.started_at.isoformat() if ex.started_at else None,

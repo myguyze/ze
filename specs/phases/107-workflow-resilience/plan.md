@@ -14,7 +14,7 @@ Workflow execution today fails the entire run on any step verification failure (
 
 **Primary Dependencies**: LangGraph workflow graph (`plugins/ze-personal/ze_personal/graph/workflow.py`), `WorkflowScheduler` / `PostgresWorkflowStore` (`core/ze-automation`), FastAPI REST (`apps/ze-api`), OpenRouter client (existing internal retries — workflow-level retries are an additional layer at step boundaries), `ProactiveNotifier` failure alerts (`core/ze-automation/ze_automation/bootstrap.py`)
 
-**Storage**: PostgreSQL — existing `workflows.steps` and `workflow_executions.step_results` JSONB columns; new fields (`on_failure`, `attempt_count`, `no_results`) stored inside those JSON blobs. New execution status string `cancelled`. No Alembic migration.
+**Storage**: PostgreSQL — existing `workflows.steps` and `workflow_executions.step_results` JSONB columns; new fields (`on_failure`, `attempt_count`, `no_results`) stored inside those JSON blobs. New execution status `cancelled`. **107 core**: no migration for workflow step JSONB. **107b**: migration for `steps_snapshot` + `cancelled` CHECK constraint.
 
 **Testing**: pytest — `make test-automation`, `make test-personal` (workflow graph tests in `plugins/ze-personal/tests/graph/test_workflow.py`), `make test-api` for REST routes. Mock asyncpg pools and `client.complete`. No real DB or OpenRouter.
 
@@ -89,6 +89,13 @@ apps/ze-web/src/
 ```
 
 **Structure Decision**: No new package. Workflow graph changes live in `plugins/ze-personal` (existing location per phase 74/20 reorg). Automation types/store/scheduler extensions in `core/ze-automation`. REST and minimal web UI in `apps/`.
+
+## 107b follow-up (User Story 7)
+
+Step editing requires **per-run definition snapshots** (`workflow_executions.steps_snapshot`)
+and explicit ze-web labeling (FR-018b–g). See spec User Story 7, data-model migration
+section, and `tasks.md` Phase 10 (T055–T066). Includes fixing the `cancelled` status
+CHECK constraint omitted from the initial 107 implementation.
 
 ## Complexity Tracking
 

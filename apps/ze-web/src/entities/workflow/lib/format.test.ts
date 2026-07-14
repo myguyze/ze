@@ -13,6 +13,7 @@ function execution(
     id: "exec-1",
     workflow_id: "wf-1",
     step_results: [],
+    steps_snapshot: [],
     error: null,
     summary: null,
     started_at: "2026-07-01T19:20:00.000Z",

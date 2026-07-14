@@ -85,6 +85,29 @@ curl -X POST "$ZE/api/v0/workflows/$WF_ID/executions/$EXEC_ID/cancel" \
 
 Second cancel call returns `"status": "not_running"`.
 
+## Story 7 — Historical runs use definition snapshot (107b)
+
+1. Create a workflow with two steps; trigger a run and wait for completion.
+2. Edit the workflow (rename or remove step 1) via `PATCH …/steps`.
+3. On the workflow detail page, select the **pre-edit** execution from run history.
+4. Expect:
+   - Graph shows **pre-edit** step names/structure (from `steps_snapshot`).
+   - Banner: e.g. "This run used the workflow as it was on {started_at}. The definition has changed since then."
+5. Deselect the execution (or view with no run selected).
+6. Expect: graph shows **current** definition with a "Current definition" label.
+
+Legacy executions (no snapshot):
+
+- Select an old run from before 107b deploy.
+- Expect: warning that definition at run time is unavailable — not a silent current-graph overlay.
+
+After 107b migration:
+
+```bash
+make migrate
+make test-automation test-api
+```
+
 ## Regression checks
 
 ```bash

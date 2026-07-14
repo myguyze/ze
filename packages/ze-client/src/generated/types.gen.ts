@@ -2256,6 +2256,10 @@ export type WorkflowExecutionResponse = {
      */
     step_results: Array<StepResultResponse>;
     /**
+     * Steps Snapshot
+     */
+    steps_snapshot?: Array<WorkflowStepResponse>;
+    /**
      * Error
      */
     error: string | null;

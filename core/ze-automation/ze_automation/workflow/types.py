@@ -55,6 +55,7 @@ class WorkflowExecution:
     workflow_id: UUID | None
     status: str
     step_results: list[StepResult] = field(default_factory=list)
+    steps_snapshot: list[WorkflowStep] = field(default_factory=list)
     error: str | None = None
     summary: str | None = None
     started_at: datetime | None = None

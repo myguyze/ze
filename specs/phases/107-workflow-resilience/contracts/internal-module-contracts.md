@@ -78,6 +78,24 @@ Function signatures new or changed code must satisfy. REST contracts are in
 Reset to `1` in `load_workflow_step` when entering a new step (not on retry of
 same step — increment before retry edge).
 
+## `ze_automation.workflow.store.WorkflowStore.start_execution(workflow_id) -> UUID`
+
+- *(107b)* MUST copy `workflow.steps` into `workflow_executions.steps_snapshot` at insert time.
+- Snapshot MUST NOT be updated by `update_steps` or any later workflow edit.
+
+## UI — `WorkflowDefinitionNotice` (107b, ze-web)
+
+Props (conceptual):
+
+| Mode | When | Copy (example) |
+|---|---|---|
+| `current` | No historical run selected | "Current definition" |
+| `historical` | Snapshot matches current steps | "Showing definition from this run ({started_at})" |
+| `historical-edited-since` | Snapshot differs from current | "This run used the workflow as it was on {started_at}. The definition has changed since then." |
+| `legacy-unavailable` | `steps_snapshot` empty | "Definition at run time is unavailable. The graph may not match what actually ran." |
+
+MUST appear above `WorkflowGraph` on `WorkflowDetailPage`; MUST NOT be dismissable in a way that hides the distinction permanently for that view.
+
 ## `ze_automation.agents.workflow.tools.edit_workflow_steps(...) -> dict`
 
 - Resolves workflow by name; accepts step list (JSON or structured args).

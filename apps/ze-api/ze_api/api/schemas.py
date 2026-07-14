@@ -467,6 +467,7 @@ class WorkflowExecutionResponse(BaseModel):
     workflow_id: UUIDType | None
     status: str
     step_results: list[StepResultResponse]
+    steps_snapshot: list[WorkflowStepResponse] = []
     error: str | None
     summary: str | None
     started_at: str | None

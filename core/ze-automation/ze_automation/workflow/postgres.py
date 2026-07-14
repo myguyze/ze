@@ -103,6 +103,27 @@ def _step_result_from_dict(d: dict | str) -> StepResult:
     )
 
 
+def _row_to_execution(row) -> WorkflowExecution:
+    return WorkflowExecution(
+        id=row["id"],
+        workflow_id=row["workflow_id"],
+        status=row["status"],
+        step_results=[
+            _step_result_from_dict(d)
+            for d in _coerce_jsonb_list(row["step_results"])
+        ],
+        steps_snapshot=[
+            _step_from_dict(s, i)
+            for i, s in enumerate(_coerce_jsonb_list(row.get("steps_snapshot")))
+        ],
+        error=row["error"],
+        summary=row["summary"],
+        started_at=row["started_at"],
+        completed_at=row["completed_at"],
+        created_at=row["created_at"],
+    )
+
+
 def _row_to_workflow(row) -> Workflow:
     return Workflow(
         id=row["id"],
@@ -242,13 +263,24 @@ class PostgresWorkflowStore:
 
     async def start_execution(self, workflow_id: UUID | None) -> UUID:
         async with self._pool.acquire() as conn:
+            snapshot: list[dict] = []
+            if workflow_id is not None:
+                wf_row = await conn.fetchrow(
+                    "SELECT steps FROM workflows WHERE id = $1", workflow_id
+                )
+                if wf_row is not None:
+                    snapshot = [
+                        _step_to_dict(_step_from_dict(s, i))
+                        for i, s in enumerate(_coerce_jsonb_list(wf_row["steps"]))
+                    ]
             row = await conn.fetchrow(
                 """
-                INSERT INTO workflow_executions (workflow_id, status, started_at)
-                VALUES ($1, 'running', NOW())
+                INSERT INTO workflow_executions (workflow_id, status, started_at, steps_snapshot)
+                VALUES ($1, 'running', NOW(), $2::jsonb)
                 RETURNING id
                 """,
                 workflow_id,
+                snapshot,
             )
             return row["id"]
 
@@ -298,23 +330,7 @@ class PostgresWorkflowStore:
                 workflow_id,
                 limit,
             )
-        return [
-            WorkflowExecution(
-                id=r["id"],
-                workflow_id=r["workflow_id"],
-                status=r["status"],
-                step_results=[
-                    _step_result_from_dict(d)
-                    for d in _coerce_jsonb_list(r["step_results"])
-                ],
-                error=r["error"],
-                summary=r["summary"],
-                started_at=r["started_at"],
-                completed_at=r["completed_at"],
-                created_at=r["created_at"],
-            )
-            for r in rows
-        ]
+        return [_row_to_execution(r) for r in rows]
 
     async def get_execution(
         self, workflow_id: UUID, execution_id: UUID
@@ -330,20 +346,7 @@ class PostgresWorkflowStore:
             )
         if row is None:
             return None
-        return WorkflowExecution(
-            id=row["id"],
-            workflow_id=row["workflow_id"],
-            status=row["status"],
-            step_results=[
-                _step_result_from_dict(d)
-                for d in _coerce_jsonb_list(row["step_results"])
-            ],
-            error=row["error"],
-            summary=row["summary"],
-            started_at=row["started_at"],
-            completed_at=row["completed_at"],
-            created_at=row["created_at"],
-        )
+        return _row_to_execution(row)
 
     async def recover_stale(self, timeout_minutes: int) -> int:
         """Mark running executions older than timeout_minutes as failed. Returns count recovered."""

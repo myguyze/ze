@@ -69,9 +69,16 @@ async def list_workflow_executions(
     executions = await workflow_rest.list_workflow_executions(store, workflow_id)
     return [
         WorkflowExecutionResponse(
-            **{k: v for k, v in ex.items() if k != "step_results"},
+            **{
+                k: v
+                for k, v in ex.items()
+                if k not in ("step_results", "steps_snapshot")
+            },
             step_results=[
                 StepResultResponse.model_validate(r) for r in ex["step_results"]
+            ],
+            steps_snapshot=[
+                WorkflowStepResponse.model_validate(s) for s in ex["steps_snapshot"]
             ],
         )
         for ex in executions
@@ -94,8 +101,15 @@ async def get_workflow_execution(
     if ex is None:
         raise HTTPException(status_code=404, detail="Execution not found")
     return WorkflowExecutionResponse(
-        **{k: v for k, v in ex.items() if k != "step_results"},
+        **{
+            k: v
+            for k, v in ex.items()
+            if k not in ("step_results", "steps_snapshot")
+        },
         step_results=[StepResultResponse.model_validate(r) for r in ex["step_results"]],
+        steps_snapshot=[
+            WorkflowStepResponse.model_validate(s) for s in ex["steps_snapshot"]
+        ],
     )
 
 

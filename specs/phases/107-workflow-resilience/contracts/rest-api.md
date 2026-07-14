@@ -26,6 +26,7 @@ implementation (`make codegen` or project equivalent).
 | `status` | Now includes `"cancelled"`. |
 | `step_results[].attempt_count` | `integer`, default `1`. |
 | `step_results[].no_results` | `boolean`, default `false`. |
+| `steps_snapshot` | *(107b)* `WorkflowStepResponse[]` — definition frozen at run start; `[]` for legacy executions. |
 
 ## New routes
 

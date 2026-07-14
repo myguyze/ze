@@ -155,6 +155,7 @@ Existing monorepo (see plan.md): `core/ze-automation/`, `plugins/ze-personal/`, 
 - [x] T036 [US5] Implement `update_workflow_steps()` helper in `core/ze-automation/ze_automation/rest.py` delegating to `store.update_steps()` — depends on T009
 - [x] T037 [US5] Add `PATCH /api/v0/workflows/{workflow_id}/steps` route (`updateWorkflowSteps`) in `apps/ze-api/ze_api/api/routes/workflows.py` — depends on T035, T036
 - [x] T038 [US5] Add `edit_workflow_steps` agent tool in `core/ze-automation/ze_automation/agents/workflow/tools.py` — depends on T009
+- [x] T038b [US5] Register `edit_workflow_steps` and `cancel_workflow_run` on `WorkflowManagerAgent.tools` and document in agent instructions (`agent.py`)
 
 **Checkpoint**: Users can tune steps (including `on_failure`) without recreating workflows.
 
@@ -180,6 +181,7 @@ Existing monorepo (see plan.md): `core/ze-automation/`, `plugins/ze-personal/`, 
 - [x] T045 [P] [US6] Add `CancelWorkflowExecutionResponse` to `apps/ze-api/ze_api/api/schemas.py`
 - [x] T046 [US6] Implement `cancel_workflow_execution()` in `core/ze-automation/ze_automation/rest.py` and `POST …/cancel` route in `apps/ze-api/ze_api/api/routes/workflows.py` — depends on T042, T045
 - [x] T047 [US6] Add `cancel_workflow_run` agent tool in `core/ze-automation/ze_automation/agents/workflow/tools.py` — depends on T042
+- [x] T047b [US6] *(merged into T038b)* Register `cancel_workflow_run` on `WorkflowManagerAgent.tools`
 - [x] T048 [P] [US6] Create `useCancelExecutionMutation.ts` in `apps/ze-web/src/entities/workflow/api/` and export from `apps/ze-web/src/entities/workflow/index.ts`
 - [x] T049 [US6] Add Cancel button (visible while running) and `cancelled` status styling in `apps/ze-web/src/pages/workflow-detail/ui/WorkflowDetailPage.tsx` — depends on T048
 - [x] T050 [P] [US6] Display `attempt_count` and `no_results` in `apps/ze-web/src/widgets/workflow-graph/ui/StepDetailPanel.tsx` — depends on T032
@@ -284,7 +286,38 @@ T035 UpdateWorkflowStepsRequest schema
 
 ## Notes
 
-- No Alembic migration — backward compatible JSONB defaults (`on_failure` absent → `"fail"`)
-- Legacy workflows MUST keep today’s fail-on-first-error behavior (regression test in T012)
-- Step-editing UI on ze-web is **out of scope** — cancel button only (FR-019a)
+- No Alembic migration for resilience JSONB fields on `workflows.steps` — backward compatible (`on_failure` absent → `"fail"`)
+- **107b** adds migration for `steps_snapshot` + `cancelled` status CHECK (see data-model.md)
+- Legacy workflows MUST keep today's fail-on-first-error behavior (regression test in T012)
+- Step-editing UI on ze-web is **out of scope** — cancel button only (FR-019a); snapshot display + notices **are** in scope (107b, FR-018d–g)
 - `[P]` tasks = different files or read-only test authoring; graph `workflow.py` edits should not be parallelized across stories
+
+---
+
+## Phase 10: User Story 7 — Definition snapshots & explicit UI (Priority: P5b) *(107b follow-up)*
+
+**Goal**: Per-run `steps_snapshot` at execution start; historical runs render snapshot; ze-web explicitly labels current vs historical definition and warns when they differ.
+
+**Independent Test**: Edit workflow after a run → select old run → graph matches pre-edit steps + banner "definition has changed since this run" (quickstart.md Story 7).
+
+**Prerequisites**: Phases 1–9 (107 core) complete.
+
+### Tests for User Story 7
+
+- [x] T055 [P] [US7] Store tests: `start_execution` persists `steps_snapshot`; `update_steps` does not mutate existing snapshots in `core/ze-automation/tests/workflow/test_postgres.py`
+- [x] T056 [P] [US7] API test: `GET …/executions/{id}` includes `steps_snapshot` in `apps/ze-api/tests/api/test_workflows_route.py`
+- [x] T057 [P] [US7] Web test: historical run shows edited-since banner in `apps/ze-web/src/pages/workflow-detail/ui/WorkflowDetailPage.test.tsx` (or widget-level test)
+
+### Implementation for User Story 7
+
+- [x] T058 [US7] Write migration `zc025_workflow_execution_snapshot_and_cancelled.py` in `core/ze-automation/ze_automation/migrations/versions/` — add `steps_snapshot JSONB`, extend status CHECK for `cancelled` *(zc025 — zc022 taken by ze-core)*
+- [x] T059 [US7] Add `steps_snapshot` to `WorkflowExecution` in `core/ze-automation/ze_automation/workflow/types.py` — depends on T058
+- [x] T060 [US7] Persist snapshot in `start_execution()` and serialize in `postgres.py` (`_row_to_execution`, list/get execution) — depends on T059
+- [x] T061 [P] [US7] Add `steps_snapshot` to `WorkflowExecutionResponse` in `apps/ze-api/ze_api/api/schemas.py` — depends on T059
+- [x] T062 [US7] Add `stepsDifferFromSnapshot(current, snapshot)` helper in `apps/ze-web/src/entities/workflow/lib/stepsSnapshot.ts` (deep compare by step ids + task + on_failure + branches)
+- [x] T063 [US7] Create `WorkflowDefinitionNotice` banner component in `apps/ze-web/src/widgets/workflow-graph/ui/WorkflowDefinitionNotice.tsx` — modes: `current` | `historical` | `historical-edited-since` | `legacy-unavailable` per FR-018e–g
+- [x] T064 [US7] Update `WorkflowDetailPage.tsx` to pass `displayExecution?.steps_snapshot ?? detail.steps` into `WorkflowGraph` when a historical run is selected; show `WorkflowDefinitionNotice` above graph — depends on T062, T063
+- [x] T065 [US7] Regenerate `@ze/client` after schema change — depends on T061
+- [x] T066 [US7] Run quickstart.md Story 7 manually or via automated coverage; run `make test-automation test-personal test-api lint`
+
+**Checkpoint**: Step edits + historical run review are trustworthy; UI never silently mislabels old runs as current definition.

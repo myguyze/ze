@@ -1,7 +1,9 @@
 # Phase 1 Data Model: Workflow Resilience and Control
 
-No new database tables or migrations. All changes extend existing JSONB columns
-(`workflows.steps`, `workflow_executions.step_results`) and execution status strings.
+JSONB field extensions on `workflows.steps` and `workflow_executions.step_results`
+require no migration. **107b follow-up** adds `workflow_executions.steps_snapshot`
+(JSONB) and extends the `status` CHECK constraint to include `cancelled`
+(migration `zc025` in ze-automation chain; `zc022` is owned by ze-core).
 
 ## Extended entities
 
@@ -40,7 +42,11 @@ Existing fields unchanged: `step_index`, `task`, `output`, `success`, `error`,
 
 ### `WorkflowExecution` (`ze_automation/workflow/types.py`)
 
-**Status enum** (string column, no DB constraint):
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `steps_snapshot` | `list[WorkflowStep]` | `[]` | Immutable copy of `workflows.steps` frozen at `start_execution` (107b). NULL/empty for legacy rows. |
+
+**Status enum** (TEXT column; CHECK constraint updated in 107b migration):
 
 | Status | When |
 |---|---|
@@ -48,6 +54,23 @@ Existing fields unchanged: `step_index`, `task`, `output`, `success`, `error`,
 | `completed` | Run finished; ≥1 successful step (FR-009a), including mixed outcomes. |
 | `failed` | Step with `on_failure: fail` failed, unrecoverable error, all steps failed with continue, or stale recovery (existing + FR-009b). |
 | `cancelled` | User requested cancellation; no further steps after current boundary (FR-021). |
+
+**Validation rules**:
+- `steps_snapshot` MUST NOT be updated after insert (immutable).
+- Populated at the same time as graph initial state (same step list as `workflow.steps` at trigger).
+
+## Migration (107b only)
+
+### `zc025_workflow_execution_snapshot_and_cancelled.py`
+
+```sql
+-- Extend status CHECK to include cancelled (drop/recreate or replace constraint)
+ALTER TABLE workflow_executions
+  ADD COLUMN IF NOT EXISTS steps_snapshot JSONB NOT NULL DEFAULT '[]'::jsonb;
+```
+
+- Existing rows keep `steps_snapshot = []`; UI treats empty snapshot as legacy (FR-018g).
+- New executions MUST write full step list at start (non-empty when workflow has steps).
 
 ## New value objects (in-memory)
 
@@ -82,6 +105,10 @@ def is_transient_failure(error: str | None, exc: BaseException | None = None) ->
 
 - `attempt_count: int = 1`
 - `no_results: bool = False`
+
+### `WorkflowExecutionResponse` additions (107b)
+
+- `steps_snapshot: list[WorkflowStepResponse]` — empty for legacy executions; populated for runs started after 107b.
 
 ### `UpdateWorkflowStepsRequest` (new)
 

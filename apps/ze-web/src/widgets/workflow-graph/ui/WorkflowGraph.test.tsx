@@ -24,6 +24,7 @@ function execution(overrides: Partial<WorkflowExecutionResponse>): WorkflowExecu
     started_at: null,
     completed_at: null,
     created_at: "2026-07-10T00:00:00.000Z",
+    steps_snapshot: [],
     ...overrides,
   };
 }

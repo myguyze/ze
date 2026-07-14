@@ -143,6 +143,39 @@ async def test_list_workflow_executions_includes_step_id_and_branch_taken():
 
 
 @pytest.mark.asyncio
+async def test_get_workflow_execution_includes_steps_snapshot():
+    workflow = _workflow(
+        [
+            WorkflowStep(task="Original step", id="s0"),
+            WorkflowStep(task="Second step", id="s1"),
+        ]
+    )
+    execution = WorkflowExecution(
+        id=uuid4(),
+        workflow_id=workflow.id,
+        status="completed",
+        step_results=[],
+        steps_snapshot=[WorkflowStep(task="Original step", id="s0")],
+        created_at=datetime.now(timezone.utc),
+    )
+    app = _make_app(workflow, executions=[execution])
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            f"/api/v0/workflows/{workflow.id}/executions/{execution.id}",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["steps_snapshot"]) == 1
+    assert data["steps_snapshot"][0]["task"] == "Original step"
+    assert data["steps_snapshot"][0]["id"] == "s0"
+
+
+@pytest.mark.asyncio
 async def test_get_workflow_execution_by_id():
     workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
     execution = WorkflowExecution(

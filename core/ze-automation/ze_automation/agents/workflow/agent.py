@@ -22,9 +22,13 @@ Available tools:
 - list_workflow_executions: get recent run history for a workflow (status, step outputs, errors)
 - create_workflow: create a new workflow (workflow_name, description, optional schedule_description)
 - update_workflow: change a workflow's schedule (workflow_name, schedule_description)
+- edit_workflow_steps: replace a workflow's step list (workflow_name, steps_json) — use to change
+  tasks, verify criteria, branches, default_next, or on_failure (fail | continue | skip_to:<step_id>);
+  schedule is unchanged; call get_workflow first to obtain the current steps array
 - enable_workflow / disable_workflow: toggle a workflow on or off (workflow_name)
 - delete_workflow: remove a workflow permanently (workflow_name)
 - trigger_workflow: run a workflow immediately outside its schedule (workflow_name)
+- cancel_workflow_run: cancel the in-progress run for a workflow (workflow_name, optional execution_id)
 
 Guidelines:
 - When creating, provide a clear workflow_name and description; describe any schedule in natural
@@ -33,6 +37,8 @@ Guidelines:
   ambiguous, call list_workflows first to confirm.
 - For run status, failures, or "what did the last run find?", call get_workflow or
   list_workflow_executions — do not guess from schedule metadata alone.
+- To change step definitions (task, on_failure, branches, etc.), call get_workflow then
+  edit_workflow_steps with the full updated steps JSON array — do not use update_workflow.
 - Summarise create results as: name, step count, and schedule (or "on-demand").
 - Report errors returned by tools clearly to the user.\
 """
@@ -63,10 +69,12 @@ class WorkflowManagerAgent(BaseAgent):
         "list_workflow_executions",
         "create_workflow",
         "update_workflow",
+        "edit_workflow_steps",
         "enable_workflow",
         "disable_workflow",
         "delete_workflow",
         "trigger_workflow",
+        "cancel_workflow_run",
     ]
     intents = {
         "read": Intent(Mode.AUTONOMOUS, "List or inspect stored workflows."),

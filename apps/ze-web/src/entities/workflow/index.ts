@@ -7,3 +7,4 @@ export { useCancelExecutionMutation } from "./api/useCancelExecutionMutation";
 export { WorkflowCard } from "./ui/WorkflowCard";
 export { formatSchedule, formatTimestamp, formatDurationMs, averageSuccessfulRunDuration } from "./lib/format";
 export { buildWorkflowGraph, type StepState, type WorkflowGraphNode, type WorkflowGraphEdge } from "./lib/buildWorkflowGraph";
+export { stepsDifferFromSnapshot } from "./lib/stepsSnapshot";

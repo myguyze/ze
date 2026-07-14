@@ -4,7 +4,7 @@ import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle, Ban
 import { useOverlayStore } from "@/features/open-context-overlay";
 import { useSetBreadcrumbTitle } from "@/shared/lib";
 import ReactMarkdown from "react-markdown";
-import type { WorkflowExecutionResponse } from "@myguyze/ze-client";
+import type { WorkflowExecutionResponse, WorkflowStepResponse } from "@myguyze/ze-client";
 import {
   useWorkflowDetailQuery,
   useWorkflowExecutionsQuery,
@@ -13,8 +13,9 @@ import {
   useCancelExecutionMutation,
   formatSchedule,
   averageSuccessfulRunDuration,
+  stepsDifferFromSnapshot,
 } from "@/entities/workflow";
-import { WorkflowGraph } from "@/widgets/workflow-graph";
+import { WorkflowGraph, WorkflowDefinitionNotice, type WorkflowDefinitionNoticeMode } from "@/widgets/workflow-graph";
 import { WorkflowExecutionsList } from "@/widgets/workflow-executions";
 import { ListSkeleton, ErrorState, Button, PageShell, SectionPanel } from "@/shared/ui";
 
@@ -46,6 +47,9 @@ export function WorkflowDetailPage() {
   const displayedId = displayExecution?.id ?? null;
   const activeExecutionId =
     liveExecutionId ?? (liveExecution?.status === "running" ? liveExecution.id : null);
+
+  const definitionNoticeMode = resolveDefinitionNoticeMode(displayExecution, detail.steps);
+  const graphSteps = resolveGraphSteps(displayExecution, detail.steps);
 
   function handleTrigger() {
     if (!workflowId) return;
@@ -173,7 +177,12 @@ export function WorkflowDetailPage() {
             </div>
           </div>
 
-          <WorkflowGraph steps={detail.steps} execution={displayExecution} isLive={isRunning} />
+          <WorkflowDefinitionNotice
+            mode={definitionNoticeMode}
+            startedAt={displayExecution?.started_at}
+          />
+
+          <WorkflowGraph steps={graphSteps} execution={displayExecution} isLive={isRunning} />
 
           {displayExecution?.summary && displayExecution.status !== "running" && (
             <div className="mt-5 pt-5 border-t border-white/[0.06]">
@@ -264,6 +273,27 @@ function ChatAboutRunButton({ execution, workflowName }: ChatAboutRunButtonProps
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function resolveDefinitionNoticeMode(
+  displayExecution: WorkflowExecutionResponse | null | undefined,
+  currentSteps: WorkflowStepResponse[],
+): WorkflowDefinitionNoticeMode {
+  if (!displayExecution) return "current";
+  const snapshot = displayExecution.steps_snapshot ?? [];
+  if (snapshot.length === 0) return "legacy-unavailable";
+  if (stepsDifferFromSnapshot(currentSteps, snapshot)) return "historical-edited-since";
+  return "historical";
+}
+
+function resolveGraphSteps(
+  displayExecution: WorkflowExecutionResponse | null | undefined,
+  currentSteps: WorkflowStepResponse[],
+): WorkflowStepResponse[] {
+  if (!displayExecution) return currentSteps;
+  const snapshot = displayExecution.steps_snapshot ?? [];
+  if (snapshot.length > 0) return snapshot;
+  return currentSteps;
+}
 
 interface StepsStatusProps {
   liveExecution: WorkflowExecutionResponse | null | undefined;

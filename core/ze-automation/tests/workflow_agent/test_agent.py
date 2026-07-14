@@ -46,6 +46,12 @@ def test_workflow_agent_is_registered():
     assert "workflow" in _registry
 
 
+def test_workflow_agent_exposes_step_edit_and_cancel_tools():
+    agent = make_agent()
+    assert "edit_workflow_steps" in agent.tools
+    assert "cancel_workflow_run" in agent.tools
+
+
 # ── run() — basic structure ───────────────────────────────────────────────────
 
 
@@ -233,6 +239,84 @@ async def test_run_updates_workflow_schedule_via_tool():
     scheduler.remove_workflow.assert_called_once_with(wf.id)
     scheduler.add_workflow.assert_called_once()
     assert "Monday" in result.response
+
+
+async def test_run_edits_workflow_steps_via_tool():
+    import json
+
+    import ze_automation.agents.workflow.tools  # noqa
+
+    from uuid import uuid4
+    from datetime import datetime
+    from ze_automation.workflow.types import Workflow, WorkflowStep
+
+    wf = Workflow(
+        id=uuid4(),
+        name="monitoring-check",
+        description="desc",
+        steps=[
+            WorkflowStep(task="Fetch feed", id="s0", on_failure="fail"),
+            WorkflowStep(task="Check items", id="s1", on_failure="fail"),
+        ],
+        schedule="0 8 * * *",
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_steps = AsyncMock()
+
+    updated_steps = [
+        {
+            "task": "Fetch feed",
+            "id": "s0",
+            "on_failure": "fail",
+        },
+        {
+            "task": "Check items",
+            "id": "s1",
+            "on_failure": "continue",
+        },
+    ]
+
+    client = AsyncMock()
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "edit_workflow_steps",
+                        "arguments": {
+                            "workflow_name": "monitoring-check",
+                            "steps_json": json.dumps(updated_steps),
+                        },
+                    }
+                ],
+            ),
+            ("Updated step s1 to continue on failure.", None),
+        ]
+    )
+    client.complete = AsyncMock(return_value="ok")
+
+    agent = WorkflowManagerAgent(
+        openrouter_client=client,
+        workflow_store=store,
+        workflow_planner=AsyncMock(),
+        workflow_scheduler=AsyncMock(),
+    )
+    result = await agent.run(
+        make_ctx("set step 2 on_failure to continue", intent="manage")
+    )
+
+    store.update_steps.assert_called_once()
+    updated = store.update_steps.call_args.args[1]
+    assert updated[1].on_failure == "continue"
+    assert "continue" in result.response.lower()
 
 
 async def test_run_trigger_workflow_via_tool():

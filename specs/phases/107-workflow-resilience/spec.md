@@ -17,6 +17,7 @@
 - Q: What is the system default maximum retry count per step? → A: 2 retries (3 total attempts); system default, not user-configurable this phase.
 - Q: When every step has `on_failure: continue` and all steps fail, what is the overall run status? → A: `failed` — no step succeeded; execution still reaches the end and delivers a failure summary listing each step's failure.
 - Q: Where should partial-result synthesis be delivered when a run fails after partial progress? → A: Existing workflow failure notification path (push alert + run-history summary).
+- Q: Should step editing include definition snapshots for historical runs? → A: Yes — persist `steps_snapshot` on each execution at start; historical UI renders snapshot + explicit labels when definition differs from current workflow. Full revision history remains out of scope.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -116,6 +117,23 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 
 ---
 
+### User Story 7 - Historical runs stay faithful after edits (Priority: P5b)
+
+A user edits a workflow's steps and then opens an older run from before the edit. The run should show the step graph and step metadata **as they were when that run started**, not the current live definition — and the UI should make that explicit so the user is never misled into thinking an old run used today's steps.
+
+**Why this priority**: Step editing (Story 5) is unsafe to rely on without this; overlaying old `step_results` on the current graph produces incorrect history. Tied to editing, not a separate product feature.
+
+**Independent Test**: Edit a workflow (rename/remove a step), then select a pre-edit execution; verify the graph matches the pre-edit definition and the UI states that the run used an older definition.
+
+**Acceptance Scenarios**:
+
+1. **Given** a workflow that has been edited since a past run, **When** the user selects that past run, **Then** the graph and step detail panel render from the run's persisted `steps_snapshot`, not the workflow's current steps.
+2. **Given** a past run whose snapshot differs from the current workflow definition, **When** the user views that run, **Then** the UI displays an explicit notice that the workflow has been edited since this run (including the run's start time).
+3. **Given** no execution is selected (or a live run using the current definition), **When** the user views the workflow detail page, **Then** the graph shows the **current** workflow definition with a clear "Current definition" label.
+4. **Given** a legacy execution with no `steps_snapshot` (created before this feature), **When** the user selects it, **Then** the UI shows a fallback notice that the definition at run time is unavailable and the graph may not match what actually ran.
+
+---
+
 ### Edge Cases
 
 - What happens when every step in a workflow has `on_failure: continue` and all of them fail? The run MUST still reach the end, be marked **`failed`** (because no step succeeded), and deliver a summary listing each step's failure — not silently appear successful with no content.
@@ -123,6 +141,7 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 - What happens when a retryable step keeps hitting the retry limit on every scheduled run indefinitely? This should surface the same way persistent failures already do (via existing failure alerting), just after the retry attempts are exhausted each time.
 - What happens if a user cancels a run at the exact moment the very last step is completing? The system should resolve to whichever outcome (cancelled vs. completed) reflects what work actually finished — no run should be left in an ambiguous or stuck state.
 - What happens when a user edits a step that a currently in-progress run has already started executing? The in-progress run continues using the step definitions it started with; the edit applies starting from the next run.
+- What happens when a user views a historical run after reordering or removing steps? The UI MUST render the run's `steps_snapshot`; step results for removed step ids may still appear in the execution list even if those nodes are absent from a current-definition graph.
 
 ## Requirements *(mandatory)*
 
@@ -161,9 +180,15 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 - **FR-015**: Users MUST be able to edit an existing workflow's individual steps (task description, verification criteria, branches, and `on_failure` policy) without deleting and recreating the workflow — via REST API and workflow agent tools (chat).
 - **FR-016**: Users MUST be able to add, remove, or reorder steps on an existing workflow — via REST API and workflow agent tools (chat).
 - **FR-017**: System MUST validate step edits before saving — at minimum, rejecting a save that leaves a branch, default-next target, or `skip_to` target pointing at a step id that doesn't exist in the edited step list.
-- **FR-018**: Editing a workflow's steps MUST preserve the workflow's existing schedule and past run history.
+- **FR-018**: Editing a workflow's steps MUST preserve the workflow's existing schedule and past execution records. "Preserve history" means execution rows and their snapshots are immutable; only the live workflow definition changes.
+- **FR-018b**: When an execution starts, the system MUST persist a `steps_snapshot` (full step list JSON, same shape as `workflows.steps`) on the execution record, capturing the definition used for that run.
+- **FR-018c**: Step edits MUST NOT modify `steps_snapshot` on existing or in-progress executions.
+- **FR-018d**: When displaying a historical execution in ze-web, the system MUST render the workflow graph and step metadata from that execution's `steps_snapshot`, not from the workflow's current steps.
+- **FR-018e**: When a historical execution's `steps_snapshot` differs from the workflow's current steps (by deep comparison or version counter), ze-web MUST show an explicit, user-visible notice that the workflow has been edited since that run (e.g. banner above the graph: "This run used the workflow as it was on {started_at}. The definition has changed since then.").
+- **FR-018f**: When no execution is selected, ze-web MUST label the graph as showing the **current** workflow definition (e.g. "Current definition").
+- **FR-018g**: When a legacy execution has no `steps_snapshot`, ze-web MUST show an explicit fallback notice that the definition at run time is unavailable and the graph may not reflect what ran; it MUST NOT silently overlay results on the current graph without that warning.
 - **FR-019**: A workflow edit MUST take effect starting with the next run triggered after the edit is saved; a run already in progress at the time of the edit MUST run to completion using the step definitions it started with.
-- **FR-019a**: Step-editing UI on the workflow detail page in ze-web is **out of scope** for this phase; the web client remains read-only for step definitions.
+- **FR-019a**: Step-editing UI on the workflow detail page in ze-web is **out of scope** for this phase; the web client remains read-only for step definitions (edits via REST/chat only).
 
 **Run cancellation**
 
@@ -176,7 +201,7 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 
 - **Workflow Step**: An individual unit of work within a workflow. Gains new attributes for this phase: `on_failure` (`fail` | `continue` | `skip_to:<step_id>`, default `fail`). Retries use a system-wide default of 2 retries (3 total attempts), not a per-step setting in this phase.
 - **Step Result**: The recorded outcome of one step's execution within a run. Gains new attributes for this phase: retry count, and whether the outcome was a "no results found" success versus another kind of success or failure.
-- **Workflow Execution (Run)**: A single execution of a workflow. Gains a new possible status, "cancelled," alongside the existing running/completed/failed statuses.
+- **Workflow Execution (Run)**: A single execution of a workflow. Gains a new possible status, "cancelled," alongside the existing running/completed/failed statuses. Gains `steps_snapshot`: the immutable step-definition list frozen at execution start (107b follow-up).
 
 ## Success Criteria *(mandatory)*
 
@@ -188,6 +213,13 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 - **SC-004**: For monitoring-shaped workflow steps, "nothing new found" no longer produces a failure outcome — verified by re-running the specific scenario that previously caused a false failure and confirming it now completes successfully.
 - **SC-005**: Users can adjust a single workflow step (e.g., relax its criteria or set `on_failure: continue`) in one edit action via chat or REST API, without recreating the workflow or losing its run history.
 - **SC-006**: Users can stop an in-progress run within a few seconds of requesting cancellation from the web UI, chat, or REST API, and the run is unambiguously recorded as cancelled.
+- **SC-007**: After editing a workflow, opening a pre-edit execution shows the pre-edit step graph from `steps_snapshot` and an explicit UI notice that the definition has changed since that run — verified by edit → re-open historical run test (quickstart.md Story 7).
+
+## Deferred / out of scope
+
+- Full workflow **revision history** (list of past definitions, diff, rollback to vN) — future phase if needed.
+- **`definition_version` counter** on the workflow row — optional follow-up for badges; not required if snapshot comparison suffices.
+- Step-editing UI on the workflow detail page — still out of scope (FR-019a); only snapshot **display** and notices are in scope for 107b.
 
 ## Assumptions
 
@@ -199,3 +231,5 @@ A user manually triggers a workflow and then realizes it shouldn't be running ri
 - Cancellation is best-effort at step boundaries — a step already in flight when cancellation is requested is expected to finish that step before the run stops, rather than being forcibly interrupted mid-step.
 - Step editing is exposed via REST API and workflow agent tools only; ze-web adds a cancel button for in-progress runs but does not add step-editing UI in this phase.
 - Partial-result synthesis on failure uses the existing workflow failure notification path (push alert + run-history summary); no new delivery channel is introduced in this phase.
+- Per-run `steps_snapshot` (107b) is definition pinning, not full versioning — one snapshot per execution, no separate revision table.
+- Adding `steps_snapshot` and extending the `workflow_executions.status` CHECK constraint for `cancelled` requires a small Alembic migration (`zc025` in ze-automation chain); JSONB step fields on workflows remain migration-free.
