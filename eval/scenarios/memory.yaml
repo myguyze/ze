@@ -79,3 +79,75 @@
     - Should say it doesn't know
     - Should not invent a job title
     - Should invite the user to share it if they'd like Ze to remember
+
+- id: memory_relevance_floor_excludes_unrelated_facts
+  description: >
+    Phase 106 SC-001: seed only unrelated "work notes" facts, then ask about a
+    topic with no genuinely relevant stored memory — the relevance floor should
+    keep the delivered memory context empty rather than returning a merely-nearest
+    (but not actually relevant) fact.
+  turns:
+    - prompt: "Note to self: the quarterly report template lives in the shared drive under Finance."
+      description: "Turn 1: seed an unrelated work-notes fact"
+    - prompt: "What's the best way to train a dog to stop barking at the mailman?"
+      description: "Turn 2: ask about a genuinely unrelated topic"
+  expected_agent: companion
+  tags: [companion, memory, memory-relevance-floor]
+  criteria:
+    - Turn 2 should not surface the quarterly-report/Finance fact as relevant context
+    - Turn 2 should not fabricate a connection between the stored fact and dog training
+    - Turn 2's Mind panel / trace should show no memory chunks above the relevance floor for this query
+
+- id: memory_relevance_floor_retrieves_genuine_match
+  description: >
+    Phase 106 SC-001 counterpart: a genuinely relevant fact, once seeded, is
+    retrieved and its trace should show a real relevance score, not extraction
+    confidence.
+  turns:
+    - prompt: "I'm allergic to peanuts — please always double check any recipe suggestions."
+      description: "Turn 1: seed a genuinely relevant fact"
+    - prompt: "Can you suggest a quick weeknight dinner recipe?"
+      description: "Turn 2: ask something the seeded fact is relevant to"
+  expected_agent: companion
+  tags: [companion, memory, memory-relevance-floor]
+  criteria:
+    - Turn 2 should account for the peanut allergy when suggesting a recipe
+    - Turn 2 should not suggest a recipe containing peanuts
+    - The retrieved memory chunk's score should reflect retrieval relevance, not the fact's extraction confidence
+
+- id: memory_entity_anchor_recalls_by_alias
+  description: >
+    Phase 106 SC-002: a fact linked to a named entity should be retrievable by
+    an alias, even when the query's phrasing is not vector-similar to the fact's
+    wording — the entity-anchor path should still surface it.
+  turns:
+    - prompt: "My colleague Alexander Petrov, who goes by Sasha, is leading the migration to the new billing system."
+      description: "Turn 1: introduce an entity (canonical name + alias) tied to a fact"
+    - prompt: "Remind me, what's Sasha working on these days?"
+      description: "Turn 2: ask about the entity by alias, phrased differently from turn 1"
+  expected_agent: companion
+  tags: [companion, memory, memory-entity-anchor]
+  criteria:
+    - Turn 2 should correctly identify Sasha as Alexander Petrov
+    - Turn 2 should mention the billing system migration
+    - Should not claim to have no information about Sasha
+
+- id: memory_defaults_enabled_no_regression
+  description: >
+    Phase 106 SC-004: with relevance-floor/entity-anchor/composite/live-rerank
+    defaults enabled, ordinary fact storage and recall (pre-existing behaviour)
+    should be unaffected.
+  turns:
+    - prompt: "My favourite programming language is Rust."
+      description: "Turn 1: declare a preference (same as memory_recall_stored_fact)"
+    - prompt: "What's my favourite programming language?"
+      description: "Turn 2: ask Ze to recall it with phase-106 defaults enabled"
+  verify:
+    - table: user_facts
+      where: {value__icontains: rust, contradicted: false}
+      expect: exists
+  expected_agent: companion
+  tags: [companion, memory, memory-relevance-floor, memory-entity-anchor, regression]
+  criteria:
+    - Turn 2 should correctly recall Rust
+    - Behaviour should match memory_recall_stored_fact with phase-106 features enabled
