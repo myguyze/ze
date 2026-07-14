@@ -22,8 +22,9 @@ class Message:
 @dataclass
 class MemoryChunkTrace:
     text: str
-    score: float
+    score: float  # retrieval relevance (real cosine similarity), not extraction confidence
     source: str  # "fact" | "episode" | "profile"
+    extraction_confidence: float | None = None  # facts only — kept distinct from `score`
 
 
 @dataclass

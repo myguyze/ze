@@ -27,6 +27,9 @@ class MemoryQueryable(Protocol):
     @property
     def pool(self) -> Any: ...
 
+    @property
+    def settings(self) -> Any: ...
+
     async def get_task_state(
         self,
         task_id: UUID | None = None,

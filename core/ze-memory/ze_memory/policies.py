@@ -13,6 +13,12 @@ Two tiers:
   Domain-service-level policies (called directly by domain services mid-execution):
     planner — called by GoalPlanner before generating a milestone plan
     tool_executor — called by BaseAgent.agentic_loop() before each tool call
+
+Every policy above (except MemoryUIPolicy/ProfilePolicy, which are introspection-only
+and intentionally show broader context for browsing) selects a real cosine
+`similarity` column for every embedding-ordered candidate and drops candidates
+below `RelevanceConfig.floor` (or a per-type override) via `apply_relevance_floor()`
+before budgeting (FR-002).
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ from ze_memory.defaults import (
     EPISODES_FETCH_LIMIT,
 )
 from ze_memory.dream.retrieval import episode_retrievable_sql
+from ze_memory.relevance_config import RelevanceConfig, relevance_config
 from ze_memory.store import MemoryQueryable
 from ze_memory.types import MemoryContext, RetrievalRequest
 
@@ -37,12 +44,10 @@ _FACT_SELECT = """
     SELECT id, subject_id, predicate, object_text, object_id, value,
            confidence, reviewed, contradicted, source_episode_id, source_refs,
            COALESCE(provenance, 'raw') AS provenance
-    FROM memory_facts
 """
 
 _ENTITY_SELECT = """
     SELECT id, entity_type, canonical_name, aliases, attrs
-    FROM memory_entities
 """
 
 _EPISODE_NO_SUMMARY = """
@@ -58,10 +63,41 @@ def _to_list(embedding: Any) -> str:
     return "[" + ",".join(str(v) for v in vals) + "]"
 
 
+def _sim_col(param: str = "$1") -> str:
+    """Real cosine similarity column, computed from the same distance used in ORDER BY."""
+    return f"1 - (embedding <=> {param}::vector) AS similarity"
+
+
+def apply_relevance_floor(
+    rows: list[Any], memory_type: str, cfg: RelevanceConfig
+) -> list[Any]:
+    """Drop rows whose similarity is below the configured floor (or type override).
+
+    `relevance_floor == 0` (or a resolved per-type override of 0) is the FR-017
+    rollback path — every row passes through unchanged, matching pre-phase-106
+    ANN-order behaviour, including rows with a NULL similarity (legacy rows with
+    no embedding). Otherwise, a NULL similarity means "not eligible outside the
+    entity-anchor path" and the row is dropped here.
+    """
+    threshold = cfg.floor_overrides.get(memory_type, cfg.floor)
+    if threshold <= 0:
+        return list(rows)
+    kept = []
+    for row in rows:
+        sim = row.get("similarity") if hasattr(row, "get") else row["similarity"]
+        if sim is None:
+            continue
+        if sim >= threshold:
+            kept.append(row)
+    return kept
+
+
+
 async def _fetch_facts_by_similarity(conn: Any, emb: str, limit: int) -> list:
     rows = await conn.fetch(
         f"""
-        {_FACT_SELECT}
+        {_FACT_SELECT}, {_sim_col()}
+        FROM memory_facts
         WHERE contradicted = false AND embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
         LIMIT $2
@@ -73,7 +109,8 @@ async def _fetch_facts_by_similarity(conn: Any, emb: str, limit: int) -> list:
         return rows
     extra = await conn.fetch(
         f"""
-        {_FACT_SELECT}
+        {_FACT_SELECT}, NULL::float8 AS similarity
+        FROM memory_facts
         WHERE contradicted = false AND embedding IS NULL
         ORDER BY updated_at DESC
         LIMIT $1
@@ -86,7 +123,8 @@ async def _fetch_facts_by_similarity(conn: Any, emb: str, limit: int) -> list:
 async def _fetch_entities_by_similarity(conn: Any, emb: str, limit: int) -> list:
     rows = await conn.fetch(
         f"""
-        {_ENTITY_SELECT}
+        {_ENTITY_SELECT}, {_sim_col()}
+        FROM memory_entities
         WHERE embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
         LIMIT $2
@@ -98,7 +136,8 @@ async def _fetch_entities_by_similarity(conn: Any, emb: str, limit: int) -> list
         return rows
     extra = await conn.fetch(
         f"""
-        {_ENTITY_SELECT}
+        {_ENTITY_SELECT}, NULL::float8 AS similarity
+        FROM memory_entities
         WHERE embedding IS NULL
         ORDER BY updated_at DESC
         LIMIT $1
@@ -110,9 +149,10 @@ async def _fetch_entities_by_similarity(conn: Any, emb: str, limit: int) -> list
 
 async def _fetch_events_by_similarity(conn: Any, emb: str, limit: int = 10) -> list:
     return await conn.fetch(
-        """
+        f"""
         SELECT id, event_type, title, start_at, end_at,
-               participant_names, participants, roles, summary, outcome, source_episode_id
+               participant_names, participants, roles, summary, outcome, source_episode_id,
+               {_sim_col()}
         FROM memory_events
         WHERE embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
@@ -127,9 +167,10 @@ async def _fetch_calendar_events_by_similarity(
     conn: Any, emb: str, limit: int = 20
 ) -> list:
     rows = await conn.fetch(
-        """
+        f"""
         SELECT id, event_type, title, start_at, end_at,
-               participant_names, participants, roles, summary, outcome, source_episode_id
+               participant_names, participants, roles, summary, outcome, source_episode_id,
+               {_sim_col()}
         FROM memory_events
         WHERE embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
@@ -143,7 +184,8 @@ async def _fetch_calendar_events_by_similarity(
     extra = await conn.fetch(
         """
         SELECT id, event_type, title, start_at, end_at,
-               participant_names, participants, roles, summary, outcome, source_episode_id
+               participant_names, participants, roles, summary, outcome, source_episode_id,
+               NULL::float8 AS similarity
         FROM memory_events
         WHERE embedding IS NULL
         ORDER BY COALESCE(start_at, created_at) DESC
@@ -156,9 +198,9 @@ async def _fetch_calendar_events_by_similarity(
 
 async def _fetch_session_summary_rows(conn: Any, emb: str, limit: int = 10) -> list:
     return await conn.fetch(
-        """
+        f"""
         SELECT id, session_id, summary, episode_count, last_turn_at,
-               created_at, summary_updated_at
+               created_at, summary_updated_at, {_sim_col()}
         FROM memory_session_summaries
         WHERE embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
@@ -167,6 +209,21 @@ async def _fetch_session_summary_rows(conn: Any, emb: str, limit: int = 10) -> l
         emb,
         limit,
     )
+
+
+def _episode_select(cur_sid_param: str, limit_param: str) -> str:
+    return f"""
+        SELECT id, session_id, agent, prompt, response, summary,
+               relevance, created_at, linked_entity_ids, linked_fact_ids,
+               {_sim_col()}
+        FROM memory_episodes
+        WHERE embedding IS NOT NULL
+          AND ({cur_sid_param}::text IS NULL OR session_id IS DISTINCT FROM {cur_sid_param})
+          {_EPISODE_NO_SUMMARY}
+          {episode_retrievable_sql()}
+        ORDER BY embedding <=> $1::vector
+        LIMIT {limit_param}
+    """
 
 
 # ── orchestration-level policies ──────────────────────────────────────────────
@@ -180,21 +237,12 @@ class CompanionPolicy:
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 50)
             episode_rows = await conn.fetch(
-                f"""
-                SELECT id, session_id, agent, prompt, response, summary,
-                       relevance, created_at, linked_entity_ids, linked_fact_ids
-                FROM memory_episodes
-                WHERE embedding IS NOT NULL
-                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  {_EPISODE_NO_SUMMARY}
-                  {episode_retrievable_sql()}
-                ORDER BY embedding <=> $1::vector
-                LIMIT $3
-                """,
+                _episode_select("$2", "$3"),
                 emb,
                 cur_sid,
                 EPISODES_FETCH_LIMIT,
@@ -206,6 +254,14 @@ class CompanionPolicy:
             entity_rows = await _fetch_entities_by_similarity(conn, emb, 20)
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
+        entity_rows = apply_relevance_floor(entity_rows, "entity", cfg)
+        event_rows = apply_relevance_floor(event_rows, "event", cfg)
+        session_summary_rows = apply_relevance_floor(
+            session_summary_rows, "session_summary", cfg
+        )
 
         from ze_memory.projection import (
             budget_episodes,
@@ -246,11 +302,13 @@ class ResearchPolicy:
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 f"""
-                {_FACT_SELECT}
+                {_FACT_SELECT}, {_sim_col()}
+                FROM memory_facts
                 WHERE contradicted = false AND embedding IS NOT NULL
                 ORDER BY embedding <=> $1::vector
                 LIMIT 30
@@ -258,23 +316,20 @@ class ResearchPolicy:
                 emb,
             )
             episode_rows = await conn.fetch(
-                f"""
-                SELECT id, session_id, agent, prompt, response, summary,
-                       relevance, created_at, linked_entity_ids, linked_fact_ids
-                FROM memory_episodes
-                WHERE embedding IS NOT NULL
-                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  {_EPISODE_NO_SUMMARY}
-                  {episode_retrievable_sql()}
-                ORDER BY embedding <=> $1::vector
-                LIMIT $3
-                """,
+                _episode_select("$2", "$3"),
                 emb,
                 cur_sid,
                 EPISODES_FETCH_LIMIT,
             )
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
+        event_rows = apply_relevance_floor(event_rows, "event", cfg)
+        session_summary_rows = apply_relevance_floor(
+            session_summary_rows, "session_summary", cfg
+        )
 
         from ze_memory.projection import (
             budget_episodes,
@@ -308,6 +363,7 @@ class GoalsPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
@@ -318,6 +374,9 @@ class GoalsPolicy:
             event_rows = await _fetch_events_by_similarity(conn, emb)
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        event_rows = apply_relevance_floor(event_rows, "event", cfg)
 
         from ze_memory.projection import (
             budget_facts,
@@ -343,11 +402,14 @@ class WorkflowPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
 
         task_state = await store.get_task_state(task_id=request.task_id, goal_id=None)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -364,11 +426,13 @@ class CalendarPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await conn.fetch(
                 f"""
-                {_FACT_SELECT}
+                {_FACT_SELECT}, {_sim_col()}
+                FROM memory_facts
                 WHERE contradicted = false AND embedding IS NOT NULL
                 ORDER BY embedding <=> $1::vector
                 LIMIT 20
@@ -376,6 +440,9 @@ class CalendarPolicy:
                 emb,
             )
             event_rows = await _fetch_calendar_events_by_similarity(conn, emb)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        event_rows = apply_relevance_floor(event_rows, "event", cfg)
 
         from ze_memory.projection import budget_facts, events_from_rows, token_estimate
 
@@ -393,9 +460,12 @@ class RemindersPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -413,27 +483,26 @@ class EmailPolicy:
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
             episode_rows = await conn.fetch(
-                f"""
-                SELECT id, session_id, agent, prompt, response, summary,
-                       relevance, created_at, linked_entity_ids, linked_fact_ids
-                FROM memory_episodes
-                WHERE embedding IS NOT NULL
-                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  {_EPISODE_NO_SUMMARY}
-                  {episode_retrievable_sql()}
-                ORDER BY embedding <=> $1::vector
-                LIMIT 10
-                """,
+                _episode_select("$2", "10"),
                 emb,
                 cur_sid,
             )
             entity_rows = await _fetch_entities_by_similarity(conn, emb, 10)
             event_rows = await _fetch_events_by_similarity(conn, emb)
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
+        entity_rows = apply_relevance_floor(entity_rows, "entity", cfg)
+        event_rows = apply_relevance_floor(event_rows, "event", cfg)
+        session_summary_rows = apply_relevance_floor(
+            session_summary_rows, "session_summary", cfg
+        )
 
         from ze_memory.projection import (
             budget_episodes,
@@ -471,25 +540,22 @@ class ProspectingPolicy:
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
         cur_sid = getattr(request, "current_session_id", None)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
             episode_rows = await conn.fetch(
-                f"""
-                SELECT id, session_id, agent, prompt, response, summary,
-                       relevance, created_at, linked_entity_ids, linked_fact_ids
-                FROM memory_episodes
-                WHERE embedding IS NOT NULL
-                  AND ($2::text IS NULL OR session_id IS DISTINCT FROM $2)
-                  {_EPISODE_NO_SUMMARY}
-                  {episode_retrievable_sql()}
-                ORDER BY embedding <=> $1::vector
-                LIMIT 10
-                """,
+                _episode_select("$2", "10"),
                 emb,
                 cur_sid,
             )
             session_summary_rows = await _fetch_session_summary_rows(conn, emb)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
+        episode_rows = apply_relevance_floor(episode_rows, "episode", cfg)
+        session_summary_rows = apply_relevance_floor(
+            session_summary_rows, "session_summary", cfg
+        )
 
         from ze_memory.projection import (
             budget_episodes,
@@ -525,6 +591,7 @@ class PlannerPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 30)
@@ -541,6 +608,8 @@ class PlannerPolicy:
             )
 
         task_state = await store.get_task_state(task_id=None, goal_id=request.goal_id)
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
 
         from ze_memory.projection import (
             budget_facts,
@@ -566,6 +635,7 @@ class ToolExecutorPolicy:
         self, request: RetrievalRequest, store: MemoryQueryable
     ) -> MemoryContext:
         emb = _to_list(request.query_embedding)
+        cfg = relevance_config(store.settings)
 
         async with store.pool.acquire() as conn:
             fact_rows = await _fetch_facts_by_similarity(conn, emb, 20)
@@ -573,6 +643,8 @@ class ToolExecutorPolicy:
         task_state = await store.get_task_state(
             task_id=request.task_id, goal_id=request.goal_id
         )
+
+        fact_rows = apply_relevance_floor(fact_rows, "fact", cfg)
 
         from ze_memory.projection import budget_facts, token_estimate
 
@@ -582,7 +654,7 @@ class ToolExecutorPolicy:
         return ctx
 
 
-# ── introspection policies ────────────────────────────────────────────────────
+# ── introspection policies (exempt from the relevance floor, per FR-016) ──────
 
 
 class ProfilePolicy:
@@ -635,7 +707,8 @@ class MemoryUIPolicy:
             episode_rows = await conn.fetch(
                 f"""
                 SELECT id, session_id, agent, prompt, response, summary,
-                       relevance, created_at, linked_entity_ids, linked_fact_ids
+                       relevance, created_at, linked_entity_ids, linked_fact_ids,
+                       {_sim_col()}
                 FROM memory_episodes
                 WHERE embedding IS NOT NULL
                   {episode_retrievable_sql()}

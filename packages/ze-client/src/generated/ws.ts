@@ -70,6 +70,7 @@ export type Subtasks = string[];
 export type Text4 = string;
 export type Score = number;
 export type Source = string;
+export type ExtractionConfidence = number | null;
 export type MemoryChunks = MemoryChunkTraceResponse[];
 export type Name = string;
 export type ResultSnippet = string;
@@ -267,6 +268,7 @@ export interface MemoryChunkTraceResponse {
   text: Text4;
   score: Score;
   source: Source;
+  extraction_confidence?: ExtractionConfidence;
 }
 /**
  * This interface was referenced by `WsProtocol`'s JSON-Schema

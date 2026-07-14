@@ -107,6 +107,10 @@ class PostgresMemoryStore:
     def pool(self) -> Any:
         return self._pool
 
+    @property
+    def settings(self) -> Any:
+        return self._settings
+
     # ── MemoryStore protocol ──────────────────────────────────────────────────
 
     async def retrieve(self, request: RetrievalRequest) -> MemoryContext:

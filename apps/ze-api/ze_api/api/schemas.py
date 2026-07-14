@@ -72,6 +72,7 @@ class MemoryChunkTraceResponse(BaseModel):
     text: str
     score: float
     source: str
+    extraction_confidence: float | None = None
 
 
 class ToolCallTraceResponse(BaseModel):

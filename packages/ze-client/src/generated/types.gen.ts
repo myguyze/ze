@@ -1293,6 +1293,10 @@ export type MemoryChunkTraceResponse = {
      * Source
      */
     source: string;
+    /**
+     * Extraction Confidence
+     */
+    extraction_confidence?: number | null;
 };
 
 /**

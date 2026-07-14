@@ -58,8 +58,9 @@ def _extract_memory_chunks(memory_context: Any) -> list[MemoryChunkTrace]:
         chunks.append(
             MemoryChunkTrace(
                 text=text[:300],
-                score=getattr(fact, "confidence", 1.0),
+                score=getattr(fact, "relevance_score", None) or 0.0,
                 source="fact",
+                extraction_confidence=getattr(fact, "confidence", None),
             )
         )
 
@@ -71,7 +72,7 @@ def _extract_memory_chunks(memory_context: Any) -> list[MemoryChunkTrace]:
         chunks.append(
             MemoryChunkTrace(
                 text=text[:300],
-                score=getattr(ep, "relevance", 0.0),
+                score=getattr(ep, "relevance_score", None) or 0.0,
                 source="episode",
             )
         )
