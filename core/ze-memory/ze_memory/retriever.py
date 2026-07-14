@@ -19,11 +19,13 @@ from ze_memory.dream.sensitive import is_sensitive_entity
 from ze_memory.errors import InvalidRetrievalRequestError
 from ze_memory.extractor import parse_fact_response, raw_to_facts
 from ze_memory.nli_config import nli_config
+from ze_memory.relevance_config import relevance_config
 from ze_memory.retrieval_cache import PostgresRetrievalCacheStore, query_hash
 from ze_memory.retrieval_rerank import (
     build_retrieval_cache,
     fetch_facts_by_ids,
     fetch_summaries_by_ids,
+    live_rerank,
     rerank_rows,
     should_build_retrieval_cache,
 )
@@ -124,6 +126,15 @@ class PostgresMemoryStore:
         policy = self._registry.for_module(request.module)
         cfg = nli_config(self._settings)
         ctx = await policy.retrieve(request, self)
+
+        rel_cfg = relevance_config(self._settings)
+        if rel_cfg.live_rerank_enabled and ctx.facts:
+            ctx.facts = await live_rerank(
+                ctx.facts,
+                request.query_text,
+                getattr(self, "_nli", None),
+                rel_cfg,
+            )
 
         if should_build_retrieval_cache(request, cfg):
             session_id = request.current_session_id

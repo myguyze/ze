@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from ze_logging import get_logger
 from ze_agents.nli import NLIClient
 from ze_agents.types import RetrievalRequest
 from ze_memory.nli_config import nli_config
+from ze_memory.relevance_config import RelevanceConfig
 from ze_memory.retrieval_cache import (
     PostgresRetrievalCacheStore,
     is_rerank_module,
@@ -167,6 +169,50 @@ async def fetch_summaries_by_ids(pool: Any, ids: list[UUID]) -> list[Any]:
         )
     by_id = {row["id"]: row for row in rows}
     return [by_id[i] for i in ids if i in by_id]
+
+
+def _candidate_text(candidate: Any) -> str:
+    return getattr(candidate, "value", None) or getattr(candidate, "text", "") or ""
+
+
+async def live_rerank(
+    candidates: list[Any],
+    query_text: str,
+    nli_client: NLIClient | None,
+    cfg: RelevanceConfig,
+) -> list[Any]:
+    """Synchronous, uncached NLI rerank of fact candidates in the live turn (User Story 4).
+
+    Distinct from `build_retrieval_cache`, which reranks asynchronously after the
+    turn completes and only benefits a *future* identical query in the same
+    session — this reorders the current turn's own candidates before they reach
+    the agent. Bounded to `cfg.live_rerank_candidate_limit` candidates for latency;
+    anything beyond that limit is appended unranked, unchanged, after the ranked
+    head. Returns the input unchanged (no reorder, no exception) if disabled,
+    there's nothing to rerank, `nli_client` is None, the call exceeds
+    `cfg.live_rerank_timeout_ms`, or the client raises (FR-014). Never reads from
+    or writes to `PostgresRetrievalCacheStore`.
+    """
+    if not cfg.live_rerank_enabled or not candidates or nli_client is None:
+        return candidates
+
+    head = candidates[: cfg.live_rerank_candidate_limit]
+    tail = candidates[cfg.live_rerank_candidate_limit :]
+
+    try:
+        pairs = [(_candidate_text(c), query_text) for c in head]
+        timeout_seconds = cfg.live_rerank_timeout_ms / 1000
+        scores = await asyncio.wait_for(
+            nli_client.scores(pairs), timeout=timeout_seconds
+        )
+    except Exception as exc:
+        log.warning("live_rerank_failed", error=str(exc))
+        return candidates
+
+    ranked = sorted(
+        zip(head, scores), key=lambda pair: nli_rank_score(pair[1]), reverse=True
+    )
+    return [candidate for candidate, _ in ranked] + tail
 
 
 def should_build_retrieval_cache(
