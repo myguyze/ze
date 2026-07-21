@@ -8,11 +8,15 @@ import asyncpg
 
 from ze_agents.errors import WorkflowPlanError
 from ze_logging import get_logger
+from ze_automation.workflow.revision_summary import build_change_summary
 from ze_automation.workflow.types import (
+    ActorContext,
+    ActorSource,
     Branch,
     StepResult,
     Workflow,
     WorkflowExecution,
+    WorkflowRevision,
     WorkflowStep,
 )
 from ze_automation.workflow.validation import validate_workflow_steps
@@ -109,8 +113,7 @@ def _row_to_execution(row) -> WorkflowExecution:
         workflow_id=row["workflow_id"],
         status=row["status"],
         step_results=[
-            _step_result_from_dict(d)
-            for d in _coerce_jsonb_list(row["step_results"])
+            _step_result_from_dict(d) for d in _coerce_jsonb_list(row["step_results"])
         ],
         steps_snapshot=[
             _step_from_dict(s, i)
@@ -120,6 +123,34 @@ def _row_to_execution(row) -> WorkflowExecution:
         summary=row["summary"],
         started_at=row["started_at"],
         completed_at=row["completed_at"],
+        created_at=row["created_at"],
+    )
+
+
+def _row_to_revision(row) -> WorkflowRevision:
+    return WorkflowRevision(
+        id=row["id"],
+        workflow_id=row["workflow_id"],
+        revision_number=row["revision_number"],
+        change_type=row["change_type"],
+        steps_before=[
+            _step_from_dict(s, i)
+            for i, s in enumerate(_coerce_jsonb_list(row["steps_before"]))
+        ],
+        steps_after=[
+            _step_from_dict(s, i)
+            for i, s in enumerate(_coerce_jsonb_list(row["steps_after"]))
+        ],
+        summary=row["summary"],
+        actor=ActorContext(
+            source=ActorSource(row["actor_source"]),
+            session_id=row["actor_session_id"],
+            user_message_id=(
+                str(row["actor_user_message_id"])
+                if row["actor_user_message_id"]
+                else None
+            ),
+        ),
         created_at=row["created_at"],
     )
 
@@ -146,23 +177,46 @@ class PostgresWorkflowStore:
     def __init__(self, db_pool: asyncpg.Pool) -> None:
         self._pool = db_pool
 
-    async def create(self, workflow: Workflow) -> UUID:
+    async def create(
+        self, workflow: Workflow, actor: ActorContext | None = None
+    ) -> UUID:
+        actor = actor or ActorContext(source=ActorSource.SYSTEM)
+        steps_after = [_step_to_dict(s) for s in workflow.steps]
         async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                """
-                INSERT INTO workflows (name, description, steps, schedule, enabled, next_run_at)
-                VALUES ($1, $2, $3::jsonb, $4, $5, $6)
-                RETURNING id
-                """,
-                workflow.name,
-                workflow.description,
-                [_step_to_dict(s) for s in workflow.steps],
-                workflow.schedule,
-                workflow.enabled,
-                workflow.next_run_at,
-            )
-            log.info("workflow_created", name=workflow.name, id=str(row["id"]))
-            return row["id"]
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    """
+                    INSERT INTO workflows (name, description, steps, schedule, enabled, next_run_at)
+                    VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+                    RETURNING id
+                    """,
+                    workflow.name,
+                    workflow.description,
+                    steps_after,
+                    workflow.schedule,
+                    workflow.enabled,
+                    workflow.next_run_at,
+                )
+                workflow_id = row["id"]
+                summary = build_change_summary([], workflow.steps, "created")
+                await conn.execute(
+                    """
+                    INSERT INTO workflow_revisions (
+                        workflow_id, revision_number, change_type, steps_before,
+                        steps_after, summary, actor_source, actor_session_id,
+                        actor_user_message_id
+                    )
+                    VALUES ($1, 1, 'created', '[]'::jsonb, $2::jsonb, $3, $4, $5, $6::uuid)
+                    """,
+                    workflow_id,
+                    steps_after,
+                    summary,
+                    actor.source.value,
+                    actor.session_id,
+                    actor.user_message_id,
+                )
+            log.info("workflow_created", name=workflow.name, id=str(workflow_id))
+            return workflow_id
 
     async def get(self, workflow_id: UUID) -> Workflow | None:
         async with self._pool.acquire() as conn:
@@ -218,24 +272,63 @@ class PostgresWorkflowStore:
         log.info("workflow_schedule_updated", id=str(workflow_id), schedule=schedule)
 
     async def update_steps(
-        self, workflow_id: UUID, steps: list[WorkflowStep]
+        self,
+        workflow_id: UUID,
+        steps: list[WorkflowStep],
+        actor: ActorContext | None = None,
     ) -> None:
         validate_workflow_steps(steps)
+        actor = actor or ActorContext(source=ActorSource.SYSTEM)
         async with self._pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT id FROM workflows WHERE id = $1", workflow_id
-            )
-            if row is None:
-                raise WorkflowPlanError(f"Workflow {workflow_id} not found")
-            await conn.execute(
-                """
-                UPDATE workflows
-                SET steps = $1::jsonb, updated_at = NOW()
-                WHERE id = $2
-                """,
-                [_step_to_dict(s) for s in steps],
-                workflow_id,
-            )
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    "SELECT steps FROM workflows WHERE id = $1", workflow_id
+                )
+                if row is None:
+                    raise WorkflowPlanError(f"Workflow {workflow_id} not found")
+                current_steps = [
+                    _step_from_dict(s, i)
+                    for i, s in enumerate(_coerce_jsonb_list(row["steps"]))
+                ]
+                steps_before = [_step_to_dict(s) for s in current_steps]
+                steps_after = [_step_to_dict(s) for s in steps]
+                await conn.execute(
+                    """
+                    UPDATE workflows
+                    SET steps = $1::jsonb, updated_at = NOW()
+                    WHERE id = $2
+                    """,
+                    steps_after,
+                    workflow_id,
+                )
+                if steps_after != steps_before:
+                    rev_row = await conn.fetchrow(
+                        """
+                        SELECT COALESCE(MAX(revision_number), 0) + 1 AS next
+                        FROM workflow_revisions WHERE workflow_id = $1
+                        """,
+                        workflow_id,
+                    )
+                    revision_number = rev_row["next"]
+                    summary = build_change_summary(current_steps, steps, "edited")
+                    await conn.execute(
+                        """
+                        INSERT INTO workflow_revisions (
+                            workflow_id, revision_number, change_type, steps_before,
+                            steps_after, summary, actor_source, actor_session_id,
+                            actor_user_message_id
+                        )
+                        VALUES ($1, $2, 'edited', $3::jsonb, $4::jsonb, $5, $6, $7, $8::uuid)
+                        """,
+                        workflow_id,
+                        revision_number,
+                        steps_before,
+                        steps_after,
+                        summary,
+                        actor.source.value,
+                        actor.session_id,
+                        actor.user_message_id,
+                    )
         log.info("workflow_steps_updated", id=str(workflow_id), steps=len(steps))
 
     async def delete(self, workflow_id: UUID) -> None:
@@ -347,6 +440,23 @@ class PostgresWorkflowStore:
         if row is None:
             return None
         return _row_to_execution(row)
+
+    async def list_revisions(
+        self, workflow_id: UUID, limit: int = 20, offset: int = 0
+    ) -> list[WorkflowRevision]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT * FROM workflow_revisions
+                WHERE workflow_id = $1
+                ORDER BY revision_number DESC
+                LIMIT $2 OFFSET $3
+                """,
+                workflow_id,
+                limit,
+                offset,
+            )
+        return [_row_to_revision(r) for r in rows]
 
     async def recover_stale(self, timeout_minutes: int) -> int:
         """Mark running executions older than timeout_minutes as failed. Returns count recovered."""

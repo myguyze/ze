@@ -96,6 +96,10 @@ async def fetch_context(state: AgentState, config: RunnableConfig) -> dict:
         timezone=tz,
     )
 
+    user_message_id = config["configurable"].get("user_message_id")
+    if user_message_id is not None:
+        agent_context.extensions["user_message_id"] = user_message_id
+
     screen_ctx = config["configurable"].get("screen_context") or {}
     workflow_id = screen_ctx.get("workflow_id")
     execution_id = screen_ctx.get("execution_id")

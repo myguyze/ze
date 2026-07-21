@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from ze_agents.errors import WorkflowPlanError
 from ze_api.api.dependencies import get_workflow_store, require_api_key
@@ -12,6 +12,7 @@ from ze_api.api.schemas import (
     WorkflowDetailResponse,
     WorkflowExecutionResponse,
     WorkflowResponse,
+    WorkflowRevisionResponse,
     WorkflowStepResponse,
 )
 from ze_automation import rest as workflow_rest
@@ -101,11 +102,7 @@ async def get_workflow_execution(
     if ex is None:
         raise HTTPException(status_code=404, detail="Execution not found")
     return WorkflowExecutionResponse(
-        **{
-            k: v
-            for k, v in ex.items()
-            if k not in ("step_results", "steps_snapshot")
-        },
+        **{k: v for k, v in ex.items() if k not in ("step_results", "steps_snapshot")},
         step_results=[StepResultResponse.model_validate(r) for r in ex["step_results"]],
         steps_snapshot=[
             WorkflowStepResponse.model_validate(s) for s in ex["steps_snapshot"]
@@ -175,6 +172,28 @@ async def update_workflow_steps(
         **{k: v for k, v in wf.items() if k != "steps"},
         steps=[WorkflowStepResponse.model_validate(s) for s in wf["steps"]],
     )
+
+
+@router.get(
+    "/{workflow_id}/revisions",
+    response_model=list[WorkflowRevisionResponse],
+    operation_id="listWorkflowRevisions",
+    summary="List workflow revisions",
+    description="Return the revision history for a workflow, newest first.",
+)
+async def list_workflow_revisions(
+    workflow_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    store: WorkflowStore = Depends(get_workflow_store),
+) -> list[WorkflowRevisionResponse]:
+    wf = await workflow_rest.get_workflow(store, workflow_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    revisions = await workflow_rest.list_workflow_revisions(
+        store, workflow_id, limit=limit, offset=offset
+    )
+    return [WorkflowRevisionResponse.model_validate(r) for r in revisions]
 
 
 @router.post(

@@ -10,6 +10,8 @@ from ze_automation.workflow.planner import WorkflowPlanner, validate_step_target
 from ze_automation.workflow.validation import validate_workflow_steps
 from ze_automation.workflow.store import WorkflowStore
 from ze_automation.workflow.types import (
+    ActorContext,
+    ActorSource,
     Branch,
     StepResult,
     Workflow,
@@ -17,6 +19,16 @@ from ze_automation.workflow.types import (
     WorkflowStep,
 )
 from ze_automation.workflow.scheduler import WorkflowScheduler
+
+
+def _build_actor(session_id: str | None, user_message_id: str | None) -> ActorContext:
+    if session_id is None or user_message_id is None:
+        return ActorContext(source=ActorSource.SYSTEM)
+    return ActorContext(
+        source=ActorSource.AGENT,
+        session_id=session_id,
+        user_message_id=user_message_id,
+    )
 
 
 def _serialize_step_result(result: StepResult) -> dict:
@@ -131,6 +143,8 @@ async def create_workflow(
     workflow_name: str,
     description: str,
     schedule_description: str = "",
+    session_id: str | None = None,
+    user_message_id: str | None = None,
 ) -> dict:
     try:
         steps = await planner.plan(description)
@@ -158,7 +172,8 @@ async def create_workflow(
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
-    workflow_id = await store.create(workflow)
+    actor = _build_actor(session_id, user_message_id)
+    workflow_id = await store.create(workflow, actor=actor)
     workflow.id = workflow_id
     await scheduler.add_workflow(workflow)
 
@@ -274,6 +289,8 @@ async def edit_workflow_steps(
     store: WorkflowStore,
     workflow_name: str,
     steps_json: str,
+    session_id: str | None = None,
+    user_message_id: str | None = None,
 ) -> dict:
     wf = await store.get_by_name(workflow_name)
     if wf is None:
@@ -300,7 +317,8 @@ async def edit_workflow_steps(
             for item in raw_steps
         ]
         validate_workflow_steps(steps)
-        await store.update_steps(wf.id, steps)
+        actor = _build_actor(session_id, user_message_id)
+        await store.update_steps(wf.id, steps, actor=actor)
     except (json.JSONDecodeError, KeyError, ValueError, WorkflowPlanError) as exc:
         return {"error": str(exc)}
 

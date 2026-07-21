@@ -23,6 +23,12 @@ def _make_pool(fetchrow=None, fetch=None, execute=None):
     conn.execute = AsyncMock(return_value=execute)
 
     @asynccontextmanager
+    async def transaction():
+        yield
+
+    conn.transaction = transaction
+
+    @asynccontextmanager
     async def acquire():
         yield conn
 
@@ -114,7 +120,16 @@ async def test_start_execution_persists_steps_snapshot():
 
 async def test_update_steps_does_not_touch_execution_snapshots():
     workflow_id = uuid4()
-    pool, conn = _make_pool(fetchrow={"id": workflow_id})
+
+    async def fetchrow_side_effect(query, *args):
+        if "SELECT steps FROM workflows" in query:
+            return {"steps": []}
+        if "revision_number" in query:
+            return {"next": 1}
+        return None
+
+    pool, conn = _make_pool()
+    conn.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
     store = PostgresWorkflowStore(pool)
     new_steps = [
         WorkflowStep(task="Updated", id="s0"),
@@ -123,7 +138,7 @@ async def test_update_steps_does_not_touch_execution_snapshots():
 
     await store.update_steps(workflow_id, new_steps)
 
-    conn.execute.assert_awaited_once()
-    query = conn.execute.call_args.args[0]
-    assert "UPDATE workflows" in query
-    assert "workflow_executions" not in query
+    update_query = conn.execute.call_args_list[0].args[0]
+    assert "UPDATE workflows" in update_query
+    for call in conn.execute.call_args_list:
+        assert "workflow_executions" not in call.args[0]

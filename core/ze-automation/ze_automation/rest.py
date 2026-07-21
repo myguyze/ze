@@ -5,7 +5,7 @@ from uuid import UUID
 
 from ze_agents.errors import WorkflowPlanError
 from ze_automation.workflow.store import WorkflowStore
-from ze_automation.workflow.types import WorkflowStep
+from ze_automation.workflow.types import ActorContext, ActorSource, WorkflowStep
 from ze_automation.workflow.validation import validate_workflow_steps
 
 
@@ -220,8 +220,33 @@ async def update_workflow_steps(
     if wf is None:
         raise WorkflowPlanError(f"Workflow {workflow_id} not found")
     validate_workflow_steps(steps)
-    await store.update_steps(workflow_id, steps)
+    await store.update_steps(
+        workflow_id, steps, actor=ActorContext(source=ActorSource.API)
+    )
     return await get_workflow(store, workflow_id)
+
+
+def _revision_to_response_dict(rev) -> dict:
+    return {
+        "id": rev.id,
+        "workflow_id": rev.workflow_id,
+        "revision_number": rev.revision_number,
+        "change_type": rev.change_type,
+        "steps_before": [_step_to_response_dict(s) for s in rev.steps_before],
+        "steps_after": [_step_to_response_dict(s) for s in rev.steps_after],
+        "summary": rev.summary,
+        "actor_source": rev.actor.source.value,
+        "actor_session_id": rev.actor.session_id,
+        "actor_user_message_id": rev.actor.user_message_id,
+        "created_at": rev.created_at.isoformat(),
+    }
+
+
+async def list_workflow_revisions(
+    store: WorkflowStore, workflow_id: UUID, limit: int = 20, offset: int = 0
+) -> list[dict]:
+    revisions = await store.list_revisions(workflow_id, limit=limit, offset=offset)
+    return [_revision_to_response_dict(r) for r in revisions]
 
 
 async def cancel_workflow_execution(

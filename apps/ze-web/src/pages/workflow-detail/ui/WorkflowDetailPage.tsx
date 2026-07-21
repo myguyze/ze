@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle, Ban } from "lucide-react";
+import { ArrowLeft, Workflow, Loader2, CheckCircle2, XCircle, MessageCircle, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { useOverlayStore } from "@/features/open-context-overlay";
 import { useSetBreadcrumbTitle } from "@/shared/lib";
+import { useSession } from "@/entities/session";
 import ReactMarkdown from "react-markdown";
-import type { WorkflowExecutionResponse, WorkflowStepResponse } from "@myguyze/ze-client";
+import type { WorkflowExecutionResponse, WorkflowRevisionResponse, WorkflowStepResponse } from "@myguyze/ze-client";
 import {
   useWorkflowDetailQuery,
   useWorkflowExecutionsQuery,
+  useWorkflowRevisionsQuery,
   useLiveExecutionQuery,
   useTriggerWorkflowMutation,
   useCancelExecutionMutation,
@@ -27,7 +29,9 @@ export function WorkflowDetailPage() {
 
   const { data: detail, isLoading, isError, refetch } = useWorkflowDetailQuery(workflowId ?? "");
   const { data: executions, isLoading: execLoading } = useWorkflowExecutionsQuery(workflowId ?? "");
+  const { data: revisions, isLoading: revisionsLoading } = useWorkflowRevisionsQuery(workflowId ?? "");
   const { data: liveExecution } = useLiveExecutionQuery(workflowId ?? "", liveExecutionId);
+  const [revisionsSinceFilter, setRevisionsSinceFilter] = useState<string | null>(null);
 
   const trigger = useTriggerWorkflowMutation();
   const cancelExecution = useCancelExecutionMutation();
@@ -47,9 +51,6 @@ export function WorkflowDetailPage() {
   const displayedId = displayExecution?.id ?? null;
   const activeExecutionId =
     liveExecutionId ?? (liveExecution?.status === "running" ? liveExecution.id : null);
-
-  const definitionNoticeMode = resolveDefinitionNoticeMode(displayExecution, detail.steps);
-  const graphSteps = resolveGraphSteps(displayExecution, detail.steps);
 
   function handleTrigger() {
     if (!workflowId) return;
@@ -85,6 +86,9 @@ export function WorkflowDetailPage() {
       </PageShell>
     );
   }
+
+  const definitionNoticeMode = resolveDefinitionNoticeMode(displayExecution, detail.steps);
+  const graphSteps = resolveGraphSteps(displayExecution, detail.steps);
 
   return (
     <PageShell className="max-w-5xl mx-auto">
@@ -180,6 +184,16 @@ export function WorkflowDetailPage() {
           <WorkflowDefinitionNotice
             mode={definitionNoticeMode}
             startedAt={displayExecution?.started_at}
+            onViewRevisionsSince={
+              displayExecution?.started_at
+                ? () => {
+                    setRevisionsSinceFilter(displayExecution.started_at ?? null);
+                    document
+                      .getElementById("change-history")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                : undefined
+            }
           />
 
           <WorkflowGraph steps={graphSteps} execution={displayExecution} isLive={isRunning} />
@@ -212,19 +226,36 @@ export function WorkflowDetailPage() {
           )}
         </SectionPanel>
 
-        {/* Run history sidebar */}
-        <SectionPanel>
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-5">Run History</h2>
-          {execLoading ? (
-            <ListSkeleton count={3} />
-          ) : (
-            <WorkflowExecutionsList
-              executions={executions ?? []}
-              selectedId={displayedId}
-              onSelect={handleSelectExecution}
-            />
-          )}
-        </SectionPanel>
+        {/* Run history + change history sidebar */}
+        <div className="flex flex-col gap-6">
+          <SectionPanel>
+            <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-5">Run History</h2>
+            {execLoading ? (
+              <ListSkeleton count={3} />
+            ) : (
+              <WorkflowExecutionsList
+                executions={executions ?? []}
+                selectedId={displayedId}
+                onSelect={handleSelectExecution}
+              />
+            )}
+          </SectionPanel>
+
+          <div id="change-history">
+            <SectionPanel>
+              <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-5">Change History</h2>
+              {revisionsLoading ? (
+                <ListSkeleton count={3} />
+              ) : (
+                <ChangeHistoryList
+                  revisions={revisions ?? []}
+                  sinceFilter={revisionsSinceFilter}
+                  onClearFilter={() => setRevisionsSinceFilter(null)}
+                />
+              )}
+            </SectionPanel>
+          </div>
+        </div>
       </div>
     </PageShell>
   );
@@ -376,4 +407,154 @@ function StepsStatus({ liveExecution, displayExecution, isRunning, onClear }: St
   }
 
   return null;
+}
+
+// ── Change History ───────────────────────────────────────────────────────────
+
+function formatRelativeTimestamp(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function actorLabel(source: WorkflowRevisionResponse["actor_source"]): string {
+  return source === "api" ? "API" : "Ze";
+}
+
+interface ChangeHistoryListProps {
+  revisions: WorkflowRevisionResponse[];
+  sinceFilter: string | null;
+  onClearFilter: () => void;
+}
+
+function ChangeHistoryList({ revisions, sinceFilter, onClearFilter }: ChangeHistoryListProps) {
+  const filtered = sinceFilter
+    ? revisions.filter((r) => new Date(r.created_at).getTime() > new Date(sinceFilter).getTime())
+    : revisions;
+
+  if (revisions.length === 0) {
+    return (
+      <p className="text-sm text-smoke/70">
+        No changes recorded yet. Edits made before this feature shipped aren't shown here.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {sinceFilter && (
+        <div className="flex items-center justify-between text-xs text-plum-voltage">
+          <span>Showing changes since this run</span>
+          <button className="underline underline-offset-2 hover:text-plum-voltage/80" onClick={onClearFilter}>
+            Clear filter
+          </button>
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <p className="text-sm text-smoke/70">No changes since this run.</p>
+      ) : (
+        filtered.map((revision) => <WorkflowRevisionRow key={revision.id} revision={revision} />)
+      )}
+    </div>
+  );
+}
+
+function WorkflowRevisionRow({ revision }: { revision: WorkflowRevisionResponse }) {
+  const [expanded, setExpanded] = useState(false);
+  const [conversationUnavailable, setConversationUnavailable] = useState(false);
+  const navigate = useNavigate();
+
+  function handleViewConversation() {
+    if (!revision.actor_session_id) {
+      setConversationUnavailable(true);
+      return;
+    }
+    useSession.getState().selectSession(revision.actor_session_id);
+    useSession.getState().setHighlightMessage(revision.actor_user_message_id ?? null);
+    navigate("/");
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+      <button
+        className="flex w-full items-start gap-2 text-left"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {expanded ? (
+          <ChevronDown className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-smoke" />
+        ) : (
+          <ChevronRight className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-smoke" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-white/70">#{revision.revision_number}</span>
+            <span
+              className={
+                revision.change_type === "created"
+                  ? "rounded-full border border-plum-voltage/50 px-2 py-0.5 text-plum-voltage"
+                  : "rounded-full border border-white/15 px-2 py-0.5 text-smoke"
+              }
+            >
+              {revision.change_type}
+            </span>
+            <span className="text-smoke">{actorLabel(revision.actor_source)}</span>
+            <span className="text-smoke/70">{formatRelativeTimestamp(revision.created_at)}</span>
+          </div>
+          <p className="mt-1 text-sm text-white/80">{revision.summary || "No fields changed"}</p>
+        </div>
+      </button>
+
+      {revision.actor_source === "agent" && (
+        <div className="mt-2 pl-5.5">
+          {conversationUnavailable ? (
+            <p className="text-xs text-smoke/70">Conversation unavailable.</p>
+          ) : (
+            <button
+              className="text-xs text-plum-voltage hover:text-plum-voltage/80 underline underline-offset-2"
+              onClick={handleViewConversation}
+            >
+              View conversation
+            </button>
+          )}
+        </div>
+      )}
+
+      {expanded && (
+        <div className="mt-3 grid grid-cols-1 gap-3 pl-5.5 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-widest text-smoke/60">Before</p>
+            <StepSummaryList steps={revision.steps_before} />
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-widest text-smoke/60">After</p>
+            <StepSummaryList steps={revision.steps_after} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StepSummaryList({ steps }: { steps: WorkflowStepResponse[] }) {
+  if (steps.length === 0) {
+    return <p className="text-xs text-smoke/50">(none)</p>;
+  }
+  return (
+    <ul className="space-y-1">
+      {steps.map((step) => (
+        <li key={step.id} className="text-xs text-white/70">
+          <span className="text-smoke/70">{step.id}</span> {step.task}
+          {step.on_failure !== "fail" && (
+            <span className="ml-1 text-smoke/60">(on_failure: {step.on_failure})</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 }

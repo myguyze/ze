@@ -8,6 +8,7 @@ export const queryKeys = {
   workflows: ["workflows"] as const,
   workflowDetail: (workflowId: string) => ["workflow-detail", workflowId] as const,
   workflowExecutions: (workflowId: string) => ["workflow-executions", workflowId] as const,
+  workflowRevisions: (workflowId: string) => ["workflow-revisions", workflowId] as const,
   costs: ["costs"] as const,
   costAnomalies: ["cost-anomalies"] as const,
   sessions: ["sessions"] as const,

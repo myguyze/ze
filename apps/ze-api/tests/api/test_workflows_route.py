@@ -14,10 +14,13 @@ from httpx import ASGITransport, AsyncClient
 from ze_api.api.dependencies import require_api_key
 from ze_api.api.routes.workflows import router
 from ze_automation.workflow.types import (
+    ActorContext,
+    ActorSource,
     Branch,
     StepResult,
     Workflow,
     WorkflowExecution,
+    WorkflowRevision,
     WorkflowStep,
 )
 
@@ -52,6 +55,7 @@ def _make_app(
         return_value=executions[0] if executions else None
     )
     workflow_store.list_all = AsyncMock(return_value=[workflow])
+    workflow_store.list_revisions = AsyncMock(return_value=[])
 
     container = SimpleNamespace(
         workflow_store=workflow_store,
@@ -259,6 +263,74 @@ async def test_update_workflow_steps_validation_error():
         )
 
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_workflow_revisions_returns_newest_first():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    revisions = [
+        WorkflowRevision(
+            id=uuid4(),
+            workflow_id=workflow.id,
+            revision_number=2,
+            change_type="edited",
+            steps_before=[WorkflowStep(task="old", id="s0")],
+            steps_after=[WorkflowStep(task="new", id="s0")],
+            summary="Step s0: task old → new",
+            actor=ActorContext(
+                source=ActorSource.AGENT, session_id="sess1", user_message_id="msg1"
+            ),
+            created_at=datetime.now(timezone.utc),
+        ),
+        WorkflowRevision(
+            id=uuid4(),
+            workflow_id=workflow.id,
+            revision_number=1,
+            change_type="created",
+            steps_before=[],
+            steps_after=[WorkflowStep(task="old", id="s0")],
+            summary="Workflow created with 1 step(s)",
+            actor=ActorContext(source=ActorSource.API),
+            created_at=datetime.now(timezone.utc),
+        ),
+    ]
+    app = _make_app(workflow)
+    app.state.container.workflow_store.list_revisions = AsyncMock(
+        return_value=revisions
+    )
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            f"/api/v0/workflows/{workflow.id}/revisions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert [r["revision_number"] for r in data] == [2, 1]
+    assert data[0]["actor_source"] == "agent"
+    assert data[0]["actor_session_id"] == "sess1"
+    assert data[1]["actor_source"] == "api"
+    assert data[1]["actor_session_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_list_workflow_revisions_404_for_unknown_workflow():
+    workflow = _workflow([WorkflowStep(task="Check status", id="s0")])
+    app = _make_app(workflow)
+    app.state.container.workflow_store.get = AsyncMock(return_value=None)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            f"/api/v0/workflows/{uuid4()}/revisions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

@@ -4,11 +4,20 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from ze_automation.workflow.types import StepResult, Workflow, WorkflowExecution, WorkflowStep
+from ze_automation.workflow.types import (
+    ActorContext,
+    StepResult,
+    Workflow,
+    WorkflowExecution,
+    WorkflowRevision,
+    WorkflowStep,
+)
 
 
 class WorkflowStore(Protocol):
-    async def create(self, workflow: Workflow) -> UUID: ...
+    async def create(
+        self, workflow: Workflow, actor: ActorContext | None = None
+    ) -> UUID: ...
 
     async def get(self, workflow_id: UUID) -> Workflow | None: ...
 
@@ -28,8 +37,15 @@ class WorkflowStore(Protocol):
     ) -> None: ...
 
     async def update_steps(
-        self, workflow_id: UUID, steps: list[WorkflowStep]
+        self,
+        workflow_id: UUID,
+        steps: list[WorkflowStep],
+        actor: ActorContext | None = None,
     ) -> None: ...
+
+    async def list_revisions(
+        self, workflow_id: UUID, limit: int = 20, offset: int = 0
+    ) -> list[WorkflowRevision]: ...
 
     async def delete(self, workflow_id: UUID) -> None: ...
 

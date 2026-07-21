@@ -2320,6 +2320,56 @@ export type WorkflowResponse = {
 };
 
 /**
+ * WorkflowRevisionResponse
+ */
+export type WorkflowRevisionResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Workflow Id
+     */
+    workflow_id: string;
+    /**
+     * Revision Number
+     */
+    revision_number: number;
+    /**
+     * Change Type
+     */
+    change_type: 'created' | 'edited';
+    /**
+     * Steps Before
+     */
+    steps_before: Array<WorkflowStepResponse>;
+    /**
+     * Steps After
+     */
+    steps_after: Array<WorkflowStepResponse>;
+    /**
+     * Summary
+     */
+    summary: string;
+    /**
+     * Actor Source
+     */
+    actor_source: 'agent' | 'api' | 'system';
+    /**
+     * Actor Session Id
+     */
+    actor_session_id?: string | null;
+    /**
+     * Actor User Message Id
+     */
+    actor_user_message_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
  * WorkflowStepInput
  */
 export type WorkflowStepInput = {
@@ -3072,6 +3122,47 @@ export type UpdateWorkflowStepsResponses = {
 };
 
 export type UpdateWorkflowStepsResponse = UpdateWorkflowStepsResponses[keyof UpdateWorkflowStepsResponses];
+
+export type ListWorkflowRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * Workflow Id
+         */
+        workflow_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/api/v0/workflows/{workflow_id}/revisions';
+};
+
+export type ListWorkflowRevisionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListWorkflowRevisionsError = ListWorkflowRevisionsErrors[keyof ListWorkflowRevisionsErrors];
+
+export type ListWorkflowRevisionsResponses = {
+    /**
+     * Response Listworkflowrevisions
+     *
+     * Successful Response
+     */
+    200: Array<WorkflowRevisionResponse>;
+};
+
+export type ListWorkflowRevisionsResponse = ListWorkflowRevisionsResponses[keyof ListWorkflowRevisionsResponses];
 
 export type CancelWorkflowExecutionData = {
     body?: never;

@@ -319,6 +319,71 @@ async def test_run_edits_workflow_steps_via_tool():
     assert "continue" in result.response.lower()
 
 
+async def test_run_edits_workflow_steps_threads_session_and_message_id():
+    import json
+
+    import ze_automation.agents.workflow.tools  # noqa
+
+    from uuid import uuid4
+    from datetime import datetime
+    from ze_automation.workflow.types import ActorSource, Workflow, WorkflowStep
+
+    wf = Workflow(
+        id=uuid4(),
+        name="monitoring-check",
+        description="desc",
+        steps=[WorkflowStep(task="Fetch feed", id="s0", on_failure="fail")],
+        schedule="0 8 * * *",
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_steps = AsyncMock()
+
+    updated_steps = [{"task": "Fetch feed", "id": "s0", "on_failure": "continue"}]
+
+    client = AsyncMock()
+    client.complete_with_tools = AsyncMock(
+        side_effect=[
+            (
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "name": "edit_workflow_steps",
+                        "arguments": {
+                            "workflow_name": "monitoring-check",
+                            "steps_json": json.dumps(updated_steps),
+                        },
+                    }
+                ],
+            ),
+            ("Updated.", None),
+        ]
+    )
+    client.complete = AsyncMock(return_value="ok")
+
+    agent = WorkflowManagerAgent(
+        openrouter_client=client,
+        workflow_store=store,
+        workflow_planner=AsyncMock(),
+        workflow_scheduler=AsyncMock(),
+    )
+    ctx = make_ctx("set step 1 on_failure to continue", intent="manage")
+    ctx.extensions["user_message_id"] = "msg-999"
+    await agent.run(ctx)
+
+    _, kwargs = store.update_steps.call_args
+    actor = kwargs["actor"]
+    assert actor.source == ActorSource.AGENT
+    assert actor.session_id == "test"
+    assert actor.user_message_id == "msg-999"
+
+
 async def test_run_trigger_workflow_via_tool():
     import ze_automation.agents.workflow.tools  # noqa
 

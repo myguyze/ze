@@ -109,6 +109,8 @@ class WorkflowManagerAgent(BaseAgent):
                 "store": self._store,
                 "planner": self._planner,
                 "scheduler": self._scheduler,
+                "session_id": ctx.session_id,
+                "user_message_id": ctx.extensions.get("user_message_id"),
             },
         )
         self._log.info(

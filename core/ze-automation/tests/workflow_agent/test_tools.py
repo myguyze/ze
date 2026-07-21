@@ -6,6 +6,7 @@ import json
 
 import ze_automation.agents.workflow.tools as tools
 from ze_automation.workflow.types import (
+    ActorSource,
     Branch,
     StepResult,
     Workflow,
@@ -239,6 +240,65 @@ async def test_edit_workflow_steps_updates_store():
     store.update_steps.assert_called_once()
     assert result["step_count"] == 1
     assert result["steps"][0]["on_failure"] == "continue"
+
+
+async def test_edit_workflow_steps_constructs_agent_actor_context():
+    wf = _workflow()
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_steps = AsyncMock()
+    steps_json = json.dumps([{"id": "s0", "task": "Updated task", "branches": []}])
+
+    await tools.edit_workflow_steps(
+        store,
+        wf.name,
+        steps_json,
+        session_id="sess-123",
+        user_message_id="msg-456",
+    )
+
+    _, kwargs = store.update_steps.call_args
+    actor = kwargs["actor"]
+    assert actor.source == ActorSource.AGENT
+    assert actor.session_id == "sess-123"
+    assert actor.user_message_id == "msg-456"
+
+
+async def test_edit_workflow_steps_falls_back_to_system_actor_without_deps():
+    wf = _workflow()
+    store = AsyncMock()
+    store.get_by_name = AsyncMock(return_value=wf)
+    store.update_steps = AsyncMock()
+    steps_json = json.dumps([{"id": "s0", "task": "Updated task", "branches": []}])
+
+    await tools.edit_workflow_steps(store, wf.name, steps_json)
+
+    _, kwargs = store.update_steps.call_args
+    assert kwargs["actor"].source == ActorSource.SYSTEM
+
+
+async def test_create_workflow_constructs_agent_actor_context():
+    store = AsyncMock()
+    scheduler = AsyncMock()
+    planner = MagicMock()
+    planner.plan = AsyncMock(return_value=[WorkflowStep(task="Do it", id="s0")])
+    planner.extract_schedule = AsyncMock(return_value=None)
+
+    await tools.create_workflow(
+        store,
+        planner,
+        scheduler,
+        "new-flow",
+        "Do it",
+        session_id="sess-1",
+        user_message_id="msg-1",
+    )
+
+    _, kwargs = store.create.call_args
+    actor = kwargs["actor"]
+    assert actor.source == ActorSource.AGENT
+    assert actor.session_id == "sess-1"
+    assert actor.user_message_id == "msg-1"
 
 
 async def test_edit_workflow_steps_rejects_invalid_graph():

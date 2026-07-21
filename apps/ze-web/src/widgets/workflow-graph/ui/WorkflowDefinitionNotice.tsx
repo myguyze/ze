@@ -9,6 +9,7 @@ export type WorkflowDefinitionNoticeMode =
 interface WorkflowDefinitionNoticeProps {
   mode: WorkflowDefinitionNoticeMode;
   startedAt?: string | null;
+  onViewRevisionsSince?: () => void;
 }
 
 function formatStartedAt(iso: string | null | undefined): string {
@@ -42,7 +43,7 @@ function noticeCopy(mode: WorkflowDefinitionNoticeMode, startedAt?: string | nul
   }
 }
 
-export function WorkflowDefinitionNotice({ mode, startedAt }: WorkflowDefinitionNoticeProps) {
+export function WorkflowDefinitionNotice({ mode, startedAt, onViewRevisionsSince }: WorkflowDefinitionNoticeProps) {
   const isWarning = mode === "historical-edited-since" || mode === "legacy-unavailable";
   const Icon = isWarning ? AlertTriangle : Info;
 
@@ -56,7 +57,21 @@ export function WorkflowDefinitionNotice({ mode, startedAt }: WorkflowDefinition
       role="status"
     >
       <Icon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-      <p>{noticeCopy(mode, startedAt)}</p>
+      <p>
+        {noticeCopy(mode, startedAt)}
+        {mode === "historical-edited-since" && onViewRevisionsSince && (
+          <>
+            {" "}
+            <button
+              type="button"
+              onClick={onViewRevisionsSince}
+              className="underline underline-offset-2 hover:text-amber-spark/80"
+            >
+              View changes since this run
+            </button>
+          </>
+        )}
+      </p>
     </div>
   );
 }

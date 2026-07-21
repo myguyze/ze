@@ -152,6 +152,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 104 | [Workflow Flowchart View](phases/104-workflow-flowchart-view/spec.md) | ✅ Done |
 | 105 | [Notification Center](phases/105-notification-center/spec.md) | ✅ Done |
 | 106 | [Memory Retrieval Relevance](phases/106-memory-retrieval-relevance/spec.md) | ✅ Done |
+| 108 | [Workflow Revision Audit](phases/108-workflow-revision-audit/spec.md) | ✅ Done |
 
 ## Ze Core specs (`core/`)
 

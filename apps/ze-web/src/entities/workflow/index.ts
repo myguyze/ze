@@ -1,6 +1,7 @@
 export { useWorkflowsQuery } from "./api/useWorkflowsQuery";
 export { useWorkflowDetailQuery } from "./api/useWorkflowDetailQuery";
 export { useWorkflowExecutionsQuery } from "./api/useWorkflowExecutionsQuery";
+export { useWorkflowRevisionsQuery } from "./api/useWorkflowRevisionsQuery";
 export { useLiveExecutionQuery } from "./api/useLiveExecutionQuery";
 export { useTriggerWorkflowMutation } from "./api/useTriggerWorkflowMutation";
 export { useCancelExecutionMutation } from "./api/useCancelExecutionMutation";

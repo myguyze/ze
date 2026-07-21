@@ -487,6 +487,26 @@ class CancelWorkflowExecutionResponse(BaseModel):
     message: str
 
 
+class ActorContextResponse(BaseModel):
+    source: Literal["agent", "api", "system"]
+    session_id: str | None = None
+    user_message_id: str | None = None
+
+
+class WorkflowRevisionResponse(BaseModel):
+    id: UUIDType
+    workflow_id: UUIDType
+    revision_number: int
+    change_type: Literal["created", "edited"]
+    steps_before: list[WorkflowStepResponse]
+    steps_after: list[WorkflowStepResponse]
+    summary: str
+    actor_source: Literal["agent", "api", "system"]
+    actor_session_id: str | None = None
+    actor_user_message_id: str | None = None
+    created_at: str
+
+
 # ── REST: eval ────────────────────────────────────────────────────────────────
 
 

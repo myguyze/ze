@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 
@@ -61,3 +62,29 @@ class WorkflowExecution:
     started_at: datetime | None = None
     completed_at: datetime | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+class ActorSource(str, Enum):
+    AGENT = "agent"
+    API = "api"
+    SYSTEM = "system"
+
+
+@dataclass
+class ActorContext:
+    source: ActorSource
+    session_id: str | None = None
+    user_message_id: str | None = None
+
+
+@dataclass
+class WorkflowRevision:
+    id: UUID
+    workflow_id: UUID
+    revision_number: int
+    change_type: str
+    steps_before: list[WorkflowStep]
+    steps_after: list[WorkflowStep]
+    summary: str
+    actor: ActorContext
+    created_at: datetime

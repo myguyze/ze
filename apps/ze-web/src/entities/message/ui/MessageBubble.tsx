@@ -9,7 +9,13 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function MessageBubble({ message }: { message: Message }) {
+export function MessageBubble({
+  message,
+  highlighted = false,
+}: {
+  message: Message;
+  highlighted?: boolean;
+}) {
   const isUser = message.role === "user";
   const [traceOpen, setTraceOpen] = useState(false);
 
@@ -29,7 +35,7 @@ export function MessageBubble({ message }: { message: Message }) {
                 isUser
                   ? "bg-plum-voltage text-white rounded-br-[6px]"
                   : "border border-white/[0.08] bg-white/[0.04] text-white rounded-bl-[6px]"
-              }`}
+              } ${highlighted ? "ring-2 ring-amber-spark/70" : ""}`}
             >
               <ReactMarkdown
                 components={{

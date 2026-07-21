@@ -77,6 +77,7 @@ async def handle_message(
     await conn_mgr.send_frame({"type": "typing"}, thread_id)
 
     config_extra: dict = {}
+    config_extra["user_message_id"] = str(user_msg.id)
     if context:
         config_extra["screen_context"] = context
 
