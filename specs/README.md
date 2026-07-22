@@ -153,6 +153,7 @@ Legend: ✅ Done · 🔄 In Progress · 🔲 Pending · ⏸ Deferred · ⚠️ D
 | 105 | [Notification Center](phases/105-notification-center/spec.md) | ✅ Done |
 | 106 | [Memory Retrieval Relevance](phases/106-memory-retrieval-relevance/spec.md) | ✅ Done |
 | 108 | [Workflow Revision Audit](phases/108-workflow-revision-audit/spec.md) | ✅ Done |
+| 109 | [Open-Loop Substrate](phases/109-open-loop-substrate/spec.md) | 🔄 In Progress (spec drafted — executive layer, Phase A of two) |
 
 ## Ze Core specs (`core/`)
 
@@ -196,6 +197,9 @@ should read them before changing anything structural.
 
 | ADR | Decision |
 |-----|----------|
+| [**Ze Doctrine**](arch/ze-doctrine.md) | **Constitutional.** Ze's continuous spine is the world-state (model of you + active concerns); epistemic ontology (identity/fact/inference/suspicion/priority); provenance + arbitration order. Every spec is checked against it. See also [Cognitive Architecture](../docs/cognitive-architecture.md). |
+| [Aperture Decision](arch/aperture-decision.md) | **Open decision brief.** Which projection of the world-state the executive layer optimises for — open loops vs life-graph + intervention. Grounds the executive-layer phase spec. |
+| [Contribution Seam](arch/contribution-seam.md) | **Design-only.** Generalise `SignalSource` into a uniform proposal seam so all seven cognitive functions write to the spine the same way, arbitrated by governance. Extract after the executive layer exists. |
 | [Single-User Model](arch/single-user-model.md) | No `user_id` anywhere; auth is a single API key; Ze serves one person |
 | [OpenRouter Gateway](arch/openrouter-gateway.md) | All LLM calls through OpenRouter only — single billing, config-driven model swaps |
 | [LangGraph Orchestration](arch/langgraph-orchestration.md) | LangGraph + AsyncPostgresSaver — durable graph execution with confirmation-flow pause/resume |

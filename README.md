@@ -36,9 +36,9 @@ Python/FastAPI backend, LangGraph orchestration, React web client, plugin-per-do
 
 ### Goal engine
 
-The center of gravity. Hand Ze an objective and it decomposes into milestones, dispatches them to specialist agents on a schedule, pauses at verification gates with a progress narrative, replans on failure, and writes a retrospective when it finishes. Steer mid-flight by talking — no slash commands. Background sweep runs every 15 minutes regardless of whether you're online.
+The most developed piece of Ze's executive function. Hand Ze an objective and it decomposes into milestones, dispatches them to specialist agents on a schedule, pauses at verification gates with a progress narrative, replans on failure, and writes a retrospective when it finishes. Steer mid-flight by talking — no slash commands. Background sweep runs every 15 minutes regardless of whether you're online.
 
-This is the bet. Everything else compounds on top of it.
+Goals are the heavyweight end of a larger idea: Ze holding your **active concerns** — what's open, promised, planned, and drifting — and acting on them over time. The spine everything attaches to is Ze's model of you and those concerns, not any single engine. See [the doctrine](specs/arch/ze-doctrine.md).
 
 ### Memory
 
@@ -153,9 +153,11 @@ The hooks compose. A finance plugin registers a `TransactionExtractor` so that i
 
 ## Where it's going
 
-The goal engine needs to carry a full personal project across weeks with minimal intervention — research, plan, execute, verify, iterate, report. That's the target.
+Ze's spine is its model of you and your active concerns — what's true, what's open, and what's drifting. The conceptual direction is deepening the **executive layer** that acts on it: lightweight tracking of open loops, not only heavyweight declared goals. See [the doctrine](specs/arch/ze-doctrine.md) and [cognitive architecture](docs/cognitive-architecture.md).
 
-Near-term: finance and legal plugins, richer correlation reasoning, deeper signal coverage.
+Concretely, the goal engine still needs to carry a full personal project across weeks with minimal intervention — research, plan, execute, verify, iterate, report. That's the near-term executive target.
+
+Beyond that: finance and legal plugins, richer correlation reasoning, deeper signal coverage.
 
 ---
 
@@ -237,6 +239,8 @@ Full index: [docs/README.md](docs/README.md)
 
 | Doc | Topic |
 |---|---|
+| [ze-doctrine.md](specs/arch/ze-doctrine.md) | What kind of mind Ze is — the constitutional layer |
+| [cognitive-architecture.md](docs/cognitive-architecture.md) | The seven cognitive functions mapped onto packages |
 | [architecture.md](docs/architecture.md) | System design, graph flow |
 | [package-architecture.md](docs/package-architecture.md) | Monorepo, `ZePlugin`, dependency rules |
 | [frontend.md](docs/frontend.md) | ze-web — FSD layout, `@ze/client`, plugin UI |
