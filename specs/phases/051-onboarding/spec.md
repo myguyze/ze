@@ -96,7 +96,7 @@ core/ze-onboarding/
     coordinator.py          # flow assembly, review step, submission dispatch
     providers.py            # built-in core setup provider
 
-core/ze-sdk/
+packages/ze-sdk/
   ze_sdk/
     onboarding.py           # re-export ze_onboarding symbols
 

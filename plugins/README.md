@@ -5,7 +5,8 @@ stores, background jobs, and migrations to the Ze graph. Plugins are discovered
 automatically via `[project.entry-points."ze.plugins"]` in each package's
 `pyproject.toml` — no manual registration in `ze-api`.
 
-**Rule:** plugins may import from `core/` (via `ze-sdk`) and `integrations/` but never from `apps/`.
+**Rule:** plugins may import from `packages/ze-sdk` (and transitively `core/`) and
+`integrations/` but never from `apps/`.
 
 Package READMEs follow [docs/package-readme-template.md](../docs/package-readme-template.md).
 Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md](../docs/testing.md).

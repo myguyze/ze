@@ -186,9 +186,10 @@ See [docs/architecture.md](docs/architecture.md) for the full flow and node-by-n
 ```
 apps/           ze-api · ze-web
 plugins/        personal · messenger · calendar · news · prospecting · finance* · legal*
-core/           ze-core · ze-agents · ze-automation · ze-communication · ze-plugin · ze-sdk
+core/           ze-core · ze-agents · ze-automation · ze-communication · ze-plugin
                 ze-memory · ze-proactive · ze-seed · ze-correlation · ze-data · ze-ingestion
                 ze-browser · ze-notifications · ze-components · ze-logging · …
+packages/       ze-sdk · ze-client · ze-ui
 integrations/   ze-google (GmailChannel) · ze-yt · …
 specs/          one spec per phase, written before the code
 ```

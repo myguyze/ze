@@ -290,7 +290,7 @@ test-plugin:
 	$(call pytest_pkg,core/ze-plugin/tests)
 
 test-sdk:
-	$(call pytest_pkg,core/ze-sdk/tests)
+	$(call pytest_pkg,packages/ze-sdk/tests)
 
 test-proactive:
 	$(call pytest_pkg,core/ze-proactive/tests)

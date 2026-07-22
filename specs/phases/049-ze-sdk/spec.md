@@ -1,6 +1,6 @@
 # Ze SDK — Spec
 
-> **Package:** `ze-sdk` (`core/ze-sdk/`)
+> **Package:** `ze-sdk` (`packages/ze-sdk/`)
 > **Phase:** 49
 > **Status:** Done
 > **Prerequisite:** Phase 48 (ze-core split into ze-agents + ze-proactive) must be complete first.
@@ -60,7 +60,7 @@ infrastructure. Ze-core can evolve those internals freely.
 ## Module Location
 
 ```
-core/ze-sdk/
+packages/ze-sdk/
   pyproject.toml
   ze_sdk/
     __init__.py    ← plugin root: ZePlugin, @agent, @tool, BaseAgent, ToolAccess, get_logger, Settings
@@ -276,7 +276,7 @@ __all__ = [
 ## Package Configuration
 
 ```toml
-# core/ze-sdk/pyproject.toml
+# packages/ze-sdk/pyproject.toml
 
 [build-system]
 requires = ["hatchling"]

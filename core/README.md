@@ -17,7 +17,6 @@ Tests run from the repo root via `make test-<short-name>`. See [docs/testing.md]
 | [ze-agents](ze-agents/) | Developer API — `BaseAgent`, `@agent`, `@tool`, shared types, harness hooks |
 | [ze-plugin](ze-plugin/) | Plugin framework — `ZePlugin`, channels, signals, `ZeIntegration` protocol |
 | [ze-proactive](ze-proactive/) | Job scheduling — `ProactiveScheduler`, `ProactiveJob`, push log |
-| [ze-sdk](ze-sdk/) | Public SDK surface — flat re-export layer for plugin authors |
 | [ze-core](ze-core/) | LangGraph orchestration, routing, capability gate, OpenRouter, telemetry |
 | [ze-memory](ze-memory/) | Memory persistence and retrieval — facts, episodes, graph, consolidation |
 | [ze-correlation](ze-correlation/) | Cross-domain hypothesis formation from the memory graph |
@@ -44,9 +43,10 @@ ze-components     ←  no ze deps
 ze-eval           ←  no ze deps
 ze-data           ←  no ze deps
 ze-ingestion      ←  ze-agents, ze-memory, ze-browser
-ze-sdk            ←  ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory, ze-onboarding
 ze-core           ←  ze-agents, ze-plugin
 ```
+
+The plugin entry point (`ze-sdk`) lives in [`packages/ze-sdk`](../packages/ze-sdk/).
 
 ## Where new code goes
 

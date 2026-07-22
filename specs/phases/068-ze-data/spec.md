@@ -202,7 +202,7 @@ from ze_data.portability.types import ImportResult
 ze-data       (no ze deps)                                        core/
 ze-agents     (no ze deps)                                        core/
 ze-plugin   → ze-agents, ze-data                                  core/
-ze-sdk      → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory  core/
+ze-sdk      → ze-agents, ze-data, ze-plugin, ze-proactive, ze-memory  packages/
 ```
 
 ---

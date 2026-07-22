@@ -2,7 +2,7 @@
 
 **Status:** Done
 **Depends on:** Phase 82 (ze-web FSD) — no hard dep, can run in parallel
-**Packages touched:** `core/ze-communication` (new), `core/ze-plugin`, `core/ze-sdk`, `integrations/ze-google`, `plugins/ze-email` → renamed `plugins/ze-messenger`, `apps/ze-api`
+**Packages touched:** `core/ze-communication` (new), `core/ze-plugin`, `packages/ze-sdk`, `integrations/ze-google`, `plugins/ze-email` → renamed `plugins/ze-messenger`, `apps/ze-api`
 
 ---
 
@@ -334,7 +334,7 @@ Any code that imported from `ze_plugin.channels.*` or `ze_sdk.channels.*` migrat
 
 ---
 
-## `core/ze-sdk`: re-export from `ze-communication`
+## `packages/ze-sdk`: re-export from `ze-communication`
 
 ```python
 # ze_sdk/channels.py  (replaces current content)

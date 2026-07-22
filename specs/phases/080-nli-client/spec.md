@@ -2,7 +2,7 @@
 
 **Status:** Done
 **Depends on:** Phase 79 (NLI cross-encoder integration)
-**Packages touched:** `core/ze-agents`, `core/ze-core`, `core/ze-memory`, `core/ze-correlation`, `core/ze-sdk`, `apps/ze-api`
+**Packages touched:** `core/ze-agents`, `core/ze-core`, `core/ze-memory`, `core/ze-correlation`, `packages/ze-sdk`, `apps/ze-api`
 
 ---
 

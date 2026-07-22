@@ -14,7 +14,6 @@ ze/
 │   ├── ze-plugin/    # Plugin extension framework — ZePlugin, channels, signal sources, data domains
 │   ├── ze-proactive/ # Job scheduling framework — ProactiveScheduler, ProactiveNotifier
 │   ├── ze-automation/# Core automation engine — goals, workflows, accountability, agents, jobs
-│   ├── ze-sdk/       # Public SDK surface — flat re-export layer for plugin authors
 │   ├── ze-core/      # Engine — routing, orchestration, telemetry, DI container
 │   ├── ze-data/      # Data portability layer — DataDomain, export/import/delete orchestration
 │   ├── ze-memory/    # Memory package — facts, episodes, graph, retrieval
@@ -24,6 +23,10 @@ ze/
 │   ├── ze-browser/   # Browser sidecar HTTP client
 │   ├── ze-notifications/ # Push notification abstraction (ntfy)
 │   └── ze-components/    # Server-driven UI component descriptors
+├── packages/         # Shared packages — Python SDK + frontend npm
+│   ├── ze-sdk/       # Public SDK surface — flat re-export layer for plugin authors
+│   ├── ze-client/    # @ze/client — generated typed SDK for ze-web
+│   └── ze-ui/        # @ze/ui — server-driven UI contract + React renderer
 ├── integrations/     # External service wrappers — no Ze domain knowledge
 │   └── ze-google/    # Google OAuth2 credentials and service client factories
 │   └── ze-trading212/ # Trading212 REST client for finance ingestion
@@ -34,8 +37,6 @@ ze/
 │   ├── ze-calendar/  # Calendar + reminders domain (ZePlugin)
 │   ├── ze-news/      # News ingestion, ranking, credibility (ZePlugin)
 │   └── ze-finance/   # Finance domain (ZePlugin)
-├── packages/         # Shared npm packages (Bun workspace)
-│   └── ze-client/    # @ze/client — generated typed SDK for ze-web
 └── apps/             # Deployment units
     ├── ze-api/       # HTTP/WebSocket API, wires all plugins
     └── ze-web/       # React web client (Vite + TypeScript + Tailwind + shadcn/ui)

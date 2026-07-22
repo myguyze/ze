@@ -288,7 +288,7 @@ description = "Ze orchestration engine — graph, routing, container, capability
 requires-python = ">=3.11"
 dependencies = ["ze-agents", "ze-memory", ...]   # engine imports developer contracts
 
-# core/ze-sdk/pyproject.toml (revised from phase 48)
+# packages/ze-sdk/pyproject.toml (revised from phase 48)
 [project]
 name = "ze-sdk"
 version = "0.1.0"

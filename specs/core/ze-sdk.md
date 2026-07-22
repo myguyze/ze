@@ -1,6 +1,6 @@
 # ze-sdk — Plugin Entry Point
 
-> **Package:** `core/ze-sdk` — `ze_sdk/`
+> **Package:** `packages/ze-sdk` — `ze_sdk/`
 > **Status:** Done
 > **Implemented in:** [Phase 49](../phases/049-ze-sdk/spec.md)
 
@@ -34,7 +34,7 @@ restructure without breaking plugins.
 ## Module Location
 
 ```
-core/ze-sdk/ze_sdk/
+packages/ze-sdk/ze_sdk/
   __init__.py      ← top-level: @agent, BaseAgent, @tool, ZeError subclasses, Settings
   types.py         ← AgentContext, AgentResult, ToolCall, shared types
   errors.py        ← full ZeError hierarchy

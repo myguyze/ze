@@ -55,15 +55,18 @@ ze/                           # monorepo root
 │   │       ├── jobs/         # goal/workflow/accountability proactive jobs
 │   │       ├── runtime/      # AutomationPlanner, AutomationStore contracts
 │   │       └── migrations/   # zc006–zc009 (goal traces/suggestions/stuck/reuse), zc011 (workflows), zc014 (accountability)
-│   ├── ze-sdk/               # Public SDK surface — flat re-export layer for plugin authors
-│   │   └── ze_sdk/           # ze_sdk, ze_sdk.types, ze_sdk.proactive, ze_sdk.channels,
-│   │                         # ze_sdk.memory, ze_sdk.errors, ze_sdk.automation
 │   ├── ze-memory/            # Memory — facts, episodes, graph, retrieval
 │   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
 │   ├── ze-notifications/     # Push notification abstraction (ntfy)
 │   ├── ze-logging/           # structlog setup, get_logger, context binding
 │   ├── ze-components/        # Server-driven UI component descriptors
 │   └── ze-eval/              # Eval infrastructure — runner, judge, verifier, MCP server
+├── packages/                 # Shared packages (Python SDK + frontend npm)
+│   ├── ze-sdk/               # Public SDK surface — flat re-export layer for plugin authors
+│   │   └── ze_sdk/           # ze_sdk, ze_sdk.types, ze_sdk.proactive, ze_sdk.channels,
+│   │                         # ze_sdk.memory, ze_sdk.errors, ze_sdk.automation
+│   ├── ze-client/            # @ze/client — typed REST SDK + WS types for ze-web
+│   └── ze-ui/                # @ze/ui — server-driven UI contract + React renderer
 ├── plugins/                  # ZePlugin domain extensions
 │   ├── ze-personal/          # Personal-assistant domain layer (ZePlugin) — persona, contacts, onboarding
 │   │   └── ze_personal/
@@ -134,8 +137,8 @@ ze-components     (no ze deps)             core/
 ze-memory       → ze-agents                core/
 ze-eval           (no ze deps — HTTP only) core/  ← eval infrastructure
 ze-automation   → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflows; wired by ze-api directly
-ze-sdk          → ze-agents, ze-communication, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  core/  ← plugin entry point
 ze-core         → ze-agents, ze-communication, ze-plugin  core/  ← engine; never a plugin dep
+ze-sdk          → ze-agents, ze-communication, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  packages/  ← plugin entry point
 ze-google       → ze-communication         integrations/  ← GmailChannel now lives here
 ze-personal     → ze-sdk, ze-memory (read-only: ze_memory.dream.store for dream journal)   plugins/
 ze-messenger    → ze-sdk, ze-google, ze-personal            plugins/

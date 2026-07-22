@@ -1,8 +1,9 @@
 # packages/
 
-Shared TypeScript packages for the Ze frontend. These live in the root Bun workspace
-(`package.json` workspaces) and are consumed by `apps/ze-web`. They have no Python
-dependencies — types and validators are generated from the backend at build time.
+Shared packages consumed across the monorepo. This directory holds:
+
+- **Python** — `ze-sdk`, the plugin authoring surface (uv workspace member)
+- **TypeScript** — `@ze/client` and `@ze/ui` (Bun workspace; consumed by `apps/ze-web`)
 
 ---
 
@@ -10,8 +11,18 @@ dependencies — types and validators are generated from the backend at build ti
 
 | Package | Description |
 |---------|-------------|
+| [ze-sdk](ze-sdk/) | Public Python SDK — flat re-export layer for plugin authors |
 | [ze-client](ze-client/) | `@ze/client` — typed REST SDK and WebSocket frame types for `ze-api` |
 | [ze-ui](ze-ui/) | `@ze/ui` — server-driven UI contract, runtime validation, and React renderer |
+
+## ze-sdk
+
+Plugin authors list `ze-sdk` as their only Ze dependency and import from `ze_sdk.*`.
+It re-exports the stable surface from `ze-agents`, `ze-plugin`, `ze-proactive`,
+`ze-memory`, `ze-communication`, and related core packages — never `ze-core` engine
+internals. See [ze-sdk/README.md](ze-sdk/README.md) and [docs/sdk.md](../docs/sdk.md).
+
+Tests: `make test-sdk`.
 
 ## @ze/client
 
@@ -59,8 +70,9 @@ const nodes = parsePrimitiveTree(rawComponents);
 
 ## Code generation
 
-Both packages ship committed generated artifacts under `src/generated/`. Regenerate
-after changing FastAPI routes, WebSocket schemas, or `ze-components` primitive types:
+Both TypeScript packages ship committed generated artifacts under `src/generated/`.
+Regenerate after changing FastAPI routes, WebSocket schemas, or `ze-components`
+primitive types:
 
 ```bash
 make codegen
@@ -73,23 +85,18 @@ Sources of truth:
 
 ## Testing
 
-`make test-web` runs vitest for both packages and `ze-web`:
-
 ```bash
-cd packages/ze-ui && bun run test   # parse + renderer unit tests
-cd apps/ze-web && bun run test      # app integration tests
-```
-
-Or from the repo root:
-
-```bash
-make test-web
+make test-sdk                   # ze-sdk (pytest)
+cd packages/ze-ui && bun run test
+cd apps/ze-web && bun run test
+make test-web                   # vitest for TS packages + ze-web
 ```
 
 ## Where new code goes
 
 | New code | Package |
 |----------|---------|
+| New plugin-facing re-export | `packages/ze-sdk` |
 | New REST route types or SDK method | regenerate `@ze/client` via `make codegen` |
 | New UI primitive type | `core/ze-components` + regenerate `@ze/ui` via `make codegen` |
 | Primitive render styling | `@ze/ui/react` |
@@ -99,5 +106,6 @@ make test-web
 ## Dependency graph
 
 ```
-ze-web  →  @ze/client, @ze/ui
+plugins / ze-api  →  ze-sdk  →  core packages
+ze-web            →  @ze/client, @ze/ui
 ```

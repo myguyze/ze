@@ -4,7 +4,7 @@
 **Depends on:** Phase 66 (Primitive UI), Phase 72 (API Client Codegen), Phase 75 (`@ze/ui`), Phase 76 (ze-api shell), Phase 82 (ze-web FSD)
 **Architecture:** [arch/plugin-ui.md](../arch/plugin-ui.md)
 
-**Packages touched:** `core/ze-plugin`, `core/ze-sdk`, `apps/ze-api`, `apps/ze-web`, `packages/ze-ui` (types only)
+**Packages touched:** `core/ze-plugin`, `packages/ze-sdk`, `apps/ze-api`, `apps/ze-web`, `packages/ze-ui` (types only)
 
 ---
 
