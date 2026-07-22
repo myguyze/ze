@@ -15,6 +15,7 @@ from ze_api.api.routes import (
     goals,
     health,
     ingest,
+    loops,
     memory,
     notifications,
     routing,
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     app.include_router(ws_schema.router, prefix="/api/v0")
     app.include_router(dream.router, prefix="/api/v0")
     app.include_router(notifications.router, prefix="/api/v0")
+    app.include_router(loops.router, prefix="/api/v0")
     app.include_router(channels.router)
     app.include_router(ui.router)
     app.include_router(webhooks.router)

@@ -1272,6 +1272,148 @@ export type LearningResponse = {
 };
 
 /**
+ * LoopDetail
+ */
+export type LoopDetail = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Claim Kind
+     */
+    claim_kind: string;
+    /**
+     * Provenance
+     */
+    provenance: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
+    /**
+     * Goal Id
+     */
+    goal_id: string | null;
+    /**
+     * Evidence
+     */
+    evidence: Array<LoopEvidenceItem>;
+    /**
+     * Entities
+     */
+    entities: Array<LoopEntityItem>;
+};
+
+/**
+ * LoopEntityItem
+ */
+export type LoopEntityItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Canonical Name
+     */
+    canonical_name: string;
+    /**
+     * Entity Type
+     */
+    entity_type: string;
+};
+
+/**
+ * LoopEvidenceItem
+ */
+export type LoopEvidenceItem = {
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Summary
+     */
+    summary: string;
+};
+
+/**
+ * LoopListItem
+ */
+export type LoopListItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Claim Kind
+     */
+    claim_kind: string;
+    /**
+     * Provenance
+     */
+    provenance: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
+};
+
+/**
+ * LoopTransitionResponse
+ */
+export type LoopTransitionResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+};
+
+/**
  * MarkAllReadResponse
  */
 export type MarkAllReadResponse = {
@@ -4066,6 +4208,158 @@ export type MarkAllNotificationsReadResponses = {
 };
 
 export type MarkAllNotificationsReadResponse = MarkAllNotificationsReadResponses[keyof MarkAllNotificationsReadResponses];
+
+export type ListLoopsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * State
+         */
+        state?: string | null;
+    };
+    url: '/api/v0/loops';
+};
+
+export type ListLoopsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListLoopsError = ListLoopsErrors[keyof ListLoopsErrors];
+
+export type ListLoopsResponses = {
+    /**
+     * Response Listloops
+     *
+     * Successful Response
+     */
+    200: Array<LoopListItem>;
+};
+
+export type ListLoopsResponse = ListLoopsResponses[keyof ListLoopsResponses];
+
+export type GetLoopData = {
+    body?: never;
+    path: {
+        /**
+         * Loop Id
+         */
+        loop_id: string;
+    };
+    query?: never;
+    url: '/api/v0/loops/{loop_id}';
+};
+
+export type GetLoopErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLoopError = GetLoopErrors[keyof GetLoopErrors];
+
+export type GetLoopResponses = {
+    /**
+     * Successful Response
+     */
+    200: LoopDetail;
+};
+
+export type GetLoopResponse = GetLoopResponses[keyof GetLoopResponses];
+
+export type ConfirmLoopData = {
+    body?: never;
+    path: {
+        /**
+         * Loop Id
+         */
+        loop_id: string;
+    };
+    query?: never;
+    url: '/api/v0/loops/{loop_id}/confirm';
+};
+
+export type ConfirmLoopErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ConfirmLoopError = ConfirmLoopErrors[keyof ConfirmLoopErrors];
+
+export type ConfirmLoopResponses = {
+    /**
+     * Successful Response
+     */
+    200: LoopTransitionResponse;
+};
+
+export type ConfirmLoopResponse = ConfirmLoopResponses[keyof ConfirmLoopResponses];
+
+export type CloseLoopData = {
+    body?: never;
+    path: {
+        /**
+         * Loop Id
+         */
+        loop_id: string;
+    };
+    query?: never;
+    url: '/api/v0/loops/{loop_id}/close';
+};
+
+export type CloseLoopErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CloseLoopError = CloseLoopErrors[keyof CloseLoopErrors];
+
+export type CloseLoopResponses = {
+    /**
+     * Successful Response
+     */
+    200: LoopTransitionResponse;
+};
+
+export type CloseLoopResponse = CloseLoopResponses[keyof CloseLoopResponses];
+
+export type DropLoopData = {
+    body?: never;
+    path: {
+        /**
+         * Loop Id
+         */
+        loop_id: string;
+    };
+    query?: never;
+    url: '/api/v0/loops/{loop_id}/drop';
+};
+
+export type DropLoopErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DropLoopError = DropLoopErrors[keyof DropLoopErrors];
+
+export type DropLoopResponses = {
+    /**
+     * Successful Response
+     */
+    200: LoopTransitionResponse;
+};
+
+export type DropLoopResponse = DropLoopResponses[keyof DropLoopResponses];
 
 export type ListChannelsData = {
     body?: never;

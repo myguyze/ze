@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Open-Loop Substrate — the world-state executive layer (Phase A of two). A new `ze-worldstate` package making the doctrine's 'active concerns' face a first-class primitive: the open loop."
 

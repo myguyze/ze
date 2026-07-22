@@ -83,3 +83,7 @@ def get_dream_store(request: Request):
 
 def get_notification_store(request: Request):
     return request.app.state.container.notification_store
+
+
+def get_loop_store(request: Request):
+    return request.app.state.container.loop_store

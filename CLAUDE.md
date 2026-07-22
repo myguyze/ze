@@ -55,6 +55,17 @@ ze/                           # monorepo root
 │   │       ├── jobs/         # goal/workflow/accountability proactive jobs
 │   │       ├── runtime/      # AutomationPlanner, AutomationStore contracts
 │   │       └── migrations/   # zc006–zc009 (goal traces/suggestions/stuck/reuse), zc011 (workflows), zc014 (accountability)
+│   ├── ze-worldstate/        # Open-loop substrate — active concerns, honest provenance, evidence-linked confidence
+│   │   └── ze_worldstate/
+│   │       ├── types.py      # OpenLoop, LoopState, LoopClaimKind, LoopProvenance
+│   │       ├── store.py      # LoopStore Protocol + PostgresLoopStore
+│   │       ├── matching.py   # entity-overlap + embedding-similarity dedup
+│   │       ├── decay.py      # confidence decay cascade, called at the evidence-writing code path
+│   │       ├── extraction.py # conservative relevance-gated loop extraction
+│   │       ├── review.py     # confirm/close/drop lifecycle transitions
+│   │       ├── inflow.py     # inflow wiring helpers (conversation hook, messenger/calendar/ingestion extractors)
+│   │       ├── jobs/         # stale-suspicion expiry job
+│   │       └── migrations/   # zw001 (open_loops)
 │   ├── ze-memory/            # Memory — facts, episodes, graph, retrieval
 │   ├── ze-browser/           # Browser sidecar client (BrowserClient + tool)
 │   ├── ze-notifications/     # Push notification abstraction (ntfy)
@@ -137,6 +148,7 @@ ze-components     (no ze deps)             core/
 ze-memory       → ze-agents                core/
 ze-eval           (no ze deps — HTTP only) core/  ← eval infrastructure
 ze-automation   → ze-agents, ze-proactive, ze-memory  core/  ← goals + workflows; wired by ze-api directly
+ze-worldstate   → ze-agents, ze-proactive, ze-memory, ze-data, ze-components  core/  ← open loops; wired by ze-api directly
 ze-core         → ze-agents, ze-communication, ze-plugin  core/  ← engine; never a plugin dep
 ze-sdk          → ze-agents, ze-communication, ze-data, ze-logging, ze-plugin, ze-proactive, ze-memory, ze-automation  packages/  ← plugin entry point
 ze-google       → ze-communication         integrations/  ← GmailChannel now lives here
@@ -145,7 +157,7 @@ ze-messenger    → ze-sdk, ze-google, ze-personal            plugins/
 ze-prospecting  → ze-sdk, ze-browser, ze-personal           plugins/
 ze-calendar     → ze-sdk, ze-google, ze-personal            plugins/
 ze-news         → ze-sdk                   plugins/
-ze-api          → ze-core, ze-data, ze-logging, ze-sdk, ze-personal, ze-automation, ze-messenger, ze-prospecting,
+ze-api          → ze-core, ze-data, ze-logging, ze-sdk, ze-personal, ze-automation, ze-worldstate, ze-messenger, ze-prospecting,
                     ze-calendar, ze-google, ze-browser, ze-news, ze-notifications, ze-components   apps/
 ze-web            (React — connects to ze-api over WebSocket, no Python deps)         apps/
 ```
@@ -449,3 +461,4 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 105 | Notification Center — `notifications` table owned by `ze-proactive` (`zpro002`); `ProactiveNotifier.notify()` structured path; `GET/POST /api/v0/notifications` REST surface; live `notification` WS frame; `entities/notification` + `widgets/notification-bell` replacing the decorative Bell in `TopBar` | Done |
 | 106 | Memory Retrieval Relevance — real cosine similarity + configurable relevance floor across all `ze-memory` policies; entity-anchored retrieval (`entity_anchor.py`, one-hop `GraphStore.expand()` from query-text entity matches); composite ranking (`composite.py`, similarity × recency decay × confidence) before token budgeting; synchronous live NLI rerank (`retrieval_rerank.live_rerank`) distinct from the async session cache; Mind panel shows real relevance, not extraction confidence | Done |
 | 108 | Workflow Revision Audit — append-only `workflow_revisions` log (`zc026`) on every workflow create/step-edit (agent tool + REST), before/after steps, human-readable diff summary, actor context (agent session/message id or API); `GET /api/v0/workflows/{id}/revisions`; "Change History" section on workflow detail page with "View conversation" deep link and a link from the 107b definition-changed banner | Done |
+| 109 | Open-Loop Substrate — new core `ze-worldstate` package: `OpenLoop` (`suspected`→`active`→`drifting`→`closed`\|`dropped`), honest provenance, continuous confidence with evidence-linked decay cascade, entity-overlap/embedding dedup, stale-suspicion expiry job; loops reuse `ze-memory`'s `memory_relationships`/`GraphStore` (new `open_loop` bucket) rather than a parallel model; wired into all four inflows (conversation, email, calendar, ingestion); `GET/POST /api/v0/loops` REST surface; `widgets/loop-review` | Done |

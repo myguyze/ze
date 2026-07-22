@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ze-core",
     "ze-automation",
+    "ze-worldstate",
     "ze-data",
     "ze-ingestion",
     "ze-yt",
@@ -60,6 +61,7 @@ dev = [
 [tool.uv.sources]
 ze-core          = { workspace = true }
 ze-automation    = { workspace = true }
+ze-worldstate    = { workspace = true }
 ze-data          = { workspace = true }
 ze-ingestion     = { workspace = true }
 ze-yt            = { workspace = true }

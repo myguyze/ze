@@ -199,6 +199,20 @@ class TestExpand:
 
         assert target in expansion.entity_ids
 
+    async def test_single_hop_buckets_open_loop(self):
+        pool, conn = _make_pool()
+        seed = uuid4()
+        loop_id = uuid4()
+        conn.fetch = AsyncMock(
+            return_value=[self._make_row(seed, loop_id, "open_loop", "has_open_loop")]
+        )
+
+        store = PostgresGraphStore(pool=pool)
+        expansion = await store.expand([seed])
+
+        assert loop_id in expansion.open_loop_ids
+        assert not expansion.is_empty()
+
     async def test_limit_caps_relationships(self):
         pool, conn = _make_pool()
         seed = uuid4()

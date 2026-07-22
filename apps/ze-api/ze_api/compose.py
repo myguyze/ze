@@ -18,6 +18,7 @@ from ze_proactive.notification_store import NotificationStore
 from ze_proactive.notifier import ProactiveNotifier
 from ze_proactive.push_log_store import PushLogStore
 from ze_proactive.scheduler import ProactiveScheduler
+from ze_worldstate.bootstrap import register_proactive_jobs as register_worldstate_jobs
 
 
 def register_all_proactive_jobs(
@@ -27,6 +28,7 @@ def register_all_proactive_jobs(
     core_settings: CoreSettings,
     automation: Any,
     correlation: Any,
+    worldstate: Any = None,
     shared: Any,
     plugins: list,
     notifier: ProactiveNotifier,
@@ -54,6 +56,8 @@ def register_all_proactive_jobs(
         notifier=notifier,
         push_log_store=push_log_store,
     )
+    if worldstate is not None:
+        register_worldstate_jobs(scheduler, settings, worldstate)
     for plugin in plugins:
         plugin.register_proactive_jobs(
             scheduler,

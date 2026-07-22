@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Awaitable, Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -93,6 +94,10 @@ class InboundMessageProcessor:
         self._embedder = embedder
         self._automated_patterns = automated_sender_patterns
         self._llm_client = llm_client
+        # Optional hook wired post-construction by ze-api (open-loop extraction,
+        # FR-008's email/messenger inflow) — kept generic here so ze-messenger has
+        # no dependency on ze-worldstate (plan.md: ze-api is the only wiring point).
+        self.loop_extractor: Callable[[str, str], Awaitable[None]] | None = None
 
     async def process(self, msg: InboundMessage, channel_id: str) -> SenderClass:
         sender_class = await self._classify(msg)
@@ -142,6 +147,8 @@ class InboundMessageProcessor:
 
         if significant:
             asyncio.create_task(self._extract_facts(msg))
+            if self.loop_extractor is not None:
+                asyncio.create_task(self.loop_extractor(msg.body, "email"))
 
         return sender_class
 

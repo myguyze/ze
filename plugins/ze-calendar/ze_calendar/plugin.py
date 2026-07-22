@@ -168,6 +168,9 @@ class CalendarPlugin(ZePlugin):
             signal_source=signal_source if admission_gate is not None else None,
             admission_gate=admission_gate,
         )
+        # Exposed so ze-api can wire an open-loop extractor post-startup
+        # (FR-008's calendar inflow — plan.md: ze-api is the only wiring point).
+        container._calendar_reminder_job = calendar_reminders
 
         proactive_cfg = self._settings.config.get("proactive", {})
         calendar_cfg = proactive_cfg.get("calendar", {})

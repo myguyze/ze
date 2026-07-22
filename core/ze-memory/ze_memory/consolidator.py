@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any
+from uuid import UUID
 
 from ze_logging import get_logger
 
@@ -50,6 +52,21 @@ class MemoryConsolidator:
             openrouter_client=openrouter_client,
             settings=settings,
         )
+        # Optional hook wired post-construction by ze-api (open-loop confidence
+        # decay cascade, FR-004) — kept generic here so ze-memory has no dependency
+        # on ze-worldstate (research.md §3: the caller that already touches both
+        # stores wires the cascade, never ze-memory calling into ze-worldstate).
+        self.contradiction_hook: Callable[[UUID], Awaitable[None]] | None = None
+
+    async def _notify_contradiction(self, fact_id: UUID) -> None:
+        if self.contradiction_hook is None:
+            return
+        try:
+            await self.contradiction_hook(fact_id)
+        except Exception as exc:
+            log.warning(
+                "contradiction_hook_failed", fact_id=str(fact_id), error=str(exc)
+            )
 
     async def run(self) -> ConsolidationReport:
         start = time.monotonic()
@@ -121,6 +138,7 @@ class MemoryConsolidator:
                     )
                     contradicted_ids.add(rows[drop]["id"])
                     await self._store.mark_contradicted(rows[drop]["id"])
+                    await self._notify_contradiction(rows[drop]["id"])
                     merged += 1
                 elif sim >= nli_lower:
                     nli_batch_j.append(j)
@@ -148,6 +166,7 @@ class MemoryConsolidator:
                     drop_idx = self._newer_fact_drop_index(rows, i, j_idx)
                     contradicted_ids.add(rows[drop_idx]["id"])
                     await self._store.mark_contradicted(rows[drop_idx]["id"])
+                    await self._notify_contradiction(rows[drop_idx]["id"])
                     merged += 1
                     continue
 
@@ -159,6 +178,8 @@ class MemoryConsolidator:
                         new_emb = self._embedder.encode(merged_value)
                         await self._store.mark_contradicted(rows[i]["id"])
                         await self._store.mark_contradicted(rows[j_idx]["id"])
+                        await self._notify_contradiction(rows[i]["id"])
+                        await self._notify_contradiction(rows[j_idx]["id"])
                         await self._store.insert_merged_fact(
                             rows[i]["predicate"],
                             merged_value,

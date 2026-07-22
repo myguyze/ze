@@ -28,6 +28,7 @@ _AGENT_MODULE_PATH = "ze_ingestion.agent"
 @dataclass
 class IngestionStack:
     pipeline: IngestionPipeline
+    memory_sink: MemorySink
 
 
 def agent_module_paths() -> list[str]:
@@ -96,4 +97,4 @@ def build_ingestion_stack(
 
     _set_pipeline(pipeline)
     log.info("ingestion_pipeline_ready")
-    return IngestionStack(pipeline=pipeline)
+    return IngestionStack(pipeline=pipeline, memory_sink=memory_sink)

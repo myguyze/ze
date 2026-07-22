@@ -44,6 +44,7 @@ class GraphExpansion:
     episode_ids: list[UUID] = field(default_factory=list)
     procedure_ids: list[UUID] = field(default_factory=list)
     signal_ids: list[UUID] = field(default_factory=list)
+    open_loop_ids: list[UUID] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         return not (
@@ -53,4 +54,5 @@ class GraphExpansion:
             or self.episode_ids
             or self.procedure_ids
             or self.signal_ids
+            or self.open_loop_ids
         )

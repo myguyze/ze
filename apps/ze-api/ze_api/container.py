@@ -18,6 +18,8 @@ from ze_automation.bootstrap import (
     configure_workflow_executor,
     import_agent_modules as import_automation_agents,
 )
+from ze_worldstate.bootstrap import build_worldstate_stack, worldstate_data_domains
+from ze_worldstate.store import LoopStore
 from ze_browser import BrowserClient
 from ze_components.hook import ComponentCollectionHook
 from ze_core.nli import LocalNLIClient
@@ -111,6 +113,9 @@ class ZeContainer(CoreContainer):
     channel_registry: ChannelRegistry | None
     webhook_dispatcher: Any | None
     ui_manifest: Any
+    loop_store: LoopStore
+    loop_graph_store: Any
+    loop_entity_resolver: Any
 
     def _build_config(self, thread_id: str, **configurable_extra: object) -> dict:
         plugin_services: dict = {}
@@ -118,6 +123,7 @@ class ZeContainer(CoreContainer):
             plugin_services.update(plugin.configurable_services())
 
         from ze_memory.extractor import gather_fact_proposals
+        from ze_worldstate.inflow import conversation_memory_hook
 
         configurable: dict = {
             "thread_id": str(thread_id),
@@ -133,8 +139,15 @@ class ZeContainer(CoreContainer):
             "component_hook": self.component_hook,
             "correlation_engine": self.correlation_engine,
             "workflow_store": self.workflow_store,
+            "loop_store": self.loop_store,
+            "loop_graph_store": self.loop_graph_store,
+            "loop_entity_resolver": self.loop_entity_resolver,
             **plugin_services,
         }
+        configurable["memory_hooks"] = [
+            conversation_memory_hook,
+            *plugin_services.get("memory_hooks", []),
+        ]
         configurable.update(configurable_extra)
         return {"configurable": configurable}
 
@@ -208,7 +221,16 @@ async def build_container(settings: Settings) -> ZeContainer:
     shared = await build_engine_stack(pool, checkpointer_pool, settings)
     automation = build_automation_stack(shared, settings)
     correlation = build_correlation_stack(shared, settings)
+    worldstate = build_worldstate_stack(shared, settings)
     shared.dep_map.update(automation.deps)
+    shared.dep_map.update(worldstate.deps)
+
+    async def _worldstate_contradiction_hook(fact_id) -> None:
+        from ze_worldstate.decay import cascade_from_evidence
+
+        await cascade_from_evidence("fact", fact_id, worldstate.loop_store)
+
+    shared.memory_consolidator.contradiction_hook = _worldstate_contradiction_hook
 
     browser_client = BrowserClient(
         base_url=settings.browser_service_url,
@@ -282,6 +304,15 @@ async def build_container(settings: Settings) -> ZeContainer:
         settings,
         plugins,
         browser_client=browser_client,
+    )
+    from ze_worldstate.inflow import make_loop_extractor_from_parts
+
+    ingestion.memory_sink.loop_extractor = make_loop_extractor_from_parts(
+        loop_store=worldstate.loop_store,
+        loop_graph_store=worldstate.graph_store,
+        loop_entity_resolver=worldstate.entity_resolver,
+        openrouter_client=shared.openrouter_client,
+        embedder=shared.embedder,
     )
 
     from ze_agents.progress.translations import ProgressTranslations
@@ -378,6 +409,7 @@ async def build_container(settings: Settings) -> ZeContainer:
     all_domains = (
         engine_data_domains(pool)
         + automation_data_domains(pool)
+        + worldstate_data_domains(pool)
         + [d for plugin in plugins for d in plugin.data_domains()]
     )
     data_portability_service = DataPortabilityService(pool=pool, domains=all_domains)
@@ -430,6 +462,9 @@ async def build_container(settings: Settings) -> ZeContainer:
         channel_registry=channel_registry,
         webhook_dispatcher=webhook_dispatcher,
         ui_manifest=ui_manifest,
+        loop_store=worldstate.loop_store,
+        loop_graph_store=worldstate.graph_store,
+        loop_entity_resolver=worldstate.entity_resolver,
     )
 
     webhook_dispatcher._container = container
@@ -443,6 +478,24 @@ async def build_container(settings: Settings) -> ZeContainer:
                 "plugin_startup_failed", plugin=type(plugin).__name__, error=str(exc)
             )
             raise
+
+    _webhook_processor = getattr(container, "_webhook_processor", None)
+    _calendar_reminder_job = getattr(container, "_calendar_reminder_job", None)
+    if (
+        _webhook_processor is not None and hasattr(_webhook_processor, "loop_extractor")
+    ) or (
+        _calendar_reminder_job is not None
+        and hasattr(_calendar_reminder_job, "loop_extractor")
+    ):
+        from ze_worldstate.inflow import make_loop_extractor
+
+        _loop_extractor = make_loop_extractor(container)
+        if _webhook_processor is not None:
+            _webhook_processor.loop_extractor = _loop_extractor
+            log.info("messenger_loop_extractor_wired")
+        if _calendar_reminder_job is not None:
+            _calendar_reminder_job.loop_extractor = _loop_extractor
+            log.info("calendar_loop_extractor_wired")
 
     from ze_personal.graph.workflow import build_workflow_graph
 
@@ -478,6 +531,7 @@ async def build_container(settings: Settings) -> ZeContainer:
         core_settings=core_settings,
         automation=automation,
         correlation=correlation,
+        worldstate=worldstate,
         shared=shared,
         plugins=plugins,
         notifier=notifier,

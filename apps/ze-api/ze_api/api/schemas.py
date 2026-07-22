@@ -985,3 +985,41 @@ class UnreadCountResponse(BaseModel):
 
 class MarkAllReadResponse(BaseModel):
     marked: int
+
+
+# ── REST: open loops ──────────────────────────────────────────────────────────
+
+
+class LoopListItem(BaseModel):
+    id: UUIDType
+    title: str
+    state: str
+    claim_kind: str
+    provenance: str
+    confidence: float
+    created_at: str | None
+    updated_at: str | None
+
+
+class LoopEvidenceItem(BaseModel):
+    type: str
+    id: UUIDType
+    summary: str
+
+
+class LoopEntityItem(BaseModel):
+    id: UUIDType
+    canonical_name: str
+    entity_type: str
+
+
+class LoopDetail(LoopListItem):
+    goal_id: UUIDType | None
+    evidence: list[LoopEvidenceItem]
+    entities: list[LoopEntityItem]
+
+
+class LoopTransitionResponse(BaseModel):
+    id: UUIDType
+    state: str
+    confidence: float
