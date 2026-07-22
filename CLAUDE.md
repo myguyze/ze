@@ -462,3 +462,30 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 106 | Memory Retrieval Relevance — real cosine similarity + configurable relevance floor across all `ze-memory` policies; entity-anchored retrieval (`entity_anchor.py`, one-hop `GraphStore.expand()` from query-text entity matches); composite ranking (`composite.py`, similarity × recency decay × confidence) before token budgeting; synchronous live NLI rerank (`retrieval_rerank.live_rerank`) distinct from the async session cache; Mind panel shows real relevance, not extraction confidence | Done |
 | 108 | Workflow Revision Audit — append-only `workflow_revisions` log (`zc026`) on every workflow create/step-edit (agent tool + REST), before/after steps, human-readable diff summary, actor context (agent session/message id or API); `GET /api/v0/workflows/{id}/revisions`; "Change History" section on workflow detail page with "View conversation" deep link and a link from the 107b definition-changed banner | Done |
 | 109 | Open-Loop Substrate — new core `ze-worldstate` package: `OpenLoop` (`suspected`→`active`→`drifting`→`closed`\|`dropped`), honest provenance, continuous confidence with evidence-linked decay cascade, entity-overlap/embedding dedup, stale-suspicion expiry job; loops reuse `ze-memory`'s `memory_relationships`/`GraphStore` (new `open_loop` bucket) rather than a parallel model; wired into all four inflows (conversation, email, calendar, ingestion); `GET/POST /api/v0/loops` REST surface; `widgets/loop-review` | Done |
+
+## graphify
+
+Full-repo knowledge graph lives at `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`,
+`graph.html`). Keep the corpus at repo root — do not rebuild on a subfolder unless
+explicitly asked. AST extraction is free; semantic extraction only covers docs/specs.
+
+**What it is:** an import/call graph with community detection — not a reasoning layer.
+It will not invent DI wiring, shared SQL tables, or “why this design exists.” Prefer
+specs/`CLAUDE.md` for architecture intent.
+
+**When to use it (prefer in this order):**
+1. `graphify explain "<ExactSymbol>"` — who imports/calls a known type or function
+2. `graphify path "<A>" "<B>"` — shortest structural path between two exact symbols
+3. `graphify-out/GRAPH_REPORT.md` — god nodes, import cycles, hyperedges (broad scan)
+4. `graphify query "<question>" --budget 800` — only with concrete symbol/file names;
+   raise `--budget` if truncated. Broad NL queries on this monorepo are noisy.
+
+**When not to lead with graphify:** open-ended “how does X work?”, “why?”, or
+behavior that isn’t an import/call edge (SQL predicates, YAML config, WS frame
+shapes). Use Grep / Read / specs instead, then optionally confirm with `explain`.
+
+**Keep it fresh:** after substantial code changes, `graphify update .` (AST-only,
+no API cost). Full rebuild only when the graph is missing or badly stale.
+`graphify-out/` is gitignored — local/cache only.
+
+When the user types `/graphify`, follow the graphify skill before other exploration.

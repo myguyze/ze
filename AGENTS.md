@@ -412,6 +412,31 @@ capability_check → execute_tool → (compound?) → synthesize → write_memor
 | 80 | NLI Client + plugin access — `NLIClient` Protocol, DI, shared `@tool`s | Done |
 | 81 | Plugin NLI adoption — news dedup, finance merchant merging | Pending |
 
+## graphify
+
+Full-repo knowledge graph lives at `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`,
+`graph.html`). Keep the corpus at repo root — do not rebuild on a subfolder unless
+explicitly asked. AST extraction is free; semantic extraction only covers docs/specs.
+
+**What it is:** an import/call graph with community detection — not a reasoning layer.
+It will not invent DI wiring, shared SQL tables, or “why this design exists.” Prefer
+specs/`AGENTS.md` for architecture intent.
+
+**When to use it (prefer in this order):**
+1. `graphify explain "<ExactSymbol>"` — who imports/calls a known type or function
+2. `graphify path "<A>" "<B>"` — shortest structural path between two exact symbols
+3. `graphify-out/GRAPH_REPORT.md` — god nodes, import cycles, hyperedges (broad scan)
+4. `graphify query "<question>" --budget 800` — only with concrete symbol/file names;
+   raise `--budget` if truncated. Broad NL queries on this monorepo are noisy.
+
+**When not to lead with graphify:** open-ended “how does X work?”, “why?”, or
+behavior that isn’t an import/call edge (SQL predicates, YAML config, WS frame
+shapes). Use Grep / Read / specs instead, then optionally confirm with `explain`.
+
+**Keep it fresh:** after substantial code changes, `graphify update .` (AST-only,
+no API cost). Full rebuild only when the graph is missing or badly stale.
+`graphify-out/` is gitignored — local/cache only.
+
 ## Learned User Preferences
 
 - Write a spec before significant new features: `/speckit-specify` for `specs/phases/` features, or an ADR in `specs/arch/` (follow the existing ones) for cross-cutting decisions.

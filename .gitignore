@@ -41,6 +41,9 @@ logs/
 .claude/*
 !.claude/skills/
 
+# graphify knowledge graph (full-repo local cache; see AGENTS.md / CLAUDE.md)
+graphify-out/
+
 # OS / IDE
 .DS_Store
 Thumbs.db
