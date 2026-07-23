@@ -2,8 +2,8 @@
 
 > **Status:** Accepted (constitutional)
 > **Scope:** All packages. This is the top-level document every other spec is checked against.
-> **Supersedes as the root vision:** `VISION.md` ("I want to make Jarvis") — this document
-> is what "Jarvis" concretely commits to.
+> **Relationship to `VISION.md`:** the short product statement. This document is the
+> constitutional expansion of those commitments — check every other spec against *this*.
 > **Relationship to other docs:** `specs/arch/correlation-engine.md` is a *local* application
 > of this doctrine (bounded, grounded, agency-preserving). This document generalises that
 > discipline to the whole system.
